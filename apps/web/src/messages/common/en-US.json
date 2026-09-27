@@ -1,0 +1,320 @@
+{
+  "language": "Language",
+  "theme": {
+    "label": "Theme",
+    "light": "Light Mode",
+    "dark": "Dark Mode",
+    "system": "System"
+  },
+  "timezone": {
+    "label": "Timezone",
+    "options": {
+      "utc": "Standard",
+      "cn": "Local",
+      "us": "US Eastern",
+      "jp": "Japan",
+      "saudi": "Saudi Arabia",
+      "india": "India",
+      "es": "Spain",
+      "tr": "Türkiye"
+    }
+  },
+  "userMenu": {
+    "ariaLabel": "Account menu",
+    "logout": "Sign out"
+  },
+  "search": {
+    "quickSearch": "Quick search…",
+    "shortcut": "Ctrl K"
+  },
+  "commandPalette": {
+    "placeholder": "Search pages or type a command…",
+    "empty": "No matching results",
+    "groups": {
+      "pages": "Pages",
+      "actions": "Actions"
+    }
+  },
+  "profileNav": {
+    "title": "Admin",
+    "apps": "Apps",
+    "myProfile": "Profile",
+    "appearance": "Appearance",
+    "settings": "Settings",
+    "back": "Back",
+    "askAi": "Ask AI",
+    "support": "Support",
+    "ai": "AI",
+    "about": "About"
+  },
+  "about": {
+    "appName": "Nivo Admin",
+    "appDescription": "Backend admin console for multi-app workspaces",
+    "fields": {
+      "appName": "Application name",
+      "version": "Version",
+      "techStack": "Tech stack"
+    },
+    "techStack": "React · Vite · TanStack Router · Tailwind · Kumo"
+  },
+  "profile": {
+    "title": "Profile",
+    "settings": {
+      "general": "General settings",
+      "accentColor": "Accent color",
+      "palette": "Palette",
+      "appBoard": "App appearance",
+      "neutralColor": "Neutral color",
+      "themeDisabled": "Custom theme is not enabled yet",
+      "colors": {
+        "default": "Default",
+        "orange": "Orange",
+        "blue": "Blue",
+        "purple": "Purple",
+        "green": "Green",
+        "red": "Red",
+        "coolGray": "Cool gray",
+        "gray": "Neutral gray",
+        "zinc": "Zinc",
+        "warmGray": "Warm gray"
+      },
+      "appearanceHint": "Choose the interface theme",
+      "languageHint": "Switch the admin console language",
+      "timezoneHint": "Timezone used for all date and time displays",
+      "detailOpenMode": "Detail open mode",
+      "detailOpenModeHint": "How details open from a table; on mobile details always open as a full page",
+      "detailOpenModes": {
+        "split": "Split view",
+        "sheet": "Side sheet",
+        "page": "Full page"
+      },
+      "aiDisplayMode": "Display mode",
+      "aiDisplayModeHint": "How the Ask AI panel appears; on narrow screens both modes collapse into an overlay",
+      "aiModes": {
+        "split": "Split view",
+        "float": "Float"
+      },
+      "aiProviders": "Model services",
+      "aiProviderEmpty": "No providers yet. Add one to get started.",
+      "aiAddProvider": "Add provider",
+      "aiEditProvider": "Edit provider",
+      "aiProviderKind": "Service type",
+      "aiProviderName": "Name",
+      "aiProviderBaseUrl": "Base URL",
+      "aiProviderBaseUrlHint": "Leave empty to use the official endpoint for this service type",
+      "aiApiKey": "API key",
+      "aiApiKeyHint": "The key is stored only in this browser on this device. Do not enter a real key on a shared computer.",
+      "aiProviderKeySet": "Key set",
+      "aiProviderKeyMissing": "Key missing",
+      "aiProviderKinds": {
+        "openai": "OpenAI",
+        "anthropic": "Anthropic",
+        "compatible": "OpenAI-compatible"
+      },
+      "aiProviderDeleteTitle": "Delete provider",
+      "aiProviderDeleteDesc": "Models configured under this provider will be deleted too.",
+      "aiModels": "Models",
+      "aiModelsHint": "The default model is used for new chats; models with tool calling turned off can only chat.",
+      "aiModelsNoProviderHint": "Add a provider under Model services first.",
+      "aiModelEmpty": "No models configured yet.",
+      "aiAddModel": "Add model",
+      "aiEditModel": "Edit model",
+      "aiModelProvider": "Provider",
+      "aiModelId": "Model ID",
+      "aiModelIdHint": "The model name from the provider docs, for example gpt-5-mini or claude-sonnet-4-5",
+      "aiModelName": "Display name",
+      "aiModelNameHint": "Leave empty to show the model ID",
+      "aiModelSupportsTools": "Tool calling",
+      "aiModelNoTools": "Chat only",
+      "aiDefaultModel": "Default",
+      "aiSetDefaultModel": "Set as default",
+      "aiModelDeleteTitle": "Delete model",
+      "aiModelDeleteDesc": "You need to add it again to keep using this model.",
+      "aiActivityGlow": "Activity glow",
+      "aiActivityGlowHint": "Shows a moving light band around the page while AI is working",
+      "aiShowToolCalls": "Show tool calls",
+      "aiShowToolCallsHint": "Show which tools the AI called; turn off to see only the answer",
+      "aiBotAvatar": "Assistant avatar",
+      "aiBotAvatarHint": "The little robot that shows up with the assistant's replies",
+      "aiOutputMode": "Output",
+      "aiOutputModeHint": "Show the answer as it is written, or all at once when it is done",
+      "aiOutputModes": {
+        "stream": "Live",
+        "wait": "After thinking"
+      },
+      "aiAutoScroll": "Follow output",
+      "aiAutoScrollHint": "Scroll to the latest content while the AI answers; scrolling up pauses it",
+      "aiPermission": "AI permissions",
+      "aiPermissionMode": "Scope",
+      "aiPermissionModeHint": "What the AI is allowed to do. Switch to Full access to let it fill forms, submit and call write APIs",
+      "aiPermissionModes": {
+        "readonly": "Read only",
+        "full": "Full access",
+        "custom": "Custom"
+      },
+      "aiToolGroups": {
+        "page": "Page",
+        "data": "Data",
+        "form": "Forms"
+      },
+      "aiToolGroupHints": {
+        "page": "Read the current page, list navigation, navigate",
+        "data": "Search and read APIs. Write APIs always ask for your confirmation",
+        "form": "List page forms, fill them in, submit them"
+      },
+      "aiToolNames": {
+        "get_page_context": "Read page context",
+        "list_navigation": "List navigation",
+        "navigate_to": "Navigate to a page",
+        "search_api": "Search APIs",
+        "call_read_api": "Call a read API",
+        "list_dict_options": "List dictionary options",
+        "call_write_api": "Call a write API",
+        "list_page_forms": "List page forms",
+        "fill_form": "Fill in a form",
+        "submit_form": "Submit a form"
+      },
+      "aiOutputLanguage": "Output language",
+      "aiOutputLanguageHint": "Which language the AI answers in; follows the interface by default",
+      "aiOutputLanguageAuto": "Follow interface",
+      "aiEnabled": "Enable AI",
+      "aiEnabledHint": "Turning this off hides the Ask AI entry from the header"
+    },
+    "loadError": "Profile service is unavailable. Showing local sign-in information.",
+    "sections": {
+      "basic": "Basic information",
+      "regions": "Region permissions"
+    },
+    "fields": {
+      "username": "Username",
+      "nickName": "Nickname",
+      "email": "Email",
+      "uid": "UID",
+      "role": "Role",
+      "status": "Status",
+      "currentRegion": "Current region"
+    },
+    "status": {
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    },
+    "regions": {
+      "empty": "No region permissions"
+    }
+  },
+  "selectApp": {
+    "title": "Apps",
+    "subtitle": "Select an application.",
+    "tableApp": "App",
+    "tableDesc": "Description",
+    "loading": "Loading applications…",
+    "viewAll": "View all apps"
+  },
+  "nav": {
+    "system": "System",
+    "systemFeatures": "Features",
+    "systemDataDict": "Data dictionary",
+    "config": "Configuration",
+    "langPack": "Language pack",
+    "home": "Dashboard",
+    "userOps": "User operations",
+    "userList": "User list"
+  },
+  "notFound": {
+    "backHome": "Back to Home",
+    "title": "Page not found",
+    "description": "The route <b>{{route}}</b> does not exist<br/>The rest of the dashboard is up and running smoothly,<br/>so feel free to return there safely.",
+    "copyLink": "Copy link",
+    "copied": "Copied"
+  },
+  "actions": {
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "back": "Back",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "table": {
+    "displayOptions": {
+      "trigger": "Display options",
+      "title": "Edit columns",
+      "reset": "Reset",
+      "filterPlaceholder": "Filter columns…",
+      "clearFilter": "Clear filter",
+      "noMatch": "No matching columns",
+      "other": "Other"
+    },
+    "search": {
+      "placeholder": "Search records…",
+      "ariaLabel": "Search",
+      "clear": "Clear search"
+    },
+    "filters": {
+      "trigger": "Filters"
+    },
+    "filterBuilder": {
+      "title": "Filters",
+      "close": "Close",
+      "empty": "No conditions yet — add a filter field below",
+      "field": "Field",
+      "yes": "Yes",
+      "no": "No",
+      "rangeFrom": "Min",
+      "rangeTo": "Max",
+      "arrayPlaceholder": "Separate multiple values with commas",
+      "add": "Add filter",
+      "remove": "Remove {{field}} filter",
+      "enterHint": "Press Enter to apply",
+      "clearAll": "Clear all",
+      "apply": "Apply"
+    },
+    "filterChips": {
+      "label": "Active filters",
+      "edit": "Edit {{label}} filter",
+      "remove": "Remove {{label}} filter"
+    },
+    "actions": {
+      "import": "Import",
+      "export": "Export",
+      "addRecord": "Add record",
+      "refresh": "Refresh"
+    },
+    "summary": {
+      "total": "<b>{{total}}</b> matching records found",
+      "selected": "<b>{{selected}}</b> selected",
+      "clearSelection": "Clear selection"
+    },
+    "dataTable": {
+      "quota": "You are viewing <b>{{current}} of {{total}}</b> {{module}} records",
+      "selectedOf": "<b>{{selected}}</b> / {{total}} selected",
+      "clearSelection": "Clear selection",
+      "batchEdit": "Edit {{num}}",
+      "batchDelete": "Delete {{num}}",
+      "loading": "Loading table data…",
+      "retry": "Retry",
+      "emptyTitle": "No data",
+      "emptyDescription": "No matching records found",
+      "moduleFallback": "data",
+      "expandRow": "Expand",
+      "collapseRow": "Collapse",
+      "paginationShowing": "Showing <b>{{range}}</b> of <b>{{total}}</b>",
+      "pagination": {
+        "perPage": "Per page:",
+        "navigation": "Pagination",
+        "firstPage": "First page",
+        "previousPage": "Previous page",
+        "nextPage": "Next page",
+        "lastPage": "Last page",
+        "pageNumber": "Page number",
+        "pageSize": "Page size"
+      }
+    }
+  },
+  "detailPreview": {
+    "ariaLabel": "Detail preview",
+    "expand": "Expand",
+    "close": "Close preview",
+    "resize": "Resize preview"
+  }
+}

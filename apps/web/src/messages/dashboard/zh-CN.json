@@ -1,0 +1,61 @@
+{
+  "title": "仪表盘",
+  "description": "自由编排卡片，只看你关心的内容",
+  "edit": {
+    "enter": "自定义",
+    "exit": "完成",
+    "reset": "恢复默认布局",
+    "resetDone": "已恢复默认布局",
+    "hint": "拖动卡片可调整位置与大小",
+    "addCard": "添加卡片",
+    "addCardDescription": "选择要放到仪表盘上的卡片，可随时移除。",
+    "added": "已添加",
+    "remove": "移除卡片",
+    "empty": "你的仪表盘还是空的",
+    "emptyHint": "点击右上角「自定义」，再添加卡片",
+    "dragHandle": "拖动卡片",
+    "resizeHandle": "调整卡片大小"
+  },
+  "cards": {
+    "overview": {
+      "title": "系统概览",
+      "app": "当前应用",
+      "account": "登录账号",
+      "domain": "接口地址",
+      "category": "应用类型",
+      "unknown": "未提供"
+    },
+    "quickActions": {
+      "title": "快捷入口",
+      "description": "常用模块一键直达"
+    },
+    "metrics": {
+      "title": "数据概览",
+      "description": "卡片尚未接入接口，以下为占位示例数据",
+      "users": "用户总数",
+      "activeUsers": "活跃用户",
+      "orders": "今日订单",
+      "badge": "示例"
+    },
+    "version": {
+      "title": "版本信息",
+      "description": "当前前端构建版本与部署环境",
+      "version": "版本号",
+      "environment": "环境",
+      "build": "构建方式",
+      "buildStatic": "前端静态构建",
+      "env": {
+        "unconfigured": "未配置",
+        "production": "生产环境",
+        "test": "测试环境",
+        "staging": "预发布环境",
+        "development": "开发环境",
+        "custom": "自定义环境"
+      }
+    },
+    "unknown": {
+      "title": "未知卡片",
+      "description": "卡片「{{type}}」在当前版本中不可用，可移除后重新添加"
+    }
+  }
+}

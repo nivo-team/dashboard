@@ -1,0 +1,1646 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Nivo Admin Mock API",
+    "version": "1.0.0",
+    "description": "开源后台模板自带的 Mock API。契约与实现同源，由各个路由的 defineRouteMeta 反向生成。"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3001",
+      "description": "Local Development Server",
+      "variables": {}
+    }
+  ],
+  "paths": {
+    "/api": {
+      "get": {
+        "tags": [
+          "系统"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "接口清单",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiListResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "获取系统接口清单（供功能管理关联接口权限使用）"
+      }
+    },
+    "/apps": {
+      "get": {
+        "tags": [
+          "应用"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "应用列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppListResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "获取可选应用列表（含各自的接口根地址）"
+      }
+    },
+    "/data_dict/{id}": {
+      "delete": {
+        "tags": [
+          "数据字典"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "字典项 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "0 表示成功"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "null",
+                      "description": "成功时为空"
+                    }
+                  },
+                  "required": [
+                    "code"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "删除字典项"
+      }
+    },
+    "/data_dict": {
+      "get": {
+        "tags": [
+          "数据字典"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type_id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "所属分类 ID（含其子分类）"
+          },
+          {
+            "in": "query",
+            "name": "kw",
+            "schema": {
+              "type": "string"
+            },
+            "description": "关键词（显示名 / 键值）"
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "状态：1 启用 / 2 禁用"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "字典项分页结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictItemPageResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "字典项分页列表"
+      },
+      "post": {
+        "tags": [
+          "数据字典"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "新建的字典项",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictItemResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "新建字典项",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type_id": {
+                    "type": "integer",
+                    "description": "所属分类 ID"
+                  },
+                  "label": {
+                    "type": "string",
+                    "description": "显示名"
+                  },
+                  "value": {
+                    "type": "string",
+                    "description": "键值"
+                  },
+                  "status": {
+                    "type": "integer",
+                    "description": "1 启用 / 2 禁用"
+                  },
+                  "is_default": {
+                    "type": "integer",
+                    "description": "1 是默认值 / 2 否"
+                  },
+                  "sort": {
+                    "type": "integer"
+                  },
+                  "remark": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type_id",
+                  "label",
+                  "value"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "数据字典"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "更新后的字典项",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictItemResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "更新字典项",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "字典项 ID"
+                  },
+                  "type_id": {
+                    "type": "integer"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "integer"
+                  },
+                  "is_default": {
+                    "type": "integer"
+                  },
+                  "sort": {
+                    "type": "integer"
+                  },
+                  "remark": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/data_dict/options": {
+      "get": {
+        "tags": [
+          "数据字典"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "字典选项映射",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictOptionsResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "获取全量字典选项（按分类编码分组）"
+      }
+    },
+    "/data_dict/type/{id}": {
+      "delete": {
+        "tags": [
+          "数据字典"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "分类 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除结果；被拒绝时 code 非 0",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "0 表示成功"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "失败原因"
+                    },
+                    "result": {
+                      "type": "null",
+                      "description": "成功时为空"
+                    }
+                  },
+                  "required": [
+                    "code"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "删除字典分类（存在子分类或字典项时会被拒绝）"
+      }
+    },
+    "/data_dict/type": {
+      "post": {
+        "tags": [
+          "数据字典"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "新建的分类",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictTypeNodeResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "新建字典分类",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "分类名称"
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "局部编码，如 channel"
+                  },
+                  "type": {
+                    "type": "integer",
+                    "description": "键值类型：1 字符串 / 2 数字"
+                  },
+                  "status": {
+                    "type": "integer",
+                    "description": "1 启用 / 2 禁用"
+                  },
+                  "parent_id": {
+                    "type": "integer",
+                    "description": "上级分类 ID，顶级为 0"
+                  },
+                  "sort": {
+                    "type": "integer"
+                  },
+                  "remark": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "code"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "数据字典"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "更新后的分类",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictTypeNodeResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "更新字典分类",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "分类 ID"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "code": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "integer"
+                  },
+                  "status": {
+                    "type": "integer"
+                  },
+                  "parent_id": {
+                    "type": "integer"
+                  },
+                  "sort": {
+                    "type": "integer"
+                  },
+                  "remark": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/data_dict/type/tree": {
+      "get": {
+        "tags": [
+          "数据字典"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "分类树",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictTypeTreeResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "获取字典分类树（顶层节点数组）"
+      }
+    },
+    "/login": {
+      "post": {
+        "tags": [
+          "认证"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "登录结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "账号密码登录（任意非空账号密码均可通过）",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "账号"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "密码"
+                  },
+                  "remember": {
+                    "type": "boolean",
+                    "description": "是否记住登录状态"
+                  }
+                },
+                "required": [
+                  "username",
+                  "password"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/logout": {
+      "post": {
+        "tags": [
+          "认证"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "退出结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "0 表示成功"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "null",
+                      "description": "成功时为空"
+                    }
+                  },
+                  "required": [
+                    "code"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "退出登录"
+      }
+    },
+    "/profile": {
+      "get": {
+        "tags": [
+          "认证"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "用户信息",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "获取当前登录用户信息"
+      }
+    },
+    "/system/menu/{id}": {
+      "delete": {
+        "tags": [
+          "功能菜单"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "功能 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "0 表示成功"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "null",
+                      "description": "成功时为空"
+                    }
+                  },
+                  "required": [
+                    "code"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "删除功能（其下级一并删除）"
+      }
+    },
+    "/system/menu": {
+      "post": {
+        "tags": [
+          "功能菜单"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "新建的功能节点",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuNodeResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "新建功能 / 功能组 / 权限点",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuCreateBody"
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "功能菜单"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "更新后的功能节点",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuNodeResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "更新功能 / 功能组 / 权限点",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuUpdateBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/system/menu/tree": {
+      "get": {
+        "tags": [
+          "功能菜单"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "menu_id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "以某个节点为根的子树；不传或传入未知 id 时返回整棵树"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "功能树",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuTreeResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "获取功能菜单树（顶层节点数组，后代嵌在 children 中）"
+      }
+    },
+    "/user": {
+      "get": {
+        "tags": [
+          "用户"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "页码，从 1 开始"
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "每页条数"
+          },
+          {
+            "in": "query",
+            "name": "kw",
+            "schema": {
+              "type": "string"
+            },
+            "description": "关键词（昵称 / 邮箱 / ID）"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "用户分页结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "用户分页列表"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiItem": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "接口名称"
+          },
+          "method": {
+            "type": "string",
+            "description": "HTTP 方法"
+          },
+          "path": {
+            "type": "string",
+            "description": "接口路径"
+          },
+          "value": {
+            "type": "string",
+            "description": "接口唯一标识（用作权限 key）"
+          }
+        },
+        "required": [
+          "label",
+          "method",
+          "path",
+          "value"
+        ]
+      },
+      "ApiListResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiItem"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "AppItem": {
+        "type": "object",
+        "description": "一个可选应用",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "应用标识，同时是路由前缀"
+          },
+          "name": {
+            "type": "string",
+            "description": "应用名称"
+          },
+          "headline": {
+            "type": "string",
+            "description": "副标题"
+          },
+          "description": {
+            "type": "string",
+            "description": "说明文案"
+          },
+          "domain": {
+            "type": "string",
+            "description": "展示用域名"
+          },
+          "apiBaseUrl": {
+            "type": "string",
+            "description": "该应用的接口根地址"
+          },
+          "badge": {
+            "type": "string",
+            "description": "角标文案"
+          },
+          "category": {
+            "type": "string",
+            "description": "所属分类"
+          },
+          "themeGradient": {
+            "type": "string",
+            "description": "卡片渐变色（Tailwind 类名）"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "apiBaseUrl"
+        ]
+      },
+      "AppListResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppItem"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "DictItem": {
+        "type": "object",
+        "description": "字典项",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "字典项 ID"
+          },
+          "type_id": {
+            "type": "integer",
+            "description": "所属分类 ID"
+          },
+          "code": {
+            "type": "string",
+            "description": "所属分类的完整编码"
+          },
+          "label": {
+            "type": "string",
+            "description": "显示名"
+          },
+          "value": {
+            "type": "string",
+            "description": "键值"
+          },
+          "status": {
+            "type": "integer",
+            "description": "1 启用 / 2 禁用"
+          },
+          "is_default": {
+            "type": "integer",
+            "description": "1 是默认值 / 2 否"
+          },
+          "sort": {
+            "type": "integer",
+            "description": "排序"
+          },
+          "remark": {
+            "type": "string",
+            "description": "备注"
+          },
+          "update_by_user": {
+            "type": "object",
+            "description": "最后更新人",
+            "properties": {
+              "uid": {
+                "type": "integer"
+              },
+              "username": {
+                "type": "string"
+              },
+              "nick_name": {
+                "type": "string"
+              }
+            }
+          },
+          "created_at": {
+            "type": "integer",
+            "description": "创建时间（秒级时间戳）"
+          },
+          "updated_at": {
+            "type": "integer",
+            "description": "更新时间（秒级时间戳）"
+          }
+        },
+        "required": [
+          "id",
+          "type_id",
+          "label",
+          "value"
+        ]
+      },
+      "DictItemPageResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "description": "总条数"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DictItem"
+                }
+              }
+            },
+            "required": [
+              "total",
+              "items"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "DictItemResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/DictItem"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "DictOption": {
+        "type": "object",
+        "description": "单个选项",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "显示文本"
+          },
+          "value": {
+            "type": "string",
+            "description": "选项值"
+          },
+          "disabled": {
+            "type": "boolean",
+            "description": "是否禁用（不可选）"
+          },
+          "other": {
+            "type": "object",
+            "description": "扩展信息",
+            "properties": {
+              "is_default": {
+                "type": "boolean",
+                "description": "是否默认项"
+              },
+              "remark": {
+                "type": "string",
+                "description": "备注"
+              }
+            }
+          }
+        },
+        "required": [
+          "label",
+          "value"
+        ]
+      },
+      "DictOptionsResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "description": "分类完整编码 → 选项数组",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/DictOption"
+              }
+            }
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "DictTypeNodeResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/DictTypeNode"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "DictTypeNode": {
+        "type": "object",
+        "description": "字典分类（可嵌套）",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "分类 ID"
+          },
+          "parent_id": {
+            "type": "integer",
+            "description": "上级分类 ID，顶级为 0"
+          },
+          "name": {
+            "type": "string",
+            "description": "分类名称"
+          },
+          "code": {
+            "type": "string",
+            "description": "局部编码"
+          },
+          "p_code": {
+            "type": "string",
+            "description": "从根到自身的完整编码，如 user.status"
+          },
+          "id_path": {
+            "type": "string",
+            "description": "祖先 id 链（不含自身），如 /0/1/"
+          },
+          "status": {
+            "type": "integer",
+            "description": "1 启用 / 2 禁用"
+          },
+          "type": {
+            "type": "integer",
+            "description": "键值类型：1 字符串 / 2 数字"
+          },
+          "sort": {
+            "type": "integer",
+            "description": "排序"
+          },
+          "remark": {
+            "type": "string",
+            "description": "备注"
+          },
+          "created_at": {
+            "type": "integer",
+            "description": "创建时间（秒级时间戳）"
+          },
+          "updated_at": {
+            "type": "integer",
+            "description": "更新时间（秒级时间戳）"
+          },
+          "children": {
+            "type": "array",
+            "description": "子分类",
+            "items": {
+              "$ref": "#/components/schemas/DictTypeNode"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "code"
+        ]
+      },
+      "DictTypeTreeResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DictTypeNode"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "LoginResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "token": {
+                "type": "string",
+                "description": "访问令牌"
+              },
+              "refresh_token": {
+                "type": "string",
+                "description": "刷新令牌"
+              },
+              "token_expire": {
+                "type": "integer",
+                "description": "访问令牌过期时间（秒级时间戳）"
+              },
+              "refresh_token_expire": {
+                "type": "integer",
+                "description": "刷新令牌过期时间"
+              },
+              "uid": {
+                "type": "integer",
+                "description": "用户 ID"
+              }
+            },
+            "required": [
+              "token",
+              "uid"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "ProfileResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "uid": {
+                "type": "integer"
+              },
+              "username": {
+                "type": "string",
+                "description": "登录账号"
+              },
+              "nick_name": {
+                "type": "string",
+                "description": "昵称"
+              },
+              "email": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string",
+                "description": "角色名"
+              },
+              "status": {
+                "type": "integer",
+                "description": "1 正常 / 2 停用"
+              },
+              "current_region": {
+                "type": "string",
+                "description": "当前语言区域"
+              },
+              "regions": {
+                "type": "array",
+                "description": "有权限的语言区域",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "description": "区域值（与 current_region 比较）"
+                    },
+                    "region": {
+                      "type": "string",
+                      "description": "区域标识"
+                    },
+                    "label": {
+                      "type": "string",
+                      "description": "展示名"
+                    },
+                    "disabled": {
+                      "type": "boolean",
+                      "description": "是否禁用"
+                    }
+                  }
+                }
+              }
+            },
+            "required": [
+              "uid",
+              "username"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "MenuCreateBody": {
+        "type": "object",
+        "properties": {
+          "menu_name": {
+            "type": "string",
+            "description": "功能名称"
+          },
+          "parent_id": {
+            "type": "integer",
+            "description": "上级功能 ID，顶级为 0"
+          },
+          "menu_type": {
+            "type": "integer",
+            "description": "1 功能组 / 2 功能 / 3 操作"
+          },
+          "path": {
+            "type": "string",
+            "description": "路由地址（可省略）"
+          },
+          "component": {
+            "type": "string",
+            "description": "前端组件（可省略）"
+          },
+          "route_name": {
+            "type": "string"
+          },
+          "permission": {
+            "type": "string",
+            "description": "权限标识"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "integer",
+            "description": "1 启用 / 2 禁用"
+          },
+          "visible": {
+            "type": "integer",
+            "description": "1 可见 / 2 隐藏"
+          },
+          "is_frame": {
+            "type": "integer"
+          },
+          "no_cache": {
+            "type": "integer"
+          },
+          "api_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "menu_name",
+          "menu_type"
+        ]
+      },
+      "MenuNodeResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/MenuNode"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "MenuUpdateBody": {
+        "type": "object",
+        "description": "在新建请求体基础上必须带 menu_id",
+        "properties": {
+          "menu_id": {
+            "type": "integer",
+            "description": "功能 ID"
+          },
+          "menu_name": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "integer"
+          },
+          "menu_type": {
+            "type": "integer"
+          },
+          "path": {
+            "type": "string"
+          },
+          "component": {
+            "type": "string"
+          },
+          "route_name": {
+            "type": "string"
+          },
+          "permission": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "visible": {
+            "type": "integer"
+          },
+          "is_frame": {
+            "type": "integer"
+          },
+          "no_cache": {
+            "type": "integer"
+          },
+          "api_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "menu_id"
+        ]
+      },
+      "MenuNode": {
+        "type": "object",
+        "description": "功能节点（可嵌套）",
+        "properties": {
+          "menu_id": {
+            "type": "integer",
+            "description": "功能 ID"
+          },
+          "parent_id": {
+            "type": "integer",
+            "description": "上级功能 ID，顶级为 0"
+          },
+          "menu_name": {
+            "type": "string",
+            "description": "功能名称"
+          },
+          "menu_type": {
+            "type": "integer",
+            "description": "1 功能组 / 2 功能 / 3 操作"
+          },
+          "path": {
+            "type": "string",
+            "description": "路由地址"
+          },
+          "component": {
+            "type": "string",
+            "description": "前端组件"
+          },
+          "route_name": {
+            "type": "string",
+            "description": "路由名称"
+          },
+          "permission": {
+            "type": "string",
+            "description": "权限标识"
+          },
+          "icon": {
+            "type": "string",
+            "description": "图标标识"
+          },
+          "sort": {
+            "type": "integer",
+            "description": "排序"
+          },
+          "status": {
+            "type": "integer",
+            "description": "1 启用 / 2 禁用"
+          },
+          "visible": {
+            "type": "integer",
+            "description": "1 可见 / 2 隐藏"
+          },
+          "is_frame": {
+            "type": "integer",
+            "description": "1 是外链 / 2 否"
+          },
+          "no_cache": {
+            "type": "integer",
+            "description": "1 不缓存 / 2 缓存"
+          },
+          "id_path": {
+            "type": "string",
+            "description": "祖先 id 链（不含自身）"
+          },
+          "api_keys": {
+            "type": "array",
+            "description": "关联的接口标识（取自系统接口清单的 value）",
+            "items": {
+              "type": "string"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "description": "创建时间"
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "更新时间"
+          },
+          "children": {
+            "type": "array",
+            "description": "子功能",
+            "items": {
+              "$ref": "#/components/schemas/MenuNode"
+            }
+          }
+        },
+        "required": [
+          "menu_id",
+          "menu_name",
+          "menu_type"
+        ]
+      },
+      "MenuTreeResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MenuNode"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "UserItem": {
+        "type": "object",
+        "description": "用户列表行",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "用户 ID"
+          },
+          "nickname": {
+            "type": "string",
+            "description": "昵称"
+          },
+          "avatar_url": {
+            "type": "string",
+            "description": "头像地址"
+          },
+          "email": {
+            "type": "string",
+            "description": "邮箱"
+          },
+          "createtime": {
+            "type": "integer",
+            "description": "注册时间（秒级时间戳）"
+          },
+          "logintime": {
+            "type": "integer",
+            "description": "最近登录时间（秒级时间戳）"
+          }
+        },
+        "required": [
+          "id",
+          "nickname"
+        ]
+      },
+      "UserListResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "description": "总条数"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UserItem"
+                }
+              }
+            },
+            "required": [
+              "total",
+              "items"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      }
+    }
+  }
+}

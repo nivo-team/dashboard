@@ -1,0 +1,72 @@
+{
+  "title": "多语言",
+  "description": "维护新架构（new 组）的多语言文案，供字典与业务选择器按语言取值",
+  "moduleName": "多语言",
+  "searchPlaceholder": "搜索 key / 译文…",
+  "quota": "共 <b>{{total}}</b> 条翻译",
+  "columns": {
+    "group": "分组",
+    "key": "Key",
+    "gkey": "完整 key",
+    "coverage": "语言覆盖",
+    "remark": "备注",
+    "updated_at": "更新时间",
+    "update_by_user": "最后更新人",
+    "actions": "操作"
+  },
+  "coverage": {
+    "value": "{{filled}}/{{total}}",
+    "missing": "未配置",
+    "all": "已配置 {{total}} 种语言",
+    "partial": "已配置 {{filled}}/{{total}}，缺 {{missing}} 种"
+  },
+  "empty": {
+    "title": "暂无翻译数据",
+    "description": "未找到符合条件的翻译，请尝试更换关键词或新建一条"
+  },
+  "rowActions": {
+    "label": "更多操作",
+    "edit": "编辑",
+    "delete": "删除"
+  },
+  "actions": {
+    "add": "新建翻译",
+    "moreLangs": "更多语言",
+    "showAllLangs": "显示全部语言列",
+    "showDefaultLangs": "只显示常用语言列"
+  },
+  "form": {
+    "createTitle": "新建翻译",
+    "editTitle": "编辑翻译",
+    "createDescription": "一条记录承载全部语言的译文；key 在同一组内唯一",
+    "editDescription": "修改 key 或各语言译文（分组固定为 new）",
+    "group": "分组",
+    "groupTooltip": "固定为 new（新架构命名空间），层级由 key 表达，例如 key 填 channel.google_play",
+    "key": "Key",
+    "keyTooltip": "组内唯一；可用小数点分级，例如 channel.google_play。字典项的 value 会写成完整的 new.channel.google_play",
+    "keyPlaceholder": "channel.google_play",
+    "keyRequired": "请填写 key",
+    "gkeyPreview": "完整 key：{{gkey}}",
+    "languages": "各语言译文",
+    "languagesHint": "留空表示该语言未配置；选择器取值时会回落到中文",
+    "remark": "备注",
+    "remarkTooltip": "可选，说明这条文案用在哪个功能",
+    "optional": "可选",
+    "submitCreate": "创建翻译",
+    "save": "保存",
+    "cancel": "取消",
+    "successCreate": "翻译创建成功",
+    "successUpdate": "翻译更新成功",
+    "successDelete": "翻译删除成功",
+    "failed": "操作失败，请稍后重试",
+    "deleteFailed": "删除失败，请稍后重试"
+  },
+  "deleteDialog": {
+    "title": "删除翻译",
+    "confirm": "确定要删除「{{gkey}}」吗？该操作不可撤销。",
+    "delete": "删除"
+  },
+  "messages": {
+    "fetchFailed": "获取翻译列表失败"
+  }
+}

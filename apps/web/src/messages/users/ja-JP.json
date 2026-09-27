@@ -1,0 +1,79 @@
+{
+  "title": "ユーザー一覧",
+  "description": "ユーザーの基本情報と資産概要を表示・絞り込み・管理します",
+  "searchPlaceholder": "ID / ニックネーム / メールアドレスで検索…",
+  "refreshTooltip": "データを更新",
+  "demoBadge": "（デモデータモード）",
+  "empty": {
+    "title": "ユーザーデータがありません",
+    "description": "条件に一致するユーザーが見つかりません。キーワードを変更するか、絞り込み条件をリセットしてください"
+  },
+  "moduleName": "ユーザー",
+  "columns": {
+    "avatar": "アバター",
+    "nickname": "ニックネーム",
+    "createtime": "登録日時",
+    "logintime": "最終ログイン",
+    "actions": "操作",
+    "id": "ID",
+    "email": "メールアドレス"
+  },
+  "filters": {
+    "title": "絞り込み条件",
+    "clear": "クリア",
+    "cancel": "キャンセル",
+    "apply": "絞り込みを適用"
+  },
+  "cell": {
+    "unnamed": "ニックネーム未設定",
+    "avatarAlt": "アバター",
+    "selectAll": "すべての行を選択",
+    "selectRow": "{{name}} を選択",
+    "yes": "はい",
+    "no": "いいえ"
+  },
+  "rowActions": {
+    "label": "その他の操作",
+    "view": "表示",
+    "edit": "編集",
+    "delete": "削除"
+  },
+  "detail": {
+    "title": "ユーザー詳細",
+    "back": "一覧に戻る",
+    "retry": "再試行",
+    "notFoundTitle": "ユーザーが見つかりません",
+    "notFoundDescription": "このユーザーは削除されたか、UID が正しくない可能性があります",
+    "yes": "はい",
+    "no": "いいえ",
+    "sections": {
+      "basic": "基本情報"
+    },
+    "fields": {
+      "createtime": "登録日時",
+      "logintime": "最終ログイン",
+      "id": "ID",
+      "email": "メールアドレス"
+    }
+  },
+  "import": {
+    "title": "ユーザーを一括インポート (Import)",
+    "description": "CSV または JSON 形式のユーザー一覧ファイルをアップロードできます",
+    "dropHint": "クリックしてアップロード、またはファイルをドラッグしてください",
+    "dropDescription": ".csv、.xlsx、.json 形式のみ対応（1ファイル最大 10MB）",
+    "cancel": "キャンセル",
+    "confirm": "インポート開始"
+  },
+  "messages": {
+    "fetchFailed": "ユーザー一覧の取得に失敗しました",
+    "networkFailed": "ネットワークリクエストに失敗しました"
+  },
+  "export": {
+    "headers": {
+      "nickname": "ニックネーム",
+      "createtime": "登録日時",
+      "id": "ID",
+      "email": "メールアドレス"
+    }
+  }
+}

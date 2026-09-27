@@ -1,0 +1,160 @@
+{
+  "title": "الميزات",
+  "description": "إدارة التسلسل الهرمي للميزات ورموز الصلاحيات، تُستخدم مجموعات الميزات للتصنيف الهرمي، والميزة هي أصغر وحدة تسليم",
+  "containerDescription": "محتوى مجموعة الميزات هذه، ويمكن متابعة تضمين مجموعات ميزات أو إضافة ميزات",
+  "moduleName": "الميزات",
+  "searchPlaceholder": "ابحث عن اسم الميزة / رمز الصلاحية…",
+  "createFeature": "إضافة ميزة",
+  "createGroup": "إضافة مجموعة ميزات",
+  "createPermission": "إضافة صلاحية",
+  "create": {
+    "label": "إنشاء"
+  },
+  "demoBadge": "（وضع البيانات التجريبية）",
+  "quota": "إجمالي <b>{{total}}</b> عنصر",
+  "empty": {
+    "title": "لا توجد بيانات ميزات",
+    "description": "لم يتم العثور على ميزات مطابقة، حاول تغيير كلمة البحث"
+  },
+  "columns": {
+    "menu_id": "ID",
+    "menu_name": "الاسم",
+    "menu_type": "النوع",
+    "route_name": "اسم المسار",
+    "permission": "رمز الصلاحية",
+    "icon": "الأيقونة",
+    "sort": "الترتيب",
+    "status": "الحالة",
+    "visible": "الظهور",
+    "is_frame": "رابط خارجي",
+    "no_cache": "التخزين المؤقت",
+    "api_keys": "واجهات مرتبطة",
+    "created_at": "وقت الإنشاء",
+    "updated_at": "وقت التحديث",
+    "actions": "الإجراءات"
+  },
+  "cell": {
+    "yes": "نعم",
+    "no": "لا"
+  },
+  "menuType": {
+    "directory": "مجموعة ميزات",
+    "menu": "ميزة",
+    "action": "صلاحية"
+  },
+  "status": {
+    "enabled": "مفعّل",
+    "disabled": "معطّل"
+  },
+  "visible": {
+    "visible": "ظاهر",
+    "hidden": "مخفي"
+  },
+  "isFrame": {
+    "yes": "نعم",
+    "no": "لا"
+  },
+  "noCache": {
+    "noCache": "بدون تخزين مؤقت",
+    "cache": "تخزين مؤقت"
+  },
+  "rowActions": {
+    "label": "مزيد من الإجراءات",
+    "editFeature": "تعديل الميزة",
+    "editGroup": "تعديل مجموعة الميزات",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "comingSoon": "ستتوفر هذه الميزة في إصدار لاحق"
+  },
+  "messages": {
+    "fetchFailed": "تعذّر تحميل قائمة الميزات"
+  },
+  "detail": {
+    "backToList": "العودة إلى القائمة",
+    "basicInfo": "المعلومات الأساسية",
+    "copy": "نسخ",
+    "copied": "تم النسخ",
+    "dangerZone": "إجراءات خطرة",
+    "deleteFeature": "حذف الميزة",
+    "deleteFeatureTitle": "حذف الميزة",
+    "deleteFeatureConfirm": "لا يمكن التراجع عن هذا الإجراء. سيتم حذف الميزة <b>{{name}}</b> نهائيًا، وموضعها في شجرة الميزات.",
+    "deleteBlocked": "لا يزال هناك {{total}} عنصر فرعي ضمن هذه العقدة، يُرجى حذف العناصر الفرعية أولاً",
+    "editGroup": "تعديل مجموعة الميزات",
+    "editGroupDescription": "تعديل اسم مجموعة الميزات والأيقونة والترتيب وحالة الظهور",
+    "deleteGroup": "حذف مجموعة الميزات",
+    "deleteGroupConfirm": "لا يمكن التراجع عن هذا الإجراء. سيتم حذف مجموعة الميزات <b>{{name}}</b> نهائيًا.",
+    "details": "التفاصيل",
+    "parentFeature": "معرّف الأصل",
+    "rootFeature": "المستوى الجذر",
+    "notFound": "لم يتم العثور على هذه الميزة",
+    "invalidId": "المعرّف غير صالح",
+    "retry": "إعادة المحاولة",
+    "childrenTitle": "الصلاحيات",
+    "childrenQuota": "إجمالي {{total}} عنصر",
+    "childrenEmpty": {
+      "title": "لا توجد صلاحيات",
+      "description": "لا توجد صلاحيات ضمن هذه الميزة بعد، يمكنك استخدام «إضافة صلاحية» للمتابعة"
+    }
+  },
+  "permissionDialog": {
+    "createTitle": "إضافة صلاحية",
+    "editTitle": "تعديل الصلاحية",
+    "createDescription": "إضافة صلاحية جديدة ضمن الميزة الحالية",
+    "editDescription": "تعديل اسم الصلاحية ورمزها وحالتها",
+    "deleteTitle": "حذف الصلاحية",
+    "deleteConfirm": "هل أنت متأكد من حذف «{{name}}»؟ لا يمكن التراجع عن هذا الإجراء.",
+    "delete": "حذف"
+  },
+  "form": {
+    "createFeatureTitle": "إضافة ميزة",
+    "createGroupTitle": "إضافة مجموعة ميزات",
+    "createButtonTitle": "إضافة صلاحية",
+    "createFeatureDescription": "إنشاء ميزة كوحدة تسليم لقدرات المنصة",
+    "createGroupDescription": "إنشاء مجموعة ميزات لمواصلة التصنيف الهرمي للميزات",
+    "createButtonDescription": "إنشاء صلاحية للتحكم في العمليات ضمن هذه الميزة",
+    "parentHint": "سيتم الإنشاء ضمن: {{parent}}",
+    "name": "الاسم",
+    "nameDescription": "من 2 إلى 50 حرفًا، معرّف يُستخدم للعرض",
+    "namePlaceholder": "أدخل الاسم",
+    "nameLength": "يجب أن يتراوح طول الاسم بين 2 و50 حرفًا",
+    "permission": "رمز الصلاحية",
+    "permissionDescription": "رمز صلاحية الواجهة، مطلوب للميزات والصلاحيات، على سبيل المثال n:menus:list",
+    "permissionPlaceholder": "n:menus:list",
+    "permissionRequired": "يُرجى إدخال رمز الصلاحية",
+    "apiKeys": "واجهات مرتبطة",
+    "apiKeysDescription": "أدخل كلمات مفتاحية للبحث في واجهات النظام؛ ترتبط الميزة بواجهة القائمة، وترتبط الصلاحية بواجهة action محددة",
+    "apiKeysPlaceholder": "ابحث عن واجهة، على سبيل المثال /api/guild",
+    "apiKeysRemove": "إزالة {{label}}",
+    "apiKeysLoading": "جارٍ تحميل قائمة الواجهات…",
+    "apiKeysFailed": "تعذّر تحميل قائمة الواجهات، يُرجى المحاولة لاحقًا",
+    "apiKeysNoMatch": "لا توجد واجهات متاحة للربط",
+    "icon": "الأيقونة",
+    "iconDescription": "اسم الأيقونة، على سبيل المثال ListDashes",
+    "iconPlaceholder": "اختياري",
+    "sort": "الترتيب",
+    "sortDescription": "ترتيب تصاعدي ضمن المستوى نفسه",
+    "statusEnabled": "مفعّل",
+    "statusDisabled": "معطّل",
+    "visibleShown": "ظاهر",
+    "visibleHidden": "مخفي",
+    "submitFeature": "إنشاء ميزة",
+    "submitGroup": "إنشاء مجموعة ميزات",
+    "submitButton": "إنشاء صلاحية",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "successFeature": "تم إنشاء الميزة بنجاح",
+    "successGroup": "تم إنشاء مجموعة الميزات بنجاح",
+    "successButton": "تم إنشاء الصلاحية بنجاح",
+    "successPermission": "تم إنشاء الصلاحية بنجاح",
+    "successPermissionUpdate": "تم تحديث الصلاحية بنجاح",
+    "successPermissionDelete": "تم حذف الصلاحية بنجاح",
+    "successFeatureUpdate": "تم تحديث الميزة بنجاح",
+    "successFeatureDelete": "تم حذف الميزة بنجاح",
+    "successGroupUpdate": "تم تحديث مجموعة الميزات بنجاح",
+    "successGroupDelete": "تم حذف مجموعة الميزات بنجاح",
+    "failed": "فشلت العملية، يُرجى المحاولة لاحقًا",
+    "deleteFailed": "فشل الحذف، يُرجى المحاولة لاحقًا",
+    "statusField": "الحالة",
+    "visibleField": "الظهور"
+  }
+}

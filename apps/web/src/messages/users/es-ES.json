@@ -1,0 +1,79 @@
+{
+  "title": "Lista de usuarios",
+  "description": "Ver, filtrar y gestionar los datos de los usuarios y el resumen de sus activos",
+  "searchPlaceholder": "Buscar ID / nombre / correo…",
+  "refreshTooltip": "Actualizar datos",
+  "demoBadge": "(Modo de datos de demostración)",
+  "empty": {
+    "title": "Sin datos de usuarios",
+    "description": "No se encontraron usuarios coincidentes. Pruebe con otra palabra clave o restablezca los filtros"
+  },
+  "moduleName": "usuario",
+  "columns": {
+    "avatar": "Avatar",
+    "nickname": "Alias",
+    "createtime": "Fecha de registro",
+    "logintime": "Último inicio de sesión",
+    "actions": "Acciones",
+    "id": "ID",
+    "email": "Correo"
+  },
+  "filters": {
+    "title": "Condiciones de filtrado",
+    "clear": "Limpiar",
+    "cancel": "Cancelar",
+    "apply": "Aplicar filtros"
+  },
+  "cell": {
+    "unnamed": "Sin alias",
+    "avatarAlt": "Avatar",
+    "selectAll": "Seleccionar todas las filas",
+    "selectRow": "Seleccionar {{name}}",
+    "yes": "Sí",
+    "no": "No"
+  },
+  "rowActions": {
+    "label": "Más opciones",
+    "view": "Ver",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
+  "detail": {
+    "title": "Detalles del usuario",
+    "back": "Volver a la lista",
+    "retry": "Reintentar",
+    "notFoundTitle": "Usuario no encontrado",
+    "notFoundDescription": "Es posible que este usuario se haya eliminado o que el UID no sea correcto",
+    "yes": "Sí",
+    "no": "No",
+    "sections": {
+      "basic": "Información básica"
+    },
+    "fields": {
+      "createtime": "Fecha de registro",
+      "logintime": "Último inicio de sesión",
+      "id": "ID",
+      "email": "Correo"
+    }
+  },
+  "import": {
+    "title": "Importar usuarios (Import)",
+    "description": "Suba una lista de usuarios en formato CSV o JSON",
+    "dropHint": "Haga clic para subir o arrastre un archivo aquí",
+    "dropDescription": "Solo se admiten archivos .csv, .xlsx o .json (máx. 10MB por archivo)",
+    "cancel": "Cancelar",
+    "confirm": "Iniciar importación"
+  },
+  "messages": {
+    "fetchFailed": "No se pudo cargar la lista de usuarios",
+    "networkFailed": "Error en la solicitud de red"
+  },
+  "export": {
+    "headers": {
+      "nickname": "Alias",
+      "createtime": "Registro",
+      "id": "ID",
+      "email": "Correo"
+    }
+  }
+}

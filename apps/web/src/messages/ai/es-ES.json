@@ -1,0 +1,60 @@
+{
+  "title": "Ask AI",
+  "inputLabel": "Campo de entrada de IA",
+  "inputPlaceholder": "Escribe tu pregunta…",
+  "modeLabel": "Modo de entrada",
+  "modeAsk": "Preguntar",
+  "modeAuto": "Automático",
+  "send": "Enviar",
+  "stop": "Detener",
+  "close": "Cerrar panel",
+  "resize": "Ajustar el ancho del panel",
+  "notConfigured": "Aún no hay ningún servicio de modelos configurado. Configúralo para empezar.",
+  "goToSettings": "Abrir ajustes",
+  "thinking": "Pensando…",
+  "toolRunning": "Ejecutando",
+  "toolDone": "Hecho",
+  "toolFailed": "Error",
+  "tools": {
+    "get_page_context": "Ver página actual",
+    "list_navigation": "Buscar página",
+    "navigate_to": "Ir a página",
+    "search_api": "Buscar APIs",
+    "call_read_api": "Llamar API",
+    "list_dict_options": "Leer diccionario",
+    "call_write_api": "API de modificación de datos",
+    "list_page_forms": "Ver formularios",
+    "fill_form": "Rellenar formulario",
+    "submit_form": "Enviar formulario"
+  },
+  "approvalTitle": "Esta acción necesita tu confirmación",
+  "approve": "Permitir una vez",
+  "approveAlways": "No volver a preguntar en esta sesión",
+  "deny": "Rechazar",
+  "sessionPicker": "Elegir conversación",
+  "sessionNew": "Nueva conversación",
+  "sessionSearch": "Buscar conversaciones",
+  "sessionEmpty": "Aún no hay conversaciones",
+  "sessionNoMatch": "No hay conversaciones coincidentes",
+  "sessionDelete": "Eliminar conversación",
+  "sessionDeleteDesc": "Esta conversación no se puede recuperar tras eliminarla.",
+  "sessionGroups": {
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "week": "Últimos 7 días",
+    "month": "Últimos 30 días",
+    "older": "Anteriores"
+  },
+  "greetings": {
+    "morning": "Buenos días.",
+    "afternoon": "Buenas tardes.",
+    "evening": "Buenas noches."
+  },
+  "greetingPrompt": "¿Qué hacemos hoy?",
+  "scrollToBottom": "Ir al final",
+  "toolDetail": {
+    "input": "Argumentos",
+    "output": "Resultado",
+    "error": "Error"
+  }
+}

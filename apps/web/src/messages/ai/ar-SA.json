@@ -1,0 +1,60 @@
+{
+  "title": "Ask AI",
+  "inputLabel": "حقل إدخال AI",
+  "inputPlaceholder": "اكتب سؤالك…",
+  "modeLabel": "وضع الإدخال",
+  "modeAsk": "سؤال",
+  "modeAuto": "تلقائي",
+  "send": "إرسال",
+  "stop": "إيقاف",
+  "close": "إغلاق اللوحة",
+  "resize": "تغيير عرض اللوحة",
+  "notConfigured": "لم يتم إعداد خدمة نموذج بعد. أعدّها لبدء المحادثة.",
+  "goToSettings": "فتح الإعدادات",
+  "thinking": "يفكّر…",
+  "toolRunning": "قيد التنفيذ",
+  "toolDone": "تم",
+  "toolFailed": "فشل",
+  "tools": {
+    "get_page_context": "قراءة الصفحة الحالية",
+    "list_navigation": "البحث عن صفحة",
+    "navigate_to": "الانتقال إلى صفحة",
+    "search_api": "البحث في الواجهات",
+    "call_read_api": "استدعاء واجهة",
+    "list_dict_options": "قراءة القاموس",
+    "call_write_api": "واجهة تعديل البيانات",
+    "list_page_forms": "عرض نماذج الصفحة",
+    "fill_form": "تعبئة النموذج",
+    "submit_form": "إرسال النموذج"
+  },
+  "approvalTitle": "هذا الإجراء يحتاج إلى موافقتك",
+  "approve": "السماح مرة واحدة",
+  "approveAlways": "لا تسأل مرة أخرى في هذه الجلسة",
+  "deny": "رفض",
+  "sessionPicker": "اختيار المحادثة",
+  "sessionNew": "محادثة جديدة",
+  "sessionSearch": "البحث في المحادثات",
+  "sessionEmpty": "لا توجد محادثات بعد",
+  "sessionNoMatch": "لا توجد محادثات مطابقة",
+  "sessionDelete": "حذف المحادثة",
+  "sessionDeleteDesc": "لا يمكن استعادة هذه المحادثة بعد الحذف.",
+  "sessionGroups": {
+    "today": "اليوم",
+    "yesterday": "أمس",
+    "week": "آخر 7 أيام",
+    "month": "آخر 30 يومًا",
+    "older": "أقدم"
+  },
+  "greetings": {
+    "morning": "صباح الخير.",
+    "afternoon": "مساء الخير.",
+    "evening": "مساء الخير."
+  },
+  "greetingPrompt": "ماذا نفعل اليوم؟",
+  "scrollToBottom": "العودة إلى الأسفل",
+  "toolDetail": {
+    "input": "المعاملات",
+    "output": "النتيجة",
+    "error": "خطأ"
+  }
+}

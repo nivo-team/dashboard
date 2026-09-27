@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN" data-mode="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="多应用后台管理模板 —— 基于 TanStack Router、Kumo 与 Tailwind CSS v4。" />
+    <title>Nivo Admin</title>
+    <script>
+      /*
+       * 首屏主题脚本：在 React 挂载前就确定明暗模式，避免白屏闪烁。
+       * 优先级：URL 参数 ?theme=dark|light|system > localStorage > 系统偏好。
+       * 这段逻辑与 src/lib/use-color-mode.ts 保持一致。
+       */
+      ;(function () {
+        try {
+          var params = new URLSearchParams(window.location.search)
+          var forced = params.get('theme')
+          var stored = window.localStorage.getItem('admin.color-mode')
+          var mode =
+            forced === 'light' || forced === 'dark' || forced === 'system'
+              ? forced
+              : stored === 'light' || stored === 'dark' || stored === 'system'
+                ? stored
+                : 'system'
+          if (forced) window.localStorage.setItem('admin.color-mode', forced)
+          var resolved =
+            mode === 'system'
+              ? window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+              : mode
+          document.documentElement.dataset.mode = resolved
+          document.documentElement.style.colorScheme = resolved
+        } catch (error) {
+          /* 忽略：主题不可用时回退到默认浅色 */
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

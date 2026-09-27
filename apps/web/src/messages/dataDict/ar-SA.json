@@ -1,0 +1,147 @@
+{
+  "title": "قاموس البيانات",
+  "description": "إدارة التسلسل الهرمي للتصنيفات وقيم عناصر القاموس، لاستخدامها في القوائم المنسدلة والتعدادات",
+  "moduleName": "قاموس البيانات",
+  "rootLevel": "المستوى الجذر",
+  "searchTypePlaceholder": "ابحث عن اسم التصنيف / الرمز…",
+  "searchItemPlaceholder": "ابحث عن اسم عنصر القاموس / القيمة…",
+  "quota": "إجمالي <b>{{total}}</b> عنصر",
+  "empty": {
+    "itemTitle": "لا توجد عناصر قاموس",
+    "itemDescription": "لا توجد عناصر قاموس ضمن هذا التصنيف بعد، يمكنك استخدام «إضافة عنصر» للمتابعة",
+    "typeTitle": "لا توجد بيانات تصنيفات",
+    "typeDescription": "لم يتم العثور على تصنيفات مطابقة، حاول تغيير كلمة البحث"
+  },
+  "columns": {
+    "id": "ID",
+    "name": "اسم التصنيف",
+    "code": "رمز التصنيف",
+    "p_code": "الرمز الكامل",
+    "type": "نوع القيمة",
+    "sort": "الترتيب",
+    "status": "الحالة",
+    "id_path": "مسار ID",
+    "remark": "ملاحظة",
+    "created_at": "وقت الإنشاء",
+    "updated_at": "وقت التحديث",
+    "label": "الاسم المعروض",
+    "value": "القيمة",
+    "is_default": "افتراضي",
+    "update_by_user": "آخر مُحدِّث",
+    "actions": "الإجراءات"
+  },
+  "valueType": {
+    "string": "string",
+    "number": "number"
+  },
+  "status": {
+    "enabled": "مفعّل",
+    "disabled": "معطّل"
+  },
+  "isDefault": {
+    "yes": "نعم",
+    "no": "لا"
+  },
+  "rowActions": {
+    "label": "مزيد من الإجراءات",
+    "addChildType": "إضافة تصنيف فرعي",
+    "editType": "تعديل التصنيف",
+    "deleteType": "حذف التصنيف",
+    "editItem": "تعديل العنصر",
+    "deleteItem": "حذف العنصر"
+  },
+  "messages": {
+    "fetchFailed": "تعذّر تحميل شجرة التصنيفات",
+    "itemsFetchFailed": "تعذّر تحميل قائمة عناصر القاموس",
+    "deleteBlocked": "لا يزال هناك {{total}} تصنيف فرعي ضمن هذا التصنيف، يُرجى حذف التصنيفات الفرعية أولاً",
+    "deleteBlockedByItems": "لا يزال هناك {{total}} عنصر قاموس ضمن هذا التصنيف، يُرجى حذف عناصر القاموس أولاً",
+    "rootMissing": "لم يتم العثور على التصنيف الجذر للقاموس {{id}}، يُرجى التحقق من إعداد التصنيف الجذر في الواجهة الخلفية"
+  },
+  "sections": {
+    "childrenTypes": "التصنيفات الفرعية",
+    "items": "عناصر القاموس",
+    "details": "التفاصيل"
+  },
+  "detail": {
+    "basicInfo": "المعلومات الأساسية",
+    "parentType": "التصنيف الأصلي",
+    "rootType": "المستوى الجذر",
+    "fullCode": "الرمز الكامل",
+    "valueType": "نوع القيمة",
+    "status": "الحالة",
+    "sort": "الترتيب",
+    "id": "معرّف التصنيف",
+    "remark": "ملاحظة",
+    "deleteType": "حذف التصنيف",
+    "deleteTypeTitle": "حذف التصنيف",
+    "createdAt": "وقت الإنشاء",
+    "deleteTypeConfirm": "لا يمكن التراجع عن هذا الإجراء. سيتم حذف التصنيف {{name}} نهائيًا وموضعه في الشجرة.",
+    "retry": "إعادة المحاولة",
+    "backToList": "العودة إلى قائمة التصنيفات",
+    "notFound": "لم يتم العثور على هذا التصنيف",
+    "invalidId": "المعرّف غير صالح"
+  },
+  "actions": {
+    "addTopType": "إضافة تصنيف",
+    "addItem": "إضافة عنصر"
+  },
+  "form": {
+    "createTypeTitle": "إضافة تصنيف",
+    "createChildTypeTitle": "إضافة تصنيف فرعي",
+    "createTypeDescription": "إنشاء تصنيف في قاموس البيانات لتجميع مجموعة من القيم",
+    "createChildTypeDescription": "إنشاء تصنيف فرعي ضمن التصنيف الحالي",
+    "createItemTitle": "إضافة عنصر قاموس",
+    "editItemTitle": "تعديل عنصر القاموس",
+    "createItemDescription": "إضافة زوج قيمة ضمن التصنيف الحالي",
+    "editItemDescription": "تعديل الاسم المعروض لعنصر القاموس وقيمته وحالته",
+    "parentHint": "سيتم الإنشاء ضمن: {{parent}}",
+    "typeHint": "التصنيف التابع: {{type}}",
+    "name": "الاسم",
+    "nameDescription": "من 2 إلى 30 حرفًا، اسم التصنيف المعروض",
+    "namePlaceholder": "أدخل الاسم",
+    "nameLength": "يجب أن يتراوح طول الاسم بين {{min}} و{{max}} حرفًا",
+    "code": "رمز التصنيف",
+    "codeDescription": "المفتاح key المستخدم عند جلب الخيارات من جانب الأعمال، على سبيل المثال channel",
+    "codePlaceholder": "channel",
+    "codeRequired": "يُرجى إدخال رمز التصنيف",
+    "valueType": "نوع القيمة",
+    "label": "الاسم المعروض",
+    "labelDescription": "من 2 إلى 30 حرفًا، النص المعروض في القائمة المنسدلة",
+    "labelPlaceholder": "على سبيل المثال google play",
+    "labelLength": "يجب أن يتراوح طول الاسم بين {{min}} و{{max}} حرفًا",
+    "value": "القيمة",
+    "valueDescription": "القيمة الفعلية المخزّنة والمقارَنة في جانب الأعمال",
+    "valuePlaceholder": "على سبيل المثال 1",
+    "valueRequired": "يُرجى إدخال القيمة",
+    "isDefault": "افتراضي",
+    "sort": "الترتيب",
+    "sortDescription": "ترتيب تصاعدي ضمن المستوى نفسه",
+    "remark": "ملاحظة",
+    "remarkDescription": "اختياري، لوصف الغرض من هذا التصنيف",
+    "optional": "اختياري",
+    "statusEnabled": "مفعّل",
+    "statusDisabled": "معطّل",
+    "submitCreateType": "إنشاء تصنيف",
+    "submitCreateChildType": "إنشاء تصنيف فرعي",
+    "submitCreateItem": "إنشاء عنصر قاموس",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "successTypeCreate": "تم إنشاء التصنيف بنجاح",
+    "successTypeUpdate": "تم تحديث التصنيف بنجاح",
+    "successTypeDelete": "تم حذف التصنيف بنجاح",
+    "successItemCreate": "تم إنشاء عنصر القاموس بنجاح",
+    "successItemUpdate": "تم تحديث عنصر القاموس بنجاح",
+    "successItemDelete": "تم حذف عنصر القاموس بنجاح",
+    "failed": "فشلت العملية، يُرجى المحاولة لاحقًا",
+    "deleteFailed": "فشل الحذف، يُرجى المحاولة لاحقًا"
+  },
+  "itemDialog": {
+    "deleteTitle": "حذف عنصر القاموس",
+    "deleteConfirm": "هل أنت متأكد من حذف «{{name}}»؟ لا يمكن التراجع عن هذا الإجراء.",
+    "delete": "حذف"
+  },
+  "statusFilter": {
+    "all": "كل الحالات"
+  },
+  "typeDescription": "التصنيفات الفرعية وعناصر القاموس ضمن هذا التصنيف"
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@admin/api-contract",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "OpenAPI 契约的唯一真值：默认由本地 Mock 反向生成，也可切换到任意外部来源。",
+  "scripts": {
+    "sync": "node scripts/sync.mjs"
+  }
+}

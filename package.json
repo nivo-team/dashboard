@@ -1,0 +1,19 @@
+{
+  "name": "admin-console",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "多应用后台管理模板：契约自持的前端 + Nitro Mock API。",
+  "packageManager": "pnpm@11.7.0",
+  "scripts": {
+    "dev": "pnpm -C apps/web dev",
+    "build": "pnpm -C apps/web build",
+    "preview": "pnpm -C apps/web preview",
+    "typecheck": "pnpm -C apps/web typecheck",
+    "mock": "pnpm -C apps/mock dev",
+    "mock:build": "pnpm -C apps/mock build",
+    "contract": "node packages/api-contract/scripts/sync.mjs",
+    "api": "pnpm contract && pnpm -C apps/web api:generate && pnpm -C apps/web gen:query-params && pnpm -C apps/web gen:endpoint-specs",
+    "guardrails": "node scripts/ai/check-guardrails.mjs"
+  }
+}

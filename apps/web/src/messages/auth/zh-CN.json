@@ -1,0 +1,21 @@
+{
+  "signIn": "登录",
+  "account": "账号",
+  "email": "账号",
+  "password": "密码",
+  "saveDevice": "在此设备上记住登录状态",
+  "submit": "登 录",
+  "submitting": "正在验证身份…",
+  "authFailed": "登录验证失败，请检查账号和密码",
+  "inputAccount": "请输入登录账号",
+  "inputPassword": "请输入登录密码",
+  "activeSession": "已检测到活跃会话：{{name}}",
+  "online": "在线",
+  "goToConsole": "直接进入控制台",
+  "switchApp": "切换 App",
+  "selectAppTitle": "选择进入的应用",
+  "selectAppDesc": "当前账号已获得 {{count}} 个系统空间的访问权限，请选择本次进入的目标：",
+  "enterApp": "进入 {{name}}",
+  "switchAccount": "更换账号",
+  "verified": "验证通过"
+}

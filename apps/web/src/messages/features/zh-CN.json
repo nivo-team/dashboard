@@ -1,0 +1,160 @@
+{
+  "title": "功能",
+  "description": "维护功能层级与权限编码，功能组用于分层，功能是最小交付单元",
+  "containerDescription": "该功能组下的内容，可继续嵌套功能组或添加功能",
+  "moduleName": "功能",
+  "searchPlaceholder": "搜索功能名称 / 权限编码…",
+  "createFeature": "添加功能",
+  "createGroup": "添加功能组",
+  "createPermission": "添加权限",
+  "create": {
+    "label": "创建"
+  },
+  "demoBadge": "（演示数据模式）",
+  "quota": "共 <b>{{total}}</b> 项",
+  "empty": {
+    "title": "暂无功能数据",
+    "description": "未找到符合条件的功能，请尝试更换关键词"
+  },
+  "columns": {
+    "menu_id": "ID",
+    "menu_name": "名称",
+    "menu_type": "类型",
+    "route_name": "路由名称",
+    "permission": "权限标识",
+    "icon": "图标",
+    "sort": "排序",
+    "status": "状态",
+    "visible": "显示",
+    "is_frame": "外链",
+    "no_cache": "缓存",
+    "api_keys": "绑定接口",
+    "created_at": "创建时间",
+    "updated_at": "更新时间",
+    "actions": "操作"
+  },
+  "cell": {
+    "yes": "是",
+    "no": "否"
+  },
+  "menuType": {
+    "directory": "功能组",
+    "menu": "功能",
+    "action": "权限"
+  },
+  "status": {
+    "enabled": "启用",
+    "disabled": "禁用"
+  },
+  "visible": {
+    "visible": "显示",
+    "hidden": "隐藏"
+  },
+  "isFrame": {
+    "yes": "是",
+    "no": "否"
+  },
+  "noCache": {
+    "noCache": "不缓存",
+    "cache": "缓存"
+  },
+  "rowActions": {
+    "label": "更多操作",
+    "editFeature": "编辑功能",
+    "editGroup": "编辑功能组",
+    "edit": "编辑",
+    "delete": "删除",
+    "comingSoon": "该功能将在后续版本开放"
+  },
+  "messages": {
+    "fetchFailed": "获取功能列表失败"
+  },
+  "detail": {
+    "backToList": "返回列表",
+    "basicInfo": "基本信息",
+    "copy": "复制",
+    "copied": "已复制",
+    "dangerZone": "危险操作",
+    "deleteFeature": "删除功能",
+    "deleteFeatureTitle": "删除功能",
+    "deleteFeatureConfirm": "该操作不可撤销。将永久删除功能 <b>{{name}}</b>，以及它在功能树中的位置。",
+    "deleteBlocked": "该节点下还有 {{total}} 个子项，请先删除子项",
+    "editGroup": "编辑功能组",
+    "editGroupDescription": "修改功能组的名称、图标、排序与显示状态",
+    "deleteGroup": "删除功能组",
+    "deleteGroupConfirm": "该操作不可撤销。将永久删除功能组 <b>{{name}}</b>。",
+    "details": "详细信息",
+    "parentFeature": "上级 ID",
+    "rootFeature": "根层级",
+    "notFound": "未找到该功能",
+    "invalidId": "ID 不合法",
+    "retry": "重试加载",
+    "childrenTitle": "权限",
+    "childrenQuota": "共 {{total}} 项",
+    "childrenEmpty": {
+      "title": "暂无权限",
+      "description": "该功能下还没有权限，可用「添加权限」继续创建"
+    }
+  },
+  "permissionDialog": {
+    "createTitle": "添加权限",
+    "editTitle": "编辑权限",
+    "createDescription": "在当前功能下新增一个权限点",
+    "editDescription": "修改该权限的名称、权限标识与状态",
+    "deleteTitle": "删除权限",
+    "deleteConfirm": "确定要删除「{{name}}」吗？该操作不可撤销。",
+    "delete": "删除"
+  },
+  "form": {
+    "createFeatureTitle": "添加功能",
+    "createGroupTitle": "添加功能组",
+    "createButtonTitle": "添加权限",
+    "createFeatureDescription": "创建一个功能，作为平台能力的交付单元",
+    "createGroupDescription": "创建一个功能组，用于对功能继续分层",
+    "createButtonDescription": "创建一个权限点，用于控制该功能下的操作",
+    "parentHint": "将创建在：{{parent}}",
+    "name": "名称",
+    "nameDescription": "2–50 个字符，用于展示的标识",
+    "namePlaceholder": "请输入名称",
+    "nameLength": "名称长度需在 2–50 个字符之间",
+    "permission": "权限标识",
+    "permissionDescription": "接口权限编码，功能与权限必填，例如 n:menus:list",
+    "permissionPlaceholder": "n:menus:list",
+    "permissionRequired": "请填写权限标识",
+    "apiKeys": "绑定接口",
+    "apiKeysDescription": "输入关键词搜索系统接口，功能绑定列表接口，权限绑定具体的 action 接口",
+    "apiKeysPlaceholder": "搜索接口，例如 /api/guild",
+    "apiKeysRemove": "移除 {{label}}",
+    "apiKeysLoading": "正在加载接口清单…",
+    "apiKeysFailed": "接口清单加载失败，请稍后重试",
+    "apiKeysNoMatch": "没有可绑定的接口了",
+    "icon": "图标",
+    "iconDescription": "图标名称，例如 ListDashes",
+    "iconPlaceholder": "可选",
+    "sort": "排序",
+    "sortDescription": "同级内从小到大排列",
+    "statusEnabled": "启用",
+    "statusDisabled": "禁用",
+    "visibleShown": "显示",
+    "visibleHidden": "隐藏",
+    "submitFeature": "创建功能",
+    "submitGroup": "创建功能组",
+    "submitButton": "创建权限",
+    "save": "保存",
+    "cancel": "取消",
+    "successFeature": "功能创建成功",
+    "successGroup": "功能组创建成功",
+    "successButton": "权限创建成功",
+    "successPermission": "权限创建成功",
+    "successPermissionUpdate": "权限更新成功",
+    "successPermissionDelete": "权限删除成功",
+    "successFeatureUpdate": "功能更新成功",
+    "successFeatureDelete": "功能删除成功",
+    "successGroupUpdate": "功能组更新成功",
+    "successGroupDelete": "功能组删除成功",
+    "failed": "操作失败，请稍后重试",
+    "deleteFailed": "删除失败，请稍后重试",
+    "statusField": "状态",
+    "visibleField": "显示"
+  }
+}

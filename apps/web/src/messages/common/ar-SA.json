@@ -1,0 +1,320 @@
+{
+  "language": "اللغة",
+  "theme": {
+    "label": "السمة",
+    "light": "الوضع الفاتح",
+    "dark": "الوضع الداكن",
+    "system": "تلقائي (حسب النظام)"
+  },
+  "timezone": {
+    "label": "المنطقة الزمنية",
+    "options": {
+      "utc": "قياسي",
+      "cn": "محلي",
+      "us": "شرق الولايات المتحدة",
+      "jp": "اليابان",
+      "saudi": "السعودية",
+      "india": "الهند",
+      "es": "إسبانيا",
+      "tr": "تركيا"
+    }
+  },
+  "userMenu": {
+    "ariaLabel": "قائمة الحساب",
+    "logout": "تسجيل الخروج"
+  },
+  "search": {
+    "quickSearch": "بحث سريع…",
+    "shortcut": "Ctrl K"
+  },
+  "commandPalette": {
+    "placeholder": "ابحث عن صفحة أو اكتب أمرًا…",
+    "empty": "لا توجد نتائج مطابقة",
+    "groups": {
+      "pages": "الصفحات",
+      "actions": "الإجراءات"
+    }
+  },
+  "profileNav": {
+    "title": "لوحة الإدارة",
+    "apps": "التطبيقات",
+    "myProfile": "الملف الشخصي",
+    "appearance": "المظهر",
+    "settings": "الإعدادات",
+    "back": "رجوع",
+    "askAi": "اسأل الذكاء الاصطناعي",
+    "support": "الدعم",
+    "ai": "AI",
+    "about": "حول"
+  },
+  "about": {
+    "appName": "Nivo Admin",
+    "appDescription": "لوحة إدارة خلفية لمساحات عمل متعددة التطبيقات",
+    "fields": {
+      "appName": "اسم التطبيق",
+      "version": "الإصدار",
+      "techStack": "التقنيات المستخدمة"
+    },
+    "techStack": "React · Vite · TanStack Router · Tailwind · Kumo"
+  },
+  "profile": {
+    "title": "الملف الشخصي",
+    "settings": {
+      "general": "الإعدادات العامة",
+      "accentColor": "اللون المميز",
+      "palette": "لوحة الألوان",
+      "appBoard": "مظهر التطبيق",
+      "neutralColor": "اللون المحايد",
+      "themeDisabled": "السمة المخصصة غير مُفعّلة حالياً",
+      "colors": {
+        "default": "افتراضي",
+        "orange": "برتقالي",
+        "blue": "أزرق",
+        "purple": "بنفسجي",
+        "green": "أخضر",
+        "red": "أحمر",
+        "coolGray": "رمادي بارد",
+        "gray": "رمادي محايد",
+        "zinc": "رمادي الزنك",
+        "warmGray": "رمادي دافئ"
+      },
+      "appearanceHint": "اختر سمة الواجهة",
+      "languageHint": "تبديل لغة لوحة الإدارة",
+      "timezoneHint": "المنطقة الزمنية المستخدمة لعرض التواريخ والأوقات",
+      "detailOpenMode": "طريقة فتح التفاصيل",
+      "detailOpenModeHint": "طريقة فتح التفاصيل من الجدول؛ على الجوال تُفتح التفاصيل دائمًا في صفحة كاملة",
+      "detailOpenModes": {
+        "split": "عرض منقسم",
+        "sheet": "لوحة جانبية",
+        "page": "الانتقال إلى صفحة التفاصيل"
+      },
+      "aiDisplayMode": "طريقة العرض",
+      "aiDisplayModeHint": "طريقة ظهور لوحة Ask AI؛ على الشاشات الضيقة يتحول الوضعان إلى طبقة عائمة",
+      "aiModes": {
+        "split": "عرض مقسّم",
+        "float": "نافذة عائمة"
+      },
+      "aiProviders": "خدمات النماذج",
+      "aiProviderEmpty": "لا يوجد مزوّد بعد. أضف واحدًا للبدء.",
+      "aiAddProvider": "إضافة مزوّد",
+      "aiEditProvider": "تعديل المزوّد",
+      "aiProviderKind": "نوع الخدمة",
+      "aiProviderName": "الاسم",
+      "aiProviderBaseUrl": "عنوان الواجهة",
+      "aiProviderBaseUrlHint": "اتركه فارغًا لاستخدام العنوان الرسمي لهذا النوع",
+      "aiApiKey": "مفتاح API",
+      "aiApiKeyHint": "يُحفظ المفتاح في متصفح هذا الجهاز فقط. لا تُدخل مفتاحًا حقيقيًا على جهاز مشترك.",
+      "aiProviderKeySet": "المفتاح مُعدّ",
+      "aiProviderKeyMissing": "المفتاح مفقود",
+      "aiProviderKinds": {
+        "openai": "OpenAI",
+        "anthropic": "Anthropic",
+        "compatible": "متوافق مع OpenAI"
+      },
+      "aiProviderDeleteTitle": "حذف المزوّد",
+      "aiProviderDeleteDesc": "عند الحذف ستُحذف أيضًا إعدادات النماذج التابعة لهذا المزوّد.",
+      "aiModels": "النماذج",
+      "aiModelsHint": "يُستخدم النموذج الافتراضي في المحادثات الجديدة؛ النماذج التي أُوقف فيها استدعاء الأدوات للمحادثة فقط.",
+      "aiModelsNoProviderHint": "أضف مزوّدًا في «خدمات النماذج» أولًا.",
+      "aiModelEmpty": "لا يوجد نموذج بعد.",
+      "aiAddModel": "إضافة نموذج",
+      "aiEditModel": "تعديل النموذج",
+      "aiModelProvider": "المزوّد",
+      "aiModelId": "معرّف النموذج",
+      "aiModelIdHint": "اسم النموذج كما في وثائق المزوّد، مثل gpt-5-mini أو claude-sonnet-4-5",
+      "aiModelName": "الاسم المعروض",
+      "aiModelNameHint": "اتركه فارغًا لعرض معرّف النموذج",
+      "aiModelSupportsTools": "يدعم استدعاء الأدوات",
+      "aiModelNoTools": "محادثة فقط",
+      "aiDefaultModel": "افتراضي",
+      "aiSetDefaultModel": "تعيين كافتراضي",
+      "aiModelDeleteTitle": "حذف النموذج",
+      "aiModelDeleteDesc": "ستحتاج إلى إضافته مرة أخرى لاستخدام هذا النموذج.",
+      "aiActivityGlow": "توهج أثناء العمل",
+      "aiActivityGlowHint": "يعرض شريط ضوء متحرك حول الصفحة أثناء عمل الذكاء الاصطناعي",
+      "aiShowToolCalls": "عرض استدعاءات الأدوات",
+      "aiShowToolCallsHint": "إظهار الأدوات التي استدعاها الذكاء الاصطناعي؛ عند الإيقاف تظهر الإجابة فقط",
+      "aiBotAvatar": "صورة المساعد",
+      "aiBotAvatarHint": "الروبوت الصغير الذي يظهر مع ردود المساعد",
+      "aiOutputMode": "طريقة العرض",
+      "aiOutputModeHint": "عرض الإجابة أثناء كتابتها أو دفعة واحدة بعد الانتهاء",
+      "aiOutputModes": {
+        "stream": "فوري",
+        "wait": "بعد التفكير"
+      },
+      "aiAutoScroll": "متابعة المخرجات",
+      "aiAutoScrollHint": "التمرير إلى أحدث محتوى أثناء رد الذكاء الاصطناعي؛ التمرير للأعلى يوقفه مؤقتًا",
+      "aiPermission": "أذونات الذكاء الاصطناعي",
+      "aiPermissionMode": "النطاق",
+      "aiPermissionModeHint": "ما يُسمح للذكاء الاصطناعي بفعله. اختر «وصول كامل» ليتمكن من تعبئة النماذج والإرسال واستدعاء واجهات الكتابة",
+      "aiPermissionModes": {
+        "readonly": "للقراءة فقط",
+        "full": "وصول كامل",
+        "custom": "مخصّص"
+      },
+      "aiToolGroups": {
+        "page": "الصفحة",
+        "data": "البيانات",
+        "form": "النماذج"
+      },
+      "aiToolGroupHints": {
+        "page": "قراءة الصفحة الحالية، سرد التنقل، الانتقال",
+        "data": "البحث في الواجهات وقراءتها. واجهات الكتابة تطلب تأكيدك دائمًا",
+        "form": "سرد نماذج الصفحة وتعبئتها وإرسالها"
+      },
+      "aiToolNames": {
+        "get_page_context": "قراءة سياق الصفحة",
+        "list_navigation": "سرد التنقل",
+        "navigate_to": "الانتقال إلى صفحة",
+        "search_api": "البحث في الواجهات",
+        "call_read_api": "استدعاء واجهة قراءة",
+        "list_dict_options": "جلب خيارات القاموس",
+        "call_write_api": "استدعاء واجهة كتابة",
+        "list_page_forms": "سرد نماذج الصفحة",
+        "fill_form": "تعبئة نموذج",
+        "submit_form": "إرسال نموذج"
+      },
+      "aiOutputLanguage": "لغة الإخراج",
+      "aiOutputLanguageHint": "اللغة التي يجيب بها الذكاء الاصطناعي؛ تتبع الواجهة افتراضيًا",
+      "aiOutputLanguageAuto": "اتبع الواجهة",
+      "aiEnabled": "تفعيل الذكاء الاصطناعي",
+      "aiEnabledHint": "عند الإيقاف يختفي مدخل Ask AI من الشريط العلوي"
+    },
+    "loadError": "خدمة الملف الشخصي غير متاحة، ويتم عرض معلومات تسجيل الدخول المحلية",
+    "sections": {
+      "basic": "المعلومات الأساسية",
+      "regions": "صلاحيات المناطق"
+    },
+    "fields": {
+      "username": "اسم المستخدم",
+      "nickName": "الاسم المستعار",
+      "email": "البريد الإلكتروني",
+      "uid": "UID",
+      "role": "الدور",
+      "status": "الحالة",
+      "currentRegion": "المنطقة الحالية"
+    },
+    "status": {
+      "enabled": "مفعّل",
+      "disabled": "معطّل"
+    },
+    "regions": {
+      "empty": "لا توجد صلاحيات مناطق"
+    }
+  },
+  "selectApp": {
+    "title": "التطبيقات",
+    "subtitle": "اختر تطبيقاً للمتابعة.",
+    "tableApp": "التطبيق",
+    "tableDesc": "الوصف",
+    "loading": "جارٍ تحميل التطبيقات…",
+    "viewAll": "عرض جميع التطبيقات"
+  },
+  "nav": {
+    "system": "النظام",
+    "systemFeatures": "الميزات",
+    "systemDataDict": "قاموس البيانات",
+    "config": "الإعدادات",
+    "langPack": "حزمة اللغات",
+    "home": "لوحة المعلومات",
+    "userOps": "عمليات المستخدمين",
+    "userList": "قائمة المستخدمين"
+  },
+  "notFound": {
+    "backHome": "العودة إلى الرئيسية",
+    "title": "الصفحة غير موجودة",
+    "description": "المسار <b>{{route}}</b> غير موجود<br/>بقية لوحة التحكم تعمل بشكل طبيعي،<br/>يمكنك العودة بأمان.",
+    "copyLink": "نسخ الرابط",
+    "copied": "تم النسخ"
+  },
+  "actions": {
+    "submit": "إرسال",
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "back": "رجوع",
+    "edit": "تعديل",
+    "delete": "حذف"
+  },
+  "table": {
+    "displayOptions": {
+      "trigger": "خيارات العرض",
+      "title": "تعديل الأعمدة",
+      "reset": "إعادة تعيين",
+      "filterPlaceholder": "تصفية الأعمدة…",
+      "clearFilter": "مسح التصفية",
+      "noMatch": "لا توجد أعمدة مطابقة",
+      "other": "أخرى"
+    },
+    "search": {
+      "placeholder": "بحث في السجلات…",
+      "ariaLabel": "بحث",
+      "clear": "مسح البحث"
+    },
+    "filters": {
+      "trigger": "عوامل التصفية"
+    },
+    "filterBuilder": {
+      "title": "عوامل التصفية",
+      "close": "إغلاق",
+      "empty": "لا توجد شروط بعد — أضف حقلاً من الأسفل",
+      "field": "الحقل",
+      "yes": "نعم",
+      "no": "لا",
+      "rangeFrom": "الحد الأدنى",
+      "rangeTo": "الحد الأعلى",
+      "arrayPlaceholder": "افصل بين القيم المتعددة بفواصل",
+      "add": "إضافة عامل تصفية",
+      "remove": "إزالة عامل التصفية {{field}}",
+      "enterHint": "اضغط Enter للتطبيق",
+      "clearAll": "مسح الكل",
+      "apply": "تطبيق"
+    },
+    "filterChips": {
+      "label": "عوامل التصفية النشطة",
+      "edit": "تعديل عامل التصفية {{label}}",
+      "remove": "إزالة عامل التصفية {{label}}"
+    },
+    "actions": {
+      "import": "استيراد",
+      "export": "تصدير",
+      "addRecord": "إضافة سجل",
+      "refresh": "تحديث"
+    },
+    "summary": {
+      "total": "تم العثور على <b>{{total}}</b> سجل مطابق",
+      "selected": "تم تحديد <b>{{selected}}</b>",
+      "clearSelection": "إلغاء التحديد"
+    },
+    "dataTable": {
+      "quota": "أنت تشاهد <b>{{current}} من {{total}}</b> من بيانات {{module}}",
+      "selectedOf": "تم تحديد <b>{{selected}}</b> / {{total}}",
+      "clearSelection": "إلغاء التحديد",
+      "batchEdit": "تعديل {{num}}",
+      "batchDelete": "حذف {{num}}",
+      "loading": "جارٍ تحميل بيانات الجدول…",
+      "retry": "إعادة المحاولة",
+      "emptyTitle": "لا توجد بيانات",
+      "emptyDescription": "لم يتم العثور على سجلات مطابقة",
+      "moduleFallback": "بيانات",
+      "expandRow": "توسيع",
+      "collapseRow": "طي",
+      "paginationShowing": "عرض <b>{{range}}</b> من <b>{{total}}</b>",
+      "pagination": {
+        "perPage": "لكل صفحة:",
+        "navigation": "التنقل بين الصفحات",
+        "firstPage": "الصفحة الأولى",
+        "previousPage": "الصفحة السابقة",
+        "nextPage": "الصفحة التالية",
+        "lastPage": "الصفحة الأخيرة",
+        "pageNumber": "رقم الصفحة",
+        "pageSize": "عدد العناصر في الصفحة"
+      }
+    }
+  },
+  "detailPreview": {
+    "ariaLabel": "معاينة التفاصيل",
+    "expand": "توسيع",
+    "close": "إغلاق المعاينة",
+    "resize": "تغيير عرض المعاينة"
+  }
+}

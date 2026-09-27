@@ -1,0 +1,147 @@
+{
+  "title": "数据字典",
+  "description": "维护分类层级与字典项键值，供业务下拉与枚举使用",
+  "moduleName": "数据字典",
+  "rootLevel": "根层级",
+  "searchTypePlaceholder": "搜索分类名称 / 编码…",
+  "searchItemPlaceholder": "搜索字典项名称 / 键值…",
+  "quota": "共 <b>{{total}}</b> 项",
+  "empty": {
+    "itemTitle": "暂无字典项",
+    "itemDescription": "该分类下还没有字典项，可用「新增字典」继续创建",
+    "typeTitle": "暂无分类数据",
+    "typeDescription": "未找到符合条件的分类，请尝试更换关键词"
+  },
+  "columns": {
+    "id": "ID",
+    "name": "分类名称",
+    "code": "分类编码",
+    "p_code": "完整编码",
+    "type": "键值类型",
+    "sort": "排序",
+    "status": "状态",
+    "id_path": "ID 路径",
+    "remark": "备注",
+    "created_at": "创建时间",
+    "updated_at": "更新时间",
+    "label": "显示名",
+    "value": "键值",
+    "is_default": "默认",
+    "update_by_user": "最后更新人",
+    "actions": "操作"
+  },
+  "valueType": {
+    "string": "string",
+    "number": "number"
+  },
+  "status": {
+    "enabled": "启用",
+    "disabled": "禁用"
+  },
+  "isDefault": {
+    "yes": "是",
+    "no": "否"
+  },
+  "rowActions": {
+    "label": "更多操作",
+    "addChildType": "新增子分类",
+    "editType": "编辑分类",
+    "deleteType": "删除分类",
+    "editItem": "编辑字典",
+    "deleteItem": "删除字典"
+  },
+  "messages": {
+    "fetchFailed": "获取分类树失败",
+    "itemsFetchFailed": "获取字典项列表失败",
+    "deleteBlocked": "该分类下还有 {{total}} 个子分类，请先删除子分类",
+    "deleteBlockedByItems": "该分类下还有 {{total}} 个字典项，请先删除字典项",
+    "rootMissing": "未找到字典根分类 {{id}}，请确认后端根分类配置"
+  },
+  "sections": {
+    "childrenTypes": "子分类",
+    "items": "字典项",
+    "details": "详细信息"
+  },
+  "detail": {
+    "basicInfo": "基本信息",
+    "parentType": "上级分类",
+    "rootType": "根层级",
+    "fullCode": "完整编码",
+    "valueType": "键值类型",
+    "status": "状态",
+    "sort": "排序",
+    "id": "分类 ID",
+    "remark": "备注",
+    "deleteType": "删除分类",
+    "deleteTypeTitle": "删除分类",
+    "createdAt": "创建时间",
+    "deleteTypeConfirm": "该操作不可撤销。将永久删除分类 {{name}} 及其在树中的位置。",
+    "retry": "重试加载",
+    "backToList": "返回分类列表",
+    "notFound": "未找到该分类",
+    "invalidId": "ID 不合法"
+  },
+  "actions": {
+    "addTopType": "新增分类",
+    "addItem": "新增字典"
+  },
+  "form": {
+    "createTypeTitle": "新增分类",
+    "createChildTypeTitle": "新增子分类",
+    "createTypeDescription": "创建一个数据字典分类，用来归类一组键值",
+    "createChildTypeDescription": "在当前分类下创建子分类",
+    "createItemTitle": "新增字典项",
+    "editItemTitle": "编辑字典项",
+    "createItemDescription": "在当前分类下新增一个键值对",
+    "editItemDescription": "修改该字典项的显示名、键值与状态",
+    "parentHint": "将创建在：{{parent}}",
+    "typeHint": "所属分类：{{type}}",
+    "name": "名称",
+    "nameDescription": "2–30 个字符，用于展示的分类名",
+    "namePlaceholder": "请输入名称",
+    "nameLength": "名称长度需在 {{min}}–{{max}} 个字符之间",
+    "code": "分类编码",
+    "codeDescription": "业务侧获取选项时使用的 key，例如 channel",
+    "codePlaceholder": "channel",
+    "codeRequired": "请填写分类编码",
+    "valueType": "键值类型",
+    "label": "显示名",
+    "labelDescription": "2–30 个字符，业务下拉里展示的文本",
+    "labelPlaceholder": "例如 google play",
+    "labelLength": "名称长度需在 {{min}}–{{max}} 个字符之间",
+    "value": "键值",
+    "valueDescription": "业务侧实际存储与比较的值",
+    "valuePlaceholder": "例如 1",
+    "valueRequired": "请填写键值",
+    "isDefault": "是否默认",
+    "sort": "排序",
+    "sortDescription": "同级内从小到大排列",
+    "remark": "备注",
+    "remarkDescription": "可选，说明该分类的用途",
+    "optional": "可选",
+    "statusEnabled": "启用",
+    "statusDisabled": "禁用",
+    "submitCreateType": "创建分类",
+    "submitCreateChildType": "创建子分类",
+    "submitCreateItem": "创建字典项",
+    "save": "保存",
+    "cancel": "取消",
+    "successTypeCreate": "分类创建成功",
+    "successTypeUpdate": "分类更新成功",
+    "successTypeDelete": "分类删除成功",
+    "successItemCreate": "字典项创建成功",
+    "successItemUpdate": "字典项更新成功",
+    "successItemDelete": "字典项删除成功",
+    "failed": "操作失败，请稍后重试",
+    "deleteFailed": "删除失败，请稍后重试"
+  },
+  "itemDialog": {
+    "deleteTitle": "删除字典项",
+    "deleteConfirm": "确定要删除「{{name}}」吗？该操作不可撤销。",
+    "delete": "删除"
+  },
+  "statusFilter": {
+    "all": "全部状态"
+  },
+  "typeDescription": "该分类下的子分类与字典项"
+}

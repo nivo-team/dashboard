@@ -1,0 +1,68 @@
+{
+  "common/ar-SA.json": [
+    "clipboard.copied",
+    "clipboard.copyAria",
+    "dangerConfirm.cancel",
+    "dangerConfirm.hint",
+    "dangerConfirm.inputAria",
+    "dangerConfirm.suffix",
+    "unsavedChanges.message",
+    "unsavedChanges.reset",
+    "unsavedChanges.save"
+  ],
+  "common/en-US.json": [
+    "clipboard.copied",
+    "clipboard.copyAria",
+    "dangerConfirm.cancel",
+    "dangerConfirm.hint",
+    "dangerConfirm.inputAria",
+    "dangerConfirm.suffix",
+    "unsavedChanges.message",
+    "unsavedChanges.reset",
+    "unsavedChanges.save"
+  ],
+  "common/es-ES.json": [
+    "clipboard.copied",
+    "clipboard.copyAria",
+    "dangerConfirm.cancel",
+    "dangerConfirm.hint",
+    "dangerConfirm.inputAria",
+    "dangerConfirm.suffix",
+    "unsavedChanges.message",
+    "unsavedChanges.reset",
+    "unsavedChanges.save"
+  ],
+  "common/hi-IN.json": [
+    "clipboard.copied",
+    "clipboard.copyAria",
+    "dangerConfirm.cancel",
+    "dangerConfirm.hint",
+    "dangerConfirm.inputAria",
+    "dangerConfirm.suffix",
+    "unsavedChanges.message",
+    "unsavedChanges.reset",
+    "unsavedChanges.save"
+  ],
+  "common/ja-JP.json": [
+    "clipboard.copied",
+    "clipboard.copyAria",
+    "dangerConfirm.cancel",
+    "dangerConfirm.hint",
+    "dangerConfirm.inputAria",
+    "dangerConfirm.suffix",
+    "unsavedChanges.message",
+    "unsavedChanges.reset",
+    "unsavedChanges.save"
+  ],
+  "common/tr-TR.json": [
+    "clipboard.copied",
+    "clipboard.copyAria",
+    "dangerConfirm.cancel",
+    "dangerConfirm.hint",
+    "dangerConfirm.inputAria",
+    "dangerConfirm.suffix",
+    "unsavedChanges.message",
+    "unsavedChanges.reset",
+    "unsavedChanges.save"
+  ]
+}

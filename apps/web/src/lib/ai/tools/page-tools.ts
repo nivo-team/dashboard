@@ -1,0 +1,204 @@
+import i18n from '#/lib/i18n'
+import { ALL_NAV_TARGETS } from '#/lib/navigation'
+import { describeEndpointParams, findEndpointSpec } from '../endpoint-specs'
+import { getAiShellBridge, getPageContext, resolveNavLabel } from '../page-context'
+import { resolveAiPageContext } from '../page-context-registry'
+import type { AiToolDefinition } from '../types'
+
+/**
+ * 「位置」类工具：读当前上下文、列页面清单、带用户去某个页面。
+ *
+ * 三者是配套的：`list_navigation` 给出**可选目标**，`navigate_to` 执行跳转，
+ * `get_page_context` 在跳转之后确认落到了哪里。模型因此不需要猜路由。
+ */
+
+export interface NavigationEntry {
+  /** 当前语言下的页面名称 */
+  name: string
+  /** 绝对路径 */
+  path: string
+  /** 所属分组（业务导航的父级），外壳导航为 null */
+  group: string | null
+}
+
+/**
+ * 导航清单的记忆表 —— 键是「appId + 界面语言」。
+ *
+ * 算一次要遍历全部导航项、逐个走 i18n 取名字；而模型在一轮对话里反复问
+ * 「有哪些页面」很常见（同一个问题、甚至同一轮里 `list_navigation` 被调多次）。
+ * 输入只有 appId 与语言两个维度，导航配置本身是静态常量，所以结果可以放心复用。
+ *
+ * 语言变化、登录换账号都会自然 miss（两者都在键里），不需要手动失效。
+ */
+const navigationCache = new Map<string, readonly NavigationEntry[]>()
+/** 上限：键只有「几个 app × 几种语言」的量级；超了说明有异常，清空重来 */
+const NAVIGATION_CACHE_LIMIT = 32
+
+/**
+ * 汇总当前 app 的**业务导航** —— 给 AI 看的页面清单的**唯一出口**。
+ *
+ * 单列成函数（而不是把 `ALL_NAV_TARGETS` 直接丢给工具）就是为了留一道**过滤点**：
+ * 将来若要按权限收窄可见页面（某档只能看部分模块、或某类页面不该被 AI 打开），
+ * 条件加在**这里一处**即可 —— 工具、提示词、界面都不必知道「过滤」这回事。
+ * 所以**不要**在别处再遍历 `ALL_NAV_TARGETS` 拼一份给模型的清单。
+ *
+ * **刻意不含外壳导航**（应用选择 / 个人资料 / 外观 / AI 设置）：那些是跨应用、跨模块的
+ * 页面，回答不了「这个应用里有哪些页面」。一并交出去，既扩大了 AI 的可导航范围，
+ * 也稀释了清单的信噪比。
+ *
+ * **`isAllowedPath` 也读这份清单**（见下），所以这里的收窄会同时收紧导航白名单 ——
+ * 一处改、两处生效，别再各写一份判断。
+ *
+ * 业务导航（`ALL_NAV_TARGETS`）的 `to` 是**相对 appId** 的，要补前缀才成绝对路径。
+ * 没有 appId 时返回**空数组**：业务页都需要 `/appId/...` 前缀，此时没有可去的地方，
+ * 退化成外壳页面只会把用户带到应用选择页去。
+ */
+
+export function collectNavigation(appId: string | null): NavigationEntry[] {
+  // 没有 appId 就没有可导航的业务页（它们都需要 /appId 前缀）
+  if (!appId) return []
+
+  const cacheKey = `${appId}|${i18n.resolvedLanguage ?? ''}`
+  const cached = navigationCache.get(cacheKey)
+  if (cached) return [...cached]
+
+  const entries: NavigationEntry[] = ALL_NAV_TARGETS.map((target) => ({
+    name: resolveNavLabel(target.labelKey, target.label),
+    path: `/${appId}${target.to}`,
+    group: target.parentLabel
+      ? resolveNavLabel(target.parentLabelKey, target.parentLabel)
+      : null,
+  }))
+
+  if (navigationCache.size >= NAVIGATION_CACHE_LIMIT) navigationCache.clear()
+  navigationCache.set(cacheKey, entries)
+  // 回副本：缓存的是内部那份数组，工具里会拿它 filter / slice，给独立数组更安全
+  return [...entries]
+}
+
+/**
+ * 站内路径白名单：目标必须落在某个**已知导航项之下**。
+ *
+ * 为什么用「前缀」而不是「完全相等」：详情页（`/console/users/user/10001`）本来就不在导航清单里，
+ * 但它属于「用户列表」这个导航项之下，是合法目标；而 `/evil` 这种凭空来的路径一律拒绝。
+ * 这样模型既能带用户去看具体某条记录，又没法把页面导到未知位置。
+ */
+export function isAllowedPath(path: string, appId: string | null): boolean {
+  // 只接受站内绝对路径：`//host` 是协议相对的外链，`javascript:` 之类更是直接拒绝
+  if (!path.startsWith('/') || path.startsWith('//')) return false
+  return collectNavigation(appId).some(
+    (entry) => path === entry.path || path.startsWith(`${entry.path}/`),
+  )
+}
+
+export const getPageContextTool: AiToolDefinition = {
+  name: 'get_page_context',
+  description:
+    '读取用户此刻所在的页面信息：完整地址、应用、所在页面名称与标题，**以及这个页面用到的接口和它们的参数明细**（参数名 / 位置 / 是否必填）。要在这个页面上查数据时，**先看这里**，再决定调哪个接口、怎么传参。',
+  inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  access: 'read',
+  group: 'page',
+  execute: async () => {
+    const context = getPageContext()
+    const page = resolveAiPageContext(context.routePath)
+    // 页面没声明上下文就只给基础信息 —— 不编造「这个页面大概会用到什么」
+    if (!page) return context
+
+    return {
+      ...context,
+      page: {
+        description: page.description,
+        ...(page.entities?.length ? { entities: page.entities } : {}),
+        endpoints: await Promise.all(
+          (page.endpoints ?? []).map(async (ref) => {
+            const spec = await findEndpointSpec(ref.method, ref.path)
+            const params = describeEndpointParams(spec)
+            return {
+              method: ref.method,
+              path: ref.path,
+              // purpose 是本页面视角的用途，比接口自己的 summary 更贴合当前场景
+              ...(ref.purpose ? { purpose: ref.purpose } : {}),
+              ...(spec?.summary ? { summary: spec.summary } : {}),
+              // 参数明细：**模型最常错的三个信息**（名字 / 位置 / 是否必填）都在这一行里
+              ...(params ? { params } : {}),
+            }
+          }),
+        ),
+      },
+    }
+  },
+}
+
+export const listNavigationTool: AiToolDefinition = {
+  name: 'list_navigation',
+  description:
+    '列出这个后台有哪些页面（名称 + 路径）。当用户说「带我去某某页面 / 打开某某功能」时，先用它找到目标路径，再调用 navigate_to。',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      keyword: {
+        type: 'string',
+        description: '可选。按名称或路径过滤，例如「用户」「字典」',
+      },
+    },
+    additionalProperties: false,
+  },
+  access: 'read',
+  group: 'page',
+  execute: async (input) => {
+    const keyword = typeof input.keyword === 'string' ? input.keyword.trim().toLowerCase() : ''
+    const entries = collectNavigation(getPageContext().appId)
+    const items = keyword
+      ? entries.filter(
+          (entry) =>
+            entry.name.toLowerCase().includes(keyword) ||
+            entry.path.toLowerCase().includes(keyword) ||
+            (entry.group ?? '').toLowerCase().includes(keyword),
+        )
+      : entries
+
+    // 全量约几十条，直接给模型即可；仍设上限，避免导航项爆炸时把上下文撑满
+    return { total: items.length, items: items.slice(0, 80) }
+  },
+}
+
+export const navigateToTool: AiToolDefinition = {
+  name: 'navigate_to',
+  description:
+    '把用户带到后台的另一个页面（前端路由跳转，不刷新整页）。path 必须来自 list_navigation 的结果，或是在其基础之上的详情页路径。',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      path: {
+        type: 'string',
+        description: '目标路径，例如 /console/users/user 或 /console/users/user/10001',
+      },
+    },
+    required: ['path'],
+    additionalProperties: false,
+  },
+  /*
+    归到 `read` 而不是 `act`：导航**不改变任何东西** —— 它只是把用户带到另一个页面，
+    「看哪里」不是「改什么」。所以只读档也应该能用它；否则一个只读的 AI 连
+    「带我去用户列表」都做不到，那显然过严了。
+  */
+  access: 'read',
+  group: 'page',
+  execute: async (input) => {
+    const path = typeof input.path === 'string' ? input.path.trim() : ''
+    if (!path) throw new Error('缺少目标路径')
+
+    const { appId } = getPageContext()
+    if (!isAllowedPath(path, appId)) {
+      throw new Error(
+        `拒绝跳转到未知路径：${path}。请先用 list_navigation 确认可用的页面路径。`,
+      )
+    }
+
+    const bridge = getAiShellBridge()
+    if (!bridge) throw new Error('当前环境不支持页面跳转（外壳尚未就绪）')
+
+    bridge.navigate(path)
+    return { ok: true, path }
+  },
+}

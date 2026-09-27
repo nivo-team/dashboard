@@ -1,0 +1,198 @@
+import { create } from 'zustand'
+import { createJSONStorage, persist } from 'zustand/middleware'
+
+import { enableCrossTabSync } from './cross-tab-sync'
+
+/**
+ * 外壳（侧边栏）UI 偏好 store。
+ *
+ * 持久化**桌面端**的折叠状态与拖拽宽度，刷新后保持离开时的样子；
+ * **移动端不参与**：抽屉开合由 Kumo `Sidebar.Provider` 的内部 `openMobile` 状态管理
+ * （临时状态，不该跨会话保留），宽度在移动端也无意义。
+ *
+ * 为什么**全局**而不是按应用分区：侧边栏宽度/折叠是「外壳形态」偏好，不是数据域。
+ * 若按 app 分，切应用时侧边栏会跳一下，反而打扰；两个外壳（`_main` 与 `$appId`）
+ * 共用一个 store，因此在 `/settings` 收起的侧边栏，回到业务页也保持收起。
+ *
+ * 与 Kumo 的接线方式：**非受控**（只给 `defaultOpen` / `defaultWidth` 作为初始值），
+ * 用 `onOpenChange` / `onWidthChange` 把变化写回这里。这是刻意的：
+ * Kumo 的 `setOpen` 在受控与非受控下都会更新内部状态，但**移动端只在受控时回调**，
+ * 所以非受控 + 回调恰好等于「桌面记录、移动端忽略」。
+ */
+
+/** 侧边栏布局常量：两个外壳共用，避免 Provider 参数各写一份而漂移。 */
+export const SHELL_MOBILE_BREAKPOINT = 768
+export const SIDEBAR_WIDTH = 256
+export const SIDEBAR_MIN_WIDTH = 200
+export const SIDEBAR_MAX_WIDTH = 360
+
+/**
+ * 详情预览面板（分屏形态）的宽度区间。
+ *
+ * 默认 480 ≈ 1440 内容区的 1/3（原始需求就是「主区域分 1/3」），可拖到 260–720。
+ * 与侧边栏宽度同属「外壳形态偏好」，因此放在这个 store 而不是按应用隔离的偏好 store。
+ */
+export const DETAIL_PANEL_DEFAULT_WIDTH = 480
+export const DETAIL_PANEL_MIN_WIDTH = 260
+export const DETAIL_PANEL_MAX_WIDTH = 720
+
+/**
+ * AI 面板的宽度区间（与详情分屏面板同一套「外壳形态偏好」的存放规则）。
+ *
+ * 它是**挤压式分屏**而不是浮层：面板变宽 = 内容区变窄，所以默认值刻意不取满
+ * （400px 只占 1440 内容区的约 28%），保证列表页还看得见主内容。
+ */
+export const AI_PANEL_DEFAULT_WIDTH = 400
+export const AI_PANEL_MIN_WIDTH = 300
+export const AI_PANEL_MAX_WIDTH = 720
+
+/** 拖拽期间的写盘节流：`onWidthChange` 每帧都会触发，同步写 localStorage 会卡。 */
+const WIDTH_PERSIST_DELAY_MS = 200
+
+interface ShellUiState {
+  /** 桌面端侧边栏是否展开 */
+  sidebarOpen: boolean
+  /** 桌面端侧边栏宽度（px） */
+  sidebarWidth: number
+  /** 详情预览面板（分屏形态）的宽度（px） */
+  detailPanelWidth: number
+  /** AI 面板的宽度（px） */
+  aiPanelWidth: number
+  setSidebarOpen: (open: boolean) => void
+  setSidebarWidth: (width: number) => void
+  setDetailPanelWidth: (width: number) => void
+  setAiPanelWidth: (width: number) => void
+}
+
+type PersistedShellUi = Pick<
+  ShellUiState,
+  'sidebarOpen' | 'sidebarWidth' | 'detailPanelWidth' | 'aiPanelWidth'
+>
+
+export function clampSidebarWidth(width: number): number {
+  return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, Math.round(width)))
+}
+
+export function clampDetailPanelWidth(width: number): number {
+  return Math.min(
+    DETAIL_PANEL_MAX_WIDTH,
+    Math.max(DETAIL_PANEL_MIN_WIDTH, Math.round(width)),
+  )
+}
+
+export function clampAiPanelWidth(width: number): number {
+  return Math.min(AI_PANEL_MAX_WIDTH, Math.max(AI_PANEL_MIN_WIDTH, Math.round(width)))
+}
+
+export const useShellUiStore = create<ShellUiState>()(
+  persist(
+    (set) => ({
+      sidebarOpen: true,
+      sidebarWidth: SIDEBAR_WIDTH,
+      detailPanelWidth: DETAIL_PANEL_DEFAULT_WIDTH,
+      aiPanelWidth: AI_PANEL_DEFAULT_WIDTH,
+      setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
+      setSidebarWidth: (sidebarWidth) =>
+        set({ sidebarWidth: clampSidebarWidth(sidebarWidth) }),
+      setDetailPanelWidth: (detailPanelWidth) =>
+        set({ detailPanelWidth: clampDetailPanelWidth(detailPanelWidth) }),
+      setAiPanelWidth: (aiPanelWidth) =>
+        set({ aiPanelWidth: clampAiPanelWidth(aiPanelWidth) }),
+    }),
+    {
+      name: 'admin.shell-ui',
+      storage: createJSONStorage(() => window.localStorage),
+      partialize: (state): PersistedShellUi => ({
+        sidebarOpen: state.sidebarOpen,
+        sidebarWidth: state.sidebarWidth,
+        detailPanelWidth: state.detailPanelWidth,
+        aiPanelWidth: state.aiPanelWidth,
+      }),
+      /**
+       * 旧存档没有 `detailPanelWidth` / `aiPanelWidth`（后续新增）—— 缺失或非法一律回落
+       * 默认值，否则 `undefined` 会被当成宽度写进 `style.width`（渲染成 `width: undefinedpx`）。
+       */
+      merge: (persisted, current) => {
+        const saved = (persisted ?? {}) as Partial<PersistedShellUi>
+        return {
+          ...current,
+          sidebarOpen:
+            typeof saved.sidebarOpen === 'boolean'
+              ? saved.sidebarOpen
+              : current.sidebarOpen,
+          sidebarWidth:
+            typeof saved.sidebarWidth === 'number' &&
+            Number.isFinite(saved.sidebarWidth)
+              ? clampSidebarWidth(saved.sidebarWidth)
+              : current.sidebarWidth,
+          detailPanelWidth:
+            typeof saved.detailPanelWidth === 'number' &&
+            Number.isFinite(saved.detailPanelWidth)
+              ? clampDetailPanelWidth(saved.detailPanelWidth)
+              : current.detailPanelWidth,
+          aiPanelWidth:
+            typeof saved.aiPanelWidth === 'number' &&
+            Number.isFinite(saved.aiPanelWidth)
+              ? clampAiPanelWidth(saved.aiPanelWidth)
+              : current.aiPanelWidth,
+        }
+      },
+    },
+  ),
+)
+
+/**
+ * 当前是否桌面视口（与 Provider 的 `mobileBreakpoint` 一致）。
+ *
+ * 回调里的双保险：即便将来 Kumo 改成移动端也回调，这里也不会把抽屉状态写进存档。
+ */
+export function isDesktopViewport(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia(`(min-width: ${SHELL_MOBILE_BREAKPOINT}px)`).matches
+}
+
+/** 记录桌面端折叠状态。 */
+export function persistSidebarOpen(open: boolean) {
+  if (!isDesktopViewport()) return
+  useShellUiStore.getState().setSidebarOpen(open)
+}
+
+let widthTimer: number | null = null
+
+/** 记录桌面端拖拽宽度（节流，拖拽结束时的那次一定会落盘）。 */
+// 多标签页同步：侧边栏宽度 / 折叠状态 / 分屏宽度跟着其它标签页走（移动端本来就不写盘）
+enableCrossTabSync(useShellUiStore, { storageName: 'admin.shell-ui' })
+
+export function persistSidebarWidth(width: number) {
+  if (!isDesktopViewport()) return
+  if (widthTimer !== null) window.clearTimeout(widthTimer)
+  widthTimer = window.setTimeout(() => {
+    widthTimer = null
+    useShellUiStore.getState().setSidebarWidth(width)
+  }, WIDTH_PERSIST_DELAY_MS)
+}
+
+/**
+ * 记录详情预览面板的拖拽宽度。
+ *
+ * **刻意不加节流**（与侧边栏宽度不同）：调用方是把「拖动结束 / 键盘每次按键」
+ * 作为写入时机（`usePanelResize` 的 `onCommit`），一次调整只写一次；
+ * 拖动过程中的跟手是组件本地状态的事。若在这里再套一层节流，
+ * 只会让松手后的落盘时机变得不确定，而不会省下任何写盘次数。
+ *
+ * 仍保留与侧边栏一致的**移动端不记录**：分屏本来就只在桌面端存在。
+ */
+export function persistDetailPanelWidth(width: number) {
+  if (!isDesktopViewport()) return
+  useShellUiStore.getState().setDetailPanelWidth(width)
+}
+
+/**
+ * 记录 AI 面板的拖拽宽度。约定与详情面板完全一致：调用方以 `onCommit` 为写入时机
+ * （一次拖动 / 一次按键只写一次），因此这里不再套节流；移动端不记录（移动端是覆盖式，
+ * 不存在可拖拽的宽度）。
+ */
+export function persistAiPanelWidth(width: number) {
+  if (!isDesktopViewport()) return
+  useShellUiStore.getState().setAiPanelWidth(width)
+}

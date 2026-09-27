@@ -1,0 +1,320 @@
+{
+  "language": "Dil",
+  "theme": {
+    "label": "Tema",
+    "light": "Açık Mod",
+    "dark": "Karanlık Mod",
+    "system": "Sistem"
+  },
+  "timezone": {
+    "label": "Saat Dilimi",
+    "options": {
+      "utc": "Standart",
+      "cn": "Yerel",
+      "us": "ABD Doğu",
+      "jp": "Japonya",
+      "saudi": "Suudi Arabistan",
+      "india": "Hindistan",
+      "es": "İspanya",
+      "tr": "Türkiye"
+    }
+  },
+  "userMenu": {
+    "ariaLabel": "Hesap menüsü",
+    "logout": "Çıkış Yap"
+  },
+  "search": {
+    "quickSearch": "Hızlı arama…",
+    "shortcut": "Ctrl K"
+  },
+  "commandPalette": {
+    "placeholder": "Sayfa arayın veya komut yazın…",
+    "empty": "Eşleşen sonuç yok",
+    "groups": {
+      "pages": "Sayfalar",
+      "actions": "İşlemler"
+    }
+  },
+  "profileNav": {
+    "title": "Yönetim",
+    "apps": "Uygulamalar",
+    "myProfile": "Profil",
+    "appearance": "Görünüm",
+    "settings": "Ayarlar",
+    "back": "Geri",
+    "askAi": "AI'ya sor",
+    "support": "Destek",
+    "ai": "AI",
+    "about": "Hakkında"
+  },
+  "about": {
+    "appName": "Nivo Admin",
+    "appDescription": "Çok uygulamalı çalışma alanları için arka uç yönetim konsolu",
+    "fields": {
+      "appName": "Uygulama adı",
+      "version": "Sürüm",
+      "techStack": "Teknoloji yığını"
+    },
+    "techStack": "React · Vite · TanStack Router · Tailwind · Kumo"
+  },
+  "profile": {
+    "title": "Profil",
+    "settings": {
+      "general": "Genel ayarlar",
+      "accentColor": "Vurgu rengi",
+      "palette": "Palet",
+      "appBoard": "Uygulama görünümü",
+      "neutralColor": "Nötr renk",
+      "themeDisabled": "Özel tema henüz etkin değil",
+      "colors": {
+        "default": "Varsayılan",
+        "orange": "Turuncu",
+        "blue": "Mavi",
+        "purple": "Mor",
+        "green": "Yeşil",
+        "red": "Kırmızı",
+        "coolGray": "Soğuk gri",
+        "gray": "Nötr gri",
+        "zinc": "Çinko",
+        "warmGray": "Sıcak gri"
+      },
+      "appearanceHint": "Arayüz temasını seçin",
+      "languageHint": "Yönetim konsolunun dilini değiştirin",
+      "timezoneHint": "Tüm tarih ve saat gösterimlerinde kullanılan saat dilimi",
+      "detailOpenMode": "Ayrıntı açma biçimi",
+      "detailOpenModeHint": "Tablodan ayrıntı açma biçimi; mobilde ayrıntılar her zaman tam sayfada açılır",
+      "detailOpenModes": {
+        "split": "Bölünmüş görünüm",
+        "sheet": "Yan panel",
+        "page": "Ayrıntı sayfasına git"
+      },
+      "aiDisplayMode": "Görüntüleme biçimi",
+      "aiDisplayModeHint": "Ask AI panelinin görünümü; dar ekranlarda her iki biçim de katmana dönüşür",
+      "aiModes": {
+        "split": "Bölünmüş görünüm",
+        "float": "Yüzen pencere"
+      },
+      "aiProviders": "Model servisleri",
+      "aiProviderEmpty": "Henüz sağlayıcı yok. Başlamak için bir tane ekleyin.",
+      "aiAddProvider": "Sağlayıcı ekle",
+      "aiEditProvider": "Sağlayıcıyı düzenle",
+      "aiProviderKind": "Servis türü",
+      "aiProviderName": "Ad",
+      "aiProviderBaseUrl": "Uç nokta adresi",
+      "aiProviderBaseUrlHint": "Boş bırakırsanız bu servis türünün resmî adresi kullanılır",
+      "aiApiKey": "API anahtarı",
+      "aiApiKeyHint": "Anahtar yalnızca bu cihazın tarayıcısında saklanır. Ortak kullanılan bir bilgisayarda gerçek anahtar girmeyin.",
+      "aiProviderKeySet": "Anahtar tanımlı",
+      "aiProviderKeyMissing": "Anahtar yok",
+      "aiProviderKinds": {
+        "openai": "OpenAI",
+        "anthropic": "Anthropic",
+        "compatible": "OpenAI uyumlu"
+      },
+      "aiProviderDeleteTitle": "Sağlayıcıyı sil",
+      "aiProviderDeleteDesc": "Silindiğinde bu sağlayıcıya bağlı model ayarları da silinir.",
+      "aiModels": "Modeller",
+      "aiModelsHint": "Varsayılan model yeni sohbetlerde kullanılır; araç çağırma kapalı olan modeller yalnızca sohbet edebilir.",
+      "aiModelsNoProviderHint": "Önce «Model servisleri» bölümünden bir sağlayıcı ekleyin.",
+      "aiModelEmpty": "Henüz model tanımlı değil.",
+      "aiAddModel": "Model ekle",
+      "aiEditModel": "Modeli düzenle",
+      "aiModelProvider": "Sağlayıcı",
+      "aiModelId": "Model kimliği",
+      "aiModelIdHint": "Sağlayıcı belgelerindeki model adı, örneğin gpt-5-mini veya claude-sonnet-4-5",
+      "aiModelName": "Görünen ad",
+      "aiModelNameHint": "Boş bırakırsanız model kimliği gösterilir",
+      "aiModelSupportsTools": "Araç çağırma",
+      "aiModelNoTools": "Yalnızca sohbet",
+      "aiDefaultModel": "Varsayılan",
+      "aiSetDefaultModel": "Varsayılan yap",
+      "aiModelDeleteTitle": "Modeli sil",
+      "aiModelDeleteDesc": "Bu modeli kullanmaya devam etmek için yeniden eklemeniz gerekir.",
+      "aiActivityGlow": "Etkinlik parlaması",
+      "aiActivityGlowHint": "Yapay zeka çalışırken sayfanın çevresinde hareketli bir ışık şeridi gösterir",
+      "aiShowToolCalls": "Araç çağrılarını göster",
+      "aiShowToolCallsHint": "Yapay zekanın hangi araçları çağırdığını gösterir; kapatınca yalnızca yanıt görünür",
+      "aiBotAvatar": "Asistan avatarı",
+      "aiBotAvatarHint": "Asistanın yanıtlarıyla görünen küçük robot",
+      "aiOutputMode": "Çıktı",
+      "aiOutputModeHint": "Yanıtı yazılırken göster ya da bitince tek seferde ver",
+      "aiOutputModes": {
+        "stream": "Canlı",
+        "wait": "Düşündükten sonra"
+      },
+      "aiAutoScroll": "Çıktıyı takip et",
+      "aiAutoScrollHint": "Yapay zeka yanıtlarken en son içeriğe kaydır; yukarı kaydırmak duraklatır",
+      "aiPermission": "AI izinleri",
+      "aiPermissionMode": "Kapsam",
+      "aiPermissionModeHint": "Yapay zekanın neler yapabileceği. «Tam erişim» seçilirse form doldurabilir, gönderebilir ve yazma API’lerini çağırabilir",
+      "aiPermissionModes": {
+        "readonly": "Yalnızca okuma",
+        "full": "Tam erişim",
+        "custom": "Özel"
+      },
+      "aiToolGroups": {
+        "page": "Sayfa",
+        "data": "Veri",
+        "form": "Formlar"
+      },
+      "aiToolGroupHints": {
+        "page": "Geçerli sayfayı okuma, gezinmeyi listeleme, gitme",
+        "data": "API arama ve okuma. Yazma API’leri her zaman onay ister",
+        "form": "Sayfadaki formları listeleme, doldurma, gönderme"
+      },
+      "aiToolNames": {
+        "get_page_context": "Sayfa bağlamını oku",
+        "list_navigation": "Gezinmeyi listele",
+        "navigate_to": "Sayfaya git",
+        "search_api": "API ara",
+        "call_read_api": "Okuma API’si çağır",
+        "list_dict_options": "Sözlük seçeneklerini oku",
+        "call_write_api": "Yazma API’si çağır",
+        "list_page_forms": "Sayfa formlarını listele",
+        "fill_form": "Form doldur",
+        "submit_form": "Form gönder"
+      },
+      "aiOutputLanguage": "Çıktı dili",
+      "aiOutputLanguageHint": "Yapay zekanın hangi dilde yanıt verdiği; varsayılan olarak arayüzü izler",
+      "aiOutputLanguageAuto": "Arayüzü izle",
+      "aiEnabled": "AI etkinleştir",
+      "aiEnabledHint": "Kapatıldığında üst çubukta Ask AI girişi görünmez"
+    },
+    "loadError": "Profil hizmeti kullanılamıyor. Yerel oturum bilgileri gösteriliyor.",
+    "sections": {
+      "basic": "Temel bilgiler",
+      "regions": "Bölge yetkileri"
+    },
+    "fields": {
+      "username": "Kullanıcı adı",
+      "nickName": "Takma ad",
+      "email": "E-posta",
+      "uid": "UID",
+      "role": "Rol",
+      "status": "Durum",
+      "currentRegion": "Geçerli bölge"
+    },
+    "status": {
+      "enabled": "Etkin",
+      "disabled": "Devre dışı"
+    },
+    "regions": {
+      "empty": "Bölge yetkisi yok"
+    }
+  },
+  "selectApp": {
+    "title": "Uygulamalar",
+    "subtitle": "Bir uygulama seçin.",
+    "tableApp": "Uygulama",
+    "tableDesc": "Açıklama",
+    "loading": "Uygulamalar yükleniyor…",
+    "viewAll": "Tüm uygulamaları görüntüle"
+  },
+  "nav": {
+    "system": "Sistem",
+    "systemFeatures": "Özellikler",
+    "systemDataDict": "Veri sözlüğü",
+    "config": "Yapılandırma",
+    "langPack": "Dil paketi",
+    "home": "Gösterge paneli",
+    "userOps": "Kullanıcı operasyonları",
+    "userList": "Kullanıcı listesi"
+  },
+  "notFound": {
+    "backHome": "Ana sayfaya dön",
+    "title": "Sayfa bulunamadı",
+    "description": "<b>{{route}}</b> rotası mevcut değil<br/>Kontrol panelinin geri kalanı sorunsuz çalışıyor,<br/>dilediğiniz gibi geri dönebilirsiniz.",
+    "copyLink": "Bağlantıyı kopyala",
+    "copied": "Kopyalandı"
+  },
+  "actions": {
+    "submit": "Gönder",
+    "cancel": "İptal",
+    "confirm": "Onayla",
+    "back": "Geri",
+    "edit": "Düzenle",
+    "delete": "Sil"
+  },
+  "table": {
+    "displayOptions": {
+      "trigger": "Görüntüleme seçenekleri",
+      "title": "Sütunları düzenle",
+      "reset": "Sıfırla",
+      "filterPlaceholder": "Sütunları filtrele…",
+      "clearFilter": "Filtreyi temizle",
+      "noMatch": "Eşleşen sütun yok",
+      "other": "Diğer"
+    },
+    "search": {
+      "placeholder": "Kayıt ara…",
+      "ariaLabel": "Ara",
+      "clear": "Aramayı temizle"
+    },
+    "filters": {
+      "trigger": "Filtreler"
+    },
+    "filterBuilder": {
+      "title": "Filtreler",
+      "close": "Kapat",
+      "empty": "Henüz koşul yok — aşağıdan bir alan ekleyin",
+      "field": "Alan",
+      "yes": "Evet",
+      "no": "Hayır",
+      "rangeFrom": "Alt sınır",
+      "rangeTo": "Üst sınır",
+      "arrayPlaceholder": "Birden fazla değeri virgülle ayırın",
+      "add": "Filtre ekle",
+      "remove": "{{field}} filtresini kaldır",
+      "enterHint": "Uygulamak için Enter'a basın",
+      "clearAll": "Tümünü temizle",
+      "apply": "Uygula"
+    },
+    "filterChips": {
+      "label": "Etkin filtreler",
+      "edit": "{{label}} filtresini düzenle",
+      "remove": "{{label}} filtresini kaldır"
+    },
+    "actions": {
+      "import": "İçe aktar",
+      "export": "Dışa aktar",
+      "addRecord": "Kayıt ekle",
+      "refresh": "Yenile"
+    },
+    "summary": {
+      "total": "<b>{{total}}</b> eşleşen kayıt bulundu",
+      "selected": "<b>{{selected}}</b> seçildi",
+      "clearSelection": "Seçimi temizle"
+    },
+    "dataTable": {
+      "quota": "<b>{{current}} of {{total}}</b> {{module}} kaydı görüntülüyorsunuz",
+      "selectedOf": "<b>{{selected}}</b> / {{total}} seçildi",
+      "clearSelection": "Seçimi temizle",
+      "batchEdit": "{{num}} kaydı düzenle",
+      "batchDelete": "{{num}} kaydı sil",
+      "loading": "Tablo verileri yükleniyor…",
+      "retry": "Yeniden dene",
+      "emptyTitle": "Veri yok",
+      "emptyDescription": "Eşleşen kayıt bulunamadı",
+      "moduleFallback": "veri",
+      "expandRow": "Genişlet",
+      "collapseRow": "Daralt",
+      "paginationShowing": "<b>{{range}}</b> / <b>{{total}}</b> gösteriliyor",
+      "pagination": {
+        "perPage": "Sayfa başına:",
+        "navigation": "Sayfalama",
+        "firstPage": "İlk sayfa",
+        "previousPage": "Önceki sayfa",
+        "nextPage": "Sonraki sayfa",
+        "lastPage": "Son sayfa",
+        "pageNumber": "Sayfa numarası",
+        "pageSize": "Sayfa başına öğe"
+      }
+    }
+  },
+  "detailPreview": {
+    "ariaLabel": "Ayrıntı önizlemesi",
+    "expand": "Genişlet",
+    "close": "Önizlemeyi kapat",
+    "resize": "Önizleme genişliğini ayarla"
+  }
+}

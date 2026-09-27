@@ -1,0 +1,61 @@
+{
+  "title": "Panel",
+  "description": "Organiza tus tarjetas y muestra solo lo que te importa",
+  "edit": {
+    "enter": "Personalizar",
+    "exit": "Listo",
+    "reset": "Restaurar diseño",
+    "resetDone": "Se restauró el diseño predeterminado",
+    "hint": "Arrastra las tarjetas para moverlas y cambiar su tamaño",
+    "addCard": "Añadir tarjeta",
+    "addCardDescription": "Elige las tarjetas que quieres en tu panel; puedes quitarlas cuando quieras.",
+    "added": "Añadida",
+    "remove": "Quitar tarjeta",
+    "empty": "Tu panel está vacío",
+    "emptyHint": "Elige Personalizar arriba a la derecha y añade una tarjeta",
+    "dragHandle": "Mover tarjeta",
+    "resizeHandle": "Cambiar tamaño de la tarjeta"
+  },
+  "cards": {
+    "overview": {
+      "title": "Resumen del sistema",
+      "app": "Aplicación actual",
+      "account": "Cuenta conectada",
+      "domain": "URL base de la API",
+      "category": "Tipo de aplicación",
+      "unknown": "No disponible"
+    },
+    "quickActions": {
+      "title": "Acciones rápidas",
+      "description": "Ve directamente a los módulos que usas"
+    },
+    "metrics": {
+      "title": "Resumen de datos",
+      "description": "Esta tarjeta aún no está conectada a la API; las cifras son de ejemplo",
+      "users": "Usuarios totales",
+      "activeUsers": "Usuarios activos",
+      "orders": "Pedidos de hoy",
+      "badge": "Ejemplo"
+    },
+    "version": {
+      "title": "Información de versión",
+      "description": "Versión de compilación del frontend y entorno de despliegue actuales",
+      "version": "Versión",
+      "environment": "Entorno",
+      "build": "Tipo de compilación",
+      "buildStatic": "Compilación estática del frontend",
+      "env": {
+        "unconfigured": "Sin configurar",
+        "production": "Producción",
+        "test": "Pruebas",
+        "staging": "Preproducción",
+        "development": "Desarrollo",
+        "custom": "Personalizado"
+      }
+    },
+    "unknown": {
+      "title": "Tarjeta desconocida",
+      "description": "La tarjeta «{{type}}» no está disponible en esta versión; quítala y añade otra"
+    }
+  }
+}

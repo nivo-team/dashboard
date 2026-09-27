@@ -1,0 +1,557 @@
+/*
+ * 样式入口 —— Tailwind CSS v4 + Kumo
+ *
+ * 注意事项（来自 Kumo 官方安装文档）：
+ * 1. Tailwind v4 默认不扫描 node_modules，必须用 @source 显式声明 Kumo 产物目录，
+ *    否则组件会出现样式缺失（例如 Dialog 不居中）。
+ * 2. 导入顺序很重要：Kumo 的主题令牌必须先于 tailwindcss 注册。
+ */
+@source "../node_modules/@cloudflare/kumo/dist/**/*.{js,jsx,ts,tsx}";
+@import "@cloudflare/kumo/styles/tailwind";
+@import "tailwindcss";
+
+/*
+ * 把 Tailwind 的 `dark:` 变体从「跟随系统 prefers-color-scheme」改为「跟随应用主题」。
+ *
+ * 本项目用 <html data-mode="light|dark"> 驱动主题（见 src/lib/use-color-mode.ts），
+ * 但 Kumo 的部分组件内部用的是 Tailwind **原生色** + `dark:` 变体，例如 Switch：
+ *   bg-neutral-200 / dark:bg-neutral-700 / dark:bg-neutral-850   （关闭态底色）
+ *   ring-neutral-300 / dark:ring-blue-500                        （滑块外环）
+ *   bg-blue-500 / dark:bg-blue-600                               （选中态底色）
+ * 这些 `dark:` 默认按**系统**深浅生效，于是「系统深色 + 应用浅色」时：
+ * Switch 关闭态是深色底、白色滑块套一圈蓝环 —— 与 data-mode 完全脱节。
+ *
+ * 重定义 dark 变体之后，这些类只在 `[data-mode="dark"]` 下生效，两套机制就统一了。
+ * 说明：这是对第三方产物的兜底；**我们自己的代码仍然不写 `dark:` 变体**（一律走 Kumo 语义令牌）。
+ */
+@custom-variant dark (&:where([data-mode='dark'], [data-mode='dark'] *));
+
+@theme {
+  --font-sans:
+    "Inter", "Sarasa Gothic SC", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo,
+    Consolas, "Liberation Mono", monospace;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #app {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+@keyframes admin-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-fade-in {
+  animation: admin-fade-in 0.24s ease-out both;
+}
+
+/*
+ * 修正 Kumo Sidebar 的层级与桌面吸顶问题。
+ *
+ * 1. 桌面端（未处于移动抽屉模式时）让侧边栏 sticky 吸顶且一屏高，Footer 始终贴底；
+ * 2. 赋予其 z-index: 20，确保其高于 Header（z-10），彻底解决 Header 遮挡侧边栏的问题；
+ * 3. 移动端全屏抽屉自带 z-50，天然覆盖在最上层。
+ */
+[data-sidebar='sidebar']:not([data-mobile='true']) {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  max-height: 100vh;
+  height: 100svh;
+  max-height: 100svh;
+  z-index: 20;
+}
+
+/*
+ * 侧边栏「父子高亮互斥」的视觉收敛。
+ *
+ * 背景：父级分组项（MenuButton）在子项被选中时，其自身路径前缀也被命中而亮起，
+ * 与子项形成双层灰底。组件层已让子项独占选中态（父项不再收到 active），
+ * 但 Kumo 的 MenuButton 对非选中项仍带 `hover:bg-(--sidebar-active-bg)`，
+ * 悬停时依旧会泛灰。这里一并收敛：只要分组内存在激活的子项，
+ * 父级按钮就保持中性 —— 不显示底色，也不响应 hover 变色。
+ * 键盘焦点（focus-visible）刻意保留，维持可达性。
+ */
+[data-sidebar='menu-item']:has([data-sidebar='menu-sub-button'][data-active])
+  [data-sidebar='menu-button'] {
+  background-color: transparent;
+}
+
+/*
+ * RTL 模式（如阿拉伯语）排版样式适配：
+ * 1. 侧边栏位于右侧，边框从 border-r 转换为 border-l 分隔线；
+ * 2. 折叠状态下的 Footer 同样使用 border-l；
+ * 3. 下拉菜单子级触发器（SubTrigger）箭头与间距自动翻转。
+ */
+[dir='rtl'] aside[data-sidebar='sidebar'] > div,
+[dir='rtl'] [data-sidebar='sidebar'] > div {
+  border-right-width: 0 !important;
+  border-left-width: 1px !important;
+  border-left-color: var(--color-kumo-line) !important;
+}
+
+[dir='rtl'] [data-sidebar='footer'] {
+  border-right-width: 0 !important;
+  border-left-width: 1px !important;
+  border-left-color: var(--color-kumo-line) !important;
+}
+
+[dir='rtl'] [data-kumo-part='submenu-trigger'] > svg:last-child {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  transform: rotate(180deg);
+}
+
+[dir='rtl'] .rtl-flip {
+  transform: scaleX(-1);
+}
+
+[dir='rtl'] [data-sidebar='trigger'] svg {
+  transform: scaleX(-1);
+}
+
+/*
+ * 折叠态：让菜单按钮里的图标真正居中（**方向无关**，LTR / RTL 都适用）。
+ *
+ * Kumo 的 `MenuButton` 内部固定是「图标 + `flex-1` 的文字 span」两个子元素，
+ * 且折叠时**没有** `justify-center`（Kumo 只在加载骨架里加了）。折叠后按钮只有
+ * `--sidebar-width-icon`（57px）宽却仍留着 `px-3`，文字 span 被压缩到几像素而不是
+ * 隐藏 —— 于是图标停在左侧 padding 的位置，比按钮中心偏左约 9px；内层还有一个
+ * 物理的 `translate-x-[-3px]` 补偿（RTL 下方向同样反了）。
+ *
+ * 侧边栏在 RTL 下搬到右侧后，这个偏左尤其显眼（用户报告的现象），但它在 LTR 下
+ * 同样存在 —— 所以这里按「方向无关」修：收起文字 span、内容整体居中、取消物理位移。
+ *
+ * 选择器只命中「折叠态 + 菜单按钮」，不碰展开态、子菜单按钮与加载骨架；
+ * 特异性高于 Kumo 的 `translate-x-[-3px]` / `group-not-data-…:translate-x-0` 工具类。
+ */
+[data-sidebar='sidebar'][data-state='collapsed'] [data-sidebar='menu-button'] > div {
+  justify-content: center;
+  translate: none;
+}
+
+[data-sidebar='sidebar'][data-state='collapsed']
+  [data-sidebar='menu-button']
+  > div
+  > span {
+  /* 折叠态的文字没有意义（标签由 tooltip 承担），留着反而挤掉图标的居中 */
+  display: none;
+}
+
+/*
+ * 详情抽屉（#/components/detail-preview 的 sheet 形态）在 RTL 下的滑入方向。
+ *
+ * 抽屉的停靠靠 `end-0`（逻辑属性，RTL 下自动贴左），但 CSS 的 `translate` 是**物理方向**，
+ * Tailwind 的 `rtl:` 变体生成的是 `&:where(:dir(rtl), [dir="rtl"], [dir="rtl"] *)`
+ * —— `:where()` 的特异性为 0，与 `data-starting-style:translate-x-full` 同特异性，
+ * 谁生效只能靠源码顺序（还要依赖 `!` important 后缀，语义上也不干净）。
+ *
+ * 这里用「调用处挂的钩子类 + 属性选择器」自己把特异性抬到 (0,3,0)：
+ * 一定压过同元素的 `[data-starting-style]` / `[data-ending-style]` 工具类，
+ * 与 Tailwind 的变体排序无关，也不需要 important。
+ *
+ * `translate` 属性在进入 / 退出时为 ±100%，中间态由内联的
+ * `transition-property: translate, opacity` 过渡 —— 动画属性在组件里用 style 覆盖
+ * （Kumo 把 `scale, opacity` 写在内联样式里，className 顶不掉）。
+ */
+[dir='rtl'] .detail-preview-sheet[data-starting-style],
+[dir='rtl'] .detail-preview-sheet[data-ending-style] {
+  translate: -100% 0;
+}
+
+/*
+ * 面板拖拽期间的全局反馈（见 #/lib/use-panel-resize）。
+ *
+ * 拖拽时指针经常离开手柄、甚至离开面板，只在手柄上写 cursor 的话，光标掠过其它元素
+ * 会闪回箭头，还会顺手选中表格里的文字。这里用根节点上的标记属性统一接管：
+ * - `*` 是必需的：子元素自己的 `cursor-pointer`（表格行、按钮）会覆盖继承值；
+ * - `user-select: none` 同时挡住拖拽过程中的文本选区。
+ */
+[data-panel-resizing='true'],
+[data-panel-resizing='true'] * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+/*
+ * AI 浮窗的入场动画（见 #/components/ai-panel 的 Float 形态）。
+ *
+ * 「从页面底部弹出」是这个形态的定义特征：位移 + 极轻微放大 + 淡入，读起来就是
+ * 「一张卡片从下沿升起来」。只有入场、没有出场 —— 关闭是条件渲染直接卸载，
+ * 为一个百来毫秒的退场再引入一套「先播动画再卸载」的状态机不值得。
+ *
+ * 用独立变换属性（`translate` / `scale`）而不是 `transform`：它们与其它可能存在的
+ * transform 互不覆盖。动画整体包在 `prefers-reduced-motion: no-preference` 里 ——
+ * 用户要求减弱动效时不播，但面板照常出现（状态正确性不依赖动画）。
+ */
+@keyframes ai-float-enter {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+    scale: 0.98;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-ai-float='true'] {
+    animation: ai-float-enter 180ms ease-out;
+  }
+}
+
+/*
+ * AI 进行中的光晕：设置页的**预览**与**真实运行态**共用这一套。
+ *
+ * 动画**只动 `opacity`**，光的形状（`box-shadow` 的模糊半径）由各自给 ——
+ * 预览是 320px 宽的缩略图、真实是满视口，同一个像素半径在两处的观感差一个数量级，
+ * 所以半径必须按各自尺寸定，动画只负责「呼吸」。
+ *
+ * 用 data 属性选择器而不是 Tailwind 的 `animate-[…]`，与上面的 AI 浮窗同一套写法：
+ * `prefers-reduced-motion` 由媒体查询统一兜住，组件侧只负责挂不挂这个属性。
+ * 循环播放是刻意的 —— 它演的是「AI 一直在跑」，不是一次性入场。
+ */
+@keyframes ai-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-ai-glow-preview='true'],
+  [data-ai-activity-glow='true'] {
+    animation: ai-glow-pulse 2.4s ease-in-out infinite;
+  }
+}
+
+/*
+ * 侧边栏折叠分组的 RTL 适配。
+ *
+ * 1. Kumo 的 MenuSub 用物理属性表达缩进（pl-7）与层级竖线（left-[19px]），
+ *    RTL 下必须整体镜像到右侧，否则竖线会落在文字的「反侧」；
+ * 2. MenuChevron 以 LTR 的「右（折叠）→ 下（展开）」为基准：
+ *    RTL 下先水平镜像成「左（折叠）」，展开时再逆时针旋转 90° 指回下方。
+ *    注意 CSS 独立变换属性里 rotate 与 scale 同时存在时按 rotate → scale 复合，
+ *    即点先被 scale 水平镜像、再被 rotate 旋转，恰好等于 LTR 展开态的镜像结果。
+ */
+[dir='rtl'] [data-sidebar='menu-sub'] {
+  padding-left: 0;
+  padding-right: calc(var(--spacing) * 7);
+}
+
+[dir='rtl'] [data-sidebar='menu-sub'] > div:first-child {
+  left: auto;
+  right: 19px;
+}
+
+/*
+ * 箭头贴齐行尾：LTR 最右、RTL 最左。
+ *
+ * Kumo 的 MenuChevron 固定用物理属性 `ml-auto`。LTR 下它把箭头推到最右没问题，
+ * 但 RTL 行中物理 left 位于主轴「末端」，而弹性剩余空间同样落在末端，
+ * 于是 `ml-auto` 吸收的正是元素自己左侧那片空白 —— 箭头被留在文字旁边，
+ * 不会靠到最左边。这里改用「起始侧 auto margin」推动元素：
+ * LTR 起始侧是 left（推向最右），RTL 起始侧是 right（推向最左），两种方向都贴行尾。
+ */
+.sidebar-chevron {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+[dir='rtl'] .sidebar-chevron {
+  margin-left: 0;
+  margin-right: auto;
+  scale: -1 1;
+}
+
+[dir='rtl'] [data-open] .sidebar-chevron {
+  rotate: -90deg;
+}
+
+/*
+ * Kumo InputGroup hybrid 模式（输入框 + 外侧拼接按钮）RTL 修正。
+ *
+ * 背景：该模式下 Kumo 使用物理方向的圆角与描边重叠
+ * （container-zone 与外侧按钮分别带 first:rounded-l-[inherit] / last:rounded-r-[inherit]
+ *   与 not-first:-ml-px），而 RTL 下 flex 主轴镜像会让首尾元素左右换位、圆角却不换位，
+ * 结果两端变成直角、内侧出现圆角缺口，相邻描边也无法重叠。
+ *
+ * 处理：按 RTL 的视觉位置互换圆角，并把描边重叠方向由 margin-left 翻转为 margin-right。
+ * 仅作用于 [data-focus-mode='hybrid']，不影响 container（普通输入框）与
+ * individual（分页控件，另有 dir="ltr" 处理）两种模式。
+ */
+[dir='rtl'] [data-slot='input-group'][data-focus-mode='hybrid'] > [data-slot='input-group-container-zone'] {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-top-right-radius: inherit !important;
+  border-bottom-right-radius: inherit !important;
+}
+
+[dir='rtl'] [data-slot='input-group'][data-focus-mode='hybrid'] > *:last-child {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-top-left-radius: inherit !important;
+  border-bottom-left-radius: inherit !important;
+}
+
+[dir='rtl'] [data-slot='input-group'][data-focus-mode='hybrid'] > *:not(:first-child) {
+  margin-left: 0 !important;
+  margin-right: -1px !important;
+}
+
+/*
+ * Kumo InputGroup 的 Addon 间距 RTL 修正。
+ *
+ * 背景：Kumo 给 Addon 的间距是**物理方向**
+ * （addonOuterStart: 'pl-2' / addonOuterEnd: 'pr-2'，输入框留白是
+ *   has-[[data-slot=input-group-addon-start]]:[&_input]:pl-2 与 …-end… 的 pr-2），
+ * 而 Addon 的左右位置由 `order` + flex 主轴决定 —— RTL 下主轴镜像、Addon 换到另一侧，
+ * 物理 padding 却仍加在原侧，表现为「图标贴住边框 / 贴住输入内容」。
+ *
+ * 处理：按书写方向把两侧间距与输入框留白换回来。输入框的三条规则必须分开写，
+ * 否则「两侧都有 Addon」时后一条会把前一条清掉的一侧又清一次。
+ *
+ * 注意：数值按 **base** size 的 token 写死（Addon 0.5rem、Addon 内含按钮 0.25rem、
+ * 输入框留白 0.5rem）；xs / sm / lg 下会有 0.25rem 量级偏差，需要时再按 size 补规则。
+ * 只影响 container 模式（hybrid 模式见上一节，individual 另有 dir="ltr" 处理）。
+ */
+[dir='rtl'] [data-slot='input-group'] [data-slot='input-group-addon-start'] {
+  padding-left: 0 !important;
+  padding-right: 0.5rem !important;
+}
+
+[dir='rtl'] [data-slot='input-group'] [data-slot='input-group-addon-start']:has(button) {
+  padding-right: 0.25rem !important;
+}
+
+[dir='rtl'] [data-slot='input-group'] [data-slot='input-group-addon-end'] {
+  padding-right: 0 !important;
+  padding-left: 0.5rem !important;
+}
+
+[dir='rtl'] [data-slot='input-group'] [data-slot='input-group-addon-end']:has(button) {
+  padding-left: 0.25rem !important;
+}
+
+/* 只有起始 Addon（RTL 下位于右侧） */
+[dir='rtl']
+  [data-slot='input-group']:has([data-slot='input-group-addon-start']):not(
+    :has([data-slot='input-group-addon-end'])
+  )
+  input {
+  padding-left: 0 !important;
+  padding-right: 0.5rem !important;
+}
+
+/* 只有结束 Addon（RTL 下位于左侧） */
+[dir='rtl']
+  [data-slot='input-group']:has([data-slot='input-group-addon-end']):not(
+    :has([data-slot='input-group-addon-start'])
+  )
+  input {
+  padding-right: 0 !important;
+  padding-left: 0.5rem !important;
+}
+
+/* 两侧都有 Addon：左右各留一份，并清掉 Kumo 加错方向的那一份 */
+[dir='rtl']
+  [data-slot='input-group']:has([data-slot='input-group-addon-start']):has(
+    [data-slot='input-group-addon-end']
+  )
+  input {
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+}
+
+/*
+ * 隐藏 type="search" 的原生清除按钮（浏览器自带的 ×）。
+ * 这些输入框已统一使用 Kumo 的自定义清除键，保留原生按钮会出现两个清除入口。
+ * 收敛为语义化类，避免在 JSX 中书写 arbitrary variant 选择器。
+ */
+.hide-native-search-clear::-webkit-search-cancel-button {
+  display: none;
+}
+
+/*
+ * 线框网格装饰（404 缺省页，见 components/not-found.tsx）。
+ *
+ * 版式来自 Cloudflare 控制台的 404 页：三行网格，行与行之间、每个格子的左右两侧
+ * 各有一条 1px 虚线，虚线交点处压着一个 7px 的小方块（只画在非末行的两个下角）。
+ *
+ * 上游 HTML 把这套装饰展开成三份重复的 Tailwind arbitrary variant
+ * （`[&:not(:last-child)]:border-b…` 与 `group-[:not(:last-child)]/row:after:…`），
+ * 既难读也依赖 v3 时代的 group 变体语法。这里收敛为语义化属性选择器：
+ * JSX 只声明结构（data-wireframe-row / data-wireframe-cell），装饰全部归本节。
+ *
+ * 颜色统一走 Kumo 令牌，因此明暗主题自动跟随 data-mode，不需要 dark: 变体；
+ * 左右对称 + 仅使用 inset-inline-*，RTL 下无需额外镜像。
+ *
+ * 注意：本节是未分层的普通规则，优先级高于 Tailwind 的 @layer utilities，
+ * 因此这里**只写装饰**（边框、交点方块），尺寸 / 高度 / 布局方向仍交给 JSX 的类，
+ * 否则 h-fit、min-[880px]:h-full 这类响应式覆盖会被无声吃掉。
+ */
+[data-wireframe-row] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* 相邻两行之间的水平虚线（末行不画，避免页面底部出现悬空的分隔线） */
+[data-wireframe-row]:not(:last-child) {
+  border-bottom: 1px dashed var(--color-kumo-hairline);
+}
+
+/* 格子左右两侧的竖直虚线 */
+[data-wireframe-cell] {
+  border-left: 1px dashed var(--color-kumo-hairline);
+  border-right: 1px dashed var(--color-kumo-hairline);
+}
+
+/* 非末行格子两个下角的交点方块：用 canvas 底色「打洞」，再加 1px 描边 */
+[data-wireframe-row]:not(:last-child) [data-wireframe-cell]::before,
+[data-wireframe-row]:not(:last-child) [data-wireframe-cell]::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 1.5px;
+  background-color: var(--color-kumo-canvas);
+  box-shadow: 0 0 0 1px var(--color-kumo-line);
+  z-index: 10;
+}
+
+[data-wireframe-row]:not(:last-child) [data-wireframe-cell]::before {
+  inset-inline-start: -4px;
+}
+
+[data-wireframe-row]:not(:last-child) [data-wireframe-cell]::after {
+  inset-inline-end: -4px;
+}
+
+/*
+ * 整页版式（404）铺满外壳内容区。
+ *
+ * 两个外壳（MainLayout / AppShell）的内容区都带 `data-shell-content`，常规页面靠它的
+ * padding + `max-w-[1440px]` 收窄；而 404 是整页线框，需要铺满 —— 由内容自己声明
+ * （`data-notfound`），这里用 :has() 收回内边距与宽度上限，并切成纵向 flex，
+ * 让线框根节点的 grow 真正撑满剩余高度。
+ *
+ * 之所以收敛在这里而不是给外壳加 prop：`$appId` 下的 404 渲染在 AppShell 的
+ * <Outlet /> 里，外壳组件无从得知当前子路由是不是 404。
+ */
+main[data-shell-content]:has([data-notfound]) {
+  display: flex;
+  flex-direction: column;
+  max-width: none;
+  padding: 0;
+}
+
+/*
+ * `$appId` 外壳（AppShell）的 padding 已经**下移到主列**（`[data-detail-preview-main]`，
+ * 见 components/app-shell.tsx 与 components/detail-preview），这样分屏面板才能贴边满高。
+ * 于是 404 要多铺平两层：
+ * - 布局行改回 `stretch`：它平时是 `items-start`（分屏面板要 sticky，不能被拉伸），
+ *   但 404 需要主列拿到确定高度，线框根节点的 grow 才有空间可撑；
+ * - 主列去掉 padding / max-w 并切成纵向 flex。
+ * 这两条只影响 AppShell；`_main` 外壳的 main 仍由上面那条规则处理。
+ */
+main[data-shell-content]:has([data-notfound]) [data-detail-preview-layout] {
+  align-items: stretch;
+}
+
+main[data-shell-content]:has([data-notfound]) [data-detail-preview-main] {
+  display: flex;
+  flex-direction: column;
+  max-width: none;
+  padding: 0;
+}
+
+
+/*
+ * AI 面板的**点阵背景 + 指针高亮**（参考 Cloudflare 面板的观感）。
+ *
+ * 两层元素，不是一个元素的两层背景 —— 因为 **CSS 的 `mask` 作用于整个元素**，
+ * 没法只裁其中一层背景。所以：
+ *
+ * - `.ai-dot-grid`（底层）：铺满面板的点阵；
+ * - `.ai-dot-spotlight`（上层）：**同样的点阵，但更亮更大**，用 `mask` 裁成
+ *   「只在指针周围的圆里可见」。
+ *
+ * 于是效果是**指针附近的点自己亮起来**，而不是蒙一团雾 —— 后者看着像阴影。
+ *
+ * 两层的点阵网格必须完全对齐（同一个 `--ai-dot-size`、同一个原点），
+ * 否则高亮的点会和底点错位半格，看起来像两层砂纸。
+ *
+ * 颜色走 CSS 变量，`data-mode='dark'` 下换成浅色 —— 本仓库用 `data-mode` 驱动主题，
+ * 不能用 `dark:` 变体。指针没进入过时坐标默认 `-999px`：高亮待在视口外，而不是在正中发亮。
+ */
+:root {
+  --ai-dot-color: rgb(0 0 0 / 0.08);
+  --ai-dot-active-color: rgb(0 0 0 / 0.32);
+  --ai-dot-size: 16px;
+  --ai-spotlight-size: 150px;
+}
+
+[data-mode='dark'] {
+  --ai-dot-color: rgb(255 255 255 / 0.07);
+  --ai-dot-active-color: rgb(255 255 255 / 0.38);
+}
+
+.ai-dot-grid {
+  background-image: radial-gradient(circle, var(--ai-dot-color) 1px, transparent 1px);
+  background-size: var(--ai-dot-size) var(--ai-dot-size);
+  /* 默认的 `scroll` 让背景相对**元素**固定：内容滚动时点阵不动，正是想要的 */
+  background-attachment: scroll;
+}
+
+.ai-dot-spotlight {
+  background-image: radial-gradient(
+    circle,
+    var(--ai-dot-active-color) 1.5px,
+    transparent 1.5px
+  );
+  background-size: var(--ai-dot-size) var(--ai-dot-size);
+  background-attachment: scroll;
+  /* 只在指针周围露出来。两层 `mask-image` 都写：Safari 仍只认带前缀的那个 */
+  -webkit-mask-image: radial-gradient(
+    circle var(--ai-spotlight-size) at var(--ai-pointer-x, -999px)
+      var(--ai-pointer-y, -999px),
+    #000 0%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    circle var(--ai-spotlight-size) at var(--ai-pointer-x, -999px)
+      var(--ai-pointer-y, -999px),
+    #000 0%,
+    transparent 100%
+  );
+}

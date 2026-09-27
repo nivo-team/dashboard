@@ -1,0 +1,60 @@
+{
+  "title": "Ask AI",
+  "inputLabel": "AI input",
+  "inputPlaceholder": "Type your question…",
+  "modeLabel": "Input mode",
+  "modeAsk": "Ask",
+  "modeAuto": "Auto",
+  "send": "Send",
+  "stop": "Stop",
+  "close": "Close panel",
+  "resize": "Resize panel",
+  "notConfigured": "No model service configured yet. Set one up to start chatting.",
+  "goToSettings": "Open settings",
+  "thinking": "Thinking…",
+  "toolRunning": "Running",
+  "toolDone": "Done",
+  "toolFailed": "Failed",
+  "tools": {
+    "get_page_context": "Read current page",
+    "list_navigation": "Find a page",
+    "navigate_to": "Go to page",
+    "search_api": "Search APIs",
+    "call_read_api": "Call API",
+    "list_dict_options": "Read dictionary",
+    "call_write_api": "Modify data API",
+    "list_page_forms": "List page forms",
+    "fill_form": "Fill form",
+    "submit_form": "Submit form"
+  },
+  "approvalTitle": "This action needs your approval",
+  "approve": "Allow once",
+  "approveAlways": "Don't ask again this session",
+  "deny": "Deny",
+  "sessionPicker": "Choose conversation",
+  "sessionNew": "New conversation",
+  "sessionSearch": "Search conversations",
+  "sessionEmpty": "No conversations yet",
+  "sessionNoMatch": "No matching conversations",
+  "sessionDelete": "Delete conversation",
+  "sessionDeleteDesc": "This conversation can't be recovered after deletion.",
+  "sessionGroups": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "week": "Past 7 days",
+    "month": "Past 30 days",
+    "older": "Older"
+  },
+  "greetings": {
+    "morning": "Good morning.",
+    "afternoon": "Good afternoon.",
+    "evening": "Good evening."
+  },
+  "greetingPrompt": "What are we doing today?",
+  "scrollToBottom": "Back to bottom",
+  "toolDetail": {
+    "input": "Arguments",
+    "output": "Result",
+    "error": "Error"
+  }
+}

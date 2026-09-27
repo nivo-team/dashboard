@@ -1,0 +1,68 @@
+# CI 用的 DSH patch 叠加层 —— **纯结构，不含任何具体配置值**。
+#
+# 端点、模型、协议、推理方言全部由环境变量注入（清单见文件末尾）。
+# 仓库里因此不出现任何人的私人网关信息，换 provider 也不必改这个文件。
+#
+# 用法：dsh --profile headless --patch .github/ai/dsh-patch.yml "<任务>"
+#
+# ── 两条实测出来的硬约束（踩过，别重犯） ──────────────────────────────
+#
+# 1. **对象 key 位置不支持 `!!js`**。写 `!!js process.env.X:` 会退化成字符串
+#    `'[object Object]'`，然后报 `NO_ADAPTER: no adapter registered for provider …`。
+#    所以 providers 下的路由名 `gateway` 必须是字面量（中性名，不绑定厂商）。
+#
+# 2. **写了 key 就必须有值**。校验器不接受 `undefined`：
+#      compat "thinkingFormat" with no value; give it one, or remove the key
+#    所以这里**不放任何"可选字段"** —— 每个出现的字段都对应一个必填环境变量。
+#    另外 `a ? b : c` 这种三元表达式也不能用：` : ` 会被 YAML 当成 mapping
+#    分隔符，报 `expected number but got [object Object]`。
+
+- id: agent-default-model
+  name: '@deepseek-ai/dsh-agent-default-model'
+  config:
+    # 必须等于下面 providers 里的路由名
+    provider: gateway
+    model: !!js process.env.DSH_GATEWAY_MODEL
+
+- id: llm-pi-ai
+  name: '@deepseek-ai/dsh-llm-pi-ai'
+  config:
+    providers:
+      gateway:
+        # 凭据「引用」：真正的 key 由同名环境变量注入（CI 的 Secret）。
+        # 凭据解析中「进程环境」优先级最高，所以不必写任何凭据文件。
+        apiKeyEnv: DSH_GATEWAY_KEY
+        # 手写路由（非 pi-ai 内置 catalog）**必须自己声明协议与端点** —— 没有
+        # catalog 可继承。例：openai-completions
+        api: !!js process.env.DSH_GATEWAY_API
+        # 例：https://your-gateway.example/v1
+        baseURL: !!js process.env.DSH_GATEWAY_BASE_URL
+        models:
+          # 取值同时用于 agent-default-model.model
+          - id: !!js process.env.DSH_GATEWAY_MODEL
+            compat:
+              # 端点 URL 不是 pi-ai 认得的形状时它检测不出来，推理内容会解析错，
+              # 所以这里要求显式声明。例：deepseek
+              thinkingFormat: !!js process.env.DSH_GATEWAY_THINKING
+
+# ─────────────────────────────────────────────────────────────────────
+# 需要的环境变量（CI 里 = Settings → Secrets and variables → Actions）
+#
+# 全部必填（缺一项，workflow 的「检查配置」步骤会点名报出来）：
+#
+#   Secret   DSH_GATEWAY_KEY        网关 API key
+#   Variable DSH_GATEWAY_BASE_URL   端点
+#   Variable DSH_GATEWAY_MODEL      模型 id（非 catalog 路由必须给，否则没有模型可选）
+#   Variable DSH_GATEWAY_API        协议（非 catalog 路由必须给，没有 catalog 可继承）
+#   Variable DSH_GATEWAY_THINKING   推理方言
+#
+# ── 以后想加回来、但现在刻意省略的东西 ────────────────────────────────
+#
+# * `contextWindow` / `name`：省略后由 DSH 兜底（contextWindow 默认 262144）。
+#   想显式控制就把字段加回来 —— 但要注意上面第 2 条：加了就必须有值，
+#   不能写 `!!js Number(process.env.X) || undefined`（undefined 会被拒）。
+#
+# * 推理档（`reasoning` + `models[].reasoningEfforts`）：**必须成对出现**。
+#   只设 `reasoning: high` 而不声明 `reasoningEfforts` 会报
+#   `UNSUPPORTED_REASONING_EFFORT: … does not support reasoning effort "high"`。
+#   两者都是网关特定的档位名，需要时一起补上。

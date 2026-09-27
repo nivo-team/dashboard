@@ -1,0 +1,21 @@
+{
+  "signIn": "サインイン",
+  "account": "アカウント",
+  "email": "アカウント",
+  "password": "パスワード",
+  "saveDevice": "このデバイスにログイン情報を保持する",
+  "submit": "サインイン",
+  "submitting": "認証中…",
+  "authFailed": "認証に失敗しました。アカウントとパスワードを確認してください",
+  "inputAccount": "アカウント名を入力してください",
+  "inputPassword": "パスワードを入力してください",
+  "activeSession": "アクティブなセッションを検出しました：{{name}}",
+  "online": "オンライン",
+  "goToConsole": "コンソールへ進む",
+  "switchApp": "アプリを切り替え",
+  "selectAppTitle": "利用するアプリを選択",
+  "selectAppDesc": "このアカウントには {{count}} 個のアプリへのアクセス権限があります。選択してください：",
+  "enterApp": "{{name}} を開く",
+  "switchAccount": "アカウント切り替え",
+  "verified": "認証完了"
+}

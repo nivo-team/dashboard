@@ -1,0 +1,60 @@
+{
+  "title": "Ask AI",
+  "inputLabel": "AI इनपुट",
+  "inputPlaceholder": "अपना प्रश्न लिखें…",
+  "modeLabel": "इनपुट मोड",
+  "modeAsk": "पूछें",
+  "modeAuto": "स्वतः",
+  "send": "भेजें",
+  "stop": "रोकें",
+  "close": "पैनल बंद करें",
+  "resize": "पैनल की चौड़ाई बदलें",
+  "notConfigured": "अभी कोई मॉडल सेवा कॉन्फ़िगर नहीं है। शुरू करने के लिए इसे सेट करें।",
+  "goToSettings": "सेटिंग खोलें",
+  "thinking": "सोच रहा है…",
+  "toolRunning": "चल रहा है",
+  "toolDone": "पूर्ण",
+  "toolFailed": "विफल",
+  "tools": {
+    "get_page_context": "वर्तमान पृष्ठ देखें",
+    "list_navigation": "पृष्ठ खोजें",
+    "navigate_to": "पृष्ठ पर जाएँ",
+    "search_api": "API खोजें",
+    "call_read_api": "API कॉल करें",
+    "list_dict_options": "शब्दकोश पढ़ें",
+    "call_write_api": "डेटा बदलने वाली API",
+    "list_page_forms": "पृष्ठ फ़ॉर्म देखें",
+    "fill_form": "फ़ॉर्म भरें",
+    "submit_form": "फ़ॉर्म सबमिट करें"
+  },
+  "approvalTitle": "इस कार्रवाई के लिए आपकी पुष्टि चाहिए",
+  "approve": "एक बार अनुमति दें",
+  "approveAlways": "इस सत्र में दोबारा न पूछें",
+  "deny": "अस्वीकार करें",
+  "sessionPicker": "बातचीत चुनें",
+  "sessionNew": "नई बातचीत",
+  "sessionSearch": "बातचीत खोजें",
+  "sessionEmpty": "अभी कोई बातचीत नहीं",
+  "sessionNoMatch": "कोई मेल खाती बातचीत नहीं",
+  "sessionDelete": "बातचीत हटाएँ",
+  "sessionDeleteDesc": "हटाने के बाद यह बातचीत वापस नहीं आएगी।",
+  "sessionGroups": {
+    "today": "आज",
+    "yesterday": "कल",
+    "week": "पिछले 7 दिन",
+    "month": "पिछले 30 दिन",
+    "older": "पुराने"
+  },
+  "greetings": {
+    "morning": "सुप्रभात।",
+    "afternoon": "नमस्ते।",
+    "evening": "शुभ संध्या।"
+  },
+  "greetingPrompt": "आज क्या करें?",
+  "scrollToBottom": "नीचे जाएँ",
+  "toolDetail": {
+    "input": "आर्ग्युमेंट",
+    "output": "परिणाम",
+    "error": "त्रुटि"
+  }
+}

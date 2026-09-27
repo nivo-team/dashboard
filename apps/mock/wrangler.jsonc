@@ -1,0 +1,11 @@
+{
+  // Cloudflare Workers 部署配置。
+  //
+  // 只需要写「Nitro 不生成」的部分：`main` 与 `assets` 由 Nitro 在构建时写入
+  // `.output/server/wrangler.json`（这里再写会得到 "will be ignored" 警告）。
+  // Nitro 构建时也会读这个文件，看到 compatibility_flags 里的 nodejs_compat
+  // 才会启用 Node 兼容层。
+  "name": "admin-mock-api",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"]
+}

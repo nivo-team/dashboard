@@ -1,0 +1,133 @@
+name: 模块开发请求（交给 AI）
+description: 给出模块细节，AI 按本仓规范实现并开 PR。填得越具体，一次通过率越高。
+title: '[模块] '
+labels:
+  - 'ai:needs-info'
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 怎么填
+
+        这份表单就是你说的「模块细节」。AI **不会**猜业务意图 —— 它只会按你写的做，
+        并遵守仓库里 `AGENTS.md` 与 `.agents/docs/*` 的既有规范。
+
+        **最重要的两个字段是「参考的现有模块」和「验收标准」**：
+        本仓每个模块的实现模式高度一致，指一个样板比写十句描述都管用；
+        而验收标准决定了 AI 什么时候该停下来问你。
+
+        填完后由维护者打上 `ai:ready` 标签触发 AI（填表本身不会触发）。
+
+  - type: input
+    id: module
+    attributes:
+      label: 模块名称
+      description: 一句话说清这是什么模块，例如「租户配额管理」。
+      placeholder: 租户配额管理
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: 目标
+      description: 这个模块要解决什么问题、谁在用、用完能做什么。3~5 句即可。
+      placeholder: |
+        运营需要给每个租户设定接口调用配额，并在超额时看到告警。
+        使用者是平台运营，每天上班第一件事是过一遍超额租户。
+    validations:
+      required: true
+
+  - type: input
+    id: reference
+    attributes:
+      label: 参考的现有模块（强烈建议填）
+      description: 仓库里已有的、形态最接近的模块路径。AI 会照着它的结构、命名和错误处理写。
+      placeholder: src/routes/$appId/system/data-dict
+    validations:
+      required: false
+
+  - type: input
+    id: route
+    attributes:
+      label: 目标路由 / 位置
+      description: 期望的路由路径或目录。若你不确定，写「按现有约定」。
+      placeholder: /$appId/system/quota
+    validations:
+      required: false
+
+  - type: textarea
+    id: fields
+    attributes:
+      label: 字段 / 列 / 内容清单
+      description: |
+        要展示或编辑哪些字段。建议写成「字段名 · 类型 · 是否必填 · 备注」。
+        列清单会直接决定表格列编排，越明确越少返工。
+      placeholder: |
+        租户名称 · string · 必填 · 展示用，不可编辑
+        配额上限 · number · 必填 · 单位「次/天」
+        已用量   · number · 只读 · 由后端返回
+        状态     · enum   · 必填 · 启用 / 停用
+    validations:
+      required: true
+
+  - type: textarea
+    id: endpoints
+    attributes:
+      label: 涉及的接口
+      description: |
+        填 openapi 里的原始 path（带不带 /api 都可以）。参数明细不用写 ——
+        仓库的 `scripts/gen-endpoint-specs.js` 会从 openapi.json 自动补齐。
+        不确定的话写「请从 openapi.json 里找」，AI 会自己检索。
+      placeholder: |
+        GET  /tenant/quota/list
+        POST /tenant/quota/update
+    validations:
+      required: false
+
+  - type: textarea
+    id: interaction
+    attributes:
+      label: 交互要求
+      description: 列表 / 详情 / 分屏预览 / 表单保存方式 / 状态开关 / 空态等特殊要求。
+      placeholder: |
+        列表页支持按租户名称搜索、按状态筛选；
+        点行在右侧分屏看详情，详情里配额上限可直接编辑，底部出保存浮条。
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      description: |
+        怎么算做完 —— 写成可以逐条打勾的句子。AI 会以此自检，不满足就标 ai:blocked 而不是硬凑。
+      placeholder: |
+        - [ ] 列表能按租户名称搜索，结果与后端返回一致
+        - [ ] 超额租户在列表里有醒目提示
+        - [ ] 7 种语言的文案齐全，阿拉伯语下布局不破
+        - [ ] 出现与既有契约冲突时停下来提问，不要自行改公共组件
+    validations:
+      required: true
+
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: 明确不做（防范围蔓延）
+      description: 列出你**不要**这次改动碰的东西。这一项能显著降低 diff 失控的概率。
+      placeholder: |
+        不要改公共表格组件
+        不要动权限判断
+        不要顺带重构 data-dict 模块
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已经搜过现有 issue / PR，这不是重复请求
+          required: true
+        - label: 我知道 AI 会开一个 PR 而不是直接合并，合并仍需人工点击
+          required: true

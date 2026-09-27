@@ -1,0 +1,23 @@
+{
+  "$comment": "契约来源配置。改这里（或用环境变量临时覆盖）即可把整个前端切到另一套后端。",
+  "source": "mock",
+  "mock": {
+    "url": "http://localhost:3001/openapi.json"
+  },
+  "url": "",
+  "file": "",
+  "apifox": {
+    "projectId": ""
+  },
+  "filter": {
+    "$comment": "排除服务框架与运维端点，它们不该出现在给前端用的契约里",
+    "excludePrefixes": [
+      "/_",
+      "/openapi.json"
+    ],
+    "excludeExact": [
+      "/",
+      "/health"
+    ]
+  }
+}

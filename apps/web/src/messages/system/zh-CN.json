@@ -1,0 +1,78 @@
+{
+  "title": "菜单管理",
+  "description": "维护平台菜单结构、权限编码与接口绑定关系",
+  "moduleName": "菜单",
+  "searchPlaceholder": "搜索菜单名称 / 权限编码…",
+  "createMenu": "新建菜单",
+  "demoBadge": "（演示数据模式）",
+  "quota": "共 <b>{{total}}</b> 个菜单",
+  "empty": {
+    "title": "暂无菜单数据",
+    "description": "未找到符合条件的菜单，请尝试更换关键词"
+  },
+  "columns": {
+    "menu_name": "菜单名称",
+    "menu_type": "菜单类型",
+    "route_name": "路由名称",
+    "permission": "权限编码",
+    "icon": "图标",
+    "sort": "排序",
+    "status": "状态",
+    "visible": "显示",
+    "is_frame": "外链",
+    "no_cache": "缓存",
+    "api_keys": "绑定接口",
+    "created_at": "创建时间",
+    "updated_at": "更新时间",
+    "actions": "操作",
+    "menu_id": "菜单 ID"
+  },
+  "menuType": {
+    "directory": "目录",
+    "menu": "菜单",
+    "action": "操作"
+  },
+  "status": {
+    "enabled": "启用",
+    "disabled": "禁用"
+  },
+  "visible": {
+    "visible": "显示",
+    "hidden": "隐藏"
+  },
+  "isFrame": {
+    "yes": "是",
+    "no": "否"
+  },
+  "noCache": {
+    "noCache": "不缓存",
+    "cache": "缓存"
+  },
+  "rowActions": {
+    "label": "更多操作",
+    "createChild": "新增子菜单",
+    "edit": "编辑",
+    "delete": "删除",
+    "comingSoon": "该功能将在后续版本开放",
+    "view": "查看详情"
+  },
+  "messages": {
+    "fetchFailed": "获取菜单树失败",
+    "networkFailed": "网络请求失败"
+  },
+  "detail": {
+    "backToList": "返回菜单列表",
+    "basicInfo": "基本信息",
+    "parentMenu": "上级菜单 ID",
+    "rootMenu": "顶级菜单",
+    "notFound": "未找到该菜单",
+    "retry": "重试加载",
+    "childrenTitle": "子菜单",
+    "childrenQuota": "子菜单共 {{total}} 项",
+    "childrenEmpty": {
+      "title": "暂无子菜单",
+      "description": "该菜单下没有子菜单或操作权限"
+    },
+    "invalidId": "菜单 ID 不合法"
+  }
+}

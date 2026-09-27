@@ -1,0 +1,21 @@
+node_modules
+.DS_Store
+dist
+dist-ssr
+*.local
+.env
+.nitro
+.tanstack
+.wrangler
+.output
+.vercel
+.vinxi
+__unconfig*
+todos.json
+
+# 本地工具缓存与临时产物
+.cache
+.data
+.pnpm-store
+.tmp-*
+.local-bin

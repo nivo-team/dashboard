@@ -1,0 +1,78 @@
+{
+  "title": "إدارة القوائم",
+  "description": "إدارة بنية القوائم ورموز الصلاحيات وربط الواجهات",
+  "moduleName": "قائمة",
+  "searchPlaceholder": "ابحث باسم القائمة أو رمز الصلاحية…",
+  "createMenu": "إنشاء قائمة",
+  "demoBadge": "(وضع بيانات العرض)",
+  "quota": "إجمالي <b>{{total}}</b> قائمة",
+  "empty": {
+    "title": "لا توجد بيانات قوائم",
+    "description": "لا توجد قائمة مطابقة. جرّب كلمة مفتاحية أخرى."
+  },
+  "columns": {
+    "menu_name": "اسم القائمة",
+    "menu_type": "النوع",
+    "route_name": "اسم المسار",
+    "permission": "رمز الصلاحية",
+    "icon": "الأيقونة",
+    "sort": "الترتيب",
+    "status": "الحالة",
+    "visible": "الظهور",
+    "is_frame": "رابط خارجي",
+    "no_cache": "التخزين المؤقت",
+    "api_keys": "الواجهات المرتبطة",
+    "created_at": "تاريخ الإنشاء",
+    "updated_at": "تاريخ التحديث",
+    "actions": "الإجراءات",
+    "menu_id": "معرّف القائمة"
+  },
+  "menuType": {
+    "directory": "دليل",
+    "menu": "قائمة",
+    "action": "عملية"
+  },
+  "status": {
+    "enabled": "مفعّل",
+    "disabled": "معطّل"
+  },
+  "visible": {
+    "visible": "ظاهر",
+    "hidden": "مخفي"
+  },
+  "isFrame": {
+    "yes": "نعم",
+    "no": "لا"
+  },
+  "noCache": {
+    "noCache": "بدون تخزين مؤقت",
+    "cache": "مع تخزين مؤقت"
+  },
+  "rowActions": {
+    "label": "مزيد من الإجراءات",
+    "createChild": "إضافة قائمة فرعية",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "comingSoon": "ستتوفر هذه الميزة في إصدار لاحق",
+    "view": "عرض التفاصيل"
+  },
+  "messages": {
+    "fetchFailed": "فشل تحميل شجرة القوائم",
+    "networkFailed": "فشل طلب الشبكة"
+  },
+  "detail": {
+    "backToList": "العودة إلى قائمة القوائم",
+    "basicInfo": "معلومات أساسية",
+    "parentMenu": "معرّف القائمة الأصلية",
+    "rootMenu": "قائمة رئيسية",
+    "notFound": "لم يتم العثور على القائمة",
+    "retry": "إعادة المحاولة",
+    "childrenTitle": "القوائم الفرعية",
+    "childrenQuota": "إجمالي {{total}} قائمة فرعية",
+    "childrenEmpty": {
+      "title": "لا توجد قوائم فرعية",
+      "description": "لا تحتوي هذه القائمة على قوائم فرعية أو عمليات"
+    },
+    "invalidId": "معرّف القائمة غير صالح"
+  }
+}

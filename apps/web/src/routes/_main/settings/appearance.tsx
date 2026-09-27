@@ -1,0 +1,452 @@
+import { Select, Tabs, Tooltip } from '@cloudflare/kumo'
+import {
+  ArrowSquareOutIcon,
+  ColumnsIcon,
+  DesktopIcon,
+  MoonIcon,
+  SidebarSimpleIcon,
+  SunIcon,
+} from '@phosphor-icons/react'
+import { createFileRoute } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
+import {
+  APP_SHELL_PREVIEW_LIST_LAYOUT,
+  AppShellPreview,
+  type AppShellPreviewLayout,
+} from '#/components/app-shell-preview'
+import { PageHeader } from '#/components/page-header'
+import {
+  SettingChoicePreview,
+  usePreviewAnimation,
+} from '#/components/settings-choice-preview'
+import { SettingsCard, SettingRow } from '#/components/settings-card'
+import { cn } from '#/lib/cn'
+import {
+  ACCENT_COLOR_OPTIONS,
+  DEFAULT_COLOR_VALUE,
+  NEUTRAL_COLOR_OPTIONS,
+  usePreferencesStore,
+  type DetailOpenMode,
+  type ThemeColorOption,
+} from '#/lib/store'
+import { useColorMode } from '#/lib/use-color-mode'
+import type { ColorMode } from '#/lib/use-color-mode'
+import { useLocale } from '#/lib/use-locale'
+import type { LocaleKey } from '#/lib/use-locale'
+import { useTimezone } from '#/lib/timezone'
+import type { TimezoneKey } from '#/lib/timezone'
+
+/**
+ * 设置 → 外观（/_main/settings/appearance.tsx -> "/settings/appearance"）
+ *
+ * 这一页装的是四项「本机偏好」，都是**即时生效 + 即时持久化**，
+ * 所以这里是设置页而不是表单页：没有保存按钮，也没有 dirty 状态
+ * （不要套 `#/components/unsaved-changes-bar` 那套编辑态契约）。
+ *
+ * - 主题：`#/lib/use-color-mode`（偏好 store 的 colorMode）
+ * - 语言：`#/lib/use-locale`（偏好 store 的 locale，含 RTL 切换）
+ * - 时区：`#/lib/timezone`（偏好 store 的 timezone，全站时间格式化共用同一份状态）
+ * - 详情打开方式：`#/lib/store` 的 detailOpenMode（表格里点开详情的行为，见 .agents/docs/detail-preview.md）
+ *
+ * 四项都持久化在 `admin.preferences:<appId>`（按应用隔离，见 .agents/docs/store.md）。
+ * 布局是「一张卡片 + 若干设置行」，每行左 label、右控件（`SettingRow`）——
+ * 用 flex 的书写方向自适应，RTL 下主轴翻转，label 自动落到右边，**不要写 rtl: 变体**。
+ *
+ * 控件选型：**短枚举（≤3 项）一律用 Kumo `Tabs` 的 segmented 分段控件**
+ * （主题、详情打开方式），长枚举（语言 7 项、时区 8 项）用 `Select`；
+ * `Tabs` 是数据驱动 + 受控的，可访问名称需要外层 `role="group"` 兜（详见该处注释）。
+ *
+ * **两处「可视化说明」都用 `#/components/app-shell-preview` 的通用缩略图**：
+ * 「调色盘」行右侧静态展示强调色的落点；「详情打开方式」则更进一步 ——
+ * 每个分段选项悬浮时弹一个浮层，在缩略图里**把页面变化演一遍**
+ * （主列被挤压 / 被覆盖 / 整块换成详情页），见 `DetailOpenModePreview`。
+ *
+ * 账号安全、已连接应用、API Token 等更重的设置后续再扩展 —— 往侧边栏加一项即可。
+ */
+export const Route = createFileRoute('/_main/settings/appearance')({
+  component: AppearanceSettingsPage,
+})
+
+interface SettingsChoiceOption<TKey extends string> {
+  key: TKey
+  labelKey: string
+  defaultLabel: string
+  icon: typeof SunIcon
+}
+
+type ThemeOption = SettingsChoiceOption<ColorMode>
+
+const THEME_OPTIONS: ThemeOption[] = [
+  { key: 'light', labelKey: 'theme.light', defaultLabel: '浅色模式', icon: SunIcon },
+  { key: 'dark', labelKey: 'theme.dark', defaultLabel: '深色模式', icon: MoonIcon },
+  { key: 'system', labelKey: 'theme.system', defaultLabel: '跟随系统', icon: DesktopIcon },
+]
+
+/**
+ * 表格里打开详情的方式（见 `#/components/detail-preview`）。
+ *
+ * 三项都是「桌面端限定」：移动端视口放不下并列内容、抽屉也会把详情挤成一条，
+ * 因此移动端一律按 `page` 处理 —— 这条降级写在预览能力的 `open()` 里，
+ * 这里只在 hint 里如实告知，不做「移动端隐藏选项」这种会让人以为设置丢了的处理。
+ */
+const DETAIL_OPEN_MODE_OPTIONS: SettingsChoiceOption<DetailOpenMode>[] = [
+  {
+    key: 'split',
+    labelKey: 'profile.settings.detailOpenModes.split',
+    defaultLabel: '分屏预览',
+    icon: ColumnsIcon,
+  },
+  {
+    key: 'sheet',
+    labelKey: 'profile.settings.detailOpenModes.sheet',
+    defaultLabel: '右侧抽屉',
+    icon: SidebarSimpleIcon,
+  },
+  {
+    key: 'page',
+    labelKey: 'profile.settings.detailOpenModes.page',
+    defaultLabel: '跳转详情页',
+    icon: ArrowSquareOutIcon,
+  },
+]
+
+/**
+ * 详情打开方式 → 缩略图布局的映射（缩略图本身与这三种模式无关，是通用的）。
+ *
+ * 三者都对应真实外壳里发生的事：`split` 主列让出约 1/3 给行尾面板（挤压），
+ * `sheet` 面板覆盖在主列之上（抽屉是模态、满视口高），`page` 不出现面板，
+ * 而是整块内容区换成详情页。这份映射是**呈现层**的约定，所以留在页面里，
+ * `#/components/app-shell-preview` 只认 `content` / `panel` 两个字段。
+ */
+const DETAIL_MODE_PREVIEW_LAYOUTS: Record<DetailOpenMode, AppShellPreviewLayout> = {
+  split: { content: 'list', panel: 'push' },
+  sheet: { content: 'list', panel: 'cover' },
+  page: { content: 'detail', panel: 'none' },
+}
+
+/**
+ * 悬浮预览内容：起点固定是列表态（`APP_SHELL_PREVIEW_LIST_LAYOUT`）—— 这正是真实场景的起点，
+ * 人正停在列表页上、点了一行，然后才会看到三种打开方式的差别。两阶段时序收在
+ * `usePreviewAnimation`（见 `#/components/settings-choice-preview`）。
+ */
+function DetailOpenModePreview({
+  mode,
+  accentColor,
+}: {
+  mode: DetailOpenMode
+  accentColor: string
+}) {
+  const layout = usePreviewAnimation(
+    APP_SHELL_PREVIEW_LIST_LAYOUT,
+    DETAIL_MODE_PREVIEW_LAYOUTS[mode],
+  )
+
+  // 宽度交给外层：缩略图自己带 `w-full max-w-80`，而本仓库的 `cn` 不做类名去重（纯 clsx），
+  // 调用处再传一个 `w-*` 会与 `w-full` 同时存在、谁生效取决于 Tailwind 的产出顺序。
+  // 288px 是试出来的下限：再窄，分屏态下被挤压的主列就只剩几根看不清的短横条了。
+  return (
+    <div className="w-72">
+      <AppShellPreview layout={layout} accentColor={accentColor} />
+    </div>
+  )
+}
+
+/**
+ * 把「详情打开方式」的某个选项接到悬浮预览上。
+ *
+ * 浮层本身的讲究（hover 热区、只认 hover 打开、可访问名称、内边距、用 `Popover` 而不是
+ * `Tooltip` 的原因）都在公共件 `#/components/settings-choice-preview` 里，这里只负责
+ * 给出「这一项演什么」—— 页面内保留这一层封装，而不是把业务映射塞进公共件：
+ * 缩略图不认识「详情」这些概念，哪种模式对应哪种形态是呈现层的约定。
+ */
+function DetailOpenModePopover({
+  mode,
+  label,
+  accentColor,
+  triggerId,
+}: {
+  mode: DetailOpenMode
+  label: string
+  accentColor: string
+  triggerId: string
+}) {
+  return (
+    <SettingChoicePreview label={label} triggerId={triggerId}>
+      <DetailOpenModePreview mode={mode} accentColor={accentColor} />
+    </SettingChoicePreview>
+  )
+}
+
+function AppearanceSettingsPage() {
+  const { t } = useTranslation()
+  const { mode, setMode } = useColorMode()
+  const accentColor = usePreferencesStore((state) => state.accentColor)
+  const setAccentColor = usePreferencesStore((state) => state.setAccentColor)
+  const neutralColor = usePreferencesStore((state) => state.neutralColor)
+  const setNeutralColor = usePreferencesStore((state) => state.setNeutralColor)
+  const detailOpenMode = usePreferencesStore((state) => state.detailOpenMode)
+  const setDetailOpenMode = usePreferencesStore((state) => state.setDetailOpenMode)
+  const { locale, setLocale, supportedLocales } = useLocale()
+  const {
+    timezone,
+    setTimezone,
+    supportedTimezones,
+    getTimezoneOffsetLabel,
+  } = useTimezone()
+
+  return (
+    <div className="flex w-full flex-col gap-6">
+      <PageHeader title={t('profileNav.settings', '设置')} />
+
+      {/* 三项本机偏好同属「通用设置」：都是即时生效、按应用隔离持久化的偏好项 */}
+      <SettingsCard title={t('profile.settings.general', '通用设置')}>
+          {/*
+            主题：三项短枚举，用 Kumo Tabs 的 **segmented** 形态（分段控件）而不是一排 Radio ——
+            选项等宽相邻、选中态是一整块滑块，一眼能看出「当前在哪一档」，也更省横向空间。
+
+            用法要点（Kumo 的 Tabs 与 shadcn 那类 compound 组件不同）：
+            - **数据驱动**：把选项映射成 `tabs` 数组（`{ value, label }`），没有 Tabs.List / Tabs.Tab 子组件；
+            - **受控**：`value` + `onValueChange`，正好映射到偏好 store 的读写；
+            - `activateOnFocus`：方向键移动即选中（默认要再按 Enter/Space）——
+              设置项是即时生效的，自动激活手感与原来的 Radio 一致；
+            - **尺寸用默认值**（不传 `size`）：`base` 的高度与下方 `Select` 一致，
+              分段控件本身也需要足够的高度才撑得起选中滑块（`sm` 会明显矮一截）；
+            - **可访问名称要自己兜**：Kumo 的 Tabs 只解构固定 props、不透传 `aria-label`
+              （同 `Dialog`），所以外面包一层 `role="group"` + `aria-label`，
+              读屏进入时先播报是哪一个设置项。
+          */}
+          <SettingRow
+            label={t('theme.label', '主题')}
+            hint={t('profile.settings.appearanceHint', '选择界面的主题模式')}
+          >
+            <div role="group" aria-label={t('theme.label', '主题')}>
+              <Tabs
+                value={mode}
+                onValueChange={(next) => setMode(next as ColorMode)}
+                activateOnFocus
+                tabs={THEME_OPTIONS.map((item) => {
+                  const ItemIcon = item.icon
+                  return {
+                    value: item.key,
+                    label: (
+                      <span className="flex items-center gap-2">
+                        <ItemIcon size={16} className="text-kumo-subtle" />
+                        <span>{t(item.labelKey, item.defaultLabel)}</span>
+                      </span>
+                    ),
+                  }
+                })}
+              />
+            </div>
+          </SettingRow>
+
+          {/* 语言：7 项，用下拉；选项名一律用母语自称（nativeName），不随当前界面语言变化 */}
+          <SettingRow
+            label={t('language', '语言')}
+            hint={t('profile.settings.languageHint', '切换管理后台的界面语言')}
+          >
+            {/* 无可见 label：按 Kumo 的建议走 aria-label（label + hideLabel 已废弃） */}
+            <Select<LocaleKey>
+              aria-label={t('language', '语言')}
+              className="w-56"
+              value={locale}
+              onValueChange={(next) => {
+                if (next) setLocale(next)
+              }}
+              items={supportedLocales.map((item) => ({
+                value: item.key,
+                label: item.nativeName,
+              }))}
+            />
+          </SettingRow>
+
+          {/* 时区：8 项，偏移按时区动态计算（马德里 / 纽约有夏令时，不能写死） */}
+          <SettingRow
+            label={t('timezone.label', '时区')}
+            hint={t('profile.settings.timezoneHint', '全站时间展示使用的时区')}
+          >
+            <Select<TimezoneKey>
+              aria-label={t('timezone.label', '时区')}
+              className="w-56"
+              value={timezone}
+              onValueChange={(next) => {
+                if (next) setTimezone(next)
+              }}
+              items={supportedTimezones.map((item) => ({
+                value: item.key,
+                label: `${t(item.labelKey, item.defaultName)} (${getTimezoneOffsetLabel(item.key)})`,
+              }))}
+            />
+          </SettingRow>
+
+          {/*
+            详情打开方式：表格里点开详情时的默认行为（分屏预览 / 右侧抽屉 / 跳转详情页）。
+            三项都是即时生效、随偏好按应用隔离持久化 —— 与上面三项同属「通用设置」。
+            移动端不支持前两项，降级规则在 #/components/detail-preview，hint 里如实说明。
+
+            这里比「主题」多一层**悬浮预览**：每段选项都盖了一层透明触发区，
+            鼠标停上去弹出一个浮层，用通用缩略图把「选了这一项之后页面会怎么变」演一遍
+            （分屏 / 抽屉 / 换页三种变化，以及为什么需要它：光看「分屏预览」四个字，
+            没人知道出来的是什么）。触发区与浮层的全部讲究（为什么用 `Popover` 而不是
+            `Tooltip`、为什么受控只认 hover 这一种打开原因、为什么触发区是不可聚焦的
+            `span`）都在公共件 `#/components/settings-choice-preview` 的注释里；
+            页面这边只留「选项 → 演示画面」的映射。
+          */}
+          <SettingRow
+            label={t('profile.settings.detailOpenMode', '详情打开方式')}
+            hint={t(
+              'profile.settings.detailOpenModeHint',
+              '表格中打开详情的方式；移动端始终跳转详情页',
+            )}
+          >
+            {/* 与主题同一套分段控件写法（受控 value + activateOnFocus + 默认尺寸 + 外层 group 提供可访问名称） */}
+            <div
+              role="group"
+              aria-label={t('profile.settings.detailOpenMode', '详情打开方式')}
+            >
+              <Tabs
+                value={detailOpenMode}
+                onValueChange={(next) => setDetailOpenMode(next as DetailOpenMode)}
+                activateOnFocus
+                tabs={DETAIL_OPEN_MODE_OPTIONS.map((item) => {
+                  const ItemIcon = item.icon
+                  const label = t(item.labelKey, item.defaultLabel)
+                  return {
+                    value: item.key,
+                    label: (
+                      <span className="flex items-center gap-2">
+                        <ItemIcon size={16} className="text-kumo-subtle" />
+                        <span>{label}</span>
+                        <DetailOpenModePopover
+                          mode={item.key}
+                          label={label}
+                          accentColor={accentColor}
+                          // id 既做 trigger 的 id、也做 Root 的 triggerId，页面内唯一即可
+                          triggerId={`detail-open-mode-preview-${item.key}`}
+                        />
+                      </span>
+                    ),
+                  }
+                })}
+              />
+            </div>
+          </SettingRow>
+      </SettingsCard>
+
+      {/* 应用外观：一栏一个主题，左 label 右内容（调色盘那栏右侧就是预览） */}
+      <SettingsCard title={t('profile.settings.appBoard', '应用外观')}>
+          {/* 调色盘：右侧整块就是白板预览，选中的强调色实时反映在里面
+              （不传 layout：默认就是「只有列表」的基线形态） */}
+          <SettingRow label={t('profile.settings.palette', '调色盘')}>
+            <AppShellPreview accentColor={accentColor} />
+          </SettingRow>
+
+          {/* 主题色：⏸️ 与中性色一起暂停（见 apply-appearance-theme 的总开关），
+              色板保留可见但不可点，界面回到 Kumo 原生主题 */}
+          <SettingRow
+            label={t('profile.settings.accentColor', '主题色')}
+            hint={t('profile.settings.themeDisabled', '自定义主题暂未启用')}
+          >
+            <ColorSwatches
+              options={ACCENT_COLOR_OPTIONS}
+              value={accentColor}
+              onChange={setAccentColor}
+              label={t('profile.settings.accentColor', '主题色')}
+              disabled
+            />
+          </SettingRow>
+
+          {/* 中性色：⏸️ 暂时整体禁用（见 apply-appearance-theme 的总开关），
+              保留色板只为让人看到可选范围，点击与派生都已停用 */}
+          <SettingRow
+            label={t('profile.settings.neutralColor', '中性色')}
+            hint={t('profile.settings.themeDisabled', '自定义主题暂未启用')}
+          >
+            <ColorSwatches
+              options={NEUTRAL_COLOR_OPTIONS}
+              value={neutralColor}
+              onChange={setNeutralColor}
+              label={t('profile.settings.neutralColor', '中性色')}
+              disabled
+            />
+          </SettingRow>
+      </SettingsCard>
+    </div>
+  )
+}
+
+/**
+ * 色板：一组可选色点（`role="radiogroup"`，每点 `role="radio"`）。
+ *
+ * 色值本身可读，直接当可访问名称与 tooltip，不必再维护一套色名文案。
+ * 选中态用**同色 outline** 而不是额外套一层边框，避免改变色点自身的可见面积。
+ */
+function ColorSwatches({
+  options,
+  value,
+  onChange,
+  label,
+  disabled = false,
+}: {
+  options: readonly ThemeColorOption[]
+  value: string
+  onChange: (color: string) => void
+  label: string
+  /** 禁用后仅展示当前选择，不接受点击（中性色当前就处于这个状态） */
+  disabled?: boolean
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className="flex flex-wrap items-center gap-2"
+    >
+      {options.map((option) => {
+        const isSelected = value === option.value
+        // 悬浮/读屏都用本地化名称（「默认」「橙色」…），而不是色值
+        const name = t(option.labelKey, option.fallback)
+        const isDefault = option.value === DEFAULT_COLOR_VALUE
+
+        return (
+          // 用 Kumo Tooltip 的 `render` 把 trigger 换成色点自己。
+          // 不这么写的话，Tooltip 会渲染出**它自己的** `<button>` 把色点包进去，
+          // 而色点本身就是 button —— 非法的 button 嵌套，React 会直接报 hydration 错误。
+          <Tooltip
+            key={option.value}
+            content={name}
+            delay={120}
+            render={
+              <button
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                aria-label={name}
+                disabled={disabled}
+                onClick={() => onChange(option.value)}
+                // 「默认」不画具体颜色：它表示"不覆盖 Kumo 任何令牌"，用中性底即可
+                style={
+                  isDefault
+                    ? undefined
+                    : { backgroundColor: option.value, outlineColor: option.value }
+                }
+                className={cn(
+                  'size-6 rounded-full transition-transform hover:scale-110',
+                  isDefault && 'bg-kumo-recessed',
+                  isSelected
+                    ? 'outline outline-2 outline-offset-2'
+                    : 'ring-1 ring-kumo-line ring-inset',
+                  disabled && 'cursor-not-allowed opacity-50 hover:scale-100',
+                )}
+              />
+            }
+          >
+            {null}
+          </Tooltip>
+        )
+      })}
+    </div>
+  )
+}
+

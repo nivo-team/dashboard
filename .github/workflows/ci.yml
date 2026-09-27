@@ -1,0 +1,75 @@
+name: CI
+
+# 合并门控：在 PR 与 main 上跑「本仓唯一被授权的校验命令」。
+#
+# 与仓库铁律 5 的关系（**不冲突，是两个场景**）：
+# - 本地开发：`typecheck` / `build` 默认**不跑**，正确性靠读类型与调用方保证（见 verify skill）；
+# - CI：**必须跑**，因为它现在是合并的硬门控 —— 没有它，AI 开的 PR 就没有任何客观依据。
+#
+# 铁律 5 约束的是「不要为了确认而顺手跑」，不是「禁止在流水线里跑」。
+
+on:
+  pull_request:
+  push:
+    branches: [main, canary]
+
+# 同一个 PR 连续 push 时取消旧 run —— 省额度，也避免旧结果覆盖新结果
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: typecheck + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # 铁律门控要拿 diff 基线（base sha），浅克隆下取不到
+          fetch-depth: 0
+
+      # pnpm 必须早于 setup-node：后者的 cache: pnpm 依赖 pnpm 已存在
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          # 与 pnpm-lock.yaml 的 lockfileVersion '9.0' 对应
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          # package.json 无 engines；ai@7 声明 node >= 22，取当前 LTS 一线
+          node-version: 24
+          cache: pnpm
+
+      # 只依赖 Node 内置模块，不需要 node_modules —— 放在 install 之前，让违规最快失败
+      - name: 铁律门控
+        env:
+          # PR 用 base sha；push 用 before（首次 push 时是全 0，脚本会降级为只跑全量检查）
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: node scripts/ai/check-guardrails.mjs --base "$BASE_SHA"
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+      # build 会顺带重新生成 src/routeTree.gen.ts（TanStack Router plugin）。
+      # 若它与源码不一致，说明提交里漏了生成物 —— 这类遗漏在本地看不出来，
+      # 却是「路由新增页面却打不开」的典型成因。
+      - name: 生成物与源码同步检查
+        run: |
+          if ! git diff --exit-code -- src/routeTree.gen.ts; then
+            echo "::error file=src/routeTree.gen.ts::routeTree.gen.ts 与路由不一致。请把 pnpm build 生成的版本一起提交（不要手改该文件）。"
+            exit 1
+          fi

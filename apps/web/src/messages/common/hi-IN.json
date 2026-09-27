@@ -1,0 +1,320 @@
+{
+  "language": "भाषा",
+  "theme": {
+    "label": "थीम",
+    "light": "लाइट मोड",
+    "dark": "डार्क मोड",
+    "system": "सिस्टम के अनुसार"
+  },
+  "timezone": {
+    "label": "समय क्षेत्र",
+    "options": {
+      "utc": "मानक",
+      "cn": "स्थानीय",
+      "us": "पूर्वी अमेरिका",
+      "jp": "जापान",
+      "saudi": "सऊदी अरब",
+      "india": "भारत",
+      "es": "स्पेन",
+      "tr": "तुर्की"
+    }
+  },
+  "userMenu": {
+    "ariaLabel": "खाता मेनू",
+    "logout": "साइन आउट"
+  },
+  "search": {
+    "quickSearch": "त्वरित खोज…",
+    "shortcut": "Ctrl K"
+  },
+  "commandPalette": {
+    "placeholder": "पृष्ठ खोजें या कमांड टाइप करें…",
+    "empty": "कोई मेल खाता परिणाम नहीं",
+    "groups": {
+      "pages": "पृष्ठ",
+      "actions": "क्रियाएँ"
+    }
+  },
+  "profileNav": {
+    "title": "व्यवस्थापक",
+    "apps": "एप्लिकेशन",
+    "myProfile": "प्रोफ़ाइल",
+    "appearance": "रंग-रूप",
+    "settings": "सेटिंग्स",
+    "back": "वापस",
+    "askAi": "AI से पूछें",
+    "support": "सहायता",
+    "ai": "AI",
+    "about": "परिचय"
+  },
+  "about": {
+    "appName": "Nivo Admin",
+    "appDescription": "मल्टी-ऐप वर्कस्पेस के लिए बैकएंड प्रबंधन कंसोल",
+    "fields": {
+      "appName": "ऐप का नाम",
+      "version": "संस्करण",
+      "techStack": "तकनीकी स्टैक"
+    },
+    "techStack": "React · Vite · TanStack Router · Tailwind · Kumo"
+  },
+  "profile": {
+    "title": "प्रोफ़ाइल",
+    "settings": {
+      "general": "सामान्य सेटिंग्स",
+      "accentColor": "एक्सेंट रंग",
+      "palette": "पैलेट",
+      "appBoard": "ऐप का स्वरूप",
+      "neutralColor": "न्यूट्रल रंग",
+      "themeDisabled": "कस्टम थीम अभी उपलब्ध नहीं है",
+      "colors": {
+        "default": "डिफ़ॉल्ट",
+        "orange": "नारंगी",
+        "blue": "नीला",
+        "purple": "बैंगनी",
+        "green": "हरा",
+        "red": "लाल",
+        "coolGray": "ठंडा ग्रे",
+        "gray": "न्यूट्रल ग्रे",
+        "zinc": "ज़िंक",
+        "warmGray": "गर्म ग्रे"
+      },
+      "appearanceHint": "इंटरफ़ेस थीम चुनें",
+      "languageHint": "प्रबंधन कंसोल की भाषा बदलें",
+      "timezoneHint": "सभी दिनांक और समय प्रदर्शन के लिए समय क्षेत्र",
+      "detailOpenMode": "विवरण खोलने का तरीका",
+      "detailOpenModeHint": "तालिका से विवरण खोलने का तरीका; मोबाइल पर विवरण हमेशा पूरे पृष्ठ में खुलता है",
+      "detailOpenModes": {
+        "split": "विभाजित दृश्य",
+        "sheet": "साइड शीट",
+        "page": "विवरण पृष्ठ पर जाएँ"
+      },
+      "aiDisplayMode": "प्रदर्शन तरीका",
+      "aiDisplayModeHint": "Ask AI पैनल कैसे दिखता है; छोटी स्क्रीन पर दोनों तरीके ओवरले बन जाते हैं",
+      "aiModes": {
+        "split": "विभाजित दृश्य",
+        "float": "फ़्लोटिंग विंडो"
+      },
+      "aiProviders": "मॉडल सेवाएँ",
+      "aiProviderEmpty": "अभी कोई प्रदाता नहीं है। शुरू करने के लिए एक जोड़ें।",
+      "aiAddProvider": "प्रदाता जोड़ें",
+      "aiEditProvider": "प्रदाता संपादित करें",
+      "aiProviderKind": "सेवा प्रकार",
+      "aiProviderName": "नाम",
+      "aiProviderBaseUrl": "एंडपॉइंट",
+      "aiProviderBaseUrlHint": "खाली छोड़ने पर इस सेवा प्रकार का आधिकारिक पता उपयोग होगा",
+      "aiApiKey": "API कुंजी",
+      "aiApiKeyHint": "कुंजी केवल इस डिवाइस के ब्राउज़र में सहेजी जाती है। साझा कंप्यूटर पर असली कुंजी न डालें।",
+      "aiProviderKeySet": "कुंजी सेट है",
+      "aiProviderKeyMissing": "कुंजी नहीं है",
+      "aiProviderKinds": {
+        "openai": "OpenAI",
+        "anthropic": "Anthropic",
+        "compatible": "OpenAI संगत"
+      },
+      "aiProviderDeleteTitle": "प्रदाता हटाएँ",
+      "aiProviderDeleteDesc": "हटाने पर इस प्रदाता के मॉडल कॉन्फ़िगरेशन भी हट जाएँगे।",
+      "aiModels": "मॉडल",
+      "aiModelsHint": "नई बातचीत के लिए डिफ़ॉल्ट मॉडल उपयोग होता है; जिन मॉडलों में टूल कॉलिंग बंद है वे केवल चैट कर सकते हैं।",
+      "aiModelsNoProviderHint": "पहले «मॉडल सेवाएँ» में एक प्रदाता जोड़ें।",
+      "aiModelEmpty": "अभी कोई मॉडल कॉन्फ़िगर नहीं है।",
+      "aiAddModel": "मॉडल जोड़ें",
+      "aiEditModel": "मॉडल संपादित करें",
+      "aiModelProvider": "प्रदाता",
+      "aiModelId": "मॉडल ID",
+      "aiModelIdHint": "प्रदाता के दस्तावेज़ में दिया मॉडल नाम, जैसे gpt-5-mini या claude-sonnet-4-5",
+      "aiModelName": "प्रदर्शित नाम",
+      "aiModelNameHint": "खाली छोड़ने पर मॉडल ID दिखेगा",
+      "aiModelSupportsTools": "टूल कॉलिंग समर्थित",
+      "aiModelNoTools": "केवल चैट",
+      "aiDefaultModel": "डिफ़ॉल्ट",
+      "aiSetDefaultModel": "डिफ़ॉल्ट बनाएँ",
+      "aiModelDeleteTitle": "मॉडल हटाएँ",
+      "aiModelDeleteDesc": "इस मॉडल का उपयोग जारी रखने के लिए इसे फिर से जोड़ना होगा।",
+      "aiActivityGlow": "सक्रिय ग्लो",
+      "aiActivityGlowHint": "AI के काम करते समय पृष्ठ के चारों ओर चलती रोशनी दिखाता है",
+      "aiShowToolCalls": "टूल कॉल दिखाएँ",
+      "aiShowToolCallsHint": "AI ने कौन-से टूल कॉल किए, यह दिखाएँ; बंद करने पर केवल उत्तर दिखेगा",
+      "aiBotAvatar": "सहायक अवतार",
+      "aiBotAvatarHint": "सहायक के उत्तरों के साथ दिखने वाला छोटा रोबोट",
+      "aiOutputMode": "आउटपुट",
+      "aiOutputModeHint": "उत्तर लिखे जाते समय दिखाएँ या पूरा होने पर एक साथ",
+      "aiOutputModes": {
+        "stream": "रीयल-टाइम",
+        "wait": "सोचने के बाद"
+      },
+      "aiAutoScroll": "आउटपुट का अनुसरण करें",
+      "aiAutoScrollHint": "AI के उत्तर देते समय नवीनतम सामग्री तक स्क्रॉल करें; ऊपर स्क्रॉल करने पर रुक जाता है",
+      "aiPermission": "AI अनुमतियाँ",
+      "aiPermissionMode": "दायरा",
+      "aiPermissionModeHint": "AI क्या कर सकता है। «पूर्ण पहुँच» चुनने पर वह फ़ॉर्म भर सकता है, जमा कर सकता है और लेखन API कॉल कर सकता है",
+      "aiPermissionModes": {
+        "readonly": "केवल पढ़ें",
+        "full": "पूर्ण पहुँच",
+        "custom": "कस्टम"
+      },
+      "aiToolGroups": {
+        "page": "पेज",
+        "data": "डेटा",
+        "form": "फ़ॉर्म"
+      },
+      "aiToolGroupHints": {
+        "page": "मौजूदा पेज पढ़ें, नेविगेशन देखें, नेविगेट करें",
+        "data": "API खोजें और पढ़ें। लेखन API हर बार पुष्टि माँगते हैं",
+        "form": "पेज के फ़ॉर्म देखें, भरें और जमा करें"
+      },
+      "aiToolNames": {
+        "get_page_context": "पेज संदर्भ पढ़ें",
+        "list_navigation": "नेविगेशन देखें",
+        "navigate_to": "पेज पर जाएँ",
+        "search_api": "API खोजें",
+        "call_read_api": "रीड API कॉल करें",
+        "list_dict_options": "शब्दकोश विकल्प पढ़ें",
+        "call_write_api": "राइट API कॉल करें",
+        "list_page_forms": "पेज फ़ॉर्म देखें",
+        "fill_form": "फ़ॉर्म भरें",
+        "submit_form": "फ़ॉर्म जमा करें"
+      },
+      "aiOutputLanguage": "आउटपुट भाषा",
+      "aiOutputLanguageHint": "AI किस भाषा में उत्तर दे; डिफ़ॉल्ट रूप से इंटरफ़ेस के अनुसार",
+      "aiOutputLanguageAuto": "इंटरफ़ेस के अनुसार",
+      "aiEnabled": "AI सक्षम करें",
+      "aiEnabledHint": "बंद करने पर हेडर से Ask AI प्रवेश दिखाई नहीं देगा"
+    },
+    "loadError": "प्रोफ़ाइल सेवा उपलब्ध नहीं है। स्थानीय साइन-इन जानकारी दिखाई जा रही है।",
+    "sections": {
+      "basic": "मूल जानकारी",
+      "regions": "क्षेत्र अनुमतियाँ"
+    },
+    "fields": {
+      "username": "उपयोगकर्ता नाम",
+      "nickName": "उपनाम",
+      "email": "ईमेल",
+      "uid": "UID",
+      "role": "भूमिका",
+      "status": "स्थिति",
+      "currentRegion": "वर्तमान क्षेत्र"
+    },
+    "status": {
+      "enabled": "सक्षम",
+      "disabled": "अक्षम"
+    },
+    "regions": {
+      "empty": "कोई क्षेत्र अनुमति नहीं"
+    }
+  },
+  "selectApp": {
+    "title": "एप्लिकेशन",
+    "subtitle": "एक एप्लिकेशन चुनें।",
+    "tableApp": "एप्लिकेशन",
+    "tableDesc": "विवरण",
+    "loading": "एप्लिकेशन लोड हो रहे हैं…",
+    "viewAll": "सभी ऐप्स देखें"
+  },
+  "nav": {
+    "system": "सिस्टम",
+    "systemFeatures": "सुविधाएँ",
+    "systemDataDict": "डेटा शब्दकोश",
+    "config": "कॉन्फ़िगरेशन",
+    "langPack": "भाषा पैक",
+    "home": "डैशबोर्ड",
+    "userOps": "उपयोगकर्ता संचालन",
+    "userList": "उपयोगकर्ता सूची"
+  },
+  "notFound": {
+    "backHome": "होम पर वापस जाएँ",
+    "title": "पृष्ठ नहीं मिला",
+    "description": "रूट <b>{{route}}</b> मौजूद नहीं है<br/>डैशबोर्ड का बाकी हिस्सा सुचारू रूप से चल रहा है,<br/>इसलिए आप निश्चिंत होकर वापस जा सकते हैं।",
+    "copyLink": "लिंक कॉपी करें",
+    "copied": "कॉपी किया गया"
+  },
+  "actions": {
+    "submit": "जमा करें",
+    "cancel": "रद्द करें",
+    "confirm": "पुष्टि करें",
+    "back": "वापस",
+    "edit": "संपादित करें",
+    "delete": "हटाएँ"
+  },
+  "table": {
+    "displayOptions": {
+      "trigger": "प्रदर्शन विकल्प",
+      "title": "कॉलम संपादित करें",
+      "reset": "रीसेट",
+      "filterPlaceholder": "कॉलम फ़िल्टर करें…",
+      "clearFilter": "फ़िल्टर साफ़ करें",
+      "noMatch": "कोई मेल खाता कॉलम नहीं",
+      "other": "अन्य"
+    },
+    "search": {
+      "placeholder": "रिकॉर्ड खोजें…",
+      "ariaLabel": "खोजें",
+      "clear": "खोज साफ़ करें"
+    },
+    "filters": {
+      "trigger": "फ़िल्टर"
+    },
+    "filterBuilder": {
+      "title": "फ़िल्टर",
+      "close": "बंद करें",
+      "empty": "अभी कोई शर्त नहीं — नीचे से फ़ील्ड जोड़ें",
+      "field": "फ़ील्ड",
+      "yes": "हाँ",
+      "no": "नहीं",
+      "rangeFrom": "न्यूनतम",
+      "rangeTo": "अधिकतम",
+      "arrayPlaceholder": "कई मानों को कॉमा से अलग करें",
+      "add": "फ़िल्टर जोड़ें",
+      "remove": "{{field}} फ़िल्टर हटाएं",
+      "enterHint": "लागू करने के लिए Enter दबाएं",
+      "clearAll": "सभी साफ़ करें",
+      "apply": "लागू करें"
+    },
+    "filterChips": {
+      "label": "सक्रिय फ़िल्टर",
+      "edit": "{{label}} फ़िल्टर संपादित करें",
+      "remove": "{{label}} फ़िल्टर हटाएं"
+    },
+    "actions": {
+      "import": "आयात",
+      "export": "निर्यात",
+      "addRecord": "रिकॉर्ड जोड़ें",
+      "refresh": "रीफ़्रेश"
+    },
+    "summary": {
+      "total": "<b>{{total}}</b> मेल खाते रिकॉर्ड मिले",
+      "selected": "<b>{{selected}}</b> चयनित",
+      "clearSelection": "चयन साफ़ करें"
+    },
+    "dataTable": {
+      "quota": "आप <b>{{current}} of {{total}}</b> {{module}} डेटा देख रहे हैं",
+      "selectedOf": "<b>{{selected}}</b> / {{total}} चयनित",
+      "clearSelection": "चयन साफ़ करें",
+      "batchEdit": "{{num}} संपादित करें",
+      "batchDelete": "{{num}} हटाएं",
+      "loading": "टेबल डेटा लोड हो रहा है…",
+      "retry": "पुनः प्रयास",
+      "emptyTitle": "कोई डेटा नहीं",
+      "emptyDescription": "कोई मेल खाता रिकॉर्ड नहीं मिला",
+      "moduleFallback": "डेटा",
+      "expandRow": "विस्तृत करें",
+      "collapseRow": "संकुचित करें",
+      "paginationShowing": "<b>{{range}}</b> / <b>{{total}}</b> दिखाया जा रहा है",
+      "pagination": {
+        "perPage": "प्रति पृष्ठ:",
+        "navigation": "पृष्ठ नेविगेशन",
+        "firstPage": "पहला पृष्ठ",
+        "previousPage": "पिछला पृष्ठ",
+        "nextPage": "अगला पृष्ठ",
+        "lastPage": "अंतिम पृष्ठ",
+        "pageNumber": "पृष्ठ संख्या",
+        "pageSize": "प्रति पृष्ठ आइटम"
+      }
+    }
+  },
+  "detailPreview": {
+    "ariaLabel": "विवरण पूर्वावलोकन",
+    "expand": "विस्तृत करें",
+    "close": "पूर्वावलोकन बंद करें",
+    "resize": "पूर्वावलोकन की चौड़ाई बदलें"
+  }
+}

@@ -1,0 +1,31 @@
+name: 同步标签
+
+# 标签体系的真值是 .github/labels.yml，由这个 workflow 推到 GitHub 上。
+# 不要在网页上手工维护标签 —— 那样真值就分叉了（AGENTS.md 铁律 3 的同一原则）。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/labels.yml'
+      - '.github/workflows/labels.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sync labels
+        uses: EndBug/label-sync@v2
+        with:
+          config-file: .github/labels.yml
+          # 只增改、不删 —— 仓库里已有的其它标签（人工维护的）不能被这个 workflow 清掉
+          delete-other-labels: false

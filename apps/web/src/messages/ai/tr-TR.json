@@ -1,0 +1,60 @@
+{
+  "title": "Ask AI",
+  "inputLabel": "AI giriş alanı",
+  "inputPlaceholder": "Sorunuzu yazın…",
+  "modeLabel": "Giriş modu",
+  "modeAsk": "Sor",
+  "modeAuto": "Otomatik",
+  "send": "Gönder",
+  "stop": "Durdur",
+  "close": "Paneli kapat",
+  "resize": "Panel genişliğini ayarla",
+  "notConfigured": "Henüz model servisi tanımlı değil. Sohbet için önce ayarlayın.",
+  "goToSettings": "Ayarları aç",
+  "thinking": "Düşünüyor…",
+  "toolRunning": "Çalışıyor",
+  "toolDone": "Tamam",
+  "toolFailed": "Başarısız",
+  "tools": {
+    "get_page_context": "Geçerli sayfayı oku",
+    "list_navigation": "Sayfa bul",
+    "navigate_to": "Sayfaya git",
+    "search_api": "API ara",
+    "call_read_api": "API çağır",
+    "list_dict_options": "Sözlüğü oku",
+    "call_write_api": "Veri değiştiren API",
+    "list_page_forms": "Sayfa formlarını gör",
+    "fill_form": "Formu doldur",
+    "submit_form": "Formu gönder"
+  },
+  "approvalTitle": "Bu işlem onayınızı gerektiriyor",
+  "approve": "Bir kez izin ver",
+  "approveAlways": "Bu oturumda bir daha sorma",
+  "deny": "Reddet",
+  "sessionPicker": "Sohbet seç",
+  "sessionNew": "Yeni sohbet",
+  "sessionSearch": "Sohbetlerde ara",
+  "sessionEmpty": "Henüz sohbet yok",
+  "sessionNoMatch": "Eşleşen sohbet yok",
+  "sessionDelete": "Sohbeti sil",
+  "sessionDeleteDesc": "Bu sohbet silindikten sonra geri getirilemez.",
+  "sessionGroups": {
+    "today": "Bugün",
+    "yesterday": "Dün",
+    "week": "Son 7 gün",
+    "month": "Son 30 gün",
+    "older": "Daha eski"
+  },
+  "greetings": {
+    "morning": "Günaydın.",
+    "afternoon": "İyi öğleden sonralar.",
+    "evening": "İyi akşamlar."
+  },
+  "greetingPrompt": "Bugün ne yapıyoruz?",
+  "scrollToBottom": "En alta dön",
+  "toolDetail": {
+    "input": "Argümanlar",
+    "output": "Sonuç",
+    "error": "Hata"
+  }
+}

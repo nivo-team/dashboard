@@ -1,0 +1,727 @@
+import { Checkbox, Select, Switch, Tabs } from '@cloudflare/kumo'
+import { BotAvatar } from 'bot-avatars'
+import {
+  ChatCircleDotsIcon,
+  CheckCircleIcon,
+  ColumnsIcon,
+  EyeIcon,
+  HourglassIcon,
+  LightningIcon,
+  ShieldCheckIcon,
+  SlidersHorizontalIcon,
+} from '@phosphor-icons/react'
+import { createFileRoute } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
+import {
+  APP_SHELL_PREVIEW_LIST_LAYOUT,
+  AppShellPreview,
+  type AppShellPreviewLayout,
+} from '#/components/app-shell-preview'
+import { PageHeader } from '#/components/page-header'
+import {
+  SettingChoicePreview,
+  usePreviewAnimation,
+} from '#/components/settings-choice-preview'
+import { SettingsCard, SettingRow } from '#/components/settings-card'
+import { BetaBadge } from '#/components/beta-badge'
+import { AI_TOOLS, resolveAllowedToolNames, type AiPermissionMode } from '#/lib/ai'
+import { cn } from '#/lib/cn'
+import { SUPPORTED_LOCALES } from '#/lib/locale'
+import {
+  AI_BOT_AVATARS,
+  usePreferencesStore,
+  type AiOutputLanguage,
+  type AiOutputMode,
+  type AiPanelMode,
+} from '#/lib/store'
+import { useColorMode } from '#/lib/use-color-mode'
+import { AiModelCard } from './-components/ai-model-card'
+import { AiProviderCard } from './-components/ai-provider-card'
+
+export const Route = createFileRoute('/_main/settings/AI')({
+  component: AiSettingsPage,
+})
+
+interface AiModeOption {
+  key: AiPanelMode
+  labelKey: string
+  fallback: string
+  icon: typeof ColumnsIcon
+}
+
+/**
+ * 显示方式的两项。
+ *
+ * 文案是**形态名**而不是产品术语，七种语言各自本地化（见 messages/common 的 `aiModes.*`）；
+ * 各自的差别交给悬浮预览去演（下面的 `AiModePreview`），hint 只补一句降级说明 ——
+ * 与「详情打开方式」同一套取舍：光看名字没人知道出来的是什么。
+ */
+const AI_MODE_OPTIONS: AiModeOption[] = [
+  {
+    key: 'split',
+    labelKey: 'profile.settings.aiModes.split',
+    fallback: '分屏视图',
+    icon: ColumnsIcon,
+  },
+  {
+    key: 'float',
+    labelKey: 'profile.settings.aiModes.float',
+    fallback: '浮窗',
+    icon: ChatCircleDotsIcon,
+  },
+]
+
+interface AiOutputModeOption {
+  key: AiOutputMode
+  labelKey: string
+  fallback: string
+  icon: typeof ColumnsIcon
+}
+
+interface AiPermissionOption {
+  key: AiPermissionMode
+  labelKey: string
+  fallback: string
+  icon: typeof ColumnsIcon
+}
+
+/**
+ * 权限三档。默认在前的 `readonly` 就是默认值：AI 默认只能看，
+ * 要让它改东西得用户自己来开。
+ */
+const AI_PERMISSION_OPTIONS: AiPermissionOption[] = [
+  {
+    key: 'readonly',
+    labelKey: 'profile.settings.aiPermissionModes.readonly',
+    fallback: '只读',
+    icon: EyeIcon,
+  },
+  {
+    key: 'full',
+    labelKey: 'profile.settings.aiPermissionModes.full',
+    fallback: '完全访问',
+    icon: ShieldCheckIcon,
+  },
+  {
+    key: 'custom',
+    labelKey: 'profile.settings.aiPermissionModes.custom',
+    fallback: '自定义',
+    icon: SlidersHorizontalIcon,
+  },
+]
+
+/**
+ * 工具清单按注册表里的 `group` 分堆 —— **只有 `AI_TOOLS` 一份真值**，
+ * 这里不另抄名单（加工具时只改工具文件，界面自动跟上）。
+ */
+const TOOL_GROUPS = [
+  { key: 'page', fallback: '页面', hintFallback: '读取当前页面、列出导航、跳转' },
+  { key: 'data', fallback: '数据', hintFallback: '查接口、读数据；写接口每次都会请你确认' },
+  { key: 'form', fallback: '表单', hintFallback: '读取页面表单、填写、提交' },
+].map((group) => ({
+  ...group,
+  tools: AI_TOOLS.filter((tool) => tool.group === group.key),
+}))
+
+/**
+ * 输出方式的两项。默认在前的 `wait`：普通用户看"半截的 Markdown"很累 ——
+ * 流式过程中标题、列表、代码块都在反复重排。想实时看进度的再选 `stream`。
+ */
+const AI_OUTPUT_MODE_OPTIONS: AiOutputModeOption[] = [
+  {
+    key: 'wait',
+    labelKey: 'profile.settings.aiOutputModes.wait',
+    fallback: '等待',
+    icon: HourglassIcon,
+  },
+  {
+    key: 'stream',
+    labelKey: 'profile.settings.aiOutputModes.stream',
+    fallback: '实时输出',
+    icon: LightningIcon,
+  },
+]
+
+/**
+ * AI 打开方式 → 缩略图布局的映射。
+ *
+ * 两者是**形态**上的差别，缩略图只认形态、不认识「AI」：
+ * - `split` → `shell`：外壳级侧列 —— 与侧边栏同级、从顶部到底部整屏高，
+ *   连顶栏一起被挤窄（这正是它与详情分屏 `push` 的区别：后者只挤压内容区）；
+ * - `float` → `float`：行尾侧下角的小窗，浮在内容之上、不挤压布局，从底部升起。
+ *
+ * 起点都是列表态，因为真实场景就是这样：人正停在某个页面上，点了顶栏的 Ask AI，
+ * 差别体现在「面板怎么出现」；内容区是列表还是详情与这个设置无关。
+ */
+const AI_MODE_PREVIEW_LAYOUTS: Record<AiPanelMode, AppShellPreviewLayout> = {
+  split: { content: 'list', panel: 'shell' },
+  float: { content: 'list', panel: 'float' },
+}
+
+/**
+ * 悬浮预览内容：两阶段时序（先基线态、停一下再切目标态）来自
+ * `#/components/settings-choice-preview` 的 `usePreviewAnimation`。
+ *
+ * 宽度交给外层而不是给缩略图传 `w-*`：`AppShellPreview` 自带 `w-full max-w-80`，
+ * 而本仓库的 `cn` 不做类名去重（纯 clsx），两个同类名同时存在时谁生效取决于
+ * Tailwind 的产出顺序。
+ */
+function AiModePreview({
+  mode,
+  accentColor,
+}: {
+  mode: AiPanelMode
+  accentColor: string
+}) {
+  const layout = usePreviewAnimation(
+    APP_SHELL_PREVIEW_LIST_LAYOUT,
+    AI_MODE_PREVIEW_LAYOUTS[mode],
+  )
+
+  return (
+    <div className="w-72">
+      <AppShellPreview layout={layout} accentColor={accentColor} />
+    </div>
+  )
+}
+
+/**
+ * 光晕预览：先演「页面四周什么都没有」的基线，停一下再切到「光带亮起」。
+ *
+ * 刻意**不看开关的当前值** —— 预览要展示的是效果本身，关着的时候反而更该让人知道
+ * 「打开会是什么样」。光带在这里用渐变描边示意：真品是 `border-beam`，那是个
+ * 80 KB 的按需 chunk，不该为了设置页的一张缩略图把它拉进来。
+ */
+function AiActivityGlowPreview({ accentColor }: { accentColor: string }) {
+  const showGlow = usePreviewAnimation(false, true)
+
+  return (
+    <div className="w-72">
+      <div className="relative">
+        <AppShellPreview
+          layout={APP_SHELL_PREVIEW_LIST_LAYOUT}
+          accentColor={accentColor}
+        />
+
+        {/*
+          只有**光晕**，没有描边：四周内缘发亮、中间内容照常可见 —— 这正是运行时那层
+          `fixed inset-0` 叠在页面上的观感。
+
+          `inset-0` + `rounded-lg` 是**与缩略图严丝合缝**的：`AppShellPreview` 自身就是
+          `rounded-lg`。之前用 `-inset-*` 让光晕溢出边界，它会糊到 Popover 的内边距上
+          （浮层只有 `p-1.5`＝6px），看起来像"光晕跑到浮层上去了"。
+
+          呼吸动画（`ai-glow-pulse`）定义在 styles.css，靠 `data-ai-glow-preview` 挂上，
+          并受 `prefers-reduced-motion` 统一管辖 —— 它不跑时就用下面的静态 `boxShadow`。
+        */}
+        <div
+          aria-hidden
+          data-ai-glow-preview={showGlow ? 'true' : undefined}
+          className={cn(
+            'pointer-events-none absolute inset-0 rounded-lg transition-opacity motion-safe:duration-500',
+            showGlow ? 'opacity-100' : 'opacity-0',
+          )}
+          style={{
+            boxShadow:
+              'inset 0 0 28px rgb(129 140 248 / 0.42), inset 0 0 12px rgb(240 171 252 / 0.28)',
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+
+/**
+ * 工具调用卡片的预览：演一遍**把它关掉之后长什么样**（工具行收起、只剩问答）。
+ *
+ * 刻意演"关掉"而不是"打开"：这个开关默认就是关的，人更需要知道的是
+ * 「那行东西能去掉」，而不是「打开会多出什么」。收起用 `max-h` + `opacity` 过渡，
+ * 而不是直接不渲染 —— 浮层里要看清高度的变化，不然只是少了一行、看不出来。
+ */
+function AiToolCallsPreview() {
+  const showToolCard = usePreviewAnimation(true, false)
+
+  return (
+    <div className="w-72 space-y-1.5 rounded-lg border border-kumo-line bg-kumo-base p-3">
+      <div className="flex justify-end">
+        <span className="rounded-lg bg-kumo-tint px-2 py-1 text-xs text-kumo-default">
+          {"帮我看看今天的订单"}
+        </span>
+      </div>
+
+      {/* 这一行就是开关控制的东西：关掉后它收起，下面的回答照常 */}
+      <div
+        className={cn(
+          'flex items-center gap-2 overflow-hidden rounded-lg border border-kumo-line px-2 text-xs transition-all motion-safe:duration-300',
+          showToolCard ? 'max-h-8 py-1 opacity-100' : 'max-h-0 py-0 opacity-0',
+        )}
+      >
+        <CheckCircleIcon size={12} className="shrink-0 text-kumo-success" />
+        <span className="min-w-0 truncate text-kumo-default">{"查询订单"}</span>
+        <span className="ms-auto shrink-0 text-kumo-subtle">{"完成"}</span>
+      </div>
+
+      <div className="rounded-lg bg-kumo-tint px-2 py-1.5 text-xs text-kumo-default">
+        {"今天共 128 笔订单，比昨天多 12%。"}
+      </div>
+    </div>
+  )
+}
+
+const OUTPUT_MODE_PREVIEW_TEXT = '今天共 128 笔订单，比昨天多 12%。'
+
+/**
+ * 输出方式预览：用同一句话演两种模式**出现的方式**。
+ *
+ * 「等待」是"先空着（只在想）、最后一整段出现"；「实时」是"文字一点点长出来"。
+ * 两段时序共用（`usePreviewAnimation(false, true)`），差别只在中间那一帧画什么 ——
+ * 这样两种模式的对比才落在"出现方式"上，而不是文案差异上。
+ */
+function AiOutputModePreview({ mode }: { mode: AiOutputMode }) {
+  const arrived = usePreviewAnimation(false, true)
+
+  return (
+    <div className="w-72 rounded-lg border border-kumo-line bg-kumo-base p-3">
+      {mode === 'wait' ? (
+        arrived ? (
+          <p className="text-xs text-kumo-default">{OUTPUT_MODE_PREVIEW_TEXT}</p>
+        ) : (
+          <p className="text-xs text-kumo-subtle">正在思考…</p>
+        )
+      ) : (
+        <p className="text-xs text-kumo-default">
+          {arrived ? OUTPUT_MODE_PREVIEW_TEXT : '今天共 128'}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/**
+ * 设置 → AI（`/settings/AI`）。
+ *
+ * 与 外观（`/settings/appearance`）同属「本机偏好」：改动**即时生效 + 按应用隔离持久化**
+ * （`admin.preferences:<appId>` 的 `aiPanelMode`），所以**没有保存按钮、没有 dirty 状态**。
+ *
+ * 当前只有一项配置（打开方式）。后续 AI 相关偏好继续往这张卡片里加 `SettingRow`，
+ * 或在其下方再加一张 `SettingsCard` 即可 —— 卡片外壳与行布局都来自
+ * `#/components/settings-card`，不要在页面里手写 `LayerCard`。
+ */
+function AiSettingsPage() {
+  const { t } = useTranslation()
+  const aiPanelMode = usePreferencesStore((state) => state.aiPanelMode)
+  const setAiPanelMode = usePreferencesStore((state) => state.setAiPanelMode)
+  const aiActivityGlow = usePreferencesStore((state) => state.aiActivityGlow)
+  const setAiActivityGlow = usePreferencesStore((state) => state.setAiActivityGlow)
+  const aiShowToolCalls = usePreferencesStore((state) => state.aiShowToolCalls)
+  const setAiShowToolCalls = usePreferencesStore((state) => state.setAiShowToolCalls)
+  const aiBotAvatar = usePreferencesStore((state) => state.aiBotAvatar)
+  const setAiBotAvatar = usePreferencesStore((state) => state.setAiBotAvatar)
+  const aiOutputMode = usePreferencesStore((state) => state.aiOutputMode)
+  const setAiOutputMode = usePreferencesStore((state) => state.setAiOutputMode)
+  const aiAutoScroll = usePreferencesStore((state) => state.aiAutoScroll)
+  const setAiAutoScroll = usePreferencesStore((state) => state.setAiAutoScroll)
+  const aiEnabled = usePreferencesStore((state) => state.aiEnabled)
+  const setAiEnabled = usePreferencesStore((state) => state.setAiEnabled)
+  const aiOutputLanguage = usePreferencesStore((state) => state.aiOutputLanguage)
+  const setAiOutputLanguage = usePreferencesStore((state) => state.setAiOutputLanguage)
+  const aiPermission = usePreferencesStore((state) => state.aiPermission)
+  const setAiPermission = usePreferencesStore((state) => state.setAiPermission)
+  const aiAllowedTools = usePreferencesStore((state) => state.aiAllowedTools)
+  const setAiAllowedTools = usePreferencesStore((state) => state.setAiAllowedTools)
+  // 头像网格里每个 canvas 都要知道坐在什么底色上（包的 auto 读不到本项目的 data-mode）
+  const { resolved } = useColorMode()
+  // 预览缩略图的品牌位（面板头行的 sparkle、底部输入位）跟着用户选的强调色走
+  const accentColor = usePreferencesStore((state) => state.accentColor)
+
+  return (
+    <div className="flex w-full flex-col gap-6">
+      {/* 标题旁挂 Beta：这个模块整体还在测试阶段（导航项上也有同一个徽章） */}
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2">
+            {t('profileNav.ai', 'AI')}
+            <BetaBadge />
+          </span>
+        }
+      />
+
+      {/*
+        卡片标题直接复用外观页那一个 key（`profile.settings.general`）：
+        这里就是「通用设置」，没有 AI 专属的前缀 —— 各语言只维护一份，不会漂移。
+      */}
+      <SettingsCard title={t('profile.settings.general', '通用设置')}>
+        {/*
+          总开关放最前：它是这一页其余设置的前提 —— 关掉之后顶栏的入口整个消失。
+          用一个开关而不是把下面的选项藏起来，是因为「要不要这个功能」与「它怎么表现」
+          是两件事，用户可能只是想暂时把入口收起来。
+        */}
+        <SettingRow
+          label={t('profile.settings.aiEnabled', '启用 AI')}
+          hint={t(
+            'profile.settings.aiEnabledHint',
+            '关掉后顶栏不再显示「Ask AI」入口',
+          )}
+        >
+          <Switch
+            checked={aiEnabled}
+            onCheckedChange={setAiEnabled}
+            aria-label={t('profile.settings.aiEnabled', '启用 AI')}
+          />
+        </SettingRow>
+
+        {/*
+          打开方式：两项短枚举，与「主题」「详情打开方式」同一套 Kumo `Tabs` segmented
+          写法（数据驱动、受控 `value` / `onValueChange`、`activateOnFocus`、默认尺寸），
+          可访问名称同样由外层 `role="group"` 提供 —— Kumo 的 `Tabs` 不透传 `aria-label`。
+
+          与「详情打开方式」一样多一层**悬浮预览**：每段选项盖一层透明热区，指针停上去
+          弹出浮层，用通用缩略图把两种形态演一遍（`split` 那个空档里面板从右侧长出来、
+          与侧边栏同级整屏高；`float` 则是一张小窗从右下角升起来）。
+          浮层本身的接法（为什么用 `Popover`、为什么受控只认 hover、为什么热区是
+          `aria-hidden` 的 `span`）都在 `#/components/settings-choice-preview` 里。
+        */}
+        <SettingRow
+          label={t('profile.settings.aiDisplayMode', '显示方式')}
+          hint={t(
+            'profile.settings.aiDisplayModeHint',
+            'Ask AI 面板的显示方式；窄屏下都会收成浮层',
+          )}
+        >
+          <div
+            role="group"
+            aria-label={t('profile.settings.aiDisplayMode', '显示方式')}
+          >
+            <Tabs
+              value={aiPanelMode}
+              onValueChange={(next) => setAiPanelMode(next as AiPanelMode)}
+              activateOnFocus
+              tabs={AI_MODE_OPTIONS.map((item) => {
+                const ItemIcon = item.icon
+                const label = t(item.labelKey, item.fallback)
+                return {
+                  value: item.key,
+                  label: (
+                    <span className="flex items-center gap-2">
+                      <ItemIcon size={16} className="text-kumo-subtle" />
+                      <span>{label}</span>
+                      <SettingChoicePreview
+                        label={label}
+                        // id 既做 trigger 的 id、也做 Root 的 triggerId，页面内唯一即可
+                        triggerId={`ai-open-mode-preview-${item.key}`}
+                      >
+                        <AiModePreview mode={item.key} accentColor={accentColor} />
+                      </SettingChoicePreview>
+                    </span>
+                  ),
+                }
+              })}
+            />
+          </div>
+        </SettingRow>
+
+        {/*
+          AI 进行中的页面级光晕：开关型偏好，所以用 Kumo `Switch` 而不是分段控件。
+          **不传 `label`**（那会渲染一行可见文字，与 `SettingRow` 的 label 重复），
+          改传 `aria-label` —— Kumo 的 Switch 会读它作为可访问名称。
+
+          悬浮预览的热区挂在**左侧 label 文字**上，不碰右边的开关 —— 这一点是必须的：
+          热区是 `absolute inset-0`（铺满最近的 positioned 祖先），若把它包在开关外层，
+          它就会整个盖住开关、把点击全部吞掉，**开关会变成点不动**。
+          挂在 label 上则与「显示方式」的交互一致：停在文字上看效果，控件照常可点。
+        */}
+        <SettingRow
+          label={
+            <span className="relative">
+              {t('profile.settings.aiActivityGlow', '进行中光晕')}
+              <SettingChoicePreview
+                label={t('profile.settings.aiActivityGlow', '进行中光晕')}
+                triggerId="ai-activity-glow-preview"
+              >
+                <AiActivityGlowPreview accentColor={accentColor} />
+              </SettingChoicePreview>
+            </span>
+          }
+          hint={t(
+            'profile.settings.aiActivityGlowHint',
+            'AI 回答时在页面四周显示一圈流动光带',
+          )}
+        >
+          <Switch
+            checked={aiActivityGlow}
+            onCheckedChange={setAiActivityGlow}
+            aria-label={t('profile.settings.aiActivityGlow', '进行中光晕')}
+          />
+        </SettingRow>
+
+        {/*
+          AI 的输出语言：与**界面语言**分开的两件事 —— 「界面中文但想让它用英文答」是真实需求
+          （照着英文文档干活时）。默认跟随界面语言。
+
+          8 项（跟随 + 7 种语言）用 Select；语言名用**自名**（「日本語」而不是「日语」），
+          这样任何界面语言下都认得出是哪一门语言。
+        */}
+        <SettingRow
+          label={t('profile.settings.aiOutputLanguage', '输出语言')}
+          hint={t(
+            'profile.settings.aiOutputLanguageHint',
+            'AI 用什么语言回答；默认跟随界面语言',
+          )}
+        >
+          <Select<string>
+            aria-label={t('profile.settings.aiOutputLanguage', '输出语言')}
+            className="w-56"
+            value={aiOutputLanguage}
+            onValueChange={(next) => {
+              if (next) setAiOutputLanguage(next as AiOutputLanguage)
+            }}
+            items={[
+              {
+                value: 'auto',
+                label: t('profile.settings.aiOutputLanguageAuto', '跟随界面语言'),
+              },
+              ...SUPPORTED_LOCALES.map((item) => ({
+                value: item.key,
+                label: item.nativeName,
+              })),
+            ]}
+          />
+        </SettingRow>
+
+        {/*
+          跟随输出滚动：只有开关、**不做预览** —— 它描述的是滚动行为，
+          浮层里那张静态缩略图演不出"跟不跟"的差别，硬做一个反而是误导。
+        */}
+        <SettingRow
+          label={t('profile.settings.aiAutoScroll', '跟随输出滚动')}
+          hint={t(
+            'profile.settings.aiAutoScrollHint',
+            'AI 回答时自动滚到最新内容；手动往上翻会临时暂停',
+          )}
+        >
+          <Switch
+            checked={aiAutoScroll}
+            onCheckedChange={setAiAutoScroll}
+            aria-label={t('profile.settings.aiAutoScroll', '跟随输出滚动')}
+          />
+        </SettingRow>
+
+        {/*
+          工具调用的可见性：同样是开关型偏好，**默认关**（普通用户只看内容）。
+          热区同样挂在 label 文字上，理由见上面那条 —— 包在开关外层会吞掉点击。
+        */}
+        <SettingRow
+          label={
+            <span className="relative">
+              {t('profile.settings.aiShowToolCalls', '显示工具调用')}
+              <SettingChoicePreview
+                label={t('profile.settings.aiShowToolCalls', '显示工具调用')}
+                triggerId="ai-show-tool-calls-preview"
+              >
+                <AiToolCallsPreview />
+              </SettingChoicePreview>
+            </span>
+          }
+          hint={t(
+            'profile.settings.aiShowToolCallsHint',
+            '在回答里显示 AI 调用了哪些工具；关闭后只显示回答内容',
+          )}
+        >
+          <Switch
+            checked={aiShowToolCalls}
+            onCheckedChange={setAiShowToolCalls}
+            aria-label={t('profile.settings.aiShowToolCalls', '显示工具调用')}
+          />
+        </SettingRow>
+
+        {/*
+          输出方式：两项短枚举，与「显示方式」同一套分段控件 + 悬浮预览。
+          这一项直接在会话区生效（见 `#/components/ai-conversation` 的 AiMessageView / showThinking）：
+          `wait` 下正在生成的那条整条不渲染、只留「正在思考…」，结束后一次给出。
+        */}
+        <SettingRow
+          label={t('profile.settings.aiOutputMode', '输出方式')}
+          hint={t(
+            'profile.settings.aiOutputModeHint',
+            '回答是边生成边显示，还是想完了一次性给出',
+          )}
+        >
+          <div
+            role="group"
+            aria-label={t('profile.settings.aiOutputMode', '输出方式')}
+          >
+            <Tabs
+              value={aiOutputMode}
+              onValueChange={(next) => setAiOutputMode(next as AiOutputMode)}
+              activateOnFocus
+              tabs={AI_OUTPUT_MODE_OPTIONS.map((item) => {
+                const ItemIcon = item.icon
+                const label = t(item.labelKey, item.fallback)
+                return {
+                  value: item.key,
+                  label: (
+                    <span className="flex items-center gap-2">
+                      <ItemIcon size={16} className="text-kumo-subtle" />
+                      <span>{label}</span>
+                      <SettingChoicePreview
+                        label={label}
+                        triggerId={`ai-output-mode-preview-${item.key}`}
+                      >
+                        <AiOutputModePreview mode={item.key} />
+                      </SettingChoicePreview>
+                    </span>
+                  ),
+                }
+              })}
+            />
+          </div>
+        </SettingRow>
+
+        {/*
+          助手头像：18 种形状，用**网格**而不是 Select —— 选头像本来就是个看形状的事，
+          一列文字名（clover / pebble / puddle…）谁也挑不出来。
+          选中的那个**动**、其余冻结在某一帧：一屏 18 个 canvas 同时跑动画是白烧 CPU，
+          而"谁被选中"正好可以用"只有它在动"来表达。
+        */}
+        <SettingRow
+          label={t('profile.settings.aiBotAvatar', '助手头像')}
+          hint={t('profile.settings.aiBotAvatarHint', 'AI 在会话里出现时的小机器人形象')}
+        >
+          <div
+            role="radiogroup"
+            aria-label={t('profile.settings.aiBotAvatar', '助手头像')}
+            className="grid grid-cols-5 gap-1"
+          >
+            {AI_BOT_AVATARS.map((type) => {
+              const selected = type === aiBotAvatar
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  // 形状名本身没有本地化文案，直接用它当可访问名称（读屏也能区分）
+                  aria-label={type}
+                  onClick={() => setAiBotAvatar(type)}
+                  className={cn(
+                    // `flex` + 居中：grid 子项默认 stretch 撑满格子，
+                    // 不居中的话头像会贴在格子左侧、整排看着是歪的
+                    'flex items-center justify-center rounded-lg p-0.5 transition-colors',
+                    selected ? 'bg-kumo-tint ring-1 ring-kumo-brand' : 'hover:bg-kumo-tint',
+                  )}
+                >
+                  <BotAvatar
+                    type={type}
+                    size={30}
+                    theme={resolved}
+                    interactive={false}
+                    paused={!selected}
+                  />
+                </button>
+              )
+            })}
+          </div>
+        </SettingRow>
+      </SettingsCard>
+
+      {/*
+        AI 权限：**能用哪些工具**。
+
+        它与上面的「输出方式 / 输入模式」是**正交**的两件事 —— 模式管"用起来要不要问"，
+        这里管"有没有这个工具"。早先这两件事被写死在代码里（询问模式只给只读工具），
+        于是那个模式变成了一个连表都填不了的模式。
+      */}
+      <SettingsCard title={t('profile.settings.aiPermission', 'AI 权限')}>
+        <SettingRow
+          label={t('profile.settings.aiPermissionMode', '权限范围')}
+          hint={t(
+            'profile.settings.aiPermissionModeHint',
+            '控制 AI 能做什么；改成「完全访问」它才能填表、提交与调用写接口',
+          )}
+        >
+          <div
+            role="group"
+            aria-label={t('profile.settings.aiPermissionMode', '权限范围')}
+          >
+            <Tabs
+              value={aiPermission}
+              onValueChange={(next) => {
+                const mode = next as AiPermissionMode
+                /*
+                  从预设档（只读 / 完全访问）切到「自定义」时**继承当前档实际勾选的工具**，
+                  而不是从空开始 —— 三档本来就是对同一份勾选清单的预设，
+                  用户在只读下看到的那几项，切过去应当还勾着，否则他得从零再点一遍。
+                */
+                if (mode === 'custom' && aiPermission !== 'custom') {
+                  setAiAllowedTools(resolveAllowedToolNames(aiPermission, aiAllowedTools))
+                }
+                setAiPermission(mode)
+              }}
+              activateOnFocus
+              tabs={AI_PERMISSION_OPTIONS.map((item) => {
+                const ItemIcon = item.icon
+                return {
+                  value: item.key,
+                  label: (
+                    <span className="flex items-center gap-2">
+                      <ItemIcon size={16} className="text-kumo-subtle" />
+                      <span>{t(item.labelKey, item.fallback)}</span>
+                    </span>
+                  ),
+                }
+              })}
+            />
+          </div>
+        </SettingRow>
+
+        {/*
+          只有「自定义」才展开工具清单：另两档已经把范围说清楚了，再把一堆复选框摆出来
+          只会让人以为还得选点什么。
+
+          每个分组一个 `Checkbox.Group`（它渲染成 fieldset + legend，读屏能听出分组），
+          但 `onValueChange` 拿到的是**该组自己**的勾选值 —— 所以合并时要先把这一组原有的
+          成员摘掉、再并上新的，否则组与组之间会互相覆盖。
+        */}
+        {aiPermission === 'custom' ? (
+          <div className="flex flex-col gap-4 px-4 py-3.5">
+            {TOOL_GROUPS.map((group) => {
+              const names = group.tools.map((tool) => tool.name)
+              return (
+                <Checkbox.Group
+                  key={group.key}
+                  legend={t(`profile.settings.aiToolGroups.${group.key}`, group.fallback)}
+                  description={t(
+                    `profile.settings.aiToolGroupHints.${group.key}`,
+                    group.hintFallback,
+                  )}
+                  value={aiAllowedTools}
+                  onValueChange={(next) =>
+                    setAiAllowedTools([
+                      ...aiAllowedTools.filter((name) => !names.includes(name)),
+                      ...next,
+                    ])
+                  }
+                >
+                  {group.tools.map((tool) => (
+                    <Checkbox.Item
+                      key={tool.name}
+                      value={tool.name}
+                      label={t(`profile.settings.aiToolNames.${tool.name}`, tool.name)}
+                    />
+                  ))}
+                </Checkbox.Group>
+              )
+            })}
+          </div>
+        ) : null}
+      </SettingsCard>
+
+      {/*
+        下面两张卡片不再属于「本机偏好」：它们是**模型服务配置**（厂商 + 模型），
+        同样即时生效、但不按应用隔离 —— 全局一份 `admin.ai`（理由见 #/lib/store/ai-store）。
+      */}
+      <AiProviderCard />
+      <AiModelCard />
+    </div>
+  )
+}

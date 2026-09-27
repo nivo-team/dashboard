@@ -1,0 +1,56 @@
+# AI 开发流水线的标签体系 —— 由 .github/workflows/labels.yml 用 EndBug/label-sync 同步。
+#
+# 设计原则（抄自 Warp Oz 的可复用部分）：
+# 1. **GitHub 仓库本身就是状态存储** —— issue、label、assignee、评论、PR 就是状态机，
+#    不引入外部数据库。幂等靠评论里埋 `<!-- ai-agent-metadata: {...} -->`。
+# 2. **两级制门控**：人能打的「可做」标签（`ai:ready`）与规则可判的「可自动合并」标签
+#    （`ai:safe-merge`）分开 —— 前者表达意图，后者表达允许，两者永不合并成一个标签。
+# 3. **生命周期标签由 workflow 自己维护**（`ai:running` / `ai:pr-opened`），人不该手打。
+
+# ---------- 阶段一：现在就启用 ----------
+
+- name: 'ai:ready'
+  color: '0E8A16'
+  description: '人打的「可做」标签：告诉 AI 这个 issue 的模块细节已经足够，可以开工。打上它会触发 ai-implement。'
+
+- name: 'ai:running'
+  color: 'FBCA04'
+  description: '【workflow 维护，不要手打】AI 正在这个 issue 上工作。'
+
+- name: 'ai:pr-opened'
+  color: '1D76DB'
+  description: '【workflow 维护，不要手打】AI 已经为本 issue 开出 PR（仅在开启 AI_CREATE_PR 时出现），等待人工 review。'
+
+- name: 'ai:branch-ready'
+  color: '1D76DB'
+  description: '【workflow 维护，不要手打】AI 已把改动推到分支，等人在分支页创建 PR。默认路径就是这个。'
+
+- name: 'ai:needs-info'
+  color: 'D93F0B'
+  description: '模块细节不足（缺接口、缺验收标准等），AI 需要补充信息才能继续。'
+
+- name: 'ai:blocked'
+  color: 'B60205'
+  description: 'AI 尝试后无法完成（依赖缺失、与既有契约冲突等），需要人介入。'
+
+- name: 'ai:skip'
+  color: '6E7781'
+  description: '显式跳过 AI 处理（即使带 ai:ready 也不触发），用于人工接手的 issue。'
+
+# ---------- 阶段二：稳定后再启用（先留着，不激活） ----------
+
+- name: 'ai:spec'
+  color: '5319E7'
+  description: '【阶段二】feature 类需求先产 spec（product.md + tech.md），不直接写码。'
+
+- name: 'ai:plan-approved'
+  color: '5319E7'
+  description: '【阶段二】人审批 spec 通过，状态机切到「可以实现」。'
+
+- name: 'ai:reviewed'
+  color: '0E8A16'
+  description: '【阶段二】AI review 已给出 Verdict=Approve。'
+
+- name: 'ai:safe-merge'
+  color: 'BFD4F2'
+  description: '【阶段二】人打的「允许规则自动合并」：CI 全绿 + 路径白名单 + diff 上限全过才 squash 合并。'

@@ -1,0 +1,160 @@
+{
+  "title": "Funciones",
+  "description": "Gestiona la jerarquía de funciones y los códigos de permisos; los grupos de funciones organizan los niveles y cada función es la unidad mínima de entrega",
+  "containerDescription": "Contenido de este grupo de funciones; puedes anidar más grupos de funciones o añadir funciones",
+  "moduleName": "Funciones",
+  "searchPlaceholder": "Buscar nombre de función / código de permiso…",
+  "createFeature": "Añadir función",
+  "createGroup": "Añadir grupo de funciones",
+  "createPermission": "Añadir permiso",
+  "create": {
+    "label": "Crear"
+  },
+  "demoBadge": "(Modo de datos de demostración)",
+  "quota": "Total: <b>{{total}}</b>",
+  "empty": {
+    "title": "Aún no hay funciones",
+    "description": "No se encontraron funciones que coincidan; prueba con otras palabras clave"
+  },
+  "columns": {
+    "menu_id": "ID",
+    "menu_name": "Nombre",
+    "menu_type": "Tipo",
+    "route_name": "Nombre de ruta",
+    "permission": "Clave de permiso",
+    "icon": "Icono",
+    "sort": "Orden",
+    "status": "Estado",
+    "visible": "Visible",
+    "is_frame": "Enlace externo",
+    "no_cache": "Caché",
+    "api_keys": "API vinculada",
+    "created_at": "Fecha de creación",
+    "updated_at": "Fecha de actualización",
+    "actions": "Acciones"
+  },
+  "cell": {
+    "yes": "Sí",
+    "no": "No"
+  },
+  "menuType": {
+    "directory": "Grupo de funciones",
+    "menu": "Función",
+    "action": "Permiso"
+  },
+  "status": {
+    "enabled": "Habilitado",
+    "disabled": "Deshabilitado"
+  },
+  "visible": {
+    "visible": "Visible",
+    "hidden": "Oculto"
+  },
+  "isFrame": {
+    "yes": "Sí",
+    "no": "No"
+  },
+  "noCache": {
+    "noCache": "Sin caché",
+    "cache": "Caché"
+  },
+  "rowActions": {
+    "label": "Más acciones",
+    "editFeature": "Editar función",
+    "editGroup": "Editar grupo de funciones",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "comingSoon": "Esta función estará disponible en una versión futura"
+  },
+  "messages": {
+    "fetchFailed": "No se pudo obtener la lista de funciones"
+  },
+  "detail": {
+    "backToList": "Volver a la lista",
+    "basicInfo": "Información básica",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "dangerZone": "Zona de riesgo",
+    "deleteFeature": "Eliminar función",
+    "deleteFeatureTitle": "Eliminar función",
+    "deleteFeatureConfirm": "Esta acción no se puede deshacer. Se eliminará permanentemente la función <b>{{name}}</b> y su posición en el árbol de funciones.",
+    "deleteBlocked": "Este nodo aún tiene {{total}} elementos secundarios; elimínalos primero",
+    "editGroup": "Editar grupo de funciones",
+    "editGroupDescription": "Modifica el nombre, el icono, el orden y la visibilidad del grupo de funciones",
+    "deleteGroup": "Eliminar grupo de funciones",
+    "deleteGroupConfirm": "Esta acción no se puede deshacer. Se eliminará permanentemente el grupo de funciones <b>{{name}}</b>.",
+    "details": "Detalles",
+    "parentFeature": "ID superior",
+    "rootFeature": "Nivel raíz",
+    "notFound": "No se encontró la función",
+    "invalidId": "ID no válido",
+    "retry": "Reintentar",
+    "childrenTitle": "Permisos",
+    "childrenQuota": "Total: {{total}}",
+    "childrenEmpty": {
+      "title": "Aún no hay permisos",
+      "description": "Esta función aún no tiene permisos; usa «Añadir permiso» para crear uno"
+    }
+  },
+  "permissionDialog": {
+    "createTitle": "Añadir permiso",
+    "editTitle": "Editar permiso",
+    "createDescription": "Añade un permiso a esta función",
+    "editDescription": "Modifica el nombre, la clave y el estado del permiso",
+    "deleteTitle": "Eliminar permiso",
+    "deleteConfirm": "¿Seguro que quieres eliminar «{{name}}»? Esta acción no se puede deshacer.",
+    "delete": "Eliminar"
+  },
+  "form": {
+    "createFeatureTitle": "Añadir función",
+    "createGroupTitle": "Añadir grupo de funciones",
+    "createButtonTitle": "Añadir permiso",
+    "createFeatureDescription": "Crea una función como unidad de entrega de las capacidades de la plataforma",
+    "createGroupDescription": "Crea un grupo de funciones para seguir organizando la jerarquía",
+    "createButtonDescription": "Crea un permiso para controlar las operaciones de esta función",
+    "parentHint": "Se creará en: {{parent}}",
+    "name": "Nombre",
+    "nameDescription": "Entre 2 y 50 caracteres; identificador que se muestra",
+    "namePlaceholder": "Introduce el nombre",
+    "nameLength": "El nombre debe tener entre 2 y 50 caracteres",
+    "permission": "Clave de permiso",
+    "permissionDescription": "Código de permiso de la API; obligatorio para funciones y permisos, por ejemplo n:menus:list",
+    "permissionPlaceholder": "n:menus:list",
+    "permissionRequired": "Introduce la clave de permiso",
+    "apiKeys": "API vinculada",
+    "apiKeysDescription": "Escribe palabras clave para buscar API del sistema; las funciones se vinculan a API de listado y los permisos a API de acción concretas",
+    "apiKeysPlaceholder": "Buscar API, por ejemplo /api/guild",
+    "apiKeysRemove": "Quitar {{label}}",
+    "apiKeysLoading": "Cargando la lista de API…",
+    "apiKeysFailed": "No se pudo cargar la lista de API. Inténtalo de nuevo más tarde",
+    "apiKeysNoMatch": "No hay más API disponibles para vincular",
+    "icon": "Icono",
+    "iconDescription": "Nombre del icono, por ejemplo ListDashes",
+    "iconPlaceholder": "Opcional",
+    "sort": "Orden",
+    "sortDescription": "Se ordena de menor a mayor dentro del mismo nivel",
+    "statusEnabled": "Habilitado",
+    "statusDisabled": "Deshabilitado",
+    "visibleShown": "Visible",
+    "visibleHidden": "Oculto",
+    "submitFeature": "Crear función",
+    "submitGroup": "Crear grupo de funciones",
+    "submitButton": "Crear permiso",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "successFeature": "Función creada correctamente",
+    "successGroup": "Grupo de funciones creado correctamente",
+    "successButton": "Permiso creado correctamente",
+    "successPermission": "Permiso creado correctamente",
+    "successPermissionUpdate": "Permiso actualizado correctamente",
+    "successPermissionDelete": "Permiso eliminado correctamente",
+    "successFeatureUpdate": "Función actualizada correctamente",
+    "successFeatureDelete": "Función eliminada correctamente",
+    "successGroupUpdate": "Grupo de funciones actualizado correctamente",
+    "successGroupDelete": "Grupo de funciones eliminado correctamente",
+    "failed": "La operación falló. Inténtalo de nuevo más tarde",
+    "deleteFailed": "No se pudo eliminar. Inténtalo de nuevo más tarde",
+    "statusField": "Estado",
+    "visibleField": "Visibilidad"
+  }
+}

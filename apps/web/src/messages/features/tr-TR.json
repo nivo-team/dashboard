@@ -1,0 +1,160 @@
+{
+  "title": "Özellikler",
+  "description": "Özellik hiyerarşisini ve izin kodlarını yönetin; özellik grupları katmanlama için, özellikler ise en küçük teslim birimi olarak kullanılır",
+  "containerDescription": "Bu özellik grubunun altındaki içerik; altına özellik grubu ekleyebilir veya özellik ekleyebilirsiniz",
+  "moduleName": "Özellikler",
+  "searchPlaceholder": "Özellik adı / izin kodu ara…",
+  "createFeature": "Özellik ekle",
+  "createGroup": "Özellik grubu ekle",
+  "createPermission": "İzin ekle",
+  "create": {
+    "label": "Oluştur"
+  },
+  "demoBadge": "(Demo veri modu)",
+  "quota": "Toplam <b>{{total}}</b> öğe",
+  "empty": {
+    "title": "Özellik verisi yok",
+    "description": "Eşleşen özellik bulunamadı. Farklı bir anahtar kelime deneyin."
+  },
+  "columns": {
+    "menu_id": "ID",
+    "menu_name": "Ad",
+    "menu_type": "Tür",
+    "route_name": "Rota adı",
+    "permission": "İzin kodu",
+    "icon": "Simge",
+    "sort": "Sıra",
+    "status": "Durum",
+    "visible": "Görünürlük",
+    "is_frame": "Harici bağlantı",
+    "no_cache": "Önbellek",
+    "api_keys": "Bağlı API",
+    "created_at": "Oluşturulma zamanı",
+    "updated_at": "Güncellenme zamanı",
+    "actions": "İşlemler"
+  },
+  "cell": {
+    "yes": "Evet",
+    "no": "Hayır"
+  },
+  "menuType": {
+    "directory": "Özellik grubu",
+    "menu": "Özellik",
+    "action": "İzin"
+  },
+  "status": {
+    "enabled": "Etkin",
+    "disabled": "Devre dışı"
+  },
+  "visible": {
+    "visible": "Görünür",
+    "hidden": "Gizli"
+  },
+  "isFrame": {
+    "yes": "Evet",
+    "no": "Hayır"
+  },
+  "noCache": {
+    "noCache": "Önbellek yok",
+    "cache": "Önbellekte"
+  },
+  "rowActions": {
+    "label": "Diğer işlemler",
+    "editFeature": "Özelliği düzenle",
+    "editGroup": "Özellik grubunu düzenle",
+    "edit": "Düzenle",
+    "delete": "Sil",
+    "comingSoon": "Bu özellik sonraki sürümlerde kullanıma sunulacak"
+  },
+  "messages": {
+    "fetchFailed": "Özellik listesi yüklenemedi"
+  },
+  "detail": {
+    "backToList": "Listeye dön",
+    "basicInfo": "Temel bilgiler",
+    "copy": "Kopyala",
+    "copied": "Kopyalandı",
+    "dangerZone": "Tehlikeli işlemler",
+    "deleteFeature": "Özelliği sil",
+    "deleteFeatureTitle": "Özelliği sil",
+    "deleteFeatureConfirm": "Bu işlem geri alınamaz. <b>{{name}}</b> özelliği ve özellik ağacındaki konumu kalıcı olarak silinecek.",
+    "deleteBlocked": "Bu düğümün altında {{total}} alt öğe var; lütfen önce alt öğeleri silin",
+    "editGroup": "Özellik grubunu düzenle",
+    "editGroupDescription": "Özellik grubunun adını, simgesini, sıralamasını ve görünürlük durumunu değiştirin",
+    "deleteGroup": "Özellik grubunu sil",
+    "deleteGroupConfirm": "Bu işlem geri alınamaz. <b>{{name}}</b> özellik grubu kalıcı olarak silinecek.",
+    "details": "Ayrıntılar",
+    "parentFeature": "Üst ID",
+    "rootFeature": "Kök düzey",
+    "notFound": "Bu özellik bulunamadı",
+    "invalidId": "Geçersiz ID",
+    "retry": "Yeniden dene",
+    "childrenTitle": "İzinler",
+    "childrenQuota": "Toplam {{total}} öğe",
+    "childrenEmpty": {
+      "title": "İzin yok",
+      "description": "Bu özellik altında henüz izin yok; “İzin ekle” ile oluşturmaya devam edebilirsiniz"
+    }
+  },
+  "permissionDialog": {
+    "createTitle": "İzin ekle",
+    "editTitle": "İzni düzenle",
+    "createDescription": "Geçerli özellik altında yeni bir izin ekleyin",
+    "editDescription": "İznin adını, izin kodunu ve durumunu değiştirin",
+    "deleteTitle": "İzni sil",
+    "deleteConfirm": "“{{name}}” silinsin mi? Bu işlem geri alınamaz.",
+    "delete": "Sil"
+  },
+  "form": {
+    "createFeatureTitle": "Özellik ekle",
+    "createGroupTitle": "Özellik grubu ekle",
+    "createButtonTitle": "İzin ekle",
+    "createFeatureDescription": "Platform yeteneklerinin teslim birimi olarak bir özellik oluşturun",
+    "createGroupDescription": "Özellikleri katmanlamak için bir özellik grubu oluşturun",
+    "createButtonDescription": "Bu özellik altındaki işlemleri denetlemek için bir izin oluşturun",
+    "parentHint": "Şu konumda oluşturulacak: {{parent}}",
+    "name": "Ad",
+    "nameDescription": "2–50 karakter; görüntüleme için kullanılan ad",
+    "namePlaceholder": "Ad girin",
+    "nameLength": "Ad 2–50 karakter arasında olmalıdır",
+    "permission": "İzin kodu",
+    "permissionDescription": "API izin kodu; özellik ve izinler için zorunludur, örn. n:menus:list",
+    "permissionPlaceholder": "n:menus:list",
+    "permissionRequired": "İzin kodunu girin",
+    "apiKeys": "Bağlı API",
+    "apiKeysDescription": "Sistem API'lerini aramak için anahtar kelime girin; özellikler liste API'sine, izinler belirli action API'sine bağlanır",
+    "apiKeysPlaceholder": "API ara, örn. /api/guild",
+    "apiKeysRemove": "{{label}} öğesini kaldır",
+    "apiKeysLoading": "API listesi yükleniyor…",
+    "apiKeysFailed": "API listesi yüklenemedi; lütfen daha sonra tekrar deneyin",
+    "apiKeysNoMatch": "Bağlanabilecek başka API yok",
+    "icon": "Simge",
+    "iconDescription": "Simge adı, örn. ListDashes",
+    "iconPlaceholder": "İsteğe bağlı",
+    "sort": "Sıra",
+    "sortDescription": "Aynı düzeyde küçükten büyüğe sıralanır",
+    "statusEnabled": "Etkin",
+    "statusDisabled": "Devre dışı",
+    "visibleShown": "Görünür",
+    "visibleHidden": "Gizli",
+    "submitFeature": "Özellik oluştur",
+    "submitGroup": "Özellik grubu oluştur",
+    "submitButton": "İzin oluştur",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "successFeature": "Özellik oluşturuldu",
+    "successGroup": "Özellik grubu oluşturuldu",
+    "successButton": "İzin oluşturuldu",
+    "successPermission": "İzin oluşturuldu",
+    "successPermissionUpdate": "İzin güncellendi",
+    "successPermissionDelete": "İzin silindi",
+    "successFeatureUpdate": "Özellik güncellendi",
+    "successFeatureDelete": "Özellik silindi",
+    "successGroupUpdate": "Özellik grubu güncellendi",
+    "successGroupDelete": "Özellik grubu silindi",
+    "failed": "İşlem başarısız; lütfen daha sonra tekrar deneyin",
+    "deleteFailed": "Silme başarısız; lütfen daha sonra tekrar deneyin",
+    "statusField": "Durum",
+    "visibleField": "Görünürlük"
+  }
+}

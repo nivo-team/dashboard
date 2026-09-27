@@ -1,0 +1,209 @@
+/**
+ * Mock API 冒烟测试：覆盖全部接口与写操作闭环。
+ *
+ * 用法：node scripts/smoke.mjs [baseUrl]
+ * 默认 http://localhost:3001
+ */
+const BASE = process.argv[2] || 'http://localhost:3001'
+
+let passed = 0
+let failed = 0
+
+async function call(method, path, body) {
+  const res = await fetch(BASE + path, {
+    method,
+    headers: {
+      'content-type': 'application/json',
+      authorization: 'Bearer mock-token',
+      undefined,
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+  const text = await res.text()
+  let json = null
+  try {
+    json = JSON.parse(text)
+  } catch {
+    /* 非 JSON 响应 */
+  }
+  return { status: res.status, json, text }
+}
+
+function check(label, condition, detail = '') {
+  if (condition) {
+    passed++
+    console.log(`  ✓ ${label}${detail ? '  ' + detail : ''}`)
+  } else {
+    failed++
+    console.log(`  ✗ ${label}  ${detail}`)
+  }
+}
+
+console.log(`\n目标: ${BASE}\n`)
+
+/* ------------------------------------------------------------ 跨域（CORS） */
+// node 的 fetch 不会像浏览器那样自动发预检，所以这里手动模拟一次：
+// 漏配 CORS 时业务请求在浏览器里会直接 net::ERR_FAILED，而普通接口测试完全测不出来。
+console.log('跨域')
+const preflight = await fetch(`${BASE}/login`, {
+  method: 'OPTIONS',
+  headers: {
+    origin: 'http://localhost:3000',
+    'access-control-request-method': 'POST',
+    'access-control-request-headers': 'content-type',
+  },
+})
+check('OPTIONS 预检返回 204', preflight.status === 204, 'HTTP ' + preflight.status)
+check(
+  '回显请求来源',
+  preflight.headers.get('access-control-allow-origin') === 'http://localhost:3000',
+  preflight.headers.get('access-control-allow-origin') ?? '(缺失)',
+)
+const allowHeaders = (preflight.headers.get('access-control-allow-headers') ?? '').toLowerCase()
+check('预检允许 authorization', allowHeaders.includes('authorization'))
+check('预检允许 x-app-id', allowHeaders.includes('x-app-id'))
+check('带 Vary: Origin', (preflight.headers.get('vary') ?? '').includes('Origin'))
+
+/* ---------------------------------------------------------------- 认证 */
+console.log('认证')
+const login = await call('POST', '/login', { username: 'admin', password: 'x' })
+check('POST /login', login.json?.code === 0 && !!login.json?.result?.token, `token=${login.json?.result?.token}`)
+
+const loginBad = await call('POST', '/login', { username: '', password: '' })
+check('空账号被拒绝', loginBad.json?.code === 400, loginBad.json?.message)
+
+const profile = await call('GET', '/profile')
+check('GET /profile', profile.json?.code === 0 && profile.json?.result?.username === 'admin')
+
+/* ------------------------------------------------------------ 应用列表 */
+console.log('\n应用列表')
+const apps = await call('GET', '/apps')
+const appList = apps.json?.result ?? []
+check('GET /apps', apps.json?.code === 0 && appList.length > 0, `${appList.length} 个应用`)
+check('每个应用都带 apiBaseUrl', appList.every((a) => !!a.apiBaseUrl), appList.map((a) => a.id).join(', '))
+check('apiBaseUrl 指向本 Mock', appList.every((a) => a.apiBaseUrl.includes(new URL(BASE).host)))
+
+/* -------------------------------------------------------- 系统接口清单 */
+console.log('\n系统接口清单')
+const apiList = await call('GET', '/api')
+check('GET /api', apiList.json?.code === 0 && (apiList.json?.result?.length ?? 0) > 0, `${apiList.json?.result?.length} 条`)
+check('清单项字段完整', (apiList.json?.result ?? []).every((i) => i.label && i.method && i.path && i.value))
+
+/* ---------------------------------------------------------------- 用户 */
+console.log('\n用户')
+const users = await call('GET', '/user?page=1&page_size=5')
+check('GET /user 分页', users.json?.result?.items?.length === 5, `total=${users.json?.result?.total}`)
+const users2 = await call('GET', '/user?page=2&page_size=5')
+const ids1 = (users.json?.result?.items ?? []).map((u) => u.id)
+const ids2 = (users2.json?.result?.items ?? []).map((u) => u.id)
+check('跨页 id 不重复', !ids1.some((id) => ids2.includes(id)), `${ids1[0]}..${ids2[0]}`)
+const search = await call('GET', `/user?kw=${encodeURIComponent('星空')}`)
+check('kw 搜索生效', search.json?.result?.total <= users.json?.result?.total, `命中 ${search.json?.result?.total}`)
+const byId = await call('GET', `/user?page=1&page_size=1&kw=${ids1[0]}`)
+check('按 ID 能定位到唯一一条（详情页靠它取数）', byId.json?.result?.total === 1, `id=${ids1[0]}`)
+
+/* ------------------------------------------------------------ 功能菜单 */
+console.log('\n功能菜单')
+const tree = await call('GET', '/system/menu/tree')
+const roots = tree.json?.result ?? []
+check('GET /system/menu/tree', tree.json?.code === 0 && roots.length > 0, `顶层 ${roots.length} 个`)
+check('树是嵌套结构', roots.some((n) => Array.isArray(n.children) && n.children.length > 0))
+
+const created = await call('POST', '/system/menu', {
+  menu_name: '冒烟测试功能',
+  parent_id: roots[0].menu_id,
+  menu_type: 3,
+  permission: 'smoke:test',
+})
+const newMenuId = created.json?.result?.menu_id
+check('POST /system/menu', created.json?.code === 0 && !!newMenuId, `menu_id=${newMenuId}`)
+
+const treeAfterCreate = await call('GET', '/system/menu/tree')
+check('新建后立刻出现在树里（写操作真实生效）', JSON.stringify(treeAfterCreate.json?.result ?? []).includes('冒烟测试功能'))
+
+const updated = await call('PUT', '/system/menu', { menu_id: newMenuId, menu_name: '冒烟测试功能-已改' })
+check('PUT /system/menu', updated.json?.code === 0 && updated.json?.result?.menu_name === '冒烟测试功能-已改')
+
+const delMenu = await call('DELETE', `/system/menu/${newMenuId}`)
+check('DELETE /system/menu/{id}', delMenu.json?.code === 0)
+const treeAfterDelete = await call('GET', '/system/menu/tree')
+check('删除后不再出现', !JSON.stringify(treeAfterDelete.json?.result ?? []).includes('冒烟测试功能'))
+
+/* ------------------------------------------------------------ 数据字典 */
+console.log('\n数据字典')
+const dictTypes = await call('GET', '/data_dict/type/tree')
+const typeRoots = dictTypes.json?.result ?? []
+check('GET /data_dict/type/tree', dictTypes.json?.code === 0 && typeRoots.length > 0, `顶层 ${typeRoots.length} 个`)
+check('分类节点带 p_code', typeRoots.some((t) => t.children?.some((c) => c.p_code?.includes('.'))))
+
+const dictItems = await call('GET', '/data_dict?page=1&page_size=5')
+check(
+  'GET /data_dict 返回 {total,items}',
+  typeof dictItems.json?.result?.total === 'number' && Array.isArray(dictItems.json?.result?.items),
+  `total=${dictItems.json?.result?.total}`,
+)
+
+const options = await call('GET', '/data_dict/options')
+const optionKeys = Object.keys(options.json?.result ?? {})
+check('GET /data_dict/options', options.json?.code === 0 && optionKeys.length > 0, optionKeys.join(', '))
+check(
+  '选项 key 是两段式逻辑码（不含临时命名空间）',
+  optionKeys.every((k) => k.includes('.') && !k.startsWith('new.')),
+  optionKeys.join(', '),
+)
+
+const leafTypeId = (dictItems.json?.result?.items ?? [])[0]?.type_id
+const newItem = await call('POST', '/data_dict', { type_id: leafTypeId, label: '冒烟项', value: 'smoke-value' })
+const newItemId = newItem.json?.result?.id
+check('POST /data_dict', newItem.json?.code === 0 && !!newItemId, `id=${newItemId}`)
+
+const dupItem = await call('POST', '/data_dict', { type_id: leafTypeId, label: '重复项', value: 'smoke-value' })
+check('同分类下键值重复被拒绝', dupItem.json?.code === 400, dupItem.json?.message)
+
+const putItem = await call('PUT', '/data_dict', { id: newItemId, label: '冒烟项-已改' })
+check('PUT /data_dict', putItem.json?.code === 0 && putItem.json?.result?.label === '冒烟项-已改')
+
+const delItem = await call('DELETE', `/data_dict/${newItemId}`)
+check('DELETE /data_dict/{id}', delItem.json?.code === 0)
+
+const newType = await call('POST', '/data_dict/type', { name: '冒烟分类', code: 'smoke-type', parent_id: 0, type: 1 })
+const newTypeId = newType.json?.result?.id
+check('POST /data_dict/type', newType.json?.code === 0 && !!newTypeId, `id=${newTypeId}`)
+
+const badCode = await call('POST', '/data_dict/type', { name: '非法编码', code: 'BadCode', parent_id: 0 })
+check('非法 code 被拒绝', badCode.json?.code === 400, badCode.json?.message)
+
+const putType = await call('PUT', '/data_dict/type', { id: newTypeId, name: '冒烟分类-已改' })
+check('PUT /data_dict/type', putType.json?.code === 0 && putType.json?.result?.name === '冒烟分类-已改')
+
+const blocked = await call('DELETE', `/data_dict/type/${leafTypeId}`)
+check('有字典项的分类不允许删除', blocked.json?.code === 400, blocked.json?.message)
+
+const delType = await call('DELETE', `/data_dict/type/${newTypeId}`)
+check('DELETE /data_dict/type/{id}', delType.json?.code === 0)
+
+/* ---------------------------------------------------------------- 契约 */
+console.log('\n契约生成')
+const spec = await call('GET', '/openapi.json')
+// 业务路径不带统一前缀，因此用「排除框架路由」的方式筛
+const paths = Object.keys(spec.json?.paths ?? {}).filter(
+  (p) => !p.startsWith('/_') && p !== '/openapi.json',
+)
+const expected = [
+  '/login', '/profile', '/apps', '/api', '/user',
+  '/system/menu/tree', '/system/menu', '/system/menu/{id}',
+  '/data_dict', '/data_dict/{id}', '/data_dict/options',
+  '/data_dict/type/tree', '/data_dict/type', '/data_dict/type/{id}',
+]
+check('契约可达', spec.status === 200 && !!spec.json?.paths)
+check('契约版本 3.1', spec.json?.openapi === '3.1.0', spec.json?.openapi)
+const missing = expected.filter((p) => !paths.includes(p))
+check('全部业务接口都在契约里', missing.length === 0, missing.length ? '缺失 ' + missing.join(', ') : `${paths.length} 个路径`)
+const schemaNames = Object.keys(spec.json?.components?.schemas ?? {})
+check('共享 schema 已提升到 components', schemaNames.length > 0, `${schemaNames.length} 个`)
+const dictResp = spec.json?.paths?.['/data_dict']?.get?.responses?.['200']?.content?.['application/json']?.schema
+check('契约如实声明分页结构（不再是 v1.DataOptions）', JSON.stringify(dictResp ?? '').includes('DictItemPageResult'))
+
+/* ---------------------------------------------------------------- 汇总 */
+console.log(`\n通过 ${passed} 项，失败 ${failed} 项\n`)
+process.exit(failed === 0 ? 0 : 1)

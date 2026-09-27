@@ -1,0 +1,576 @@
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+import type { AiPermissionMode } from '../ai/types'
+import { getBrowserLocale, isLocaleKey, type LocaleKey } from '../locale'
+import {
+  DEFAULT_TIMEZONE,
+  isTimezoneKey,
+  type TimezoneKey,
+} from '../timezone-options'
+import { registerScopedStore } from './app-scope'
+import { enableCrossTabSync } from './cross-tab-sync'
+import { createScopedJSONStorage } from './scoped-storage'
+
+/**
+ * 本机偏好 store（语言 / 外观 / 时区）。
+ *
+ * **按应用隔离存储**：键形如 `admin.preferences:console` / `admin.preferences:analytics`，
+ * 因此每个应用可以有自己的语言、主题与时区，互不影响。
+ *
+ * 继承规则（`fallbackToGlobal`）：某个应用还没有自己的偏好时，读取会回落到
+ * 登录前/选择页所在的 `:global` 命名空间 —— 也就是「新应用默认继承你现在这套偏好」，
+ * 在你于该应用中改过一次之后，它才写自己的键并从此独立。
+ *
+ * 单一真值约定：store 是这三项偏好的唯一来源 ——
+ * - `i18n.ts` 初始化时读它，并订阅变化驱动 `changeLanguage`；
+ * - `use-color-mode.ts` 订阅变化把主题写到 `<html data-mode>`；
+ * - `timezone.ts` 的时间格式化从这里取时区。
+ * 三者都只是「订阅 + 应用」，切应用时随 `rehydrate` 自动跟着换，无需额外交接。
+ */
+
+export type ColorMode = 'light' | 'dark' | 'system'
+
+/**
+ * 表格里打开详情的方式（见 `#/components/detail-preview`）：
+ * - `split`：**分屏预览** —— 主内容缩到 2/3，右侧 1/3 直接内嵌详情（同屏各自滚动）；
+ * - `sheet`：**右侧抽屉** —— 详情从行尾侧滑出、覆盖在主内容之上（带遮罩，Esc 可关）；
+ * - `page`：**跳转详情页** —— 传统整页导航，无任何浮层。
+ *
+ * 前两种都只在桌面端生效：**移动端一律走 `page`**（视口放不下并列内容，
+ * 抽屉也会把详情挤成一条），这条规则收在 `useDetailPreview().open()` 里，
+ * 调用方不需要自己判断视口。
+ */
+export type DetailOpenMode = 'split' | 'sheet' | 'page'
+
+/**
+ * 默认打开方式是**跳转详情页**：分屏 / 抽屉是需要用户主动开启的增强，
+ * 升级后既有的使用习惯（点行 → 整页详情）保持不变。
+ */
+export const DEFAULT_DETAIL_OPEN_MODE: DetailOpenMode = 'page'
+
+export function isDetailOpenMode(value: unknown): value is DetailOpenMode {
+  return value === 'split' || value === 'sheet' || value === 'page'
+}
+
+/**
+ * AI 面板（「Ask AI」）的打开方式（见 `#/components/ai-panel`）：
+ * - `split`：**Split View** —— 与侧边栏同级的整屏高列，从视口顶端齐平，挤压内容区；
+ * - `float`：**Float** —— 从页面底部弹出的小窗，停在行尾侧下角、浮在内容之上，不挤压布局。
+ *
+ * 形态差异只在桌面端充分展开：窄屏放不下并列两列，Split 会退化成覆盖式整屏面板，
+ * Float 则收成贴底的大卡片 —— 两者都成了浮层，只剩尺寸与位置的差别。
+ */
+export type AiPanelMode = 'split' | 'float'
+
+/**
+ * 默认用 Split View：它与侧边栏同级、位置稳定，先给出「AI 一直在那儿」的空间感；
+ * Float 更适合「临时问一句就走」的用法，交给用户在 设置 → AI 里主动选。
+ */
+export const DEFAULT_AI_PANEL_MODE: AiPanelMode = 'split'
+
+export function isAiPanelMode(value: unknown): value is AiPanelMode {
+  return value === 'split' || value === 'float'
+}
+
+/**
+ * AI 输入框左下角的**输入模式**（见 `#/components/ai-composer`）：
+ * - `ask`：**询问** —— 只回答问题，不动任何数据（默认）；
+ * - `auto`：**自动** —— 交给 AI 自行决定要不要执行操作。
+ *
+ * 两者目前只是**状态**：AI 后端尚未接入，切换它不会改变任何请求
+ * （`AiComposer` 只把当前模式读出来显示）。接入时按这个值分流即可，键名不用改。
+ */
+export type AiComposerMode = 'ask' | 'auto'
+
+/** 默认 `ask`：先给出最保守的语义（只回答、不动数据），主动放权交给用户选。 */
+export const DEFAULT_AI_COMPOSER_MODE: AiComposerMode = 'ask'
+
+export function isAiComposerMode(value: unknown): value is AiComposerMode {
+  return value === 'ask' || value === 'auto'
+}
+
+/**
+ * AI 进行中的**页面级光晕**（视口四周的流动光带，见 `#/components/ai-activity-glow`）：
+ * 默认开启 —— 它只在流式回复 / 等审批时出现，是「AI 还在跑」里最不打扰人的一种反馈；
+ * 觉得晃眼可以在 设置 → AI 里关掉。
+ */
+export const DEFAULT_AI_ACTIVITY_GLOW = true
+
+/**
+ * 是否在会话里显示**工具调用**的状态卡片（执行中 / 完成 / 失败那一条）。
+ *
+ * 默认**关闭**：普通用户只关心回答内容，不关心中间调了哪个接口；
+ * 打开后才会看到模型每一步在做什么，排查问题或想看 Agent 行为时再开。
+ *
+ * 注意它**不影响审批卡** —— 写操作的确认是必须的交互，不是可以隐藏的"输出"。
+ */
+export const DEFAULT_AI_SHOW_TOOL_CALLS = false
+
+/**
+ * AI 的小机器人头像（`bot-avatars` 包的 `type`）。
+ *
+ * 这里**自己列出 18 个值**，不 import 包的类型：store 是纯数据层，不该依赖一个渲染库。
+ * 拼写是否与包一致交给使用处的 TS 检查 —— `<BotAvatar type={…}>` 那一行会把
+ * `AiBotAvatar` 赋给 `BotAvatarType`，写错一个字母就编译不过。
+ */
+export const AI_BOT_AVATARS = [
+  'clover',
+  'flower',
+  'triangle',
+  'square',
+  'blob',
+  'ghost',
+  'circle',
+  'drop',
+  'star',
+  'droid',
+  'mech',
+  'alien',
+  'hexagon',
+  'cat',
+  'cloud',
+  'pill',
+  'pebble',
+  'puddle',
+] as const
+
+export type AiBotAvatar = (typeof AI_BOT_AVATARS)[number]
+
+/** 默认 `clover` —— 与包自身的默认一致。 */
+export const DEFAULT_AI_BOT_AVATAR: AiBotAvatar = 'clover'
+
+/**
+ * AI 的**输出方式**：
+ * - `wait`（默认）：等这一轮想完，**一次性**把内容给出来（流式期间只显示"正在思考"）；
+ * - `stream`：边生成边显示。
+ *
+ * 默认 `wait` 是因为"半截的 Markdown"读起来很碎：流式过程中标题、列表、代码块都在
+ * 反复重排，普通用户盯着看反而累。想实时看进度的再切 `stream`。
+ */
+export type AiOutputMode = 'stream' | 'wait'
+
+export const DEFAULT_AI_OUTPUT_MODE: AiOutputMode = 'wait'
+
+export function isAiOutputMode(value: unknown): value is AiOutputMode {
+  return value === 'stream' || value === 'wait'
+}
+
+/**
+ * AI 回答时是否**自动滚动到最新内容**（默认开）。
+ *
+ * 关掉之后新内容进来时视图不动，用户自己滚。要读历史时这个开关比"每次都被拽回底部"友好；
+ * 而**开着的时候**手动往上翻也会临时暂停跟滚（滚回底部即恢复）—— 那是运行时的临时状态，
+ * 不是这个设置，见 `#/components/ai-panel`。
+ */
+export const DEFAULT_AI_AUTO_SCROLL = true
+
+/**
+ * AI 权限默认档：**只读**。
+ *
+ * 刻意保守：它是「AI 能对我的数据做什么」的总闸，默认应该是"只能看"——
+ * 想让它填表、提交、调写接口，用户得自己到设置里去开。这与"默认帮你做更多"
+ * 的常规产品直觉相反，但对一个能改数据的 agent，稳妥优先。
+ */
+export const DEFAULT_AI_PERMISSION: AiPermissionMode = 'readonly'
+
+/** `custom` 档下允许的工具名；默认空 —— 选了自定义却什么都没勾，等于只读。 */
+export const DEFAULT_AI_ALLOWED_TOOLS: string[] = []
+
+export function isAiPermissionMode(value: unknown): value is AiPermissionMode {
+  return value === 'full' || value === 'readonly' || value === 'custom'
+}
+
+/**
+ * AI 的**输出语言**。
+ *
+ * - `auto`（默认）：跟随界面语言 —— 界面是什么语言，AI 就用什么语言回答；
+ * - 具体语言：单独指定，用于「界面中文但想让 AI 答英文」这类情况。
+ *
+ * 注意它是**界面语言之外的第二个语言维度**，别把两者混起来：界面语言决定按钮和标题
+ * 怎么写（`locale`），这个只决定 AI 怎么说话。
+ */
+export type AiOutputLanguage = 'auto' | LocaleKey
+
+export const DEFAULT_AI_OUTPUT_LANGUAGE: AiOutputLanguage = 'auto'
+
+export function isAiOutputLanguage(value: unknown): value is AiOutputLanguage {
+  return value === 'auto' || isLocaleKey(value)
+}
+
+/**
+ * AI 功能的**总开关**。
+ *
+ * 关掉后顶栏不再显示「Ask AI」按钮、面板也不会出现 —— 相当于把这个测试阶段的功能
+ * 从界面上摘掉。默认开启：它已经在用，默认关掉会让现有用户以为功能没了。
+ *
+ * 与其它 AI 偏好一样按应用隔离（admin.preferences 的 appId 分区）：
+ * 每个应用可以各自决定要不要这个入口。
+ */
+export const DEFAULT_AI_ENABLED = true
+
+export function isAiBotAvatar(value: unknown): value is AiBotAvatar {
+  return (
+    typeof value === 'string' && (AI_BOT_AVATARS as readonly string[]).includes(value)
+  )
+}
+
+/** 偏好存储键（实际落盘会带 `:<appId>` 后缀，见 `scoped-storage`）。 */
+export const PREFERENCES_STORAGE_KEY = 'admin.preferences'
+
+/**
+ * 「默认」标记：选中它表示**不覆盖任何 Kumo 令牌**，完全使用 Kumo 自带主题色。
+ *
+ * 刻意用一个不等于任何具体色值的字符串，这样它既能被持久化，
+ * 又不会与"用户真的选了某个颜色"混淆。
+ */
+export const DEFAULT_COLOR_VALUE = 'default'
+
+/** 强调色 / 中性色的默认值：都是「默认」（不改动 Kumo 任何东西）。 */
+export const DEFAULT_ACCENT_COLOR = DEFAULT_COLOR_VALUE
+export const DEFAULT_NEUTRAL_COLOR = DEFAULT_COLOR_VALUE
+
+/** 色板里的一个色点：值 + 用于 tooltip / 可访问名称的文案。 */
+export interface ThemeColorOption {
+  value: string
+  /** `common` 命名空间下的文案键（`profile.settings.colors.*`） */
+  labelKey: string
+  /** i18n 缺失时的回落名称 */
+  fallback: string
+}
+
+/**
+ * 强调色调色盘。**第一项是「默认」**（Kumo 原生品牌色，不做任何覆盖）。
+ */
+export const ACCENT_COLOR_OPTIONS: readonly ThemeColorOption[] = [
+  { value: DEFAULT_COLOR_VALUE, labelKey: 'profile.settings.colors.default', fallback: '默认' },
+  { value: '#f6821f', labelKey: 'profile.settings.colors.orange', fallback: '橙色' },
+  { value: '#3b82f6', labelKey: 'profile.settings.colors.blue', fallback: '蓝色' },
+  { value: '#8b5cf6', labelKey: 'profile.settings.colors.purple', fallback: '紫色' },
+  { value: '#10b981', labelKey: 'profile.settings.colors.green', fallback: '绿色' },
+  { value: '#ef4444', labelKey: 'profile.settings.colors.red', fallback: '红色' },
+]
+
+/**
+ * 中性色（灰阶）调色盘：决定分隔线 / 填充 / 控件底色的冷暖。
+ * **第一项同样是「默认」**（Kumo 原生灰阶）。
+ */
+export const NEUTRAL_COLOR_OPTIONS: readonly ThemeColorOption[] = [
+  { value: DEFAULT_COLOR_VALUE, labelKey: 'profile.settings.colors.default', fallback: '默认' },
+  { value: '#64748b', labelKey: 'profile.settings.colors.coolGray', fallback: '冷灰' },
+  { value: '#6b7280', labelKey: 'profile.settings.colors.gray', fallback: '中性灰' },
+  { value: '#71717a', labelKey: 'profile.settings.colors.zinc', fallback: '锌灰' },
+  { value: '#78716c', labelKey: 'profile.settings.colors.warmGray', fallback: '暖灰' },
+]
+
+/** 旧版三个独立键：迁移完成后删除，避免两份数据并存。 */
+const LEGACY_PREFERENCE_KEYS = {
+  locale: 'admin.locale',
+  colorMode: 'admin.color-mode',
+  timezone: 'admin.timezone',
+} as const
+
+export function isColorMode(value: unknown): value is ColorMode {
+  return value === 'light' || value === 'dark' || value === 'system'
+}
+
+function readLegacyPreference<T extends string>(
+  key: string,
+  isValid: (value: unknown) => value is T,
+): T | null {
+  if (typeof window === 'undefined') return null
+  const raw = window.localStorage.getItem(key)
+  return isValid(raw) ? raw : null
+}
+
+interface PreferencesState {
+  locale: LocaleKey
+  colorMode: ColorMode
+  timezone: TimezoneKey
+  /** 应用强调色（十六进制）：覆盖 `--color-kumo-brand`，全站品牌位即时生效 */
+  accentColor: string
+  /** 应用中性色（十六进制）：覆盖分隔线 / 填充等表面令牌 */
+  neutralColor: string
+  /** 表格里打开详情的方式（桌面端限定，移动端强制 `page`） */
+  detailOpenMode: DetailOpenMode
+  /** AI 面板（「Ask AI」）的打开方式：分屏列 / 底部浮窗 */
+  aiPanelMode: AiPanelMode
+  /** AI 输入框的输入模式：询问 / 自动 */
+  aiComposerMode: AiComposerMode
+  /** AI 进行中是否在视口四周显示流动光带 */
+  aiActivityGlow: boolean
+  /** 是否在会话里显示工具调用的状态卡片（默认关，只给内容） */
+  aiShowToolCalls: boolean
+  /** AI 的小机器人头像形状（默认 clover） */
+  aiBotAvatar: AiBotAvatar
+  /** AI 的回答是边生成边显示，还是想完一次性给出（默认后者） */
+  aiOutputMode: AiOutputMode
+  /** AI 回答时是否自动滚动到最新内容（默认开） */
+  aiAutoScroll: boolean
+  /** AI 权限档（默认只读）——「能不能用」，与「要不要问」的模式正交 */
+  aiPermission: AiPermissionMode
+  /** `custom` 档下勾选的工具名 */
+  aiAllowedTools: string[]
+  /** AI 用什么语言回答（默认跟随界面语言） */
+  aiOutputLanguage: AiOutputLanguage
+  /** AI 功能总开关（默认开）—— 关掉后顶栏不显示入口 */
+  aiEnabled: boolean
+  setLocale: (locale: LocaleKey) => void
+  setColorMode: (colorMode: ColorMode) => void
+  setTimezone: (timezone: TimezoneKey) => void
+  setAccentColor: (accentColor: string) => void
+  setNeutralColor: (neutralColor: string) => void
+  setDetailOpenMode: (detailOpenMode: DetailOpenMode) => void
+  setAiPanelMode: (aiPanelMode: AiPanelMode) => void
+  setAiComposerMode: (aiComposerMode: AiComposerMode) => void
+  setAiActivityGlow: (aiActivityGlow: boolean) => void
+  setAiShowToolCalls: (aiShowToolCalls: boolean) => void
+  setAiBotAvatar: (aiBotAvatar: AiBotAvatar) => void
+  setAiOutputMode: (aiOutputMode: AiOutputMode) => void
+  setAiAutoScroll: (aiAutoScroll: boolean) => void
+  setAiPermission: (aiPermission: AiPermissionMode) => void
+  setAiAllowedTools: (aiAllowedTools: string[]) => void
+  /** 勾选/取消单个工具（权限界面的复选框用它，省得每次自己拼数组） */
+  toggleAiAllowedTool: (name: string, enabled: boolean) => void
+  setAiOutputLanguage: (aiOutputLanguage: AiOutputLanguage) => void
+  setAiEnabled: (aiEnabled: boolean) => void
+}
+
+type PersistedPreferences = Pick<
+  PreferencesState,
+  | 'locale'
+  | 'colorMode'
+  | 'timezone'
+  | 'accentColor'
+  | 'neutralColor'
+  | 'detailOpenMode'
+  | 'aiPanelMode'
+  | 'aiComposerMode'
+  | 'aiActivityGlow'
+  | 'aiShowToolCalls'
+  | 'aiBotAvatar'
+  | 'aiOutputMode'
+  | 'aiAutoScroll'
+  | 'aiPermission'
+  | 'aiAllowedTools'
+  | 'aiOutputLanguage'
+  | 'aiEnabled'
+>
+
+export const usePreferencesStore = create<PreferencesState>()(
+  persist(
+    (set) => ({
+      // 初始值优先取旧键（一次性迁移），否则按浏览器语言 / 系统主题 / 默认时区
+      locale:
+        readLegacyPreference(LEGACY_PREFERENCE_KEYS.locale, isLocaleKey) ??
+        getBrowserLocale(),
+      colorMode:
+        readLegacyPreference(LEGACY_PREFERENCE_KEYS.colorMode, isColorMode) ??
+        'system',
+      timezone:
+        readLegacyPreference(LEGACY_PREFERENCE_KEYS.timezone, isTimezoneKey) ??
+        DEFAULT_TIMEZONE,
+      accentColor: DEFAULT_ACCENT_COLOR,
+      neutralColor: DEFAULT_NEUTRAL_COLOR,
+      detailOpenMode: DEFAULT_DETAIL_OPEN_MODE,
+      aiPanelMode: DEFAULT_AI_PANEL_MODE,
+      aiComposerMode: DEFAULT_AI_COMPOSER_MODE,
+      aiActivityGlow: DEFAULT_AI_ACTIVITY_GLOW,
+      aiShowToolCalls: DEFAULT_AI_SHOW_TOOL_CALLS,
+      aiBotAvatar: DEFAULT_AI_BOT_AVATAR,
+      aiOutputMode: DEFAULT_AI_OUTPUT_MODE,
+      aiAutoScroll: DEFAULT_AI_AUTO_SCROLL,
+      aiPermission: DEFAULT_AI_PERMISSION,
+      aiAllowedTools: DEFAULT_AI_ALLOWED_TOOLS,
+      aiOutputLanguage: DEFAULT_AI_OUTPUT_LANGUAGE,
+      aiEnabled: DEFAULT_AI_ENABLED,
+      setLocale: (locale) => set({ locale }),
+      setColorMode: (colorMode) => set({ colorMode }),
+      setTimezone: (timezone) => set({ timezone }),
+      setAccentColor: (accentColor) => set({ accentColor }),
+      setNeutralColor: (neutralColor) => set({ neutralColor }),
+      setDetailOpenMode: (detailOpenMode) => set({ detailOpenMode }),
+      setAiPanelMode: (aiPanelMode) => set({ aiPanelMode }),
+      setAiComposerMode: (aiComposerMode) => set({ aiComposerMode }),
+      setAiActivityGlow: (aiActivityGlow) => set({ aiActivityGlow }),
+      setAiShowToolCalls: (aiShowToolCalls) => set({ aiShowToolCalls }),
+      setAiBotAvatar: (aiBotAvatar) => set({ aiBotAvatar }),
+      setAiOutputMode: (aiOutputMode) => set({ aiOutputMode }),
+      setAiAutoScroll: (aiAutoScroll) => set({ aiAutoScroll }),
+      setAiPermission: (aiPermission) => set({ aiPermission }),
+      setAiAllowedTools: (aiAllowedTools) => set({ aiAllowedTools }),
+      setAiOutputLanguage: (aiOutputLanguage) => set({ aiOutputLanguage }),
+      setAiEnabled: (aiEnabled) => set({ aiEnabled }),
+      toggleAiAllowedTool: (name, enabled) =>
+        set((state) => ({
+          aiAllowedTools: enabled
+            ? [...new Set([...state.aiAllowedTools, name])]
+            : state.aiAllowedTools.filter((tool) => tool !== name),
+        })),
+    }),
+    {
+      name: PREFERENCES_STORAGE_KEY,
+      storage: createScopedJSONStorage<PersistedPreferences>({
+        // 新应用先继承 `:global` 基线，改过之后才独立
+        fallbackToGlobal: true,
+        // 兼容上一版的无后缀 `admin.preferences`（升级期只读一次）
+        legacyUnscoped: true,
+      }),
+      // 只持久化数据，不持久化 action
+      partialize: (state): PersistedPreferences => ({
+        locale: state.locale,
+        colorMode: state.colorMode,
+        timezone: state.timezone,
+        accentColor: state.accentColor,
+        neutralColor: state.neutralColor,
+        detailOpenMode: state.detailOpenMode,
+        aiPanelMode: state.aiPanelMode,
+        aiComposerMode: state.aiComposerMode,
+        aiActivityGlow: state.aiActivityGlow,
+        aiShowToolCalls: state.aiShowToolCalls,
+        aiBotAvatar: state.aiBotAvatar,
+        aiOutputMode: state.aiOutputMode,
+        aiAutoScroll: state.aiAutoScroll,
+        aiPermission: state.aiPermission,
+        aiAllowedTools: state.aiAllowedTools,
+        aiOutputLanguage: state.aiOutputLanguage,
+        aiEnabled: state.aiEnabled,
+      }),
+      /**
+       * 旧存档可能缺字段（`detailOpenMode` / `aiPanelMode` 都是后续新增的），
+       * 枚举也不该被外部写坏 —— 合并时**逐项校验**，非法 / 缺失一律回落到当前值
+       * （也就是各字段的默认值）。
+       *
+       * 不能只写 `{...current, ...saved}`：那样 `saved` 的可选属性会把必填字段
+       * 推断成 `T | undefined`（旧存档缺字段时运行时也真的会变 undefined）。
+       */
+      merge: (persisted, current) => {
+        const saved = (persisted ?? {}) as Partial<PersistedPreferences>
+        return {
+          ...current,
+          locale: isLocaleKey(saved.locale) ? saved.locale : current.locale,
+          colorMode: isColorMode(saved.colorMode)
+            ? saved.colorMode
+            : current.colorMode,
+          timezone: isTimezoneKey(saved.timezone)
+            ? saved.timezone
+            : current.timezone,
+          accentColor: saved.accentColor ?? current.accentColor,
+          neutralColor: saved.neutralColor ?? current.neutralColor,
+          detailOpenMode: isDetailOpenMode(saved.detailOpenMode)
+            ? saved.detailOpenMode
+            : current.detailOpenMode,
+          aiPanelMode: isAiPanelMode(saved.aiPanelMode)
+            ? saved.aiPanelMode
+            : current.aiPanelMode,
+          aiComposerMode: isAiComposerMode(saved.aiComposerMode)
+            ? saved.aiComposerMode
+            : current.aiComposerMode,
+          // 布尔没有现成的校验器：只认 boolean，旧存档缺字段或被写坏时回落默认值
+          aiActivityGlow:
+            typeof saved.aiActivityGlow === 'boolean'
+              ? saved.aiActivityGlow
+              : current.aiActivityGlow,
+          aiShowToolCalls:
+            typeof saved.aiShowToolCalls === 'boolean'
+              ? saved.aiShowToolCalls
+              : current.aiShowToolCalls,
+          aiBotAvatar: isAiBotAvatar(saved.aiBotAvatar)
+            ? saved.aiBotAvatar
+            : current.aiBotAvatar,
+          aiOutputMode: isAiOutputMode(saved.aiOutputMode)
+            ? saved.aiOutputMode
+            : current.aiOutputMode,
+          aiAutoScroll:
+            typeof saved.aiAutoScroll === 'boolean'
+              ? saved.aiAutoScroll
+              : current.aiAutoScroll,
+          aiPermission: isAiPermissionMode(saved.aiPermission)
+            ? saved.aiPermission
+            : current.aiPermission,
+          // 只校验"是字符串"，**不校验它是否仍是当前工具名**：旧存档里可能留着已下线的工具，
+          // 那种名字在过滤时自然匹配不上；在这里清掉反而让用户重开设置时看不出发生过什么
+          aiOutputLanguage: isAiOutputLanguage(saved.aiOutputLanguage)
+            ? saved.aiOutputLanguage
+            : current.aiOutputLanguage,
+          aiEnabled:
+            typeof saved.aiEnabled === 'boolean' ? saved.aiEnabled : current.aiEnabled,
+          aiAllowedTools: Array.isArray(saved.aiAllowedTools)
+            ? saved.aiAllowedTools.filter(
+                (name): name is string => typeof name === 'string',
+              )
+            : current.aiAllowedTools,
+        }
+      },
+    },
+  ),
+)
+
+// 切换应用时重新水合：从 `admin.preferences:<新 appId>` 读取，
+// 没有则回落 `:global` 基线；订阅方（i18n / 主题 / 时区）随之自动切换。
+registerScopedStore('preferences', () => {
+  void usePreferencesStore.persist.rehydrate()
+})
+
+// 多标签页同步：其它标签页改了语言 / 外观 / 主题色，这一页立即跟随
+enableCrossTabSync(usePreferencesStore, {
+  storageName: PREFERENCES_STORAGE_KEY,
+  scoped: true,
+})
+
+
+/** 非 React 上下文读取偏好（i18n 初始化、时间格式化等）。 */
+export function getPreferences() {
+  return usePreferencesStore.getState()
+}
+
+// 一次性迁移：把旧版的三个独立键与无后缀的 `admin.preferences` 收进当前命名空间
+// （模块加载时作用域还是 `:global`，也就是登录前基线），然后删除旧键。
+// 放在模块末尾而不是 onRehydrateStorage 里：后者只在新键缺失时触发，
+// 而这里要的是「只要旧键还在就收拢一次」。
+if (typeof window !== 'undefined') {
+  const legacyKeys = [
+    ...Object.values(LEGACY_PREFERENCE_KEYS),
+    PREFERENCES_STORAGE_KEY,
+  ]
+  const hasLegacy = legacyKeys.some(
+    (key) => window.localStorage.getItem(key) !== null,
+  )
+  if (hasLegacy) {
+    // setState 传入新对象才会触发 persist 写盘（同引用会被 zustand 跳过）
+    const { locale, colorMode, timezone } = usePreferencesStore.getState()
+    usePreferencesStore.setState({ locale, colorMode, timezone })
+    legacyKeys.forEach((key) => window.localStorage.removeItem(key))
+  }
+}
+
+
+/**
+ * 一次性迁移：把「上一版的具体默认色」收敛回 `DEFAULT_COLOR_VALUE`。
+ *
+ * 背景：最初这两项的默认值是**具体色值**（强调色 `#f6821f`、中性色 `#64748b`），
+ * 它们随偏好一起被写进过存档。后来语义改成「默认 = 不覆盖任何 Kumo 令牌」，
+ * 但老存档里那个 `#f6821f` 会被当成「用户主动选的橙色」继续写 `--color-kumo-brand` ——
+ * 典型症状是品牌色从 Kumo 原生**蓝**变成 Cloudflare **橙**，整片界面（焦点环、选中态、
+ * 按钮）都跟着偏，看起来"颜色不正常"。
+ *
+ * 用标记位保证**只跑一次**：否则用户之后主动选的橙色（恰好也是 `#f6821f`）会被反复改回去。
+ * 迁移只 `setState`，不直接调 `applyAppearanceTheme` —— 那会造成 store ↔ apply 的循环依赖；
+ * 而 `apply-appearance-theme` 模块自己在加载时会应用一次，并订阅了后续变化。
+ */
+const APPEARANCE_MIGRATION_FLAG = 'admin.appearance-default-migrated'
+const LEGACY_DEFAULT_COLORS = new Set(['#f6821f', '#64748b'])
+
+if (
+  typeof window !== 'undefined' &&
+  !window.localStorage.getItem(APPEARANCE_MIGRATION_FLAG)
+) {
+  const { accentColor, neutralColor } = usePreferencesStore.getState()
+  const patch: { accentColor?: string; neutralColor?: string } = {}
+  if (LEGACY_DEFAULT_COLORS.has(accentColor)) patch.accentColor = DEFAULT_COLOR_VALUE
+  if (LEGACY_DEFAULT_COLORS.has(neutralColor)) patch.neutralColor = DEFAULT_COLOR_VALUE
+
+  if (Object.keys(patch).length > 0) {
+    usePreferencesStore.setState(patch)
+  }
+  window.localStorage.setItem(APPEARANCE_MIGRATION_FLAG, '1')
+}

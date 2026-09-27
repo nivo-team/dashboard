@@ -1,0 +1,78 @@
+{
+  "title": "मेनू प्रबंधन",
+  "description": "प्लेटफ़ॉर्म मेनू संरचना, अनुमति कोड और API बाइंडिंग प्रबंधित करें",
+  "moduleName": "मेनू",
+  "searchPlaceholder": "मेनू नाम / अनुमति कोड खोजें…",
+  "createMenu": "मेनू बनाएँ",
+  "demoBadge": "(डेमो डेटा मोड)",
+  "quota": "कुल <b>{{total}}</b> मेनू",
+  "empty": {
+    "title": "कोई मेनू डेटा नहीं",
+    "description": "कोई मेल खाता मेनू नहीं मिला। दूसरा कीवर्ड आज़माएँ।"
+  },
+  "columns": {
+    "menu_name": "मेनू नाम",
+    "menu_type": "प्रकार",
+    "route_name": "रूट नाम",
+    "permission": "अनुमति कोड",
+    "icon": "आइकन",
+    "sort": "क्रम",
+    "status": "स्थिति",
+    "visible": "दृश्यता",
+    "is_frame": "बाहरी लिंक",
+    "no_cache": "कैश",
+    "api_keys": "बाइंड किए गए API",
+    "created_at": "निर्मित",
+    "updated_at": "अद्यतन",
+    "actions": "क्रियाएँ",
+    "menu_id": "मेनू आईडी"
+  },
+  "menuType": {
+    "directory": "निर्देशिका",
+    "menu": "मेनू",
+    "action": "क्रिया"
+  },
+  "status": {
+    "enabled": "सक्षम",
+    "disabled": "अक्षम"
+  },
+  "visible": {
+    "visible": "दृश्य",
+    "hidden": "छिपा हुआ"
+  },
+  "isFrame": {
+    "yes": "हाँ",
+    "no": "नहीं"
+  },
+  "noCache": {
+    "noCache": "कैश नहीं",
+    "cache": "कैश"
+  },
+  "rowActions": {
+    "label": "और क्रियाएँ",
+    "createChild": "उप-मेनू जोड़ें",
+    "edit": "संपादित करें",
+    "delete": "हटाएँ",
+    "comingSoon": "यह सुविधा आगामी रिलीज़ में उपलब्ध होगी",
+    "view": "विवरण देखें"
+  },
+  "messages": {
+    "fetchFailed": "मेनू ट्री लोड नहीं हो सका",
+    "networkFailed": "नेटवर्क अनुरोध विफल"
+  },
+  "detail": {
+    "backToList": "मेनू सूची पर वापस जाएँ",
+    "basicInfo": "मूल जानकारी",
+    "parentMenu": "मूल मेनू आईडी",
+    "rootMenu": "शीर्ष-स्तरीय मेनू",
+    "notFound": "मेनू नहीं मिला",
+    "retry": "पुनः प्रयास करें",
+    "childrenTitle": "उप-मेनू",
+    "childrenQuota": "कुल {{total}} उप-मेनू",
+    "childrenEmpty": {
+      "title": "कोई उप-मेनू नहीं",
+      "description": "इस मेनू में कोई उप-मेनू या क्रिया नहीं है"
+    },
+    "invalidId": "मेनू आईडी अमान्य है"
+  }
+}
