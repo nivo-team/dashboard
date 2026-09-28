@@ -82,8 +82,15 @@ interface AiSessionState {
   /** 把当前消息写进 IDB，并在需要时补上会话记录 */
   persist: () => Promise<void>
 
-  /** 加载该 app 的会话列表，并恢复上次打开的会话（面板挂载 / 切 app 时调用） */
-  loadHistory: () => Promise<void>
+  /**
+   * 加载该 app 的会话列表，并（默认）恢复上次打开的会话。
+   *
+   * `fresh: true` 时**只加载列表、不恢复**：直接停在「新会话」上 —— 供设置里的
+   * 「刷新后新会话」（`aiSessionMode === 'new'`）使用。它由调用方在**本次页面载入是
+   * 重新载入**时才传（`isDocumentReload()`，见 `#/lib/ai/session-boot`），所以同一份
+   * 文档里把面板关掉再打开仍然是当前那段（那时本函数也会因「同一个 app 已加载」早退）。
+   */
+  loadHistory: (options?: { fresh?: boolean }) => Promise<void>
   /** 开一段新对话（不立刻建记录，等第一条消息） */
   startNewSession: () => void
   /** 切到某个历史会话 */
@@ -287,7 +294,7 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
     if (!existing) void setActiveSessionId(appId, id)
   },
 
-  loadHistory: async () => {
+  loadHistory: async (options) => {
     const appId = getAppScope()
     const current = get()
 
@@ -311,7 +318,18 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
     })
 
     const sessions = await listSessions(appId)
+
+    /*
+      「刷新后新会话」：列表照常加载（选择器要有历史可翻），但**不恢复**上次那段，
+      直接停在空的新会话上。这里必须放在 `await` 之后 —— 提前 return 会把恢复逻辑漏掉。
+    */
+    if (options?.fresh) {
+      set({ sessions, historyLoaded: true })
+      return
+    }
+
     const remembered = await getActiveSessionId(appId)
+
     // 记忆里的会话可能已被删除：回落到最近更新的一条
     const active = sessions.find((item) => item.id === remembered) ?? sessions[0] ?? null
 

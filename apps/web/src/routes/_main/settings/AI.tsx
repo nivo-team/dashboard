@@ -3,10 +3,12 @@ import { BotAvatar } from 'bot-avatars'
 import {
   ChatCircleDotsIcon,
   CheckCircleIcon,
+  ClockCounterClockwiseIcon,
   ColumnsIcon,
   EyeIcon,
   HourglassIcon,
   LightningIcon,
+  PlusCircleIcon,
   ShieldCheckIcon,
   SlidersHorizontalIcon,
 } from '@phosphor-icons/react'
@@ -33,6 +35,7 @@ import {
   type AiOutputLanguage,
   type AiOutputMode,
   type AiPanelMode,
+  type AiSessionMode,
 } from '#/lib/store'
 import { useColorMode } from '#/lib/use-color-mode'
 import { AiModelCard } from './-components/ai-model-card'
@@ -68,6 +71,32 @@ const AI_MODE_OPTIONS: AiModeOption[] = [
     labelKey: 'profile.settings.aiModes.float',
     fallback: '浮窗',
     icon: ChatCircleDotsIcon,
+  },
+]
+
+interface AiSessionModeOption {
+  key: AiSessionMode
+  labelKey: string
+  fallback: string
+  icon: typeof ColumnsIcon
+}
+
+/**
+ * 「每次打开面板用哪一段会话」的两项。默认在前的 `continue` 就是默认值：
+ * 接着刚才的继续说，比"每次都要先点一下新对话"更符合多数人的预期。
+ */
+const AI_SESSION_MODE_OPTIONS: AiSessionModeOption[] = [
+  {
+    key: 'continue',
+    labelKey: 'profile.settings.aiSessionModes.continue',
+    fallback: '继续上次会话',
+    icon: ClockCounterClockwiseIcon,
+  },
+  {
+    key: 'new',
+    labelKey: 'profile.settings.aiSessionModes.new',
+    fallback: '刷新后开新会话',
+    icon: PlusCircleIcon,
   },
 ]
 
@@ -311,6 +340,8 @@ function AiSettingsPage() {
   const { t } = useTranslation()
   const aiPanelMode = usePreferencesStore((state) => state.aiPanelMode)
   const setAiPanelMode = usePreferencesStore((state) => state.setAiPanelMode)
+  const aiSessionMode = usePreferencesStore((state) => state.aiSessionMode)
+  const setAiSessionMode = usePreferencesStore((state) => state.setAiSessionMode)
   const aiActivityGlow = usePreferencesStore((state) => state.aiActivityGlow)
   const setAiActivityGlow = usePreferencesStore((state) => state.setAiActivityGlow)
   const aiShowToolCalls = usePreferencesStore((state) => state.aiShowToolCalls)
@@ -412,6 +443,46 @@ function AiSettingsPage() {
                       >
                         <AiModePreview mode={item.key} accentColor={accentColor} />
                       </SettingChoicePreview>
+                    </span>
+                  ),
+                }
+              })}
+            />
+          </div>
+        </SettingRow>
+
+        {/*
+          什么时候开一段新会话：两项短枚举，与「显示方式」同一套分段控件写法。
+          **不做悬浮预览**：它描述的是"刷新那一刻发生什么"，一张静态缩略图演不出来，
+          硬做反而是误导（与「跟随输出滚动」同一个理由）。
+
+          真正生效的地方只有一处：`#/lib/ai/session-store` 的 `loadHistory({ fresh })`
+          （`AiConversation` 挂载时传 `sessionMode === 'new' && isDocumentReload()`）。
+          界面这里只管改值，**改完要等下一次刷新才见效**（判据每份文档只算一次）。
+        */}
+        <SettingRow
+          label={t('profile.settings.aiSessionMode', '新会话时机')}
+          hint={t(
+            'profile.settings.aiSessionModeHint',
+            '刷新页面后打开面板会开始新会话；同一页面里关掉再打开会接着当前对话',
+          )}
+        >
+          <div
+            role="group"
+            aria-label={t('profile.settings.aiSessionMode', '新会话时机')}
+          >
+            <Tabs
+              value={aiSessionMode}
+              onValueChange={(next) => setAiSessionMode(next as AiSessionMode)}
+              activateOnFocus
+              tabs={AI_SESSION_MODE_OPTIONS.map((item) => {
+                const ItemIcon = item.icon
+                return {
+                  value: item.key,
+                  label: (
+                    <span className="flex items-center gap-2">
+                      <ItemIcon size={16} className="text-kumo-subtle" />
+                      <span>{t(item.labelKey, item.fallback)}</span>
                     </span>
                   ),
                 }

@@ -1,4 +1,4 @@
-import { Button, DropdownMenu, Textarea } from '@cloudflare/kumo'
+import { Button, DropdownMenu, Textarea, Tooltip } from '@cloudflare/kumo'
 import {
   ArrowUpIcon,
   CaretDoubleRightIcon,
@@ -7,7 +7,7 @@ import {
   StopIcon,
   type Icon,
 } from '@phosphor-icons/react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { sendAiMessage, stopAiMessage, useAiSessionStore } from '#/lib/ai'
@@ -17,6 +17,7 @@ import {
   usePreferencesStore,
   type AiComposerMode,
 } from '#/lib/store'
+import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 
 export interface AiComposerProps {
   className?: string
@@ -65,10 +66,29 @@ const COMPOSER_MODE_OPTIONS: ReadonlyArray<{
 export function AiComposer({ className }: AiComposerProps) {
   const { t } = useTranslation('ai')
   const [value, setValue] = useState('')
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const isMobile = useIsMobileViewport()
 
   const isStreaming = useAiSessionStore((state) => state.status === 'streaming')
   const composerMode = usePreferencesStore((state) => state.aiComposerMode)
   const setComposerMode = usePreferencesStore((state) => state.setAiComposerMode)
+
+  /*
+    打开面板就能直接打字：输入区**每次挂载**都聚焦一次 —— 而面板打开、浮窗从折叠态
+    展开都会让输入区重新挂载（关闭 / 折叠时整段会话区与输入区都不渲染），所以
+    「每次打开 / 展开都聚焦」不需要额外的信号。
+
+    两处讲究：
+    - `preventScroll: true`：Split 进场时面板宽度还在从 0 长出来（此刻输入框被
+      `overflow-hidden` 裁在外侧），默认的滚动补偿会把页面横向拽一下；
+    - **移动端不抢焦点**：软键盘会立刻弹起来挡住刚打开的对话，想打字时点一下更合意。
+      是否自动聚焦在**挂载时**定一次即可 —— 之后视口跨断点不该再抢一次焦点。
+  */
+  const autoFocus = useRef(!isMobile)
+  useEffect(() => {
+    if (!autoFocus.current) return
+    textareaRef.current?.focus({ preventScroll: true })
+  }, [])
 
   /** 存档里的值理论上已被 `merge` 校验过，这里再兜一次：查不到就按第一项显示。 */
   const activeMode =
@@ -106,6 +126,7 @@ export function AiComposer({ className }: AiComposerProps) {
       )}
     >
       <Textarea
+        ref={textareaRef}
         value={value}
         onValueChange={setValue}
         onKeyDown={handleKeyDown}
@@ -121,17 +142,28 @@ export function AiComposer({ className }: AiComposerProps) {
 
       <div className="flex items-center gap-2 p-3 pt-0">
         <DropdownMenu>
-          <DropdownMenu.Trigger
+          {/*
+            Tooltip 一律走 `render={<Button/>}`（Kumo 的 Tooltip 自己就是 trigger，
+            把按钮塞进 children 会得到嵌套 button）。`className="cursor-pointer"` 是必需的：
+            Kumo 会给 trigger 补一个 `cursor-default`，按钮该是手型。
+          */}
+          <Tooltip
+            content={t('modeTooltip', '切换输入模式')}
+            className="cursor-pointer"
             render={
-              // 截图里那颗 pill：`size="sm"` 的方形底 + `rounded-full`，文字比默认按钮淡一档
-              // （Kumo 的 secondary 把 `!text-kumo-default` 写成了 important，覆盖它也得带 `!`）。
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                // 可见文字只是当前模式名，读屏听不出这是「切换模式」的入口，所以把两者都报出来
-                aria-label={`${t('modeLabel', '输入模式')}: ${t(activeMode.labelKey, activeMode.fallback)}`}
-                className="rounded-full !text-kumo-subtle not-disabled:hover:!text-kumo-default"
+              <DropdownMenu.Trigger
+                render={
+                  // 截图里那颗 pill：`size="sm"` 的方形底 + `rounded-full`，文字比默认按钮淡一档
+                  // （Kumo 的 secondary 把 `!text-kumo-default` 写成了 important，覆盖它也得带 `!`）。
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    // 可见文字只是当前模式名，读屏听不出这是「切换模式」的入口，所以把两者都报出来
+                    aria-label={`${t('modeLabel', '输入模式')}: ${t(activeMode.labelKey, activeMode.fallback)}`}
+                    className="rounded-full !text-kumo-subtle not-disabled:hover:!text-kumo-default"
+                  />
+                }
               />
             }
           >
@@ -140,7 +172,7 @@ export function AiComposer({ className }: AiComposerProps) {
               className={cn('shrink-0', activeMode.flipIcon && 'rtl-flip')}
             />
             <span>{t(activeMode.labelKey, activeMode.fallback)}</span>
-          </DropdownMenu.Trigger>
+          </Tooltip>
 
           {/* 触发区在面板最底部：菜单必须**往上**弹，否则会顶出视口（`Content` 默认 sideOffset 8） */}
           <DropdownMenu.Content side="top" align="start" className="w-40">
@@ -185,38 +217,50 @@ export function AiComposer({ className }: AiComposerProps) {
               })}
             </DropdownMenu.RadioGroup>
           </DropdownMenu.Content>
-        </DropdownMenu>
+      </DropdownMenu>
 
         {isStreaming ? (
           /*
             跑一轮时把提交位换成「停止」：模型答到一半发现跑偏了，用户必须能打断。
             `abortSignal` 一路传到 `streamText`，中止后 `chat.ts` 会把 status 复位。
           */
-          <Button
-            type="button"
-            variant="secondary"
-            shape="circle"
-            size="sm"
-            className="ms-auto"
-            onClick={stopAiMessage}
-            aria-label={t('stop', '停止')}
+          <Tooltip
+            content={t('stopTooltip', '停止生成')}
+            className="cursor-pointer"
+            render={
+              <Button
+                type="button"
+                variant="secondary"
+                shape="circle"
+                size="sm"
+                className="ms-auto"
+                onClick={stopAiMessage}
+                aria-label={t('stop', '停止')}
+              />
+            }
           >
             <StopIcon size={12} weight="fill" />
-          </Button>
+          </Tooltip>
         ) : (
-          <Button
-            type="button"
-            variant="primary"
-            shape="circle"
-            size="sm"
-            className="ms-auto"
-            disabled={!canSubmit}
-            onClick={submit}
-            aria-label={t('send', '发送')}
+          <Tooltip
+            content={t('sendTooltip', '发送消息（Enter 发送，Shift + Enter 换行）')}
+            className="cursor-pointer"
+            render={
+              <Button
+                type="button"
+                variant="primary"
+                shape="circle"
+                size="sm"
+                className="ms-auto"
+                disabled={!canSubmit}
+                onClick={submit}
+                aria-label={t('send', '发送')}
+              />
+            }
           >
             {/* 上下向图标：跟随的是「提交」语义，不随书写方向翻转，不加 rtl-flip */}
             <ArrowUpIcon size={14} />
-          </Button>
+          </Tooltip>
         )}
       </div>
     </div>

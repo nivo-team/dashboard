@@ -43,6 +43,7 @@
     "settings": "Ajustes",
     "back": "Volver",
     "askAi": "Preguntar a la IA",
+    "askAiTooltip": "Mostrar u ocultar el panel del asistente de IA",
     "support": "Soporte",
     "ai": "AI",
     "about": "Acerca de"
@@ -90,6 +91,12 @@
       },
       "aiDisplayMode": "Modo de visualización",
       "aiDisplayModeHint": "Cómo aparece el panel Ask AI; en pantallas estrechas ambos modos pasan a ser una capa flotante",
+      "aiSessionMode": "Cuándo iniciar una nueva sesión",
+      "aiSessionModeHint": "Si al recargar la página se inicia una sesión nueva o se retoma la última; reabrir el panel en la misma página siempre continúa la conversación actual",
+      "aiSessionModes": {
+        "continue": "Continuar la última conversación",
+        "new": "Sesión nueva al recargar"
+      },
       "aiModes": {
         "split": "Vista dividida",
         "float": "Ventana flotante"

@@ -1,4 +1,4 @@
-import { Button } from '@cloudflare/kumo'
+import { Button, Tooltip } from '@cloudflare/kumo'
 import { QuestionIcon, SparkleIcon } from '@phosphor-icons/react'
 import { useTranslation } from 'react-i18next'
 import { UserMenu } from '#/components/user-menu'
@@ -60,16 +60,28 @@ export function HeaderActions({
   return (
     <div className="ms-auto flex shrink-0 items-center gap-2">
       {showAskAi ? (
-        <Button
-          variant="ghost"
-          icon={<SparkleIcon size={16} />}
-          className="text-kumo-subtle hover:text-kumo-default"
-          aria-label={askAiLabel}
-          aria-expanded={askAiExpanded}
-          onClick={onAskAi}
+        /*
+          Tooltip 走 `render={<Button/>}`：Kumo 的 Tooltip 自己就是 trigger，
+          把按钮塞进 children 会得到嵌套 button（React 会报 hydration 错误，
+          见 `#/components/settings-card` 里的同一条坑）。`className="cursor-pointer"`
+          是因为 Kumo 会给 trigger 补一个 `cursor-default`。
+        */
+        <Tooltip
+          content={t('profileNav.askAiTooltip', '显示或隐藏 AI 助手面板')}
+          className="cursor-pointer"
+          render={
+            <Button
+              variant="ghost"
+              icon={<SparkleIcon size={16} />}
+              className="text-kumo-subtle hover:text-kumo-default"
+              aria-label={askAiLabel}
+              aria-expanded={askAiExpanded}
+              onClick={onAskAi}
+            />
+          }
         >
           <span>{askAiLabel}</span>
-        </Button>
+        </Tooltip>
       ) : null}
 
       <Button

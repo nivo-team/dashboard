@@ -43,6 +43,7 @@
     "settings": "设置",
     "back": "返回",
     "askAi": "Ask AI",
+    "askAiTooltip": "显示或隐藏 AI 助手面板",
     "support": "支持",
     "ai": "AI",
     "about": "关于"
@@ -90,6 +91,12 @@
       },
       "aiDisplayMode": "显示方式",
       "aiDisplayModeHint": "Ask AI 面板的显示方式；窄屏下都会收成浮层",
+      "aiSessionMode": "新会话时机",
+      "aiSessionModeHint": "刷新页面后是开始一段新会话，还是继续上次那段；同一页面里关掉再打开总是接着当前对话",
+      "aiSessionModes": {
+        "continue": "继续上次会话",
+        "new": "刷新后开新会话"
+      },
       "aiModes": {
         "split": "分屏视图",
         "float": "浮窗"

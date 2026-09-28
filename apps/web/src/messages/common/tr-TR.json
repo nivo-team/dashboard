@@ -43,6 +43,7 @@
     "settings": "Ayarlar",
     "back": "Geri",
     "askAi": "AI'ya sor",
+    "askAiTooltip": "AI asistan panelini göster veya gizle",
     "support": "Destek",
     "ai": "AI",
     "about": "Hakkında"
@@ -90,6 +91,12 @@
       },
       "aiDisplayMode": "Görüntüleme biçimi",
       "aiDisplayModeHint": "Ask AI panelinin görünümü; dar ekranlarda her iki biçim de katmana dönüşür",
+      "aiSessionMode": "Yeni oturum zamanı",
+      "aiSessionModeHint": "Sayfa yenilendiğinde yeni bir oturum mu başlasın yoksa son oturum mu sürsün; aynı sayfada paneli yeniden açmak her zaman mevcut sohbeti sürdürür",
+      "aiSessionModes": {
+        "continue": "Son oturumu sürdür",
+        "new": "Yenilemede yeni oturum"
+      },
       "aiModes": {
         "split": "Bölünmüş görünüm",
         "float": "Yüzen pencere"

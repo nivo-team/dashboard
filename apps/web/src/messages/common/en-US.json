@@ -43,6 +43,7 @@
     "settings": "Settings",
     "back": "Back",
     "askAi": "Ask AI",
+    "askAiTooltip": "Show or hide the AI assistant panel",
     "support": "Support",
     "ai": "AI",
     "about": "About"
@@ -90,6 +91,12 @@
       },
       "aiDisplayMode": "Display mode",
       "aiDisplayModeHint": "How the Ask AI panel appears; on narrow screens both modes collapse into an overlay",
+      "aiSessionMode": "New session timing",
+      "aiSessionModeHint": "Whether a page refresh starts a new session or resumes the last one; reopening the panel within the same page always continues the current conversation",
+      "aiSessionModes": {
+        "continue": "Continue last session",
+        "new": "New session on refresh"
+      },
       "aiModes": {
         "split": "Split view",
         "float": "Float"

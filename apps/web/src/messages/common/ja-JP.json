@@ -43,6 +43,7 @@
     "settings": "設定",
     "back": "戻る",
     "askAi": "AI に質問",
+    "askAiTooltip": "AI アシスタントパネルの表示 / 非表示",
     "support": "サポート",
     "ai": "AI",
     "about": "アプリについて"
@@ -90,6 +91,12 @@
       },
       "aiDisplayMode": "表示方法",
       "aiDisplayModeHint": "Ask AI パネルの表示方法。狭い画面ではどちらもオーバーレイ表示になります",
+      "aiSessionMode": "新しい会話のタイミング",
+      "aiSessionModeHint": "再読み込みの後は新しい会話を始めるか、前回の会話を続けるか。同じページ内で開き直したときは常に現在の会話を続けます",
+      "aiSessionModes": {
+        "continue": "前回の会話を続ける",
+        "new": "再読み込みで新しい会話"
+      },
       "aiModes": {
         "split": "分割ビュー",
         "float": "フローティング"

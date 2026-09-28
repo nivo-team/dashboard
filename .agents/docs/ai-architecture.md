@@ -22,6 +22,7 @@
 L1  UI          components/ai-panel · ai-conversation · ai-composer · ai-session-picker
                 components/ai-bot-avatar · ai-activity-glow · beta-badge
 L2  状态        lib/ai/session-store（消息 / 状态 / 审批 / 落盘）
+                lib/ai/session-boot（本次页面载入算不算「重新载入」）
                 lib/store/preferences-store（本机偏好，按 app 隔离）
 L3  驱动        lib/ai/chat.ts —— 一轮消息的编排（读偏好 → 挑工具 → 拼提示词 → 消费事件）
 L4  运行时      lib/ai/runtime.ts —— **全仓唯一 import `ai`(Vercel AI SDK) 与 provider 的地方**
@@ -219,6 +220,15 @@ useAiPageContext(Route.id, {
     内部头行固定 `h-[58px]` 与 `AppHeader` 同高，两条底边线连成一条。宽度落
     `admin.shell-ui.aiPanelWidth`（默认 400、300–720，拖拽 + 方向键，与详情分屏同一套
     `#/lib/use-panel-resize`，`onChange` 即时值 / `onCommit` 落盘）；
+    **进场 / 退场是「宽度 0 ↔ panelWidth」的过渡**（`md:motion-safe:transition-[width]`，
+    200ms）—— 面板贴行尾，宽度一变内容列就被推开（「推动页面」），内层在过渡窗口内**钉住
+    最终宽度**（`splitAnimating`）因而读起来是「从行尾侧滑进来」而不是被挤着重排。
+    四条不能省的约定：① 外框必须 `overflow-hidden`（裁掉钉宽的内层；同时把 flex item 的
+    `min-width: auto` 归零，宽度才真能收到 0）；② 退场要**留在树上等动画跑完**（三态
+    `splitMounted` / `splitExpanded` / `splitAnimating`，卸载计时与 CSS 时长同源
+    `SPLIT_SLIDE_MS`）；③ 拖拽宽度时**摘掉过渡**（`!resizing`），否则每帧都落在 200ms
+    过渡上面板不跟手；④ 移动端（覆盖式、无宽度可动）与 `prefers-reduced-motion: reduce`
+    都直接切到位，不走进过渡窗口。退场期间挂 `aria-hidden` + `inert`（读屏与键盘先「消失」）；
   - **Float**（`float`）：`fixed` 在**行尾侧下角**（`md:end-4` / `md:bottom-4`，RTL 自动换边不压住侧边栏）、
     浮在内容之上、不挤压布局，**从页面底部升起**（入场动画 = styles.css 的
     `[data-ai-float='true']` + `@keyframes ai-float-enter`，整体包在
@@ -269,6 +279,28 @@ useAiPageContext(Route.id, {
   （`px-4 pt-4 pb-0`）而不是 `p-4`，免得与 Kumo 的 `py-2` 拼出多余的上下留白。
   键盘约定：`Enter` 发送、`Shift + Enter` 换行、**输入法组字中的回车要让开**
   （`event.nativeEvent.isComposing`）；发送后清空、运行中禁用提交（见第 10 节）。
+  **输入区每次挂载即聚焦**（`useEffect` + `focus({ preventScroll: true })`）—— 面板打开、
+  浮窗从折叠态展开都会让它重新挂载，于是「打开就能直接打字」；`preventScroll` 是必需的，
+  否则 Split 进场（宽度还在从 0 长出来、输入框被裁在外侧）会触发页面横向滚动的补偿；
+  **移动端不抢焦点**（软键盘会立刻挡住刚打开的对话），这个判断只在挂载时取一次。
+- **图标按钮一律带 `Tooltip`**：面板头行的折叠 / 关闭（`#/components/ai-panel`）、输入区的
+  发送 / 停止 / 模式（`#/components/ai-composer`）、顶栏的 `Ask AI`（`#/components/header-actions`）。
+  两个写法上的硬要求：① **必须 `render={<Button/>}`** —— Kumo 的 `Tooltip` 自己就是 trigger，
+  把按钮放进 children 会得到嵌套 `<button>`（见 `#/components/settings-card` 的同一条坑）；
+  ② 补 `className="cursor-pointer"`，因为 Kumo 会给 trigger 加一个 `cursor-default`。
+  已知边界：`disabled` 的按钮收不到指针事件，发送按钮在输入为空时不会弹 tooltip。
+- **什么时候开一段新会话**（设置 → AI 的「新会话时机」）：`admin.preferences:<appId>.aiSessionMode`
+  = `continue`（默认，永远续上一个）/ `new`（**每份文档一段新会话**；上一段仍在会话列表里）。
+  判据是 `#/lib/ai/session-boot` 的 `isDocumentReload()`：`sessionStorage` 里放一个标记
+  （`admin.ai.sessionBooted`，按标签页隔离），整页卸载时在 `pagehide` 里删掉它 ——
+  **注意 sessionStorage 本身能活过刷新**，所以「刷新即清空」是这一步主动做的，不是它自带的；
+  `persisted === true`（bfcache 冻结）不算卸载，标记留着、会话不断。
+  唯一生效点是 `loadHistory({ fresh: true })`（`#/lib/ai/session-store`，`AiConversation`
+  传 `sessionMode === 'new' && isDocumentReload()`）：只加载会话列表、不恢复上次那段。
+  **面板不参与这件事**（旧实现在 `open` 上升沿用 layout effect 清内存会话，那与「同一页面里
+  接着上一段说」相矛盾，已删）：面板关掉再打开是同一份文档，当前会话连同流式增量原样留着，
+  而且那时 `loadHistory` 本来就会因「同一个 app 已加载」早退。
+  后果：设置改完要等**下一次刷新**才见效（判据每份文档只算一次）。
 - **输入模式切换**在输入框左下角（`AiComposer` 里的 Kumo `DropdownMenu`）：`ask`（询问，默认）/
   `auto`（自动），落在 `admin.preferences:<appId>.aiComposerMode`（`#/lib/store` 的
   `AiComposerMode` / `isAiComposerMode` / `DEFAULT_AI_COMPOSER_MODE`；**加新枚举时

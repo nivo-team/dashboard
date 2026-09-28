@@ -1,6 +1,11 @@
-import { Button } from '@cloudflare/kumo'
+import { Button, Tooltip } from '@cloudflare/kumo'
 import { ArrowDownIcon, CaretDownIcon, CaretUpIcon, XIcon } from '@phosphor-icons/react'
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { AiBotAvatar } from '#/components/ai-bot-avatar'
 import { AiComposer } from '#/components/ai-composer'
@@ -33,6 +38,23 @@ import {
   type FloatResizeHandleProps as FloatResizeHandleBinderProps,
 } from '#/lib/use-panel-resize'
 
+/**
+ * Split 形态展开 / 收起的时长（ms）。
+ *
+ * **必须与 `aside` 上的 `duration-200` 一致**：过渡是 CSS 跑的，而「什么时候可以卸载」
+ * 只能由 JS 计时（过渡被打断 / 减动效时 `transitionend` 不会来）。两者分叉的症状是
+ * 收起后残留一小会儿（或提前被砍掉）。
+ */
+const SPLIT_SLIDE_MS = 200
+
+/** 系统是否要求「减少动效」（与 styles.css 里那些 `prefers-reduced-motion` 媒体查询同义）。 */
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
+}
+
 export interface AiPanelProps {
   /** 是否展开 */
   open: boolean
@@ -63,7 +85,11 @@ export interface AiPanelProps {
  *   就是 styles.css 给侧边栏的那套 `sticky top-0 h-svh`）—— 从视口顶端齐平开始、
  *   整屏高，夹在侧边栏与内容区之间，挤压内容而不覆盖它。它挂载在
  *   `Sidebar.Provider` 内容列**之后的兄弟节点**上（见 components/app-shell.tsx），
- *   内部头行固定 `h-[58px]` 与 `AppHeader` 同高，两条底边线连成一条；
+ *   内部头行固定 `h-[58px]` 与 `AppHeader` 同高，两条底边线连成一条。
+ *   **进场 / 退场是「宽度 0 ↔ panelWidth」的过渡**：面板贴行尾，宽度一变就把内容列推开
+ *   （推动页面），内层钉住最终宽度因而读起来是「从行尾侧滑进来」而不是被挤开；
+ *   退场期间面板仍需留在树上等动画跑完，所以开关是三段式状态（`splitMounted` /
+ *   `splitExpanded` / `splitAnimating`，见组件里的注释）；
  * - **Float**（`float`）：**从页面底部升起**的浮窗，停在**行尾侧下角**（LTR 右下、RTL 左下）、
  *   浮在内容之上（`fixed`，不挤压布局）。入场动画是「自下而上 + 淡入」，交给 styles.css 的
  *   `[data-ai-float='true']` 规则（`prefers-reduced-motion: reduce` 下不播、状态照常）。
@@ -72,10 +98,10 @@ export interface AiPanelProps {
  *   头行的折叠按钮还能把它压成**只有头行**的窄条（`collapsed`，受控于 `AppShell`）。
  *
  * 两处的降级：
- * - **移动端**：Split 退化成覆盖整屏的面板、Float 也收成整屏 —— 窄屏放不下并列两列，
- *   差异只剩尺寸与位置。Float 的**位置 / 圆角 / 边框 / 阴影**用 `md:` 类表达，
- *   **尺寸**（宽高来自 store，写不出静态类）则用同一断点的 `isMobile` 兜住：移动端不写内联
- *   style、也不挂拖柄；
+ * - **移动端**：Split 退化成覆盖整屏的面板（没有可动的宽度，进 / 退场即时切换）、
+ *   Float 也收成整屏 —— 窄屏放不下并列两列，差异只剩尺寸与位置。Float 的
+ *   **位置 / 圆角 / 边框 / 阴影**用 `md:` 类表达，**尺寸**（宽高来自 store，
+ *   写不出静态类）则用同一断点的 `isMobile` 兜住：移动端不写内联 style、也不挂拖柄；
  * - **Esc 关闭**：面板没有遮罩可以点，键盘退出只能自己接（会让位给已处理 Esc 的上层浮层）。
  *
  * 尺寸都落在 `admin.shell-ui`（与详情面板 / 侧边栏同源）：拖动中的即时值放本地 state，
@@ -101,6 +127,19 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed }:
   })
   const floatPanelRef = useRef<HTMLElement | null>(null)
 
+  /**
+   * Split 形态的两段式开关（Float 不需要：它只有入场动画，关闭即卸载）。
+   *
+   * - `splitMounted`：在不在树上 —— **退场动画期间必须留在树上**，否则宽度还没收回就没了；
+   * - `splitExpanded`：宽度的目标值。宽度 0 ↔ `panelWidth` 既是「推动内容」，也是
+   *   「从行尾侧滑进来」（面板贴行尾，宽度一变，内容列跟着被推开）；
+   * - `splitAnimating`：过渡窗口内为真，用来把内层**钉在最终宽度**上 ——
+   *   否则动画期间内容是「被挤着重排」（文字不停换行）而不是「滑进来」。
+   */
+  const [splitMounted, setSplitMounted] = useState(false)
+  const [splitExpanded, setSplitExpanded] = useState(false)
+  const [splitAnimating, setSplitAnimating] = useState(false)
+
   /** store 变化（其它标签页拖动、或存档水合）时把即时值拉平 */
   useEffect(() => {
     setPanelWidth(storedPanelWidth)
@@ -110,8 +149,61 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed }:
     setFloatSize({ width: storedFloatWidth, height: storedFloatHeight })
   }, [storedFloatWidth, storedFloatHeight])
 
+  /** 打开就挂上；卸载交给下面那条（等退场动画跑完） */
+  useEffect(() => {
+    if (open) setSplitMounted(true)
+  }, [open])
+
+  /*
+    面板这里**刻意不碰会话**：用哪一段由 `AiConversation` 挂载时的
+    `loadHistory({ fresh })` 决定，判据是「本次页面载入是不是重新载入」
+    （`#/lib/ai/session-boot` 的 `isDocumentReload`）加上设置里的「新会话时机」。
+    面板关掉再打开是同一份文档，当前会话（含流式回复已吐出的增量）必须原样留着；
+    只有整页刷新 / 新标签页才从新会话开始。
+  */
+
+  useEffect(() => {
+    if (!splitMounted) {
+      setSplitExpanded(false)
+      setSplitAnimating(false)
+      return
+    }
+
+    /*
+      两种「没有过渡」的情形，直接切到位：
+      - 移动端：Split 是覆盖式（`inset-x-0`），没有宽度可动；
+      - 系统要求减少动效：状态照旧，只是不播（与 styles.css 里各处媒体查询同义）。
+    */
+    if (isMobile || prefersReducedMotion()) {
+      setSplitExpanded(open)
+      setSplitAnimating(false)
+      if (!open) setSplitMounted(false)
+      return
+    }
+
+    if (open) {
+      setSplitAnimating(true)
+      // 先以 0 宽渲染一帧，下一帧再展开 —— 浏览器才有过渡起点
+      const raf = requestAnimationFrame(() => setSplitExpanded(true))
+      const timer = window.setTimeout(() => setSplitAnimating(false), SPLIT_SLIDE_MS)
+      return () => {
+        cancelAnimationFrame(raf)
+        window.clearTimeout(timer)
+      }
+    }
+
+    // 退场：目标宽度先回 0，动画跑完再卸载
+    setSplitExpanded(false)
+    setSplitAnimating(true)
+    const timer = window.setTimeout(() => {
+      setSplitAnimating(false)
+      setSplitMounted(false)
+    }, SPLIT_SLIDE_MS)
+    return () => window.clearTimeout(timer)
+  }, [open, splitMounted, isMobile])
+
   /** `side` 必须是**物理侧**：RTL 下面板贴在左侧，拖拽方向与方向键语义都要跟着翻。 */
-  const { handleProps: resizeHandleProps } = usePanelResize({
+  const { resizing, handleProps: resizeHandleProps } = usePanelResize({
     side: isRtl ? 'left' : 'right',
     min: AI_PANEL_MIN_WIDTH,
     max: AI_PANEL_MAX_WIDTH,
@@ -161,9 +253,13 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed }:
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [open, onClose])
 
-  if (!open) return null
-
   if (mode === 'float') {
+    /*
+      Float **关闭即卸载**（只有入场动画，没有退场 —— 见 styles.css 的
+      `[data-ai-float='true']`）：浮窗是浮层，消失不需要为它多留一帧。
+    */
+    if (!open) return null
+
     /*
       折叠只在桌面端成立：移动端浮窗是**整屏**（`inset-0` 会把没有高度的盒子照样撑满），
       「只留一条」在那儿既画不出来也没意义。所以这里统一取「桌面端 + 已折叠」，
@@ -276,6 +372,12 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed }:
     )
   }
 
+  /*
+    Split：**退场动画期间要留在树上**，所以这里看的是 `splitMounted`（而不是 `open`）。
+    它比 `open` 多活一个过渡时长，收完那一下才真正卸载。
+  */
+  if (!splitMounted) return null
+
   return (
     <>
       <SidePanelResizeHandle
@@ -287,20 +389,52 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed }:
       <aside
         ref={panelRef}
         aria-label={t('title', 'Ask AI')}
-        // 宽度只给桌面端：移动端由 `inset-x-0` 撑满，内联 px 宽度会把它顶掉。
-        // `max-w` 是窄视口兜底（保证内容区至少 320px），被压缩时拖拽起点由实测宽度修正。
-        style={isMobile ? undefined : { width: panelWidth }}
+        // 收起过程中它还在树上，但对读屏与键盘必须已经是「消失」的
+        aria-hidden={open ? undefined : true}
+        inert={open ? undefined : true}
+        /*
+          宽度就是进场 / 退场的动画本体：
+          - 桌面端 `0 ↔ panelWidth` —— 面板贴行尾，宽度一变内容列跟着被推开（「推动页面」），
+            同时钉住的内层从行尾外侧滑进来；
+          - 移动端不写宽度（`inset-x-0` 撑满），打开 / 关闭是即时的，没有可动的宽度。
+          `max-w` 是窄视口兜底（保证内容区至少 320px），被压缩时拖拽起点由实测宽度修正。
+        */
+        style={isMobile ? undefined : { width: splitExpanded ? panelWidth : 0 }}
         className={cn(
           'flex flex-col border-kumo-line bg-kumo-base',
+          /*
+            `overflow-hidden` 有两个作用，都不能省：
+            - 宽度变小时裁掉「钉在最终宽度」的内层（它比外框宽，否则会溢出到面板外面）；
+            - flex item 的 `min-width: auto` 在 `overflow: visible` 时是内容最小宽度，
+              会把宽度动画卡在半路 —— 非 visible 的溢出把它归零，宽度才真能收到 0。
+          */
+          'overflow-hidden',
           // 移动端：覆盖整个视口（面板自己的头行带关闭按钮，不必露出 AppHeader）
           'fixed inset-x-0 z-30',
           // 桌面端：回到文档流，成为 Sidebar 同级的一列 —— 贴行尾、整屏高、只留一条分隔线。
           // `z-20` 与 styles.css 给侧边栏的层级一致（两者同为外壳级，不该有高低之分）。
           'md:sticky md:inset-x-auto md:z-20 md:shrink-0 md:max-w-[calc(100%_-_320px)] md:border-s',
+          /*
+            展开 / 收起的宽度过渡。**拖拽宽度时必须摘掉**（`!resizing`）：否则每一帧
+            宽度都落在 200ms 的过渡上，面板会滞后一大截、根本不跟手。
+            时长与 `SPLIT_SLIDE_MS` 同步。
+          */
+          !resizing &&
+            'md:motion-safe:transition-[width] md:motion-safe:duration-200 md:motion-safe:ease-out',
           SHELL_PANEL_FRAME,
         )}
       >
-        <AiPanelSurface onClose={onClose} />
+        {/*
+          内层在过渡期间**钉住最终宽度**：外框在变宽，内容是「滑」进来而不是被挤着重排
+          （不钉住的话头行文字、输入框会一路抖动）。动画结束就放开，让窄视口下
+          `max-w` 的压缩重新生效 —— 常驻钉死会在窄桌面把内容裁掉一截。
+        */}
+        <div
+          className="flex min-h-0 flex-1 flex-col"
+          style={splitAnimating && !isMobile ? { width: panelWidth } : undefined}
+        >
+          <AiPanelSurface onClose={onClose} />
+        </div>
       </aside>
     </>
   )
@@ -489,30 +623,47 @@ function AiPanelSurface({
         */}
         <div className="flex shrink-0 items-center gap-1">
           {onToggleCollapsed ? (
-            <Button
-              variant="ghost"
-              shape="square"
-              onClick={onToggleCollapsed}
-              // 折叠按钮是开关：读屏要能听出「现在是展开还是收起」
-              aria-expanded={!collapsed}
-              aria-label={collapsed ? t('expand', '展开对话') : t('collapse', '收起对话')}
+            <Tooltip
+              content={
+                collapsed
+                  ? t('expandTooltip', '展开对话')
+                  : t('collapseTooltip', '收起对话，只留标题栏')
+              }
+              // Kumo 会给 trigger 补一个 `cursor-default`，按钮要的是手型
+              className="cursor-pointer"
+              render={
+                <Button
+                  variant="ghost"
+                  shape="square"
+                  onClick={onToggleCollapsed}
+                  // 折叠按钮是开关：读屏要能听出「现在是展开还是收起」
+                  aria-expanded={!collapsed}
+                  aria-label={collapsed ? t('expand', '展开对话') : t('collapse', '收起对话')}
+                />
+              }
             >
               {/*
                 `CaretDown` = 收起（把对话往下压扁）、`CaretUp` = 展开。
                 上下向图标不随书写方向翻转，所以**不加 `rtl-flip`**。
               */}
               {collapsed ? <CaretUpIcon size={16} /> : <CaretDownIcon size={16} />}
-            </Button>
+            </Tooltip>
           ) : null}
 
-          <Button
-            variant="ghost"
-            shape="square"
-            onClick={onClose}
-            aria-label={t('close', '关闭面板')}
+          <Tooltip
+            content={t('close', '关闭面板')}
+            className="cursor-pointer"
+            render={
+              <Button
+                variant="ghost"
+                shape="square"
+                onClick={onClose}
+                aria-label={t('close', '关闭面板')}
+              />
+            }
           >
             <XIcon size={16} />
-          </Button>
+          </Tooltip>
         </div>
       </header>
 

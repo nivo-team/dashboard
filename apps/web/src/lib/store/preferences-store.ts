@@ -156,6 +156,31 @@ export function isAiOutputMode(value: unknown): value is AiOutputMode {
 }
 
 /**
+ * **什么时候开一段新会话**：
+ * - `continue`（默认）：永远续上一个会话 —— 同一份文档里关掉面板再打开、刷新页面、
+ *   甚至新标签页，都回到上次那段；
+ * - `new`：**每次「重新载入」开一段新的** —— 也就是整页刷新、或在新标签页里打开。
+ *   上一段不会丢，它还在会话列表里。
+ *
+ * 判定「重新载入」的是 `#/lib/ai/session-boot` 的 `isDocumentReload()`（sessionStorage
+ * 标记 + 卸载时清除）。所以 `new` 的粒度是**每份文档一段会话**，不是「每次打开面板」：
+ * 同一页面里把面板关掉再打开，问的还是同一件事，接着上一段说。
+ *
+ * 生效点在 `#/lib/ai/session-store` 的 `loadHistory({ fresh })` —— `AiConversation`
+ * 挂载时传 `sessionMode === 'new' && isDocumentReload()`。面板自己不再插手会话
+ * （旧实现在打开上升沿清内存会话，那与「同一页面内接着上一段」相矛盾）。
+ *
+ * 注意：设置改完要**等下一次重新载入**才生效（`isDocumentReload()` 每份文档只判一次）。
+ */
+export type AiSessionMode = 'continue' | 'new'
+
+export const DEFAULT_AI_SESSION_MODE: AiSessionMode = 'continue'
+
+export function isAiSessionMode(value: unknown): value is AiSessionMode {
+  return value === 'continue' || value === 'new'
+}
+
+/**
  * AI 回答时是否**自动滚动到最新内容**（默认开）。
  *
  * 关掉之后新内容进来时视图不动，用户自己滚。要读历史时这个开关比"每次都被拽回底部"友好；
@@ -294,6 +319,8 @@ interface PreferencesState {
   detailOpenMode: DetailOpenMode
   /** AI 面板（「Ask AI」）的打开方式：分屏列 / 底部浮窗 */
   aiPanelMode: AiPanelMode
+  /** 每次打开 AI 面板时用的是新会话，还是续上一个（默认续上） */
+  aiSessionMode: AiSessionMode
   /** AI 输入框的输入模式：询问 / 自动 */
   aiComposerMode: AiComposerMode
   /** AI 进行中是否在视口四周显示流动光带 */
@@ -321,6 +348,7 @@ interface PreferencesState {
   setNeutralColor: (neutralColor: string) => void
   setDetailOpenMode: (detailOpenMode: DetailOpenMode) => void
   setAiPanelMode: (aiPanelMode: AiPanelMode) => void
+  setAiSessionMode: (aiSessionMode: AiSessionMode) => void
   setAiComposerMode: (aiComposerMode: AiComposerMode) => void
   setAiActivityGlow: (aiActivityGlow: boolean) => void
   setAiShowToolCalls: (aiShowToolCalls: boolean) => void
@@ -344,6 +372,7 @@ type PersistedPreferences = Pick<
   | 'neutralColor'
   | 'detailOpenMode'
   | 'aiPanelMode'
+  | 'aiSessionMode'
   | 'aiComposerMode'
   | 'aiActivityGlow'
   | 'aiShowToolCalls'
@@ -373,6 +402,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       neutralColor: DEFAULT_NEUTRAL_COLOR,
       detailOpenMode: DEFAULT_DETAIL_OPEN_MODE,
       aiPanelMode: DEFAULT_AI_PANEL_MODE,
+      aiSessionMode: DEFAULT_AI_SESSION_MODE,
       aiComposerMode: DEFAULT_AI_COMPOSER_MODE,
       aiActivityGlow: DEFAULT_AI_ACTIVITY_GLOW,
       aiShowToolCalls: DEFAULT_AI_SHOW_TOOL_CALLS,
@@ -390,6 +420,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       setNeutralColor: (neutralColor) => set({ neutralColor }),
       setDetailOpenMode: (detailOpenMode) => set({ detailOpenMode }),
       setAiPanelMode: (aiPanelMode) => set({ aiPanelMode }),
+      setAiSessionMode: (aiSessionMode) => set({ aiSessionMode }),
       setAiComposerMode: (aiComposerMode) => set({ aiComposerMode }),
       setAiActivityGlow: (aiActivityGlow) => set({ aiActivityGlow }),
       setAiShowToolCalls: (aiShowToolCalls) => set({ aiShowToolCalls }),
@@ -424,6 +455,7 @@ export const usePreferencesStore = create<PreferencesState>()(
         neutralColor: state.neutralColor,
         detailOpenMode: state.detailOpenMode,
         aiPanelMode: state.aiPanelMode,
+        aiSessionMode: state.aiSessionMode,
         aiComposerMode: state.aiComposerMode,
         aiActivityGlow: state.aiActivityGlow,
         aiShowToolCalls: state.aiShowToolCalls,
@@ -462,6 +494,9 @@ export const usePreferencesStore = create<PreferencesState>()(
           aiPanelMode: isAiPanelMode(saved.aiPanelMode)
             ? saved.aiPanelMode
             : current.aiPanelMode,
+          aiSessionMode: isAiSessionMode(saved.aiSessionMode)
+            ? saved.aiSessionMode
+            : current.aiSessionMode,
           aiComposerMode: isAiComposerMode(saved.aiComposerMode)
             ? saved.aiComposerMode
             : current.aiComposerMode,

@@ -12,6 +12,7 @@ import { MarkdownContent } from '#/components/markdown-content'
 import { useAuthStore } from '#/lib/auth'
 import { cn } from '#/lib/cn'
 import {
+  isDocumentReload,
   resolveAiApproval,
   useAiSessionStore,
   type AiMessage,
@@ -130,6 +131,8 @@ export function AiConversation() {
   // 空态问候语按用户设置的时区判断时段（不是本机时区）
   const { timezoneMeta } = useTimezone()
   const outputMode = usePreferencesStore((state) => state.aiOutputMode)
+  // 「新会话时机」（见下面的 loadHistory）
+  const sessionMode = usePreferencesStore((state) => state.aiSessionMode)
 
   /*
     「正在思考…」只服务于**还没有任何可见输出**的那一小段。
@@ -154,10 +157,16 @@ export function AiConversation() {
     进入面板（以及切换应用）时加载该 app 的会话历史。
     `loadHistory` 内部对「同一个 app 已经加载过」会早退 —— 面板关掉再打开是一次重挂载，
     没有那道判断就会用 IDB 里的旧版本覆盖掉流式回复已经吐出来的增量。
+
+    `fresh` 只在**本次页面载入是重新载入**（刷新页面 / 新标签页，见 `isDocumentReload`）
+    并且设置里选了「刷新后新会话」时成立：列表照常加载、但不恢复上次那段，直接落在空的
+    新会话上。同一份文档里关掉面板再打开不算重新载入，当前会话原样留着 —— **不必**在
+    面板打开的那一刻清内存（旧实现在打开上升沿调 `startNewSession()`，那与「同一页面内
+    接着上一段说」是矛盾的）。
   */
   useEffect(() => {
-    void loadHistory()
-  }, [appId, loadHistory])
+    void loadHistory({ fresh: sessionMode === 'new' && isDocumentReload() })
+  }, [appId, loadHistory, sessionMode])
 
   if (!isConfigured) {
     /*
