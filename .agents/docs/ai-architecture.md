@@ -369,14 +369,32 @@ useAiPageContext(Route.id, {
   `hourCycle: 'h23'`（`hour12: false` 在午夜会给出 `"24"`）。问候语加粗用 `font-semibold`
   （本仓库禁用 `font-bold`）。
 - **AI 进行中的页面级反馈**（`#/components/ai-activity-glow`）：视口四周向内发光的呼吸光晕，
-  `status === 'streaming'` 或等审批时出现。**它就是一层 `fixed inset-0` + `inset box-shadow`**
-  （曾用 `border-beam`，三档都试过不合适 —— `md` 像多一条边框、`pulse-outside` 的光晕长在元素
-  外面而这里的元素就是满视口、`pulse-inner` 与预览观感又差得远）。它与设置页那张预览
-  （`AiActivityGlowPreview`）**共用同一套 keyframes（`ai-glow-pulse`，只动 opacity）与同一组颜色**，
-  只是**模糊半径按满视口放大了一档**：预览是 320px 缩略图，半径照抄到 1440px 上会细到看不见。
-  两条约定：容器 `pointer-events-none`（它盖在所有内容之上，绝不能吞点击）、
-  **不要改成包住 `AppShell`** —— 包裹等于给 `Sidebar.Provider` 再套一层容器（sidebar 的 sticky、
-  AI 面板的 fixed、详情分屏的 grid 都可能受影响），而且外壳高度随内容增长，光晕会跟着内容滚出视口。
+  `status === 'streaming'` 或等审批时出现。**两层都用 `border-beam` 的 Pulse 家族
+  `pulse-inner`**（「收在边界内呼吸」）：运行态是包在**一个 `fixed inset-0`、不带子元素**的元素上
+  （`borderRadius={0}`、`strength={0.7}`、`glowSize={4}` + 下面两处补偿），设置页那张预览
+  （`AiActivityGlowPreview`）是同一档包住缩略图（`borderRadius={8}`、`glowSize` 默认 1、
+  `active={showGlow}` 演「基线 → 亮起」）。**按尺寸要补的两处**（预览不补）：
+  ① `--pulse-glow-boost: 4`（`GLOW_VIEWPORT_BOOST`）—— `pulse-inner` 的光是十几个
+  `radial-gradient` 斑块拼的，**尺寸写死 px**（15~216px，位置才是百分比），按 288px 的卡片调的：
+  满视口下它们退化成**几个孤立的彩点**、其余边缘全黑，这是「深色模式看不见光晕」的主因。
+  该变量是包留给消费方的缩放钩子（源码注释有、README 没写）；② `glowTuning()` 提亮深色档
+  （`brightness` 0.75 → 1.4、`saturation` 1.3）：同一个 alpha 压白底是 `rgb(255,198,212)`
+  （亮度 211/255），压近黑底只有 `rgb(86,24,42)`（38/255）—— 而满视口下挑大梁的正是这两层宽光
+  （深色档的 1.54 只补了那圈 1px 描边）。
+  为什么不取另外几档：`md` / `sm` / `line` 是绕边框跑的旋转光带，像多了一条边框；
+  `pulse-outside` 的光晕长在元素**外面**，而运行态的元素就是满视口、外面是屏幕外。
+  四个接线上的坑：① `theme` 必须传 `useColorMode().resolved`（包的 `auto` 读 `data-theme` /
+  `dark` class，读不到本项目的 `data-mode`，与 `AiBotAvatar` 同一个坑）；② 运行态的
+  **定位/层级/boost 都要写在内联 `style` 上**（`position: fixed` / `inset: 0` / `zIndex` /
+  `pointerEvents` / `--pulse-glow-boost`）—— 包生成的 CSS 把根写成 `position: relative`，
+  属性选择器与 Tailwind 的类同级、而它的 `<style>` 挂在 body 里排在后头，用类名会被压掉；
+  `pointerEvents: 'none'` 尤其不能漏（包的光层自带，**根节点没有**，漏了就是一整层吞点击的遮罩）；
+  ③ **不要改成包住 `AppShell`** —— 包裹等于给 `Sidebar.Provider` 再套一层容器（sidebar 的 sticky、
+  AI 面板的 fixed、详情分屏的 grid 都可能受影响），而且外壳高度随内容增长，光晕会跟着内容滚出视口；
+  ④ **`prefers-reduced-motion` 下它会整个消失**（包用 `animation: none !important` 关掉淡入，
+  而 `--beam-opacity` 的注册初值是 0 —— 旧那层 CSS 只是不呼吸、光还在）。要修就给 `css`
+  传一条把 `--beam-opacity-{id}` 钉成 1 的媒体查询。
+  包会进**主 bundle**（运行态这层挂在 AppShell 上，路由级懒加载兜不住）：dist 约 99 KB、gzip 14 KB。
   用户可在 **设置 → AI** 里关掉它（`aiActivityGlow`，落在 `admin.preferences:<appId>`、默认开）。
 
 ## 10. AI 接入：厂商配置 / 运行时 / 工具层

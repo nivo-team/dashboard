@@ -33,6 +33,7 @@
     "@tanstack/react-router-devtools": "latest",
     "@tanstack/react-table": "^9.2.4",
     "ai": "^7.0.116",
+    "border-beam": "^1.4.1",
     "bot-avatars": "^0.1.1",
     "i18next": "^24.2.2",
     "ofetch": "^1.5.1",

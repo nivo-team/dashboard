@@ -52,6 +52,9 @@ importers:
       ai:
         specifier: ^7.0.116
         version: 7.0.116(zod@4.6.5)
+      border-beam:
+        specifier: ^1.4.1
+        version: 1.4.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       bot-avatars:
         specifier: ^0.1.1
         version: 0.1.1(react@19.3.0)
@@ -1007,6 +1010,12 @@ packages:
     resolution: {integrity: sha512-gMmEShwwq7FJqMwvfRwvCl00v4kN+KOfJqXn+f4nrufak5gNHJOksd/60Dvjuz7sI8Y5WiSFBa8FEYr+zoyqCw==}
     engines: {node: '>=6.0.0'}
     hasBin: true
+
+  border-beam@1.4.1:
+    resolution: {integrity: sha512-YyugmKjrhkg1PBC1ZKX7JvFo/zYzha6NXOq24VWrnvBYmDRvGCgFS9oxZoKJ+oS9Kn436l1etYGlAdGiWK+3ag==}
+    peerDependencies:
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
 
   bot-avatars@0.1.1:
     resolution: {integrity: sha512-J1gamb44dLXWViX6N+qz8wQyMmVUEtv9GrrHXo+xP3GlzbVzPTO4g+bWme0F9OXpX31nyDXSnUG9/mctUi7t3w==}
@@ -3052,6 +3061,11 @@ snapshots:
   bail@2.0.2: {}
 
   baseline-browser-mapping@2.11.25: {}
+
+  border-beam@1.4.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+    dependencies:
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
 
   bot-avatars@0.1.1(react@19.3.0):
     dependencies:

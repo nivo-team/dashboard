@@ -244,34 +244,6 @@
 }
 
 /*
- * AI 进行中的光晕：设置页的**预览**与**真实运行态**共用这一套。
- *
- * 动画**只动 `opacity`**，光的形状（`box-shadow` 的模糊半径）由各自给 ——
- * 预览是 320px 宽的缩略图、真实是满视口，同一个像素半径在两处的观感差一个数量级，
- * 所以半径必须按各自尺寸定，动画只负责「呼吸」。
- *
- * 用 data 属性选择器而不是 Tailwind 的 `animate-[…]`，与上面的 AI 浮窗同一套写法：
- * `prefers-reduced-motion` 由媒体查询统一兜住，组件侧只负责挂不挂这个属性。
- * 循环播放是刻意的 —— 它演的是「AI 一直在跑」，不是一次性入场。
- */
-@keyframes ai-glow-pulse {
-  0%,
-  100% {
-    opacity: 0.7;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  [data-ai-glow-preview='true'],
-  [data-ai-activity-glow='true'] {
-    animation: ai-glow-pulse 2.4s ease-in-out infinite;
-  }
-}
-
-/*
  * 侧边栏折叠分组的 RTL 适配。
  *
  * 1. Kumo 的 MenuSub 用物理属性表达缩进（pl-7）与层级竖线（left-[19px]），

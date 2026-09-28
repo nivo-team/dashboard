@@ -1,4 +1,5 @@
 import { Checkbox, Select, Switch, Tabs } from '@cloudflare/kumo'
+import { BorderBeam } from 'border-beam'
 import { BotAvatar } from 'bot-avatars'
 import {
   ChatCircleDotsIcon,
@@ -19,6 +20,10 @@ import {
   AppShellPreview,
   type AppShellPreviewLayout,
 } from '#/components/app-shell-preview'
+import {
+  GLOW_COLOR_VARIANT,
+  GLOW_STRENGTH,
+} from '#/components/ai-activity-glow'
 import { PageHeader } from '#/components/page-header'
 import {
   SettingChoicePreview,
@@ -215,47 +220,49 @@ function AiModePreview({
 }
 
 /**
- * 光晕预览：先演「页面四周什么都没有」的基线，停一下再切到「光带亮起」。
+ * 光晕预览：先演「页面四周什么都没有」的基线，停一下再让光带亮起。
  *
- * 刻意**不看开关的当前值** —— 预览要展示的是效果本身，关着的时候反而更该让人知道
- * 「打开会是什么样」。光带在这里用渐变描边示意：真品是 `border-beam`，那是个
- * 80 KB 的按需 chunk，不该为了设置页的一张缩略图把它拉进来。
+ * 光本身交给真品 `border-beam`，**家族取 Pulse（呼吸，不旋转）**，档位 `pulse-inner`
+ * （「收在边界内呼吸」）—— 运行时那层页面级光晕（`#/components/ai-activity-glow`）用的是**同一档**，
+ * 参数也只差一个按尺寸调的 `glowSize`（这边默认 1，满视口那边 4），两处观感由此由同一份实现保证。
+ * 另一族 Rotate（`md` / `sm` / `line`）是沿边框绕圈的旋转光带，那是「多了一条边框」的观感，
+ * 不是光晕，所以不在这里用；Pulse 里的 `pulse-outside` 也不合适 —— 它的光晕长在元素外面，
+ * 而浮层只有 `p-1.5`（6px）内边距，晕开的那圈会糊到浮层上（与当初否掉 `-inset-*` 是同一个理由）。
+ *
+ * 两个必须由我们给死的参数：
+ * - `theme`：包自带的 `auto` 读的是祖先的 `data-theme` 属性或 `dark` class，而本项目的
+ *   主题是 `data-mode` 驱动的 —— 与 `AiBotAvatar` 是同一个坑，统一传 `useColorMode().resolved`；
+ * - `borderRadius`：包的自动探测取「第一个子元素」的圆角，而缩略图自己就是 `rounded-lg`（8px）。
+ *   显式给死，免得探测失败时回落到该档的预设值、与缩略图错开。
+ *
+ * `active={showGlow}` 就是这套预览的「先基线、后亮起」：包自带淡入淡出（连同它自己的
+ * `prefers-reduced-motion` 处理），外面不再需要一层 opacity 过渡。
+ *
+ * 依旧**不看开关的当前值**：预览要展示的是效果本身，关着的时候反而更该让人知道「打开会是什么样」。
+ *
+ * 包本身落在**主 bundle**（运行态那层在 AppShell 上，路由级懒加载兜不住它），
+ * 所以这条路由不再为它多背一份 chunk —— 代价已经在主 bundle 里付过了。
  */
 function AiActivityGlowPreview({ accentColor }: { accentColor: string }) {
   const showGlow = usePreviewAnimation(false, true)
+  const { resolved } = useColorMode()
 
   return (
     <div className="w-72">
-      <div className="relative">
+      <BorderBeam
+        size="pulse-inner"
+        colorVariant={GLOW_COLOR_VARIANT}
+        strength={GLOW_STRENGTH}
+        theme={resolved}
+        active={showGlow}
+        borderRadius={8}
+        className="rounded-lg"
+      >
         <AppShellPreview
           layout={APP_SHELL_PREVIEW_LIST_LAYOUT}
           accentColor={accentColor}
         />
-
-        {/*
-          只有**光晕**，没有描边：四周内缘发亮、中间内容照常可见 —— 这正是运行时那层
-          `fixed inset-0` 叠在页面上的观感。
-
-          `inset-0` + `rounded-lg` 是**与缩略图严丝合缝**的：`AppShellPreview` 自身就是
-          `rounded-lg`。之前用 `-inset-*` 让光晕溢出边界，它会糊到 Popover 的内边距上
-          （浮层只有 `p-1.5`＝6px），看起来像"光晕跑到浮层上去了"。
-
-          呼吸动画（`ai-glow-pulse`）定义在 styles.css，靠 `data-ai-glow-preview` 挂上，
-          并受 `prefers-reduced-motion` 统一管辖 —— 它不跑时就用下面的静态 `boxShadow`。
-        */}
-        <div
-          aria-hidden
-          data-ai-glow-preview={showGlow ? 'true' : undefined}
-          className={cn(
-            'pointer-events-none absolute inset-0 rounded-lg transition-opacity motion-safe:duration-500',
-            showGlow ? 'opacity-100' : 'opacity-0',
-          )}
-          style={{
-            boxShadow:
-              'inset 0 0 28px rgb(129 140 248 / 0.42), inset 0 0 12px rgb(240 171 252 / 0.28)',
-          }}
-        />
-      </div>
+      </BorderBeam>
     </div>
   )
 }

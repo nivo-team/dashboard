@@ -22,15 +22,17 @@
   **必须懒加载**（这个渲染器 gzip 46 kB，静态引入会进主 bundle —— 实测主 bundle 只多了 0.09 kB）。
 
 - **AI 进行中的页面级反馈**：视口四周向内发光的呼吸光晕（`#/components/ai-activity-glow`）。
-  它就是一层 `fixed inset-0` + `inset box-shadow`，与设置页那张预览（`AiActivityGlowPreview`）
-  **共用同一套 keyframes（`ai-glow-pulse`，只动 opacity）与同一组颜色**，只是**模糊半径按满视口
-  放大了一档** —— 预览是 320px 缩略图，半径照抄到 1440px 上会细到看不见。
+  运行态与设置页那张预览（`AiActivityGlowPreview`）**都用 `border-beam` 的 Pulse 家族
+  `pulse-inner` 档**。运行态要按尺寸补两处：`glowSize={4}` + `--pulse-glow-boost: 4`
+  （包的渐变斑块尺寸是按卡片写死的，满视口下不放大就退化成几个孤立的彩点）+
+  `glowTuning()` 提亮深色档（同样的 alpha 压近黑底只剩 1/5 的亮度）。详见架构文档。
+  三个坑：`theme` 必须传 `useColorMode().resolved`（包的 `auto` 读不到本项目的 `data-mode`）；
+  运行态**定位/层级/boost 要写内联 `style`**（包生成的 CSS 把根写成 `position: relative`，
+  用类名会被压掉），且 `pointerEvents: 'none'` 不能漏（包的光层自带，根节点没有）；
   **不要改成包住 `AppShell`**：包裹等于给 `Sidebar.Provider` 再套一层容器（sidebar 的 sticky、
   AI 面板的 fixed、详情分屏的 grid 都可能受影响），而且外壳高度随内容增长，光晕会跟着内容滚出视口。
-  容器是 `pointer-events-none` —— 它盖在所有内容之上，绝不能吞点击。
+  这个包会进主 bundle（gzip 14 KB）。
   用户可在 **设置 → AI** 里关掉它（`aiActivityGlow`，落在 `admin.preferences:<appId>`、默认开）。
-  历史上用过 `border-beam`，三档都试过不合适（`md` 像多一条边框、`pulse-outside` 的光晕长在
-  元素外面而这个元素就是满视口、`pulse-inner` 与预览观感差得远），依赖已移除。
 
 - **工具调用卡片默认隐藏**（`aiShowToolCalls`，默认 `false`，设置 → AI 可打开）：普通用户只关心
   回答内容，不关心中间调了哪个接口。关掉时 `AssistantPart` 对工具类 part 直接 `return null`。
