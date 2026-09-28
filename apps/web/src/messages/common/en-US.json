@@ -89,6 +89,12 @@
         "sheet": "Side sheet",
         "page": "Full page"
       },
+      "pageWidth": "Page width",
+      "pageWidthHint": "Whether the content area is capped at a maximum width; full width suits data-heavy tables",
+      "pageWidths": {
+        "full": "Full width",
+        "boxed": "Boxed"
+      },
       "aiDisplayMode": "Display mode",
       "aiDisplayModeHint": "How the Ask AI panel appears; on narrow screens both modes collapse into an overlay",
       "aiSessionMode": "New session timing",

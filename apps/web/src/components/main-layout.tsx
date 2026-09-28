@@ -12,11 +12,14 @@ import { HeaderActions } from '#/components/header-actions'
 import { ShortcutKbd } from '#/components/kbd'
 import { NotFound } from '#/components/not-found'
 import { ShellSidebarProvider } from '#/components/shell-sidebar-provider'
+import { cn } from '#/lib/cn'
 import {
   MAIN_NAV_ITEMS,
   SETTINGS_NAV_ITEMS,
   type ShellNavItem,
 } from '#/lib/navigation'
+import { pageContentWidthClass } from '#/lib/page-width'
+import { usePreferencesStore } from '#/lib/store'
 
 /** 归一化尾斜杠：`/settings` 与 `/settings/` 是同一个 index 路由，不能因此丢掉高亮。 */
 function normalizePath(pathname: string): string {
@@ -279,6 +282,11 @@ function MainHeader({ onOpenCommandPalette }: { onOpenCommandPalette: () => void
 
 export function MainLayout({ children }: { children?: React.ReactNode }) {
   const [paletteOpen, setPaletteOpen] = useState(false)
+  /**
+   * 页面宽度偏好：`full` 铺满、`boxed` 收在 1440px 内居中（`设置 → 外观 → 页面宽度`）。
+   * 它是外壳级的显示偏好，只影响下面这个 `<main>`，与路由无关。
+   */
+  const pageWidth = usePreferencesStore((state) => state.pageWidth)
 
   // ⌘K / Ctrl+K 打开命令面板（与 AppShell 保持一致的交互）
   useEffect(() => {
@@ -304,7 +312,11 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
           <MainHeader onOpenCommandPalette={() => setPaletteOpen(true)} />
           <main
             data-shell-content
-            className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-4 md:px-6 md:py-5 lg:px-8 lg:py-6"
+            className={cn(
+              'flex-1 px-4 py-4 md:px-6 md:py-5 lg:px-8 lg:py-6',
+              // 宽度：full 得到 `w-full`，boxed 再叠上 `mx-auto max-w-[1440px]`
+              pageContentWidthClass(pageWidth),
+            )}
           >
             {children ?? <Outlet />}
           </main>

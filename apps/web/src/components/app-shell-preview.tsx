@@ -9,7 +9,9 @@ import { cn } from '#/lib/cn'
  * - 「详情打开方式」行（`/settings/appearance`）：悬浮某个分段选项时，在浮层里演示**选了这一项之后页面会怎么变**
  *   （主列被挤压 / 被覆盖 / 整块换成详情页）；
  * - 「AI 打开方式」行（`/settings/AI`）：演示 Ask AI 面板的两种形态 —— 与侧边栏同级的整屏高列、
- *   还是行尾侧下角从底部弹出的浮窗（见 `settings/AI.tsx` 的 `AiModePreview`）。
+ *   还是行尾侧下角从底部弹出的浮窗（见 `settings/AI.tsx` 的 `AiModePreview`）；
+ * - 「页面宽度」行（`/settings/appearance`）：演内容区在「全宽」与「限宽居中」之间收窄 / 展开
+ *   （`layout.contentWidth`，见 `settings/appearance.tsx` 的 `PageWidthPreview`）。
  *
  * ## 布局由 `layout` 描述，动画由 CSS 过渡负责
  * 组件是**纯受控**的：`layout` 一变，缩略图就过渡到那个形态 —— 它自己没有内部状态、
@@ -47,6 +49,15 @@ export interface AppShellPreviewLayout {
   content: 'list' | 'detail'
   /** 行尾有没有面板，以及它是哪种形态 */
   panel: AppShellPreviewPanel
+  /**
+   * 内容区里**页面内容**的宽度约束（对应 `设置 → 外观 → 页面宽度`）：
+   * - `full`（默认）：内容铺满内容列；
+   * - `boxed`：内容收窄并居中，两侧露出画布 —— 也就是「限宽居中」档。
+   *
+   * 注意它约束的是内容列**内部**的页面内容，顶栏与侧边栏始终满宽 ——
+   * 真实外壳里限制宽度的是 `<main>`，而不是这些外壳 chrome。
+   */
+  contentWidth?: 'full' | 'boxed'
 }
 
 /** 「只有列表」的基线状态：两个浮层演示都从这里起步，也正是「点行之前」的样子。 */
@@ -70,6 +81,12 @@ const TRANSITION_PUSH = 'motion-safe:transition-[padding] motion-safe:duration-5
 const TRANSITION_PANEL = 'motion-safe:transition-[width,opacity,border-color] motion-safe:duration-500 motion-safe:ease-out'
 const TRANSITION_SWAP = 'motion-safe:transition-[opacity,scale] motion-safe:duration-500 motion-safe:ease-out'
 const TRANSITION_FADE = 'motion-safe:transition-opacity motion-safe:duration-500 motion-safe:ease-out'
+/**
+ * 页面内容的宽度约束（`contentWidth`）：动的是 `max-width`。全宽与限宽都用**百分比**
+ * （`max-w-full` / `max-w-[62%]`），同单位之间才会被插值成一条平滑的收窄 / 展开；
+ * 一个百分比对一个像素值只会瞬间跳变。
+ */
+const TRANSITION_CONTENT_WIDTH = 'motion-safe:transition-[max-width] motion-safe:duration-500 motion-safe:ease-out'
 /**
  * 浮窗（AI 的 Float）：动的是「升起」这件事本身 —— 位移 + 淡入 + 极轻微放大，
  * 与真实浮窗的入场动画（`styles.css` 的 `ai-float-enter`）同一个读法。
@@ -103,6 +120,8 @@ export function AppShellPreview({
   const isCovered = layout.panel === 'cover'
   const isShellPanel = layout.panel === 'shell'
   const isFloating = layout.panel === 'float'
+  /** 限宽居中档：内容收窄并居中（`full` 与未传值都是铺满） */
+  const isBoxed = layout.contentWidth === 'boxed'
 
   return (
     <div
@@ -136,10 +155,23 @@ export function AppShellPreview({
               isPushed ? 'pe-[38%]' : 'pe-0',
             )}
           >
-            <PreviewTable
-              accentColor={accentColor}
-              className={cn(TRANSITION_FADE, isDetailPage && 'opacity-0')}
-            />
+            {/*
+              页面内容的宽度约束（`contentWidth`）：外层是内容列，内层才是「页面」——
+              限宽档下内层收窄居中，两侧露出 `bg-kumo-canvas`，与真实 `<main>` 的行为一致。
+              62% 是试出来的：再宽看不出「收窄了」，再窄列表条的百分比几何会挤在一起。
+            */}
+            <div
+              className={cn(
+                'mx-auto flex min-h-0 w-full flex-1 flex-col',
+                TRANSITION_CONTENT_WIDTH,
+                isBoxed ? 'max-w-[62%]' : 'max-w-full',
+              )}
+            >
+              <PreviewTable
+                accentColor={accentColor}
+                className={cn(TRANSITION_FADE, isDetailPage && 'opacity-0')}
+              />
+            </div>
           </div>
 
           {/*
@@ -154,7 +186,16 @@ export function AppShellPreview({
               isDetailPage ? 'scale-100 opacity-100' : 'scale-[0.97] opacity-0',
             )}
           >
-            <PreviewDetail accentColor={accentColor} />
+            {/* 详情页同样是「页面内容」，跟列表一起受 `contentWidth` 约束 */}
+            <div
+              className={cn(
+                'mx-auto flex min-h-0 w-full flex-1 flex-col',
+                TRANSITION_CONTENT_WIDTH,
+                isBoxed ? 'max-w-[62%]' : 'max-w-full',
+              )}
+            >
+              <PreviewDetail accentColor={accentColor} />
+            </div>
           </div>
 
           {/* 分屏面板：宽度从 0 长出来（贴 `end` 边，RTL 自动从另一边长出） */}

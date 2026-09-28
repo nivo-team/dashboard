@@ -1,6 +1,8 @@
 import { Select, Tabs, Tooltip } from '@cloudflare/kumo'
 import {
   ArrowSquareOutIcon,
+  ArrowsInLineHorizontalIcon,
+  ArrowsOutLineHorizontalIcon,
   ColumnsIcon,
   DesktopIcon,
   MoonIcon,
@@ -27,6 +29,7 @@ import {
   NEUTRAL_COLOR_OPTIONS,
   usePreferencesStore,
   type DetailOpenMode,
+  type PageWidthMode,
   type ThemeColorOption,
 } from '#/lib/store'
 import { useColorMode } from '#/lib/use-color-mode'
@@ -39,7 +42,7 @@ import type { TimezoneKey } from '#/lib/timezone'
 /**
  * 设置 → 外观（/_main/settings/appearance.tsx -> "/settings/appearance"）
  *
- * 这一页装的是四项「本机偏好」，都是**即时生效 + 即时持久化**，
+ * 这一页装的是五项「本机偏好」，都是**即时生效 + 即时持久化**，
  * 所以这里是设置页而不是表单页：没有保存按钮，也没有 dirty 状态
  * （不要套 `#/components/unsaved-changes-bar` 那套编辑态契约）。
  *
@@ -47,19 +50,21 @@ import type { TimezoneKey } from '#/lib/timezone'
  * - 语言：`#/lib/use-locale`（偏好 store 的 locale，含 RTL 切换）
  * - 时区：`#/lib/timezone`（偏好 store 的 timezone，全站时间格式化共用同一份状态）
  * - 详情打开方式：`#/lib/store` 的 detailOpenMode（表格里点开详情的行为，见 .agents/docs/detail-preview.md）
+ * - 页面宽度：`#/lib/store` 的 pageWidth（全宽 / 限宽居中，落点在 `#/lib/page-width`）
  *
- * 四项都持久化在 `admin.preferences:<appId>`（按应用隔离，见 .agents/docs/store.md）。
+ * 五项都持久化在 `admin.preferences:<appId>`（按应用隔离，见 .agents/docs/store.md）。
  * 布局是「一张卡片 + 若干设置行」，每行左 label、右控件（`SettingRow`）——
  * 用 flex 的书写方向自适应，RTL 下主轴翻转，label 自动落到右边，**不要写 rtl: 变体**。
  *
  * 控件选型：**短枚举（≤3 项）一律用 Kumo `Tabs` 的 segmented 分段控件**
- * （主题、详情打开方式），长枚举（语言 7 项、时区 8 项）用 `Select`；
+ * （主题、详情打开方式、页面宽度），长枚举（语言 7 项、时区 8 项）用 `Select`；
  * `Tabs` 是数据驱动 + 受控的，可访问名称需要外层 `role="group"` 兜（详见该处注释）。
  *
- * **两处「可视化说明」都用 `#/components/app-shell-preview` 的通用缩略图**：
- * 「调色盘」行右侧静态展示强调色的落点；「详情打开方式」则更进一步 ——
+ * **三处「可视化说明」都用 `#/components/app-shell-preview` 的通用缩略图**：
+ * 「调色盘」行右侧静态展示强调色的落点；「详情打开方式」与「页面宽度」则更进一步 ——
  * 每个分段选项悬浮时弹一个浮层，在缩略图里**把页面变化演一遍**
- * （主列被挤压 / 被覆盖 / 整块换成详情页），见 `DetailOpenModePreview`。
+ * （主列被挤压 / 被覆盖 / 整块换成详情页；内容区收窄 / 展开），
+ * 见 `DetailOpenModePreview` 与 `PageWidthPreview`。
  *
  * 账号安全、已连接应用、API Token 等更重的设置后续再扩展 —— 往侧边栏加一项即可。
  */
@@ -107,6 +112,28 @@ const DETAIL_OPEN_MODE_OPTIONS: SettingsChoiceOption<DetailOpenMode>[] = [
     labelKey: 'profile.settings.detailOpenModes.page',
     defaultLabel: '跳转详情页',
     icon: ArrowSquareOutIcon,
+  },
+]
+
+/**
+ * 页面宽度：两项短枚举，同样走分段控件 + 悬浮预览。
+ *
+ * 默认**全宽**（见 `DEFAULT_PAGE_WIDTH_MODE`）：后台页面大多是表格，列看得越多越好。
+ * 图标用「向外/向内」的一对横箭头 —— 正好对应内容区撑满与收窄这两个动作，
+ * 比边框类图标更像「宽度」这件事本身。
+ */
+const PAGE_WIDTH_OPTIONS: SettingsChoiceOption<PageWidthMode>[] = [
+  {
+    key: 'full',
+    labelKey: 'profile.settings.pageWidths.full',
+    defaultLabel: '全宽',
+    icon: ArrowsOutLineHorizontalIcon,
+  },
+  {
+    key: 'boxed',
+    labelKey: 'profile.settings.pageWidths.boxed',
+    defaultLabel: '限宽居中',
+    icon: ArrowsInLineHorizontalIcon,
   },
 ]
 
@@ -177,6 +204,71 @@ function DetailOpenModePopover({
   )
 }
 
+/**
+ * 页面宽度 → 缩略图布局。
+ *
+ * 与「详情打开方式」不同，这里要演的是**宽度约束本身**，所以起点取**相反的档** ——
+ * `boxed` 从全宽收窄、`full` 从限宽展开。只画终态的话，缩略图里「全宽」与默认态
+ * 看不出区别，等于没演；两边各自演一遍「动作」，差别才真正落在内容区怎么变上。
+ * 列表与面板那部分（`content: 'list'` / `panel: 'none'`）保持基线不动。
+ */
+const PAGE_WIDTH_PREVIEW_LAYOUTS: Record<PageWidthMode, AppShellPreviewLayout> = {
+  full: { content: 'list', panel: 'none', contentWidth: 'full' },
+  boxed: { content: 'list', panel: 'none', contentWidth: 'boxed' },
+}
+
+/** 两个档位各自的动画起点：一律从另一档起步，于是悬浮哪一项都有「变化」可看。 */
+const PAGE_WIDTH_PREVIEW_START: Record<PageWidthMode, AppShellPreviewLayout> = {
+  full: { content: 'list', panel: 'none', contentWidth: 'boxed' },
+  boxed: { content: 'list', panel: 'none', contentWidth: 'full' },
+}
+
+/**
+ * 页面宽度预览：两阶段时序来自 `#/components/settings-choice-preview` 的
+ * `usePreviewAnimation`（先画起点、停一下再切到目标档）。
+ *
+ * 宽度交给外层而不是给缩略图传 `w-*`：`AppShellPreview` 自带 `w-full max-w-80`，
+ * 本仓库的 `cn` 不做类名去重。这里用 `w-80` 撑满它的上限 —— 限宽档两侧空出来的
+ * canvas 需要足够宽度才看得清，窄一档就只剩「表格变窄」这一种读法了。
+ */
+function PageWidthPreview({
+  mode,
+  accentColor,
+}: {
+  mode: PageWidthMode
+  accentColor: string
+}) {
+  const layout = usePreviewAnimation(
+    PAGE_WIDTH_PREVIEW_START[mode],
+    PAGE_WIDTH_PREVIEW_LAYOUTS[mode],
+  )
+
+  return (
+    <div className="w-80">
+      <AppShellPreview layout={layout} accentColor={accentColor} />
+    </div>
+  )
+}
+
+/** 与「详情打开方式」同一套接法：只负责把某一档接到悬浮浮层上，浮层的讲究在公共件里。 */
+function PageWidthPopover({
+  mode,
+  label,
+  accentColor,
+  triggerId,
+}: {
+  mode: PageWidthMode
+  label: string
+  accentColor: string
+  triggerId: string
+}) {
+  return (
+    <SettingChoicePreview label={label} triggerId={triggerId}>
+      <PageWidthPreview mode={mode} accentColor={accentColor} />
+    </SettingChoicePreview>
+  )
+}
+
 function AppearanceSettingsPage() {
   const { t } = useTranslation()
   const { mode, setMode } = useColorMode()
@@ -186,6 +278,8 @@ function AppearanceSettingsPage() {
   const setNeutralColor = usePreferencesStore((state) => state.setNeutralColor)
   const detailOpenMode = usePreferencesStore((state) => state.detailOpenMode)
   const setDetailOpenMode = usePreferencesStore((state) => state.setDetailOpenMode)
+  const pageWidth = usePreferencesStore((state) => state.pageWidth)
+  const setPageWidth = usePreferencesStore((state) => state.setPageWidth)
   const { locale, setLocale, supportedLocales } = useLocale()
   const {
     timezone,
@@ -198,7 +292,7 @@ function AppearanceSettingsPage() {
     <div className="flex w-full flex-col gap-6">
       <PageHeader title={t('profileNav.settings', '设置')} />
 
-      {/* 三项本机偏好同属「通用设置」：都是即时生效、按应用隔离持久化的偏好项 */}
+      {/* 这几项本机偏好同属「通用设置」：都是即时生效、按应用隔离持久化的偏好项 */}
       <SettingsCard title={t('profile.settings.general', '通用设置')}>
           {/*
             主题：三项短枚举，用 Kumo Tabs 的 **segmented** 形态（分段控件）而不是一排 Radio ——
@@ -323,6 +417,53 @@ function AppearanceSettingsPage() {
                           accentColor={accentColor}
                           // id 既做 trigger 的 id、也做 Root 的 triggerId，页面内唯一即可
                           triggerId={`detail-open-mode-preview-${item.key}`}
+                        />
+                      </span>
+                    ),
+                  }
+                })}
+              />
+            </div>
+          </SettingRow>
+
+          {/*
+            页面宽度：内容区是全宽还是限宽居中。默认全宽 —— 后台以表格为主，
+            屏幕越宽越该把列铺开。它同时作用于两个外壳的 `<main>`（`#/lib/page-width`），
+            与「详情打开方式」一样是即时生效、按应用隔离持久化的本机偏好。
+
+            悬浮预览这里演的是**档位切换这个动作**（全宽 ↔ 限宽居中），起点取另一档，
+            而不是缩略图的默认态 —— 否则「全宽」那一项的预览与静止画面毫无区别。
+          */}
+          <SettingRow
+            label={t('profile.settings.pageWidth', '页面宽度')}
+            hint={t(
+              'profile.settings.pageWidthHint',
+              '内容区是否限制最大宽度；后台表格建议全宽',
+            )}
+          >
+            {/* 同「详情打开方式」：受控 Tabs + activateOnFocus + 外层 group 兜可访问名称 */}
+            <div
+              role="group"
+              aria-label={t('profile.settings.pageWidth', '页面宽度')}
+            >
+              <Tabs
+                value={pageWidth}
+                onValueChange={(next) => setPageWidth(next as PageWidthMode)}
+                activateOnFocus
+                tabs={PAGE_WIDTH_OPTIONS.map((item) => {
+                  const ItemIcon = item.icon
+                  const label = t(item.labelKey, item.defaultLabel)
+                  return {
+                    value: item.key,
+                    label: (
+                      <span className="flex items-center gap-2">
+                        <ItemIcon size={16} className="text-kumo-subtle" />
+                        <span>{label}</span>
+                        <PageWidthPopover
+                          mode={item.key}
+                          label={label}
+                          accentColor={accentColor}
+                          triggerId={`page-width-preview-${item.key}`}
                         />
                       </span>
                     ),

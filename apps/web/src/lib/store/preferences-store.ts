@@ -53,6 +53,25 @@ export function isDetailOpenMode(value: unknown): value is DetailOpenMode {
 }
 
 /**
+ * 内容区的**页面宽度**（见 `#/lib/page-width`）：
+ * - `full`：**全宽** —— 内容铺满外壳剩余宽度（`w-full`），宽表格一屏能看到更多列；
+ * - `boxed`：**限宽居中** —— 内容收在 `max-w-[1440px]` 内并水平居中，超宽屏上阅读更聚焦。
+ *
+ * 只影响内容区（两个外壳的 `<main>`），侧边栏与顶栏不受影响。
+ */
+export type PageWidthMode = 'full' | 'boxed'
+
+/**
+ * 默认**全宽**：这是后台系统，页面上大多是表格，「能看到更多列」比「行宽好看」重要 ——
+ * 窄屏下有没有这个上限都一样，宽屏下全宽才是默认该有的形态。
+ */
+export const DEFAULT_PAGE_WIDTH_MODE: PageWidthMode = 'full'
+
+export function isPageWidthMode(value: unknown): value is PageWidthMode {
+  return value === 'full' || value === 'boxed'
+}
+
+/**
  * AI 面板（「Ask AI」）的打开方式（见 `#/components/ai-panel`）：
  * - `split`：**Split View** —— 与侧边栏同级的整屏高列，从视口顶端齐平，挤压内容区；
  * - `float`：**Float** —— 从页面底部弹出的小窗，停在行尾侧下角、浮在内容之上，不挤压布局。
@@ -317,6 +336,8 @@ interface PreferencesState {
   neutralColor: string
   /** 表格里打开详情的方式（桌面端限定，移动端强制 `page`） */
   detailOpenMode: DetailOpenMode
+  /** 内容区宽度：全宽 / 限宽居中（只影响两个外壳的 `<main>`） */
+  pageWidth: PageWidthMode
   /** AI 面板（「Ask AI」）的打开方式：分屏列 / 底部浮窗 */
   aiPanelMode: AiPanelMode
   /** 每次打开 AI 面板时用的是新会话，还是续上一个（默认续上） */
@@ -347,6 +368,7 @@ interface PreferencesState {
   setAccentColor: (accentColor: string) => void
   setNeutralColor: (neutralColor: string) => void
   setDetailOpenMode: (detailOpenMode: DetailOpenMode) => void
+  setPageWidth: (pageWidth: PageWidthMode) => void
   setAiPanelMode: (aiPanelMode: AiPanelMode) => void
   setAiSessionMode: (aiSessionMode: AiSessionMode) => void
   setAiComposerMode: (aiComposerMode: AiComposerMode) => void
@@ -371,6 +393,7 @@ type PersistedPreferences = Pick<
   | 'accentColor'
   | 'neutralColor'
   | 'detailOpenMode'
+  | 'pageWidth'
   | 'aiPanelMode'
   | 'aiSessionMode'
   | 'aiComposerMode'
@@ -401,6 +424,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       accentColor: DEFAULT_ACCENT_COLOR,
       neutralColor: DEFAULT_NEUTRAL_COLOR,
       detailOpenMode: DEFAULT_DETAIL_OPEN_MODE,
+      pageWidth: DEFAULT_PAGE_WIDTH_MODE,
       aiPanelMode: DEFAULT_AI_PANEL_MODE,
       aiSessionMode: DEFAULT_AI_SESSION_MODE,
       aiComposerMode: DEFAULT_AI_COMPOSER_MODE,
@@ -419,6 +443,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       setAccentColor: (accentColor) => set({ accentColor }),
       setNeutralColor: (neutralColor) => set({ neutralColor }),
       setDetailOpenMode: (detailOpenMode) => set({ detailOpenMode }),
+      setPageWidth: (pageWidth) => set({ pageWidth }),
       setAiPanelMode: (aiPanelMode) => set({ aiPanelMode }),
       setAiSessionMode: (aiSessionMode) => set({ aiSessionMode }),
       setAiComposerMode: (aiComposerMode) => set({ aiComposerMode }),
@@ -454,6 +479,7 @@ export const usePreferencesStore = create<PreferencesState>()(
         accentColor: state.accentColor,
         neutralColor: state.neutralColor,
         detailOpenMode: state.detailOpenMode,
+        pageWidth: state.pageWidth,
         aiPanelMode: state.aiPanelMode,
         aiSessionMode: state.aiSessionMode,
         aiComposerMode: state.aiComposerMode,
@@ -491,6 +517,9 @@ export const usePreferencesStore = create<PreferencesState>()(
           detailOpenMode: isDetailOpenMode(saved.detailOpenMode)
             ? saved.detailOpenMode
             : current.detailOpenMode,
+          pageWidth: isPageWidthMode(saved.pageWidth)
+            ? saved.pageWidth
+            : current.pageWidth,
           aiPanelMode: isAiPanelMode(saved.aiPanelMode)
             ? saved.aiPanelMode
             : current.aiPanelMode,

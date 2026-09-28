@@ -89,6 +89,12 @@
         "sheet": "右侧抽屉",
         "page": "跳转详情页"
       },
+      "pageWidth": "页面宽度",
+      "pageWidthHint": "内容区是否限制最大宽度；后台表格建议全宽",
+      "pageWidths": {
+        "full": "全宽",
+        "boxed": "限宽居中"
+      },
       "aiDisplayMode": "显示方式",
       "aiDisplayModeHint": "Ask AI 面板的显示方式；窄屏下都会收成浮层",
       "aiSessionMode": "新会话时机",

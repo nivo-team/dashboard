@@ -89,6 +89,12 @@
         "sheet": "右サイドシート",
         "page": "詳細ページへ移動"
       },
+      "pageWidth": "ページ幅",
+      "pageWidthHint": "コンテンツ領域の最大幅を制限するかどうか。表中心の画面では全幅がおすすめ",
+      "pageWidths": {
+        "full": "全幅",
+        "boxed": "最大幅を制限"
+      },
       "aiDisplayMode": "表示方法",
       "aiDisplayModeHint": "Ask AI パネルの表示方法。狭い画面ではどちらもオーバーレイ表示になります",
       "aiSessionMode": "新しい会話のタイミング",

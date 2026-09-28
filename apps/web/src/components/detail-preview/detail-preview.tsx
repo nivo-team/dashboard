@@ -17,6 +17,7 @@ import {
   SidePanelResizeHandle,
 } from '#/components/side-panel'
 import { cn } from '#/lib/cn'
+import { pageContentWidthClass } from '#/lib/page-width'
 import {
   DETAIL_PANEL_MAX_WIDTH,
   DETAIL_PANEL_MIN_WIDTH,
@@ -170,13 +171,16 @@ const MAIN_COLUMN_CLASSES =
 const MAIN_COLUMN_END_PADDING = 'pe-4 md:pe-6 lg:pe-8'
 /** 行尾侧内边距：面板打开时收一档（手柄自身已经占掉一段视觉间距） */
 const MAIN_COLUMN_END_PADDING_SPLIT = 'pe-4 md:pe-6 lg:pe-6'
-/** 宽度约束：只在没有面板时生效 —— 分屏时主列只占左侧一段，再居中收窄会留出空档 */
-const MAIN_COLUMN_CENTERED_CLASSES = 'mx-auto w-full max-w-[1440px]'
 
 export function DetailPreviewProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
   const { isRtl } = useLocale()
   const configuredMode = usePreferencesStore((state) => state.detailOpenMode)
+  /**
+   * 页面宽度偏好：`boxed` 时主列收在 1440px 内居中，`full` 时铺满（`设置 → 外观 → 页面宽度`）。
+   * 与 `MainLayout` 的 `<main>` 共用 `#/lib/page-width` 的同一份类名，两个外壳不会各自为政。
+   */
+  const pageWidth = usePreferencesStore((state) => state.pageWidth)
   const isMobile = useIsMobileViewport()
   const location = useLocation()
 
@@ -290,7 +294,8 @@ export function DetailPreviewProvider({ children }: { children: ReactNode }) {
           className={cn(
             MAIN_COLUMN_CLASSES,
             showSplit ? MAIN_COLUMN_END_PADDING_SPLIT : MAIN_COLUMN_END_PADDING,
-            !showSplit && MAIN_COLUMN_CENTERED_CLASSES,
+            // 宽度约束只在没有面板时生效 —— 分屏时主列只占行首一段，再居中收窄会留出空档
+            !showSplit && pageContentWidthClass(pageWidth),
           )}
         >
           {children}

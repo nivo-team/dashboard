@@ -94,7 +94,7 @@ AppShell
 
 | 区域 | padding | 宽度约束 |
 | --- | --- | --- |
-| 主内容列 | `ps-4 py-4 md:ps-6 md:py-5 lg:ps-8 lg:py-6` + 行尾侧 `pe-4 md:pe-6`（面板打开时 `lg:pe-6`，关闭时 `lg:pe-8`） | 仅面板关闭时 `mx-auto max-w-[1440px]` |
+| 主内容列 | `ps-4 py-4 md:ps-6 md:py-5 lg:ps-8 lg:py-6` + 行尾侧 `pe-4 md:pe-6`（面板打开时 `lg:pe-6`，关闭时 `lg:pe-8`） | 面板关闭**且**页面宽度为「限宽居中」档时 `mx-auto max-w-[1440px]`（见 `#/lib/page-width`，默认全宽不收窄） |
 | 分屏面板 | 外层 0；由面板内部的 header（`px-4 py-3`）与内容区（`p-4`）各自设置 | 内联 `width`（可拖）+ `max-w-[calc(100%-320px)]` 兜底 |
 
 若 padding 留在 `main` 上，面板会被一起推进来、永远贴不到视口右缘与底部 ——

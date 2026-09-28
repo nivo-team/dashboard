@@ -89,6 +89,12 @@
         "sheet": "Yan panel",
         "page": "Ayrıntı sayfasına git"
       },
+      "pageWidth": "Sayfa genişliği",
+      "pageWidthHint": "İçerik alanının maksimum genişlikle sınırlanıp sınırlanmayacağı; tablo ağırlıklı panellerde tam genişlik daha iyidir",
+      "pageWidths": {
+        "full": "Tam genişlik",
+        "boxed": "Sınırlı genişlik"
+      },
       "aiDisplayMode": "Görüntüleme biçimi",
       "aiDisplayModeHint": "Ask AI panelinin görünümü; dar ekranlarda her iki biçim de katmana dönüşür",
       "aiSessionMode": "Yeni oturum zamanı",

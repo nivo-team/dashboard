@@ -89,6 +89,12 @@
         "sheet": "Panel lateral",
         "page": "Página de detalles"
       },
+      "pageWidth": "Ancho de página",
+      "pageWidthHint": "Si el área de contenido se limita a un ancho máximo; el ancho completo es mejor para tablas",
+      "pageWidths": {
+        "full": "Ancho completo",
+        "boxed": "Ancho limitado"
+      },
       "aiDisplayMode": "Modo de visualización",
       "aiDisplayModeHint": "Cómo aparece el panel Ask AI; en pantallas estrechas ambos modos pasan a ser una capa flotante",
       "aiSessionMode": "Cuándo iniciar una nueva sesión",

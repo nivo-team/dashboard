@@ -10,7 +10,7 @@
 | 类别 | 位置 | 存储键（localStorage） | 按应用隔离 |
 | --- | --- | --- | --- |
 | 认证与应用选择 | `apps/web/src/lib/auth.ts` 的 `useAuthStore` | `admin.auth-state` | 否 —— 它本身就是「当前是哪个应用」 |
-| 本机偏好（语言 / 外观 / 时区 / 详情打开方式） | `apps/web/src/lib/store/preferences-store.ts` | `admin.preferences:<appId>` | **是** —— 每个应用一套，没改过时继承 `:global` 基线 |
+| 本机偏好（语言 / 外观 / 时区 / 详情打开方式 / 页面宽度） | `apps/web/src/lib/store/preferences-store.ts` | `admin.preferences:<appId>` | **是** —— 每个应用一套，没改过时继承 `:global` 基线 |
 | 表格 UI（列设置 / 筛选 / 排序 / 分页） | `apps/web/src/lib/store/table-ui-store.ts` | `admin.table-ui:<appId>` | **是** |
 | 仪表盘布局（卡片位置 / 尺寸） | `apps/web/src/lib/store/dashboard-store.ts` | `admin.dashboard:<appId>` | **是** —— 见 [dashboard-module.md](./dashboard-module.md) |
 | 外壳 UI（侧边栏折叠 / 宽度、分屏预览宽度） | `apps/web/src/lib/store/shell-ui-store.ts` | `admin.shell-ui` | 否 —— 外壳形态偏好，全局一份（**移动端不记录**） |
@@ -20,10 +20,11 @@
 唯一的例外是**本机偏好**：它按应用分区，但用 `:global` 作为基线做继承（见第 3 节），
 所以「新应用不该突然换语言 / 主题」与「每个应用可以有自己的一套」两件事同时成立。
 
-> ⚠️ 行为提醒：语言 / 外观 / 时区 / 详情打开方式现在都随应用走 —— **切换应用会切换这几项**
+> ⚠️ 行为提醒：语言 / 外观 / 时区 / 详情打开方式 / 页面宽度现在都随应用走 —— **切换应用会切换这几项**
 > （前提是你在这个应用里改过；没改过就一直用基线）。这是刻意的，别当成 bug。
 > 其中「详情打开方式」（`detailOpenMode`：分屏 / 抽屉 / 跳转详情页）见
-> [detail-preview.md](./detail-preview.md)。
+> [detail-preview.md](./detail-preview.md)；「页面宽度」（`pageWidth`：全宽 / 限宽居中）
+> 的类名真值在 `apps/web/src/lib/page-width.ts`，两个外壳的 `<main>` 都从那里取。
 
 ---
 
