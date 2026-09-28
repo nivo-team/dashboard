@@ -586,45 +586,59 @@ export function DataTable({
 
       {/* 分页控制栏：作为 LayerCard 的独立尾部，与表格同级，不参与横向滚动 */}
       {pagination && pagination.total > 0 ? (
-        <div className="flex items-center justify-between border-t border-kumo-line bg-kumo-elevated p-3">
+        /*
+          命名容器：分页栏按**自身**宽度（而不是视口宽度）切换版式 ——
+          卡片被侧栏 / 分屏挤窄时也能正确退化成「换行居中」。
+        */
+        <div className="@container/pagination flex items-center justify-between border-t border-kumo-line bg-kumo-elevated p-3">
           <Pagination
             page={pagination.page}
             setPage={pagination.onPageChange}
             perPage={pagination.pageSize}
             totalCount={pagination.total}
             labels={paginationLabels}
+            // 空间不足时整条分页栏换行，避免统计信息与翻页控件互相挤压；
+            // 换行后每行内容居中（容器过窄时翻页控件不再单独贴边）
+            className="flex-wrap justify-center gap-y-3"
           >
-            <Pagination.Info>
-              {({ pageShowingRange, totalCount }) => (
-                // Trans 仅在传入 parent 时才会应用外层 className，故在此显式包一层 span
-                <span className="text-sm text-kumo-subtle">
-                  <Trans
-                    i18nKey="table.dataTable.paginationShowing"
-                    defaults="显示 <b>{{range}}</b> 条，共 <b>{{total}}</b> 条"
-                    values={{ range: pageShowingRange, total: totalCount }}
-                    components={{ b: <b className={COUNT_CLASS} /> }}
-                  />
-                </span>
-              )}
-            </Pagination.Info>
-            {/* 每页条数紧随左侧统计信息，右侧仅保留翻页操作 */}
-            <Pagination.PageSize
-              value={pagination.pageSize}
-              onChange={(size) => {
-                pagination.onPageSizeChange?.(size)
-                pagination.onPageChange(1)
-              }}
-              options={pagination.pageSizeOptions || [10, 15, 30, 50]}
-              label={t('table.dataTable.pagination.perPage', '每页条数：')}
-            />
+            {/* 统计信息与每页条数视为左侧一组：窄容器下两者可各自换行并居中 */}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Pagination.Info>
+                {({ pageShowingRange, totalCount }) => (
+                  // Trans 仅在传入 parent 时才会应用外层 className，故在此显式包一层 span
+                  <span className="text-sm text-kumo-subtle">
+                    <Trans
+                      i18nKey="table.dataTable.paginationShowing"
+                      defaults="显示 <b>{{range}}</b> 条，共 <b>{{total}}</b> 条"
+                      values={{ range: pageShowingRange, total: totalCount }}
+                      components={{ b: <b className={COUNT_CLASS} /> }}
+                    />
+                  </span>
+                )}
+              </Pagination.Info>
+              {/* 每页条数紧随左侧统计信息，右侧仅保留翻页操作 */}
+              <Pagination.PageSize
+                value={pagination.pageSize}
+                onChange={(size) => {
+                  pagination.onPageSizeChange?.(size)
+                  pagination.onPageChange(1)
+                }}
+                options={pagination.pageSizeOptions || [10, 15, 30, 50]}
+                label={t('table.dataTable.pagination.perPage', '每页条数：')}
+              />
+            </div>
             {/*
               翻页控件组锁定为 LTR（不跟随文档方向反转）：
               Kumo InputGroup 的圆角与描边重叠使用物理方向类
               （first:rounded-l-[inherit] / last:rounded-r-[inherit] / not-first:-ml-px），
               RTL 下 flex 主轴镜像会让 first/last 换位而圆角不换位，导致首尾圆角错位。
               dir 只加在内层：外层保留 ms-auto 按文档方向解析，RTL 下控件组依旧贴左侧。
+
+              ms-auto 只在容器 ≥720px（统计信息 + 每页条数 + 翻页控件最宽约 600px，
+              足够单行排下）时生效；窄于该宽度时去掉外边距，
+              让换行后的翻页控件与上面的统计信息一样居中。
             */}
-            <div className="ms-auto flex items-center">
+            <div className="flex items-center @min-[720px]/pagination:ms-auto">
               <div className="flex items-center" dir="ltr">
                 <Pagination.Controls />
               </div>

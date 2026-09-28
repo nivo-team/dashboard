@@ -269,6 +269,7 @@ type ColumnRenderer<TData> = (ctx: {
 - **数组枚举需要翻译**：`account_types` 这类值为 `anchor`/`merchant` 等英文枚举，必须在渲染器里映射 i18n，默认渲染器只显示原始值。
 - **演示兜底**：后端不可用时的 demo 数据放在模块 `-data/` 下（`-` 前缀目录不会被路由插件扫描）。
 - **空态与错误**：`DataTable` 已接管 loading / error / empty / 分页，页面只需传 `loading`、`error`、`onRetry`、`pagination`。
+- **分页栏按卡片自身宽度自适应，不要改回固定分栏**：分页栏声明了命名容器 `@container/pagination`，`Pagination` 根节点带 `flex-wrap justify-center gap-y-3`，统计信息与「每页条数」包在同一个 `flex-wrap` 分组里 —— 卡片被侧栏 / 分屏挤窄时整条栏自动换行且**每行居中**；只有容器 ≥720px（内容最宽约 600px，够单行排下）时翻页控件才靠 `@min-[720px]/pagination:ms-auto` 贴行尾。页面不要给 `Pagination` 传 `className`，也不要把 `ms-auto` 改回无条件生效（否则窄卡片里翻页控件会单独贴边、与上面的统计信息错位）。
 - **行分隔线由 `DataTable` 提供，不要自行改造行底色**：Kumo 的 `Table` 只在表头输出 `[&_th]:border-b`，body 行本来靠斑马纹（`even:bg-kumo-elevated`）区分；`DataTable` 为了让单元格内容更干净，已在 `Table.Body` 上取消了斑马纹并补出 `[&>tr>td]:border-b border-kumo-fill`（最后一行去掉边框以匹配分页栏的 `border-t`）。所以在单元格/行上覆盖背景或边框类之前，先确认不会把行分隔线一起盖掉。
 - **表格容器（`LayerCard.Primary`）必须整体直角**：`DataTable` 内已固定为 `rounded-none`，不要改回 `rounded-t-none`。Kumo 的 `LayerCard.Primary` 自带 `rounded-lg`（`LAYER_CARD_PRIMARY_CLASSES`），同时是 `overflow-x-auto` 的裁剪容器；而 `rounded-t-none` 与 `rounded-lg` 不是同一组类，`twMerge` **不会**移除 `rounded-lg`，底部圆角依然在，于是贴底的表格最后一行被裁出圆弧 —— 树表子行的背景与左侧 `kumo-brand` 竖线正好落在最后一行时，竖线末端会被裁圆、看起来没铺满行高。卡片外轮廓的圆角由外层 `LayerCard` 的 `overflow-hidden rounded-lg` 负责，内层不需要重复。
 - **接口无分页时的临时方案**：`DataTable` 的分页控件是受控的（只回调、不切片），接口还没分页时在页面里 `slice((page-1)*pageSize, page*pageSize)` 传给它，并对 `filteredTotal / pageSize` 做一次页码收敛（`page > maxPage` 时 `setPage(maxPage)`），否则搜索或刷新后容易停在空白页。搜索、筛选的 handler 里都要 `setPage(1)`。
