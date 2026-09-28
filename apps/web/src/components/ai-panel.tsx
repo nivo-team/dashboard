@@ -3,6 +3,7 @@ import {
   ArrowsOutSimpleIcon,
   CaretDownIcon,
   CaretUpIcon,
+  PlusIcon,
   XIcon,
 } from '@phosphor-icons/react'
 import {
@@ -20,6 +21,7 @@ import {
   SHELL_PANEL_FRAME,
   SidePanelResizeHandle,
 } from '#/components/side-panel'
+import { useAiSessionStore } from '#/lib/ai'
 import { cn } from '#/lib/cn'
 import {
   AI_FLOAT_MAX_HEIGHT,
@@ -290,14 +292,20 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed, o
           视口变矮时把浮窗压回视口内 —— 两处一旦分叉，拖到上限时面板会先停住、
           再被 CSS 悄悄压小。
 
-          折叠态**不写 `height`**：高度交给内容（只剩头行那一条），
-          展开时再用存档 / 拖拽出来的 `floatSize.height`。
+          折叠态与展开态的尺寸是**两回事**：
+          - 折叠：宽度直接取**最小宽度**（一条窄条，够放头像 + 标题 + 两个按钮），
+            不写 `height` —— 高度交给内容（只剩头行那一条）；
+          - 展开：回到 `floatSize`（存档 / 拖拽出来的宽 + 高）。
+
+          折叠期间**不碰 `floatSize`、也不落盘**（手柄在折叠态根本不挂，见下）：
+          所以 `aiFloatWidth` / `aiFloatHeight` 里留的始终是「上一次展开时的尺寸」，
+          展开即恢复；关掉面板再打开也是这个尺寸。
         */
         style={
           isMobile
             ? undefined
             : isCollapsed
-              ? { width: floatSize.width }
+              ? { width: AI_FLOAT_MIN_WIDTH }
               : {
                   width: floatSize.width,
                   height: floatSize.height,
@@ -342,23 +350,23 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed, o
           手柄是浮窗**内部**的绝对定位热区，顺序放在内容之后、靠 `z-20` 压在上面；
           它们**不画任何常驻 / hover 视觉**（连角上也不放图标），提示只在鼠标样式上。
 
-          折叠态只留**宽度**手柄：窄条的高度就是头行，改它没有意义（拖了也会被忽略）。
+          **折叠态三个手柄一个都不挂**：窄条的宽就是最小宽度、高就是头行，拖它没有意义；
+          更重要的是拖拽会在 `onCommit` 里落盘，而折叠期间的尺寸**不该污染存档** ——
+          存档要留着「上次展开时的宽高」，展开才能原样恢复（见上面的 style 注释）。
         */}
-        {isMobile ? null : (
+        {isMobile || isCollapsed ? null : (
           <>
             {/* 顶边：只改高度 */}
-            {isCollapsed ? null : (
-              <AiFloatResizeHandle
-                label={t('resizeFloatHeight', '调整浮窗高度')}
-                orientation="horizontal"
-                valueNow={floatSize.height}
-                valueMin={AI_FLOAT_MIN_HEIGHT}
-                valueMax={resolveMaxFloatHeight()}
-                handleProps={floatHeightHandleProps}
-                className="inset-x-0 top-0 h-1.5 cursor-ns-resize"
-                focusLineClassName="inset-x-0 my-auto h-0.5"
-              />
-            )}
+            <AiFloatResizeHandle
+              label={t('resizeFloatHeight', '调整浮窗高度')}
+              orientation="horizontal"
+              valueNow={floatSize.height}
+              valueMin={AI_FLOAT_MIN_HEIGHT}
+              valueMax={resolveMaxFloatHeight()}
+              handleProps={floatHeightHandleProps}
+              className="inset-x-0 top-0 h-1.5 cursor-ns-resize"
+              focusLineClassName="inset-x-0 my-auto h-0.5"
+            />
             {/* 行首边：只改宽度 */}
             <AiFloatResizeHandle
               label={t('resizeFloatWidth', '调整浮窗宽度')}
@@ -370,15 +378,13 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed, o
               className="inset-y-0 start-0 w-1.5 cursor-ew-resize"
               focusLineClassName="inset-y-0 mx-auto w-0.5"
             />
-            {/* 行首上角：同时改宽高（对角光标在 RTL 下镜像成 `nesw`）；折叠态不挂 */}
-            {isCollapsed ? null : (
-              <AiFloatResizeHandle
-                label={t('resizeFloat', '调整浮窗大小')}
-                handleProps={floatCornerHandleProps}
-                className="start-0 top-0 size-3 cursor-nwse-resize rtl:cursor-nesw-resize"
-                focusLineClassName="start-1 top-1 size-1.5 rounded-full"
-              />
-            )}
+            {/* 行首上角：同时改宽高（对角光标在 RTL 下镜像成 `nesw`） */}
+            <AiFloatResizeHandle
+              label={t('resizeFloat', '调整浮窗大小')}
+              handleProps={floatCornerHandleProps}
+              className="start-0 top-0 size-3 cursor-nwse-resize rtl:cursor-nesw-resize"
+              focusLineClassName="start-1 top-1 size-1.5 rounded-full"
+            />
           </>
         )}
       </aside>
@@ -486,6 +492,8 @@ function AiPanelSurface({
 }) {
   const { t } = useTranslation('ai')
   const activeSessionTitle = useActiveSessionTitle()
+  /** 头行「新对话」快捷按钮：直接开一段新会话，不必先点开会话选择器 */
+  const startNewSession = useAiSessionStore((state) => state.startNewSession)
 
   /*
     指针高亮：把坐标写进 CSS 变量，由背景层（`.ai-dot-spotlight`）自己裁。
@@ -592,12 +600,36 @@ function AiPanelSurface({
         )}
 
         {/*
-          动作区：最大化（跳到全屏对话页）+ 折叠（只有 Float 有）+ 关闭。
-          顺序上越靠近内容，越是「与当前这段对话有关」的动作：最大化在最前，
+          动作区：新对话 + 最大化（跳到全屏对话页）+ 折叠（只有 Float 有）+ 关闭。
+          顺序上越靠近内容，越是「与当前这段对话有关」的动作：新对话在最前，
           关闭在最后。RTL 下由 flex 自己镜像到另一侧。
+
+          **折叠态只留「展开」与「关闭」**：一条窄条上塞四颗按钮既挤又吵，而新对话 /
+          最大化本来就得先看见内容才有意义 —— 想用先展开。
         */}
         <div className="flex shrink-0 items-center gap-1">
-          {onMaximize ? (
+          {/*
+            「新对话」快捷按钮：会话选择器浮层里本来也有一个，但那是「点开 → 再点一下」；
+            开新对话是高频动作，头行留一颗直给。
+          */}
+          {collapsed ? null : (
+            <Tooltip
+              content={t('sessionNew', '新对话')}
+              className="cursor-pointer"
+              render={
+                <Button
+                  variant="ghost"
+                  shape="square"
+                  onClick={startNewSession}
+                  aria-label={t('sessionNew', '新对话')}
+                />
+              }
+            >
+              <PlusIcon size={16} />
+            </Tooltip>
+          )}
+
+          {!collapsed && onMaximize ? (
             <Tooltip
               content={t('maximizeTooltip', '在全屏对话中打开')}
               className="cursor-pointer"
