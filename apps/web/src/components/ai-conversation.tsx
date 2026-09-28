@@ -3,6 +3,7 @@ import {
   CaretDownIcon,
   CheckCircleIcon,
   CircleNotchIcon,
+  FileIcon,
   WarningCircleIcon,
 } from '@phosphor-icons/react'
 import { useEffect } from 'react'
@@ -277,6 +278,7 @@ function AiMessageView({
   streaming: boolean
 }) {
   const outputMode = usePreferencesStore((state) => state.aiOutputMode)
+  const { t } = useTranslation('ai')
 
   /*
     「等待」模式下，**正在生成的那条整条不渲染**：内容在 store 里照常累积，只是不往屏幕上画，
@@ -289,11 +291,56 @@ function AiMessageView({
     const text = message.parts
       .map((part) => (part.type === 'text' ? part.text : ''))
       .join('')
+    /*
+      用户消息里除了文字还有**附件**，分两类渲染（另有旧存档的 `image` part）：
+      - 图片：按原图比例预览、限制最大高度；
+      - 文本文件（md / txt）：一张只读卡片（图标 + 文件名）—— 内容已经作为文本发给模型，
+        不在气泡里铺开。
+      只发附件不打字时也只渲染附件那一块（`gap-2` 在没有文字时不会留下空档）。
+    */
+    const imageParts = message.parts.filter(
+      (
+        part,
+      ): part is
+        | Extract<AiMessagePart, { type: 'image' }>
+        | (Extract<AiMessagePart, { type: 'attachment' }> & { kind: 'image' }) =>
+        part.type === 'image' ||
+        (part.type === 'attachment' && part.kind === 'image'),
+    )
+    const textFileParts = message.parts.filter(
+      (
+        part,
+      ): part is Extract<AiMessagePart, { type: 'attachment' }> & { kind: 'text' } =>
+        part.type === 'attachment' && part.kind === 'text',
+    )
     return (
-      <div className="flex justify-end">
-        <p className="max-w-[85%] whitespace-pre-wrap rounded-xl bg-kumo-tint px-3 py-2 text-sm text-kumo-default">
-          {text}
-        </p>
+      <div className="flex flex-col items-end gap-2">
+        {imageParts.length > 0 || textFileParts.length > 0 ? (
+          <div className="flex max-w-[85%] flex-wrap justify-end gap-2">
+            {imageParts.map((image, index) => (
+              <img
+                key={`${message.id}-image-${index}`}
+                src={image.url}
+                alt={image.name ?? t('attachmentPreview', '待发送的附件')}
+                className="max-h-40 rounded-xl ring-1 ring-kumo-line"
+              />
+            ))}
+            {textFileParts.map((file, index) => (
+              <span
+                key={`${message.id}-file-${index}`}
+                className="flex max-w-64 items-center gap-2 rounded-xl bg-kumo-tint px-3 py-2 ring-1 ring-kumo-line"
+              >
+                <FileIcon size={18} className="shrink-0 text-kumo-subtle" />
+                <span className="truncate text-xs text-kumo-default">{file.name}</span>
+              </span>
+            ))}
+          </div>
+        ) : null}
+        {text ? (
+          <p className="max-w-[85%] whitespace-pre-wrap rounded-xl bg-kumo-tint px-3 py-2 text-sm text-kumo-default">
+            {text}
+          </p>
+        ) : null}
       </div>
     )
   }

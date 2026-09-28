@@ -4,7 +4,12 @@ import { listAiForms } from './form-bridge'
 import { getAiShellBridge, getPageContext } from './page-context'
 import { useAiSessionStore } from './session-store'
 import { getAllowedTools } from './tools'
-import type { AiApprovalRequest, AiMode, AiToolContext } from './types'
+import type {
+  AiApprovalRequest,
+  AiAttachment,
+  AiMode,
+  AiToolContext,
+} from './types'
 
 /**
  * 「发一条消息」的驱动逻辑：把 UI 的一个动作串成「建消息 → 跑运行时 → 消费事件流」。
@@ -119,10 +124,17 @@ function describeError(error: unknown): string {
  * 事件流在 `for await` 里逐条写进 store：文本增量续写到同一个文本 part，
  * 工具调用建 part、工具结果回填状态 —— 于是「正在调用某个工具」是**真实状态**，
  * 不是靠计时器演的动画。
+ *
+ * `attachments` 是随文发出的附件（图片或普通文件，data URL）；**只有附件、没有文字也可以发**
+ * （截图直接甩进来问「这是什么」是常见用法），所以判空要看「文字与附件都空」。
  */
-export async function sendAiMessage(text: string, mode: AiMode): Promise<void> {
+export async function sendAiMessage(
+  text: string,
+  mode: AiMode,
+  attachments: readonly AiAttachment[] = [],
+): Promise<void> {
   const trimmed = text.trim()
-  if (!trimmed) return
+  if (!trimmed && attachments.length === 0) return
 
   const store = useAiSessionStore.getState()
   if (store.status === 'streaming') return
@@ -133,7 +145,7 @@ export async function sendAiMessage(text: string, mode: AiMode): Promise<void> {
     return
   }
 
-  const assistantId = store.beginTurn(trimmed)
+  const assistantId = store.beginTurn(trimmed, attachments)
   // 用户的问题**立刻落盘**：助手回复到一半刷新页面，问题也不该丢
   void useAiSessionStore.getState().persist()
 

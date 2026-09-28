@@ -147,6 +147,12 @@ export interface AiMessage {
 
 export type AiMessagePart =
   | { type: 'text'; text: string }
+  | ({ type: 'attachment' } & AiAttachment)
+  /**
+   * @deprecated 早期只支持图片时写进会话存档的 part。
+   * **只读兼容**（新消息一律写 `attachment`）：旧会话里的图因此还能预览、还能继续发给模型。
+   */
+  | ({ type: 'image' } & AiImageAttachment)
   | {
       type: 'tool-call'
       toolCallId: string
@@ -157,6 +163,44 @@ export type AiMessagePart =
       output?: unknown
       error?: string
     }
+
+/**
+ * 图片附件：以 **data URL** 表示（UI 直接 `src` 预览，IndexedDB 也只存字符串）。
+ * 发给模型时拆成 base64 + `mediaType`，作为 AI SDK v7 的 **`FilePart`**（见 `runtime.toModelMessages`）。
+ */
+export interface AiImageFile {
+  kind: 'image'
+  url: string
+  /** IANA 媒体类型（`image/png` …），发送时是必填字段 */
+  mediaType: string
+  /** 原始文件名。可以没有：粘贴来的截图就没有名字 */
+  name?: string
+  /** 字节数，只用于在卡片上显示大小 */
+  size: number
+}
+
+/**
+ * 文本附件（**目前只收 Markdown / 纯文本**）。
+ *
+ * 内容**在客户端就解析好**（`File.text()`）随消息当文本发出去 —— 不走 `FilePart` 的二进制上传：
+ * 这样任何厂商都能读，不依赖它对文档格式的支持（也躲开了各家对 PDF / Office 解析的差异）。
+ */
+export interface AiTextFile {
+  kind: 'text'
+  name: string
+  size: number
+  /** 解析出来的纯文本内容 */
+  text: string
+}
+
+export type AiAttachment = AiImageFile | AiTextFile
+
+/** @deprecated 只给 `AiMessagePart` 的 `image` 分支用（旧存档兼容），新代码用 `AiAttachment` */
+export interface AiImageAttachment {
+  url: string
+  mediaType: string
+  name?: string
+}
 
 /**
  * 运行时向外抛的事件流。

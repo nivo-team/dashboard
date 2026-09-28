@@ -104,8 +104,25 @@ interface AiModelConfig {
   modelId: string     // 传给厂商 API 的模型名，如 gpt-5-mini / claude-sonnet-4-5
   displayName: string
   supportsTools: boolean   // 关掉后该模型收不到工具，纯对话
+  reasoningLevels: AiReasoningLevel[]  // 这个模型声明支持哪些思考程度（空 = 不支持推理）
+  reasoning: AiReasoningLevel          // 当前用的那一档（输入区可切，按模型记住）
+  supportsVision: boolean              // 关掉后输入区不给图片入口
 }
+
+// AI SDK v7 的顶层可移植枚举，顺序即界面顺序
+type AiReasoningLevel =
+  | 'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
 ```
+
+**思考程度走 AI SDK 的顶层 `reasoning` 参数**（v7 起可移植，SDK 自己翻成 `reasoning_effort` /
+`thinking.budget_tokens`）：运行时只在模型声明了档位、且选中的不是 `provider-default` 时才传。
+**不要改用 `providerOptions`** —— 两者不合并，那边一旦出现推理选项，顶层参数会被完全忽略。
+
+**图像识别没有 SDK 侧的能力查询**：AI SDK 只提供「怎么发图」（v7 用 `FilePart`，
+旧的 `ImagePart` 已 deprecated），能不能看图由厂商决定，所以必须由 `supportsVision` 自己声明
+（默认 **`true`**：现在的模型基本都多模态，关掉是显式声明"这个模型看不了图"）。关掉后
+「+」命令面板里的「添加照片和文件」会禁用并说明原因，而不是把入口整个藏起来 —— 入口忽然消失
+比灰着更让人困惑。
 
 **存储键 `admin.ai`，全局一份、不按应用隔离**：Key 是使用者级别的资产，在 console 配好、切到 analytics 不该重配（与 `admin.shell-ui` 同类，而不是 `admin.preferences:<appId>`）。跨标签页同步沿用 `enableCrossTabSync`。
 
@@ -118,6 +135,8 @@ interface AiModelConfig {
 ```ts
 type AiMessagePart =
   | { type: 'text'; text: string }
+  | { type: 'attachment'; kind: 'image'; url: string; mediaType: string; name?: string; size: number }
+  | { type: 'attachment'; kind: 'text'; name: string; size: number; text: string }  // md / txt，客户端已解析
   | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown; state: 'running' | 'done' | 'error'; output?: unknown; error?: string }
 
 interface AiMessage {

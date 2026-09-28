@@ -9,7 +9,13 @@ import {
   setActiveSessionId,
   type AiSessionSummary,
 } from './session-db'
-import type { AiApprovalRequest, AiMessage, AiMessagePart, AiStreamEvent } from './types'
+import type {
+  AiApprovalRequest,
+  AiAttachment,
+  AiMessage,
+  AiMessagePart,
+  AiStreamEvent,
+} from './types'
 
 /**
  * AI 会话状态：**当前会话的消息** + **该 app 的历史会话列表**。
@@ -67,8 +73,13 @@ interface AiSessionState {
    */
   pendingApproval: PendingApproval | null
 
-  /** 追加一条用户消息，并开一条空的助手消息（返回它的 id，后续事件都往它身上写） */
-  beginTurn: (text: string) => string
+  /**
+   * 追加一条用户消息，并开一条空的助手消息（返回它的 id，后续事件都往它身上写）。
+   *
+   * `attachments` 是这一轮随文发出的**附件**（图片或普通文件，见 `AiAttachment`）：
+   * 文本在前、附件在后 —— 与用户的输入顺序一致（先写话、再补附件）。**两者可以只有其一**。
+   */
+  beginTurn: (text: string, attachments?: readonly AiAttachment[]) => string
   /** 消费一个流式事件（text / tool-call / tool-result / …） */
   applyEvent: (assistantId: string, event: AiStreamEvent) => void
   /** 一轮正常结束 */
@@ -174,14 +185,21 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
   error: null,
   pendingApproval: null,
 
-  beginTurn: (text) => {
+  beginTurn: (text, attachments = []) => {
     const assistantId = createId()
+    // 文本在前、附件在后：与用户「先写话、再补附件」的输入顺序一致
+    const parts: AiMessagePart[] = [
+      ...(text ? [{ type: 'text' as const, text }] : []),
+      ...attachments.map(
+        (attachment): AiMessagePart => ({ type: 'attachment', ...attachment }),
+      ),
+    ]
     set((state) => ({
       status: 'streaming',
       error: null,
       messages: [
         ...state.messages,
-        { id: createId(), role: 'user', parts: [{ type: 'text', text }] },
+        { id: createId(), role: 'user', parts },
         { id: assistantId, role: 'assistant', parts: [] },
       ],
     }))

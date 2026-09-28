@@ -76,14 +76,15 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
 
 ```
 用户按 Enter（AiComposer）
-  └─ sendAiMessage(text, mode)                    chat.ts
+  └─ sendAiMessage(text, mode, images)            chat.ts
        ├─ 读偏好：aiPermission / aiAllowedTools / aiOutputLanguage / locale
        ├─ getAllowedTools(permission, allowed, { hasForms })      ← 权限过滤的唯一入口
-       ├─ beginTurn()（把用户消息写进 store，并立刻落盘）
+       ├─ beginTurn(text, images)（用户消息写进 store，并立刻落盘）
        ├─ await import('./runtime')                                ← 懒加载
-       ├─ toModelMessages(messages)                                ← 历史衰减在这里
+       ├─ toModelMessages(messages)                                ← 历史衰减 + 图片转 FilePart
        └─ streamAssistantTurn({ messages, mode, outputLocale, tools, toolContext })
-            └─ buildSystemPrompt(mode, outputLocale)               ← 每轮重算
+            ├─ buildSystemPrompt(mode, outputLocale)               ← 每轮重算
+            └─ streamText({ …, reasoning: resolveReasoning(model) })  ← 思考程度在这里落地
   └─ for await (event of stream) → session-store.applyEvent(assistantId, event)
        └─ UI 随之重渲染（ai-conversation 读 store）
   └─ endTurn() → 落盘
@@ -98,7 +99,18 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
 
 - **工具循环由 SDK 负责**（`stopWhen: isStepCount(...)`），我们不做调度；
 - **审批发生在工具内部**，注册表那层不拦截 —— 否则模型不知道有写的能力，只会回答"我做不到"；
-- **落盘只在三处**（发送后 / 一轮结束后 / 切删会话时），流式期间不写盘。
+- **落盘只在三处**（发送后 / 一轮结束后 / 切删会话时），流式期间不写盘；
+- **附件是消息 part，分两类**（`attachment` 带 `kind` 判别）：
+  `kind: 'image'`（data URL）→ `toModelMessages` 转成 AI SDK v7 的 **`FilePart`**
+  （`{ type: 'file', mediaType, filename, data: base64 }`；旧的 `ImagePart` 在 v7 已 deprecated，
+  早期写入的 `image` part 读取时仍兼容）；
+  `kind: 'text'`（md / txt，内容已由客户端解析）→ 用 `<file name="…">…</file>` 拼进**同一条**
+  user 消息的文本。图片上限 4 MB、文本 256 KB、一次最多 4 个；发送前在**附件预览区**可见、
+  可逐个删除；
+- **思考程度只有一条通路**：AI SDK v7 的**顶层可移植参数** `reasoning`，传不传由
+  `resolveReasoning(model)` 决定（没声明档位、或选了 `provider-default` 就不传）。
+  档位清单由模型自己声明（`reasoningLevels`），输入区的设置菜单只列这些档。
+  **别改用 `providerOptions`** —— 两者不合并，那边一旦出现推理选项，顶层参数会被完全忽略。
 
 ## 3. 两个正交维度：权限与模式
 
@@ -326,20 +338,38 @@ useAiPageContext(Route.id, {
   （`px-4 pt-4 pb-0`）而不是 `p-4`，免得与 Kumo 的 `py-2` 拼出多余的上下留白。
   键盘约定：`Enter` 发送、`Shift + Enter` 换行、**输入法组字中的回车要让开**
   （`event.nativeEvent.isComposing`）；发送后清空、运行中禁用提交（见第 10 节）。
-  发送按钮左侧是一颗**「AI 设置」按钮**（滑杆图标 `SlidersHorizontalIcon`，`size="sm"` ——
-  `shape="circle"` 下是 `compactSize.sm` = `size-6.5`，26px，**与发送 / 停止按钮同档**才齐平；
-  不传 `size` 会落到 `base` 档的 36px、大一圈）。**面板与全屏对话页共用这一个 `AiComposer`，
-  只靠参数区分**，于是这颗按钮两处都有，下拉内容是：
-  - **选择模型**（子菜单 `DropdownMenu.Sub` / `.SubTrigger` / `.SubContent`）：列表来自
-    `#/lib/store/ai-store` 的 `models`，点一项 `setActiveModel`。触发项是**一行**：
-    标签在左、当前模型名在右（`flex-1 text-end` 顶到箭头前），即「标题 + 当前值」的常见写法；
-    两处都给，**一个模型都没配时换成一条「去设置」的引导项**（`/settings/AI`），不留空菜单；
-  - **配置权限**（齿轮 `GearSixIcon`）：只有面板给（传了 `onConfigurePermissions` 才有）——
-    权限视图是「整块替换面板内容」的，全屏对话页没有承载它的地方。
-  **触发按钮是滑杆、齿轮只在「配置权限」那一项上**，别调换。Kumo 的 `SubTrigger` 自带行尾
-  右向箭头，不要再自绘；子菜单图标也别用 `icon` prop（那里写死物理方向的 `mr-2`）。
-  行尾的 `ms-auto` **只挂这颗按钮**：提交位再挂一个，剩余空隙会被平分、设置按钮跑到中间
-  （全屏页踩过一次）。
+  工具行分两段：**行首的「+」菜单** + **行尾的设置按钮与提交位**。
+  **面板与全屏对话页共用这一个 `AiComposer`**，只靠 `onConfigurePermissions` 区分。
+  - **「+」菜单**（`PlusIcon`，行首、模式 pill 左边；两处都给，按钮样式 `secondary`）：
+    一个 `DropdownMenu`，**目前只有一项「添加照片和文件」**，菜单项**只有标题**（一行一条，
+    与后续要加的其它能力保持一致）。**只收两类**：
+    **图片**以 data URL 存进会话的 `attachment` part（`kind: 'image'`），发送时转成 v7 的 `FilePart`；
+    **文本文件**（md / txt）**在客户端就解析**（`File.text()`）成 `kind: 'text'` 的 part，发送时用
+    `<file name="…">` 包成文本块拼进 user 消息 —— 这样任何厂商都能读，不依赖它对文档格式的支持。
+    其余类型**直接说明支持哪些**，而不是收下再让厂商报错。上限：图片 4 MB、文本 256 KB
+    （文本要吃上下文，所以严格得多），一次最多 4 个；被拦下的原因贴在输入框上（不静默丢）。
+    选完或直接粘贴（`onPaste` 挂在外层框上、事件从 textarea 冒泡上来）都会进**附件预览区**：
+    图片是缩略图、文本文件是卡片（文件名 + 体积），**每个附件右上角都有删除按钮** ——
+    发出去之前随时能撤。模型没声明 `supportsVision` 时该项**禁用**（粘贴进来的图片也不收，
+    文本文件不受影响），原因走原生 `title`（悬停可见、不占版面）—— 入口本身不藏：突然消失比
+    灰着更困惑。
+    **⚠️ 文件选择器 `<input>` 必须挂在菜单外面**（根节点下常驻）：放进 `DropdownMenu.Content`
+    会随菜单关闭一起卸载，而点菜单项正是「先关菜单、再开系统文件选择器」—— 元素没了，选完文件
+    回来的 `change` 就没人接，表现是「选了一张图但附件区什么都没出现」（踩过这个坑）。
+    **后续的新能力也往这个菜单里加**（加一项就是一个 `DropdownMenu.Item`），所以它从一开始
+    就是菜单组件，而不是为单项写一个开关式按钮；
+  - **行尾设置按钮**（滑杆 `SlidersHorizontalIcon`，`size="sm"` = `compactSize.sm` 26px，
+    与提交位同档才齐平；`models.length > 0 || onConfigurePermissions` 时才渲染）：
+    **选择模型**（子菜单 `DropdownMenu.Sub` / `.SubTrigger` / `.SubContent`，列表来自
+    `#/lib/store/ai-store` 的 `models`，点一项 `setActiveModel`；触发项是**一行**：标签在左、
+    当前模型名在右；一个模型都没配时换成一条「去设置」的引导项）
+    + **思考程度**（子菜单，只列该模型声明的 `reasoningLevels`，档位名复用
+    `common:profile.settings.aiReasoningLevels`）+ **配置权限**（齿轮 `GearSixIcon`，
+    只有面板给 —— 权限视图是「整块替换面板内容」的，全屏对话页没有承载它的地方）；
+  - **提交位**：发送 / 停止。
+  `ms-auto` 归行尾组**最左边**那一颗（有设置按钮时是它，否则是提交位）—— 两颗都挂会把剩余
+  空隙平分、按钮跑到中间（全屏页踩过一次）。Kumo 的 `SubTrigger` 自带行尾右向箭头，
+  不要再自绘；子菜单图标也别用 `icon` prop（写死物理方向的 `mr-2`）。
   行尾的 `ms-auto` 挂在**这颗**按钮上（没有入口时才归发送 / 停止那颗）—— 自动外边距挂到发送上，
   空白会落在两者之间，权限按钮就被推回左侧去了；挂在这颗，「权限 + 发送」才作为一组贴在行尾。
   **输入区每次挂载即聚焦**（`useEffect` + `focus({ preventScroll: true })`）—— 面板打开、
@@ -401,11 +431,17 @@ useAiPageContext(Route.id, {
 - 文案：面板 / 输入区 / 会话区都用 `ai` 命名空间（面板 `title` / `close` / `resize`（分屏拖柄）/
   `resizeFloat` / `resizeFloatWidth` / `resizeFloatHeight`（浮窗三个拖柄）；输入区
   `inputLabel` / `inputPlaceholder` / `send` / `mode*` / `aiSettings`（行尾设置按钮）/
+  `compose` / `addPhotoAndFiles` / `visionUnsupported`（「+」菜单与它的禁用说明）/
   `selectModel` / `modelNone` / `modelEmpty`（模型子菜单与未配置引导）/
+  `reasoning`（思考程度）+ `attachmentPreview` / `attachmentRemove` / `attachmentTooLarge`
+  （带 `{{size}}` 插值）/ `attachmentReadFailed` / `attachmentLimit` / `attachmentUnsupported`
+  （附件预览与拦截提示）/
   `configurePermissions*`（配置权限那一项）/ `permissions*`（面板权限视图：标题 / 返回 / 保存 / 未保存提示；
   配置体自身的档位与工具名复用 `common:profile.settings.aiPermission*`）；会话区 `greetings.*` / `greetingPrompt` /
   `thinking` / `tool*` / `tools.*`），7 语言齐。设置项在 `common:profile.settings` 下（卡片标题复用 `general`）：
-  `aiDisplayMode` / `aiDisplayModeHint` / `aiModes.*` —— **必须挂 `profile.settings` 下**
+  `aiDisplayMode` / `aiDisplayModeHint` / `aiModes.*` / `aiModelReasoning*` /
+  `aiModelSupportsVision*` / `aiReasoningLevels.*`（思考程度档位名只有这一份，输入区也复用）——
+  **必须挂 `profile.settings` 下**
   （曾误挂到 `profile` 顶层，各语言一律回落成中文默认值）。「Ask AI」是**产品入口名**、
   各语言保留原文；而 `aiModes.split` / `aiModes.float` 是**形态名、必须本地化**。
 - **工具调用卡片默认隐藏**（`aiShowToolCalls`，默认 `false`）：普通用户只关心回答内容，

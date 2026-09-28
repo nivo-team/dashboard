@@ -1,10 +1,15 @@
-import { Badge, Button, Input, LayerDialog, Select, Switch } from '@cloudflare/kumo'
+import { Badge, Button, Checkbox, Input, LayerDialog, Select, Switch } from '@cloudflare/kumo'
 import { PencilSimpleIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SettingsCard } from '#/components/settings-card'
-import { useAiConfigStore, type AiModelConfig } from '#/lib/store'
+import {
+  AI_REASONING_LEVELS,
+  useAiConfigStore,
+  type AiModelConfig,
+  type AiReasoningLevel,
+} from '#/lib/store'
 
 /**
  * 设置 → AI 的「模型」卡片：**模型**配置（所属厂商 / 模型 ID / 显示名 / 是否支持工具调用）
@@ -206,17 +211,35 @@ function AiModelDialog({
   const [modelId, setModelId] = useState(target?.modelId ?? '')
   const [displayName, setDisplayName] = useState(target?.displayName ?? '')
   const [supportsTools, setSupportsTools] = useState(target?.supportsTools ?? true)
+  const [supportsVision, setSupportsVision] = useState(target?.supportsVision ?? true)
+  const [reasoningLevels, setReasoningLevels] = useState<AiReasoningLevel[]>(
+    target?.reasoningLevels ?? [],
+  )
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
     const trimmedModelId = modelId.trim()
     if (!providerId || !trimmedModelId) return
+    /*
+      当前思考程度**不在这里改**（那是输入区的事），但勾选清单变了要顺手校验一次：
+      原来选的档位刚被取消勾选时回落到 `provider-default`，否则存档里会留下一个
+      「声明不支持、却还选着」的值。
+    */
+    const reasoning: AiReasoningLevel =
+      target &&
+      (target.reasoning === 'provider-default' ||
+        reasoningLevels.includes(target.reasoning))
+        ? target.reasoning
+        : 'provider-default'
     const payload = {
       providerId,
       modelId: trimmedModelId,
       // 显示名留空就跟着模型 ID —— 少一个必填项，且默认值总是有意义的
       displayName: displayName.trim() || trimmedModelId,
       supportsTools,
+      supportsVision,
+      reasoningLevels,
+      reasoning,
     }
     if (target) updateModel(target.id, payload)
     else addModel(payload)
@@ -276,6 +299,44 @@ function AiModelDialog({
               onCheckedChange={setSupportsTools}
               label={t('profile.settings.aiModelSupportsTools', '支持工具调用')}
             />
+
+            <Switch
+              checked={supportsVision}
+              onCheckedChange={setSupportsVision}
+              label={t('profile.settings.aiModelSupportsVision', '支持图像识别')}
+              labelTooltip={t(
+                'profile.settings.aiModelSupportsVisionHint',
+                '关掉后输入区「添加照片和文件」会禁用；把图发给看不了图的模型会被厂商直接拒绝',
+              )}
+            />
+
+            {/*
+              思考程度是 AI SDK v7 的**顶层可移植参数**（`reasoning`），由 SDK 翻成各家的
+              `reasoning_effort` / `thinking.budget_tokens`。这里只声明**这个模型支持哪些档位** ——
+              真正「当前用哪一档」在输入区的设置菜单里切（见 `#/components/ai-composer`）。
+              一个都不勾 = 不支持推理，请求里不会带这个参数。
+            */}
+            <Checkbox.Group
+              legend={t('profile.settings.aiModelReasoning', '支持的思考程度')}
+              description={t(
+                'profile.settings.aiModelReasoningHint',
+                '只勾这个模型真正支持的档位；一个都不勾表示不支持推理，请求里不会带 reasoning 参数',
+              )}
+              value={reasoningLevels}
+              onValueChange={(next) =>
+                setReasoningLevels(
+                  AI_REASONING_LEVELS.filter((level) => next.includes(level)),
+                )
+              }
+            >
+              {AI_REASONING_LEVELS.map((level) => (
+                <Checkbox.Item
+                  key={level}
+                  value={level}
+                  label={t(`profile.settings.aiReasoningLevels.${level}`, level)}
+                />
+              ))}
+            </Checkbox.Group>
           </form>
         </LayerDialog.Body>
 

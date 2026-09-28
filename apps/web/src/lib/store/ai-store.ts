@@ -30,6 +30,35 @@ export interface AiProviderConfig {
   apiKey: string
 }
 
+/**
+ * 思考程度（reasoning）—— **AI SDK v7 的顶层可移植参数**，不是厂商私有选项。
+ *
+ * `streamText` / `generateText` 都接受 `reasoning: AiReasoningLevel`，由 SDK 按各 provider 的
+ * 规范翻译（`reasoning_effort` / `thinking.budget_tokens` …），所以这里**不要**再手写
+ * `providerOptions`：两者不合并，一旦 providerOptions 里出现推理选项，顶层 `reasoning` 会被
+ * 完全忽略（见 AI SDK 文档的 Precedence Rules）。
+ *
+ * 顺序即界面顺序，由弱到强；`'provider-default'` 就是省略该参数时的行为。
+ */
+export const AI_REASONING_LEVELS = [
+  'provider-default',
+  'none',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+] as const
+
+export type AiReasoningLevel = (typeof AI_REASONING_LEVELS)[number]
+
+export function isAiReasoningLevel(value: unknown): value is AiReasoningLevel {
+  return (
+    typeof value === 'string' &&
+    (AI_REASONING_LEVELS as readonly string[]).includes(value)
+  )
+}
+
 export interface AiModelConfig {
   id: string
   /** 指向 `AiProviderConfig.id`；厂商被删除时该模型一并删除 */
@@ -39,6 +68,23 @@ export interface AiModelConfig {
   displayName: string
   /** 是否给这个模型发工具定义：小模型 / 纯推理模型不支持工具调用，关掉它退化成纯对话 */
   supportsTools: boolean
+  /**
+   * 这个模型**支持哪些思考程度**（多选）。空数组 = 不支持推理 / 未声明 ——
+   * 运行时因此不传 `reasoning`，落到厂商默认；设置页与输入区的可选项都来自它。
+   *
+   * 由用户声明而不是自动探测：AI SDK **没有**模型能力查询 API，
+   * 而选一个模型不支持的档位会被厂商直接拒掉。
+   */
+  reasoningLevels: AiReasoningLevel[]
+  /** 当前选择的思考程度，必须落在 `reasoningLevels` 里才生效 */
+  reasoning: AiReasoningLevel
+  /**
+   * 是否支持图像识别。默认 **true** —— 现在的模型基本都多模态，关掉是显式声明
+   * 「这个模型看不了图」（与 `supportsTools` 同一条「默认给能力、用不到再关」的取向）。
+   * 关掉后输入区的「添加照片和文件」会禁用并说明原因，而不是把入口整个藏起来 ——
+   * 入口忽然消失比灰着更让人困惑。
+   */
+  supportsVision: boolean
 }
 
 /** 各类型的默认接口地址与默认名称。 */
@@ -117,6 +163,22 @@ function normalizeModel(value: unknown): AiModelConfig | null {
   if (typeof raw.id !== 'string' || !raw.id) return null
   if (typeof raw.providerId !== 'string' || !raw.providerId) return null
   if (typeof raw.modelId !== 'string' || !raw.modelId) return null
+
+  /*
+    旧存档迁移：`reasoningLevels` / `reasoning` / `supportsVision` 是后加的字段。
+    前两者缺失时回落「不支持推理」；`supportsVision` 缺失时按**当前默认值 true** 补
+    （多模态已是常态，旧存档里的模型不该因为这个新字段突然不能发图）。
+    档位按注册表的顺序重建，顺手去重、剔掉不认识的值。
+  */
+  const savedLevels = Array.isArray(raw.reasoningLevels) ? raw.reasoningLevels : []
+  const reasoningLevels = AI_REASONING_LEVELS.filter((level) =>
+    savedLevels.includes(level),
+  )
+  const reasoning =
+    isAiReasoningLevel(raw.reasoning) && reasoningLevels.includes(raw.reasoning)
+      ? raw.reasoning
+      : 'provider-default'
+
   return {
     id: raw.id,
     providerId: raw.providerId,
@@ -124,6 +186,9 @@ function normalizeModel(value: unknown): AiModelConfig | null {
     displayName:
       typeof raw.displayName === 'string' && raw.displayName ? raw.displayName : raw.modelId,
     supportsTools: raw.supportsTools !== false,
+    reasoningLevels,
+    reasoning,
+    supportsVision: raw.supportsVision !== false,
   }
 }
 

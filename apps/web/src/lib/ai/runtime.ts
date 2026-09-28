@@ -9,9 +9,11 @@ import {
   resolveProviderBaseUrl,
   type AiModelConfig,
   type AiProviderConfig,
+  type AiReasoningLevel,
 } from '#/lib/store'
 import { formatPageContext, getPageContext } from './page-context'
 import type {
+  AiAttachment,
   AiMessage,
   AiMessagePart,
   AiMode,
@@ -172,6 +174,20 @@ function toSdkTools(
   return Object.fromEntries(entries) as ToolSet
 }
 
+/**
+ * 把模型配置里的思考程度翻成传给 `streamText` 的值。
+ *
+ * 返回 `undefined` 的两种情况都表示**别传这个参数**：
+ * - 模型没声明任何档位（`reasoningLevels` 为空）—— 它不支持推理；
+ * - 选的是 `'provider-default'` —— 那正是省略参数时的行为。
+ * 最后再兜一次「必须落在声明的档位里」，避免存档被手改后发出一个厂商会拒掉的值。
+ */
+function resolveReasoning(model: AiModelConfig): AiReasoningLevel | undefined {
+  if (model.reasoningLevels.length === 0) return undefined
+  if (model.reasoning === 'provider-default') return undefined
+  return model.reasoningLevels.includes(model.reasoning) ? model.reasoning : undefined
+}
+
 export interface StreamAssistantTurnOptions {
   /** 对话历史（不含本轮用户消息时，请先把它 append 进去再调用） */
   messages: readonly ModelMessage[]
@@ -213,6 +229,12 @@ export async function* streamAssistantTurn(
     model: createLanguageModel(active.provider, active.model),
     system: buildSystemPrompt(options.mode, options.outputLocale),
     messages: [...options.messages],
+    /*
+      思考程度：**AI SDK v7 的顶层可移植参数**，SDK 会按各 provider 的规范翻译成
+      `reasoning_effort` / `thinking.budget_tokens` 之类。`undefined` = 省略 = 厂商默认。
+      **不要**改成 `providerOptions`：两者不合并，那边一旦出现推理选项，这里会被完全忽略。
+    */
+    reasoning: resolveReasoning(active.model),
     // 模型不支持工具调用时传空集：既不发工具定义，也不会触发 SDK 的多步循环
     tools: useTools ? toSdkTools(options.tools, options.toolContext) : {},
     stopWhen: isStepCount(MAX_TOOL_STEPS),
@@ -299,6 +321,12 @@ const OMITTED_TOOL_RESULT =
  * 只有 `state === 'done'` 的工具调用才会带上结果 —— 执行失败 / 被打断的调用不能进历史，
  * 否则下一轮模型会拿到一个没有对应结果的 tool-call。
  */
+/** data URL → 裸 base64：SDK 的 `FilePart` 把「字节」与「媒体类型」拆成两个字段 */
+function dataUrlToBase64(url: string): string {
+  const comma = url.indexOf(',')
+  return comma === -1 ? url : url.slice(comma + 1)
+}
+
 export function toModelMessages(messages: readonly AiMessage[]): ModelMessage[] {
   const result: ModelMessage[] = []
 
@@ -322,7 +350,56 @@ export function toModelMessages(messages: readonly AiMessage[]): ModelMessage[] 
       .trim()
 
     if (message.role === 'user') {
-      if (text) result.push({ role: 'user', content: text })
+      /*
+        附件（见 `AiAttachment`）+ 旧存档里可能残留的 `image` part，分两类走：
+        - **图片** → AI SDK v7 的 `FilePart`（`{ type: 'file', mediaType, data }`；旧的 `ImagePart`
+          在该版本已 deprecated，新代码不要再用）。`data` 收**裸 base64**、媒体类型单独一个字段，
+          所以这里把 data URL 的前缀拆掉；
+        - **文本文件**（md / txt，内容已在客户端解析好）→ 用 `<file>` 包成文本块拼进**同一条**
+          user 消息：这样任何厂商都能读，不依赖它对文档格式的支持。
+        文本与图片放进同一条消息 —— 拆成两条会被部分厂商当成两轮输入。
+      */
+      const attachmentParts = message.parts.filter(
+        (
+          part,
+        ): part is
+          | Extract<AiMessagePart, { type: 'attachment' }>
+          | Extract<AiMessagePart, { type: 'image' }> =>
+          part.type === 'attachment' || part.type === 'image',
+      )
+
+      if (attachmentParts.length === 0) {
+        if (text) result.push({ role: 'user', content: text })
+        continue
+      }
+
+      const fileBlocks = attachmentParts
+        .filter(
+          (part): part is Extract<AiAttachment, { kind: 'text' }> & {
+            type: 'attachment'
+          } => part.type === 'attachment' && part.kind === 'text',
+        )
+        .map((file) => `<file name="${file.name}">\n${file.text}\n</file>`)
+        .join('\n\n')
+      const promptText = [text, fileBlocks].filter(Boolean).join('\n\n')
+
+      const images = attachmentParts.filter(
+        (part) => part.type === 'image' || part.kind === 'image',
+      )
+
+      const content: Array<Record<string, unknown>> = []
+      if (promptText) content.push({ type: 'text', text: promptText })
+      for (const image of images) {
+        content.push({
+          type: 'file',
+          mediaType: image.mediaType,
+          ...(image.name ? { filename: image.name } : {}),
+          data: dataUrlToBase64(image.url),
+        })
+      }
+
+      if (content.length === 0) continue
+      result.push({ role: 'user', content } as unknown as ModelMessage)
       continue
     }
 
