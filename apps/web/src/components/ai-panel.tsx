@@ -1,5 +1,10 @@
 import { Button, Tooltip } from '@cloudflare/kumo'
-import { ArrowDownIcon, CaretDownIcon, CaretUpIcon, XIcon } from '@phosphor-icons/react'
+import {
+  ArrowsOutSimpleIcon,
+  CaretDownIcon,
+  CaretUpIcon,
+  XIcon,
+} from '@phosphor-icons/react'
 import {
   useEffect,
   useRef,
@@ -9,13 +14,12 @@ import {
 import { useTranslation } from 'react-i18next'
 import { AiBotAvatar } from '#/components/ai-bot-avatar'
 import { AiComposer } from '#/components/ai-composer'
-import { AiConversation } from '#/components/ai-conversation'
+import { AiConversationScroller } from '#/components/ai-conversation-scroller'
 import { AiSessionPicker, useActiveSessionTitle } from '#/components/ai-session-picker'
 import {
   SHELL_PANEL_FRAME,
   SidePanelResizeHandle,
 } from '#/components/side-panel'
-import { useAiSessionStore } from '#/lib/ai'
 import { cn } from '#/lib/cn'
 import {
   AI_FLOAT_MAX_HEIGHT,
@@ -74,6 +78,14 @@ export interface AiPanelProps {
    * 移动端也不发 —— 整屏浮窗折不出来。
    */
   onToggleCollapsed?: () => void
+  /**
+   * 「最大化」：跳到全屏 AI 对话页（`/$appId/sphere`）。
+   *
+   * **导航由外壳负责**（`AppShell` 的 `handleMaximizeAi`）：面板不知道自己挂在哪个
+   * `$appId` 下，也不该知道目标路由长什么样 —— 与 `onClose` / `onToggleCollapsed`
+   * 同一套受控约定。传了才画那颗按钮。
+   */
+  onMaximize?: () => void
 }
 
 /**
@@ -109,7 +121,7 @@ export interface AiPanelProps {
  * （每帧写 localStorage 会卡，给 store 加节流又会让面板滞后）。
  * Split 只有宽度（`aiPanelWidth`），Float 是宽 + 高（`aiFloatWidth` / `aiFloatHeight`）。
  */
-export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed }: AiPanelProps) {
+export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed, onMaximize }: AiPanelProps) {
   const { t } = useTranslation('ai')
   const { isRtl } = useLocale()
   const isMobile = useIsMobileViewport()
@@ -322,6 +334,7 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed }:
           collapsed={isCollapsed}
           // 移动端不挂折叠按钮（`isCollapsed` 恒为 false，两者的判断保持一致）
           onToggleCollapsed={isMobile ? undefined : onToggleCollapsed}
+          onMaximize={onMaximize}
         />
 
         {/*
@@ -433,7 +446,7 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed }:
           className="flex min-h-0 flex-1 flex-col"
           style={splitAnimating && !isMobile ? { width: panelWidth } : undefined}
         >
-          <AiPanelSurface onClose={onClose} />
+          <AiPanelSurface onClose={onClose} onMaximize={onMaximize} />
         </div>
       </aside>
     </>
@@ -456,6 +469,7 @@ function AiPanelSurface({
   onClose,
   collapsed = false,
   onToggleCollapsed,
+  onMaximize,
 }: {
   onClose: () => void
   /** 是否折成「只有头行」的窄条（Float 专属，Split 恒为 `false`） */
@@ -467,15 +481,12 @@ function AiPanelSurface({
    * 不是靠 mode 判断，而是靠这个回调的有无（Split 传不了，也不该传）。
    */
   onToggleCollapsed?: () => void
+  /** 「最大化」跳到全屏对话页（见 `AiPanelProps.onMaximize`）；不传则没有那颗按钮 */
+  onMaximize?: () => void
 }) {
   const { t } = useTranslation('ai')
   const activeSessionTitle = useActiveSessionTitle()
-  const autoScroll = usePreferencesStore((state) => state.aiAutoScroll)
-  // 新消息、流式增量、工具卡片出现都会改动 messages，跟滚只需盯它（status 是保险）
-  const messages = useAiSessionStore((state) => state.messages)
-  const status = useAiSessionStore((state) => state.status)
 
-  const scrollRef = useRef<HTMLDivElement | null>(null)
   /*
     指针高亮：把坐标写进 CSS 变量，由背景层（`.ai-dot-spotlight`）自己裁。
 
@@ -528,43 +539,6 @@ function AiPanelSurface({
     },
     [],
   )
-  /*
-    「此刻还贴着底吗」——**独立于设置项**的运行时状态：
-    设置项管的是「默认跟不跟」，它管的是「此刻让不让」。
-
-    用户手动往上翻时必须暂停跟滚，否则每来一个增量都会把他拽回底部，历史根本没法读；
-    滚回底部（阈值内）自动恢复。
-  */
-  const [pinnedToBottom, setPinnedToBottom] = useState(true)
-
-  // 内容或状态一变就贴底（前提：设置开着、且用户没有主动上翻）
-  useEffect(() => {
-    if (!autoScroll || !pinnedToBottom) return
-    const el = scrollRef.current
-    if (!el) return
-    el.scrollTop = el.scrollHeight
-  }, [messages, status, autoScroll, pinnedToBottom])
-
-  const handleScroll = () => {
-    const el = scrollRef.current
-    if (!el) return
-    // 32px 容差：亚像素高度、以及"差一点点就算贴底"的抖动都落在里面
-    const distance = el.scrollHeight - el.scrollTop - el.clientHeight
-    setPinnedToBottom(distance < 32)
-  }
-
-  const scrollToBottom = () => {
-    const el = scrollRef.current
-    if (!el) return
-    el.scrollTo({
-      top: el.scrollHeight,
-      // 尊重系统的「减少动效」：不该为一个回滚按钮硬播一段动画
-      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        ? 'auto'
-        : 'smooth',
-    })
-    setPinnedToBottom(true)
-  }
 
   return (
     <div
@@ -618,10 +592,32 @@ function AiPanelSurface({
         )}
 
         {/*
-          动作区：折叠（只有 Float 有）+ 关闭。折叠按钮排在**关闭按钮之前** ——
-          顺序上更靠近内容，RTL 下由 flex 自己镜像到另一侧。
+          动作区：最大化（跳到全屏对话页）+ 折叠（只有 Float 有）+ 关闭。
+          顺序上越靠近内容，越是「与当前这段对话有关」的动作：最大化在最前，
+          关闭在最后。RTL 下由 flex 自己镜像到另一侧。
         */}
         <div className="flex shrink-0 items-center gap-1">
+          {onMaximize ? (
+            <Tooltip
+              content={t('maximizeTooltip', '在全屏对话中打开')}
+              className="cursor-pointer"
+              render={
+                <Button
+                  variant="ghost"
+                  shape="square"
+                  onClick={onMaximize}
+                  aria-label={t('maximize', '最大化')}
+                />
+              }
+            >
+              {/*
+                `ArrowsOutSimple`（四角向外的双箭头）是**中心对称**图标，
+                不随书写方向翻转，所以**不加 `rtl-flip`**。
+              */}
+              <ArrowsOutSimpleIcon size={16} />
+            </Tooltip>
+          ) : null}
+
           {onToggleCollapsed ? (
             <Tooltip
               content={
@@ -675,38 +671,11 @@ function AiPanelSurface({
       {collapsed ? null : (
         <>
           {/*
-            会话区：消息、工具执行态、空态与「还没配模型」的引导都在 `AiConversation` 里。
-            这里只负责给它一块可滚动的容器 —— 消息再长也不会把下面的输入框顶走。
+            会话区：消息、空态、工具执行态、审批卡，以及「跟随滚动 / 回到底部」都在
+            `AiConversationScroller` 里 —— 那是**与全屏对话页共用**的一份，
+            两处的滚动行为因此必然一致。这里只把点阵背景压住（`z-10`）。
           */}
-          {/*
-            滚动区外面包一层 `relative`：好让「回到底部」按钮**居中浮在它的下缘**。
-            按钮层用 `pointer-events-none` + 按钮自身 `pointer-events-auto` ——
-            否则这层透明遮罩会拦住下面的消息（消息里的链接就点不到了）。
-          */}
-          <div className="relative z-10 min-h-0 flex-1">
-            <div
-              ref={scrollRef}
-              onScroll={handleScroll}
-              className="h-full overflow-y-auto"
-            >
-              <AiConversation />
-            </div>
-
-            {/* 只在**没贴底**时出现：贴底时它既没用、又盖住最后一行内容 */}
-            {!pinnedToBottom ? (
-              <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={scrollToBottom}
-                  className="pointer-events-auto shadow-md"
-                >
-                  <ArrowDownIcon size={14} />
-                  {t('scrollToBottom', '回到底部')}
-                </Button>
-              </div>
-            ) : null}
-          </div>
+          <AiConversationScroller className="z-10" />
 
           <div className="relative z-10 shrink-0 p-3">
             <AiComposer />

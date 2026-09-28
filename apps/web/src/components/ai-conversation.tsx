@@ -116,7 +116,18 @@ function ToolDetailSection({
   )
 }
 
-export function AiConversation() {
+export interface AiConversationProps {
+  /**
+   * 是否由本组件自己触发 `loadHistory`，默认 `true`（AI 面板）。
+   *
+   * 全屏对话页（`/$appId_.sphere`）传 `false`：那一页的**会话由路由决定**
+   * （`sphere/` = 新会话、`sphere/chat/$chatId` = 指定会话），会话列表由布局统一加载。
+   * 两边都调 `loadHistory` 的话，它的「恢复上次会话」会和路由的会话选择互相覆盖。
+   */
+  manageHistory?: boolean
+}
+
+export function AiConversation({ manageHistory = true }: AiConversationProps) {
   const { t } = useTranslation('ai')
   const messages = useAiSessionStore((state) => state.messages)
   const status = useAiSessionStore((state) => state.status)
@@ -165,8 +176,9 @@ export function AiConversation() {
     接着上一段说」是矛盾的）。
   */
   useEffect(() => {
+    if (!manageHistory) return
     void loadHistory({ fresh: sessionMode === 'new' && isDocumentReload() })
-  }, [appId, loadHistory, sessionMode])
+  }, [appId, loadHistory, sessionMode, manageHistory])
 
   if (!isConfigured) {
     /*

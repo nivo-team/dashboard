@@ -93,10 +93,13 @@
       "pageWidthHint": "İçerik alanının maksimum genişlikle sınırlanıp sınırlanmayacağı; tablo ağırlıklı panellerde tam genişlik daha iyidir",
       "pageWidths": {
         "full": "Tam genişlik",
+        "follow": "Görünümü izle",
         "boxed": "Sınırlı genişlik"
       },
       "aiDisplayMode": "Görüntüleme biçimi",
       "aiDisplayModeHint": "Ask AI panelinin görünümü; dar ekranlarda her iki biçim de katmana dönüşür",
+      "aiPageWidth": "Sayfa genişliği",
+      "aiPageWidthHint": "Tam ekran sohbet sayfasının içerik genişliği; \"Görünümü izle\" Görünüm → Sayfa genişliği seçimini izler",
       "aiSessionMode": "Yeni oturum zamanı",
       "aiSessionModeHint": "Sayfa yenilendiğinde yeni bir oturum mu başlasın yoksa son oturum mu sürsün; aynı sayfada paneli yeniden açmak her zaman mevcut sohbeti sürdürür",
       "aiSessionModes": {

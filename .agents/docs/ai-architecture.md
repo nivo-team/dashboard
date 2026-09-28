@@ -20,7 +20,30 @@
 
 ```
 L1  UI          components/ai-panel · ai-conversation · ai-composer · ai-session-picker
+                components/ai-session-list（浮层形态的会话列表：搜索框 + 分组），
+                  ai-session-delete-dialog（两处共用的删除确认）
+                components/ai-conversation-scroller（**面板与全屏对话页共用**的会话区：
+                  跟随滚动 / 上翻暂停 / 回到底部按钮 —— 两处行为必须一致）
                 components/ai-bot-avatar · ai-activity-glow · beta-badge
+                routes/$appId_.sphere（全屏 AI 对话页：`ai-panel` 头行「最大化」的落点，
+                  逃离 `$appId` 布局、没应用侧边栏；见 routing-architecture.md §2「逃离父布局」）
+                  ├─ route.tsx  布局里挂 `sphere-header`（头行常驻：会话 404 时也在，
+                  │     只是标题留空）+ 会话列表加载
+                  ├─ index.tsx   $appId/sphere = 新会话（挂载即 startNewSession）
+                  ├─ chat/$chatId.tsx  $appId/sphere/chat/$chatId = 指定会话，
+                  │     loader 用 store.hasSession 校验，找不到 → sphere-not-found
+                  ├─ -components/sphere-header.tsx  头行：标题居中（按路由推导，
+                  │     找不到的会话 → 空）、侧边栏展开/收起按钮
+                  ├─ -components/sphere-chat.tsx  两路由共用的 chat 本体（只有会话区 +
+                  │     输入区；会话区 manageHistory=false）
+                  ├─ -components/sphere-sidebar  侧边栏：Kumo `Sidebar`，只有会话；
+                  │     展开态下收起按钮在头行标题右侧、分隔线也画在这里（收起即消失）
+                  ├─ -components/sphere-not-found  会话 404（AI 形象 + 文案 + 新对话）
+                  ├─ -components/use-sphere-collapse  收起 = 回 sessionStorage 记的来源页
+                  └─ -components/session-search-dialog  独立的会话搜索弹窗（只搜标题，
+                        形态同命令面板但**不占 ⌘K**；⌘K 仍是全局命令面板）
+                lib/ai/session-groups（会话的时间分组 / 相对时间口径，两个列表共用）
+                lib/ai/panel-session（会话级记忆：面板开合状态 + 最大化前的来源 href）
 L2  状态        lib/ai/session-store（消息 / 状态 / 审批 / 落盘）
                 lib/ai/session-boot（本次页面载入算不算「重新载入」）
                 lib/store/preferences-store（本机偏好，按 app 隔离）

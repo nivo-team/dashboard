@@ -93,10 +93,13 @@
       "pageWidthHint": "Whether the content area is capped at a maximum width; full width suits data-heavy tables",
       "pageWidths": {
         "full": "Full width",
+        "follow": "Match appearance",
         "boxed": "Boxed"
       },
       "aiDisplayMode": "Display mode",
       "aiDisplayModeHint": "How the Ask AI panel appears; on narrow screens both modes collapse into an overlay",
+      "aiPageWidth": "Page width",
+      "aiPageWidthHint": "Content width of the full-screen chat page; \"Match appearance\" follows the Appearance → Page width choice",
       "aiSessionMode": "New session timing",
       "aiSessionModeHint": "Whether a page refresh starts a new session or resumes the last one; reopening the panel within the same page always continues the current conversation",
       "aiSessionModes": {

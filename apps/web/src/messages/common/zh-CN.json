@@ -93,10 +93,13 @@
       "pageWidthHint": "内容区是否限制最大宽度；后台表格建议全宽",
       "pageWidths": {
         "full": "全宽",
+        "follow": "跟随外观",
         "boxed": "限宽居中"
       },
       "aiDisplayMode": "显示方式",
       "aiDisplayModeHint": "Ask AI 面板的显示方式；窄屏下都会收成浮层",
+      "aiPageWidth": "页面宽度",
+      "aiPageWidthHint": "全屏对话页的内容宽度；跟随外观即沿用「外观 → 页面宽度」的选择",
       "aiSessionMode": "新会话时机",
       "aiSessionModeHint": "刷新页面后是开始一段新会话，还是继续上次那段；同一页面里关掉再打开总是接着当前对话",
       "aiSessionModes": {

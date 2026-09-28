@@ -93,10 +93,13 @@
       "pageWidthHint": "Si el área de contenido se limita a un ancho máximo; el ancho completo es mejor para tablas",
       "pageWidths": {
         "full": "Ancho completo",
+        "follow": "Según apariencia",
         "boxed": "Ancho limitado"
       },
       "aiDisplayMode": "Modo de visualización",
       "aiDisplayModeHint": "Cómo aparece el panel Ask AI; en pantallas estrechas ambos modos pasan a ser una capa flotante",
+      "aiPageWidth": "Ancho de página",
+      "aiPageWidthHint": "Ancho del contenido de la página de chat a pantalla completa; «Según apariencia» sigue la opción Apariencia → Ancho de página",
       "aiSessionMode": "Cuándo iniciar una nueva sesión",
       "aiSessionModeHint": "Si al recargar la página se inicia una sesión nueva o se retoma la última; reabrir el panel en la misma página siempre continúa la conversación actual",
       "aiSessionModes": {

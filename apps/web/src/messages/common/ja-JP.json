@@ -93,10 +93,13 @@
       "pageWidthHint": "コンテンツ領域の最大幅を制限するかどうか。表中心の画面では全幅がおすすめ",
       "pageWidths": {
         "full": "全幅",
+        "follow": "外観に従う",
         "boxed": "最大幅を制限"
       },
       "aiDisplayMode": "表示方法",
       "aiDisplayModeHint": "Ask AI パネルの表示方法。狭い画面ではどちらもオーバーレイ表示になります",
+      "aiPageWidth": "ページ幅",
+      "aiPageWidthHint": "全画面チャットページの内容幅。「外観に従う」は「外観 → ページ幅」の選択に従います",
       "aiSessionMode": "新しい会話のタイミング",
       "aiSessionModeHint": "再読み込みの後は新しい会話を始めるか、前回の会話を続けるか。同じページ内で開き直したときは常に現在の会話を続けます",
       "aiSessionModes": {

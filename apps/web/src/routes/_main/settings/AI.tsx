@@ -2,6 +2,8 @@ import { Checkbox, Select, Switch, Tabs } from '@cloudflare/kumo'
 import { BorderBeam } from 'border-beam'
 import { BotAvatar } from 'bot-avatars'
 import {
+  ArrowsInLineHorizontalIcon,
+  ArrowsOutLineHorizontalIcon,
   ChatCircleDotsIcon,
   CheckCircleIcon,
   ClockCounterClockwiseIcon,
@@ -12,6 +14,7 @@ import {
   PlusCircleIcon,
   ShieldCheckIcon,
   SlidersHorizontalIcon,
+  SwatchesIcon,
 } from '@phosphor-icons/react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -40,8 +43,10 @@ import {
   usePreferencesStore,
   type AiOutputLanguage,
   type AiOutputMode,
+  type AiPageWidthMode,
   type AiPanelMode,
   type AiSessionMode,
+  type PageWidthMode,
 } from '#/lib/store'
 import { useColorMode } from '#/lib/use-color-mode'
 import { AiModelCard } from './-components/ai-model-card'
@@ -112,6 +117,40 @@ interface AiOutputModeOption {
   fallback: string
   icon: typeof ColumnsIcon
 }
+
+/**
+ * 全屏对话页的页面宽度三项。
+ *
+ * 前两项的文案与图标**复用外观页的 `pageWidths.full` / `pageWidths.boxed`**
+ * （同一件事不该有两套说法）；只有「跟随外观」是这一页新增的档。
+ * 它跟的是外观那个设置的**选择**，实际最大宽度用聊天自己的 `max-w-4xl`
+ * （比页面的 1440px 窄，见 `#/lib/page-width` 的 `aiChatWidthClass`）。
+ */
+const AI_PAGE_WIDTH_OPTIONS: Array<{
+  key: AiPageWidthMode
+  labelKey: string
+  fallback: string
+  icon: typeof ColumnsIcon
+}> = [
+  {
+    key: 'follow',
+    labelKey: 'profile.settings.pageWidths.follow',
+    fallback: '跟随外观',
+    icon: SwatchesIcon,
+  },
+  {
+    key: 'full',
+    labelKey: 'profile.settings.pageWidths.full',
+    fallback: '全宽',
+    icon: ArrowsOutLineHorizontalIcon,
+  },
+  {
+    key: 'boxed',
+    labelKey: 'profile.settings.pageWidths.boxed',
+    fallback: '限宽居中',
+    icon: ArrowsInLineHorizontalIcon,
+  },
+]
 
 interface AiPermissionOption {
   key: AiPermissionMode
@@ -215,6 +254,42 @@ function AiModePreview({
 
   return (
     <div className="w-72">
+      <AppShellPreview layout={layout} accentColor={accentColor} />
+    </div>
+  )
+}
+
+/**
+ * 页面宽度预览：**复用外观页那套「宽度变化」的缩略图动画**
+ * （同一份 `#/components/app-shell-preview` + `#/components/settings-choice-preview`
+ * 的 `usePreviewAnimation`），不另做一套视觉。
+ *
+ * 起点取**相反的档**，终点才是这一项的档 —— 只画终态的话「全宽」与默认态毫无区别，
+ * 等于没演（与外观页同一个取舍）。
+ *
+ * `follow` 的终点按**外观当前的选择**解析：它演的就是「最终会变成外观说的那样」。
+ */
+function AiPageWidthPreview({
+  mode,
+  followMode,
+  accentColor,
+}: {
+  mode: AiPageWidthMode
+  followMode: PageWidthMode
+  accentColor: string
+}) {
+  const resolved = mode === 'follow' ? followMode : mode
+  const layout = usePreviewAnimation(
+    {
+      content: 'list',
+      panel: 'none',
+      contentWidth: resolved === 'boxed' ? 'full' : 'boxed',
+    },
+    { content: 'list', panel: 'none', contentWidth: resolved },
+  )
+
+  return (
+    <div className="w-80">
       <AppShellPreview layout={layout} accentColor={accentColor} />
     </div>
   )
@@ -352,6 +427,10 @@ function AiSettingsPage() {
   const setAiPanelMode = usePreferencesStore((state) => state.setAiPanelMode)
   const aiSessionMode = usePreferencesStore((state) => state.aiSessionMode)
   const setAiSessionMode = usePreferencesStore((state) => state.setAiSessionMode)
+  // 全屏对话页的宽度：`follow` 档要读外观那一份才能解析出最终档位
+  const aiPageWidth = usePreferencesStore((state) => state.aiPageWidth)
+  const setAiPageWidth = usePreferencesStore((state) => state.setAiPageWidth)
+  const pageWidth = usePreferencesStore((state) => state.pageWidth)
   const aiActivityGlow = usePreferencesStore((state) => state.aiActivityGlow)
   const setAiActivityGlow = usePreferencesStore((state) => state.setAiActivityGlow)
   const aiShowToolCalls = usePreferencesStore((state) => state.aiShowToolCalls)
@@ -493,6 +572,58 @@ function AiSettingsPage() {
                     <span className="flex items-center gap-2">
                       <ItemIcon size={16} className="text-kumo-subtle" />
                       <span>{t(item.labelKey, item.fallback)}</span>
+                    </span>
+                  ),
+                }
+              })}
+            />
+          </div>
+        </SettingRow>
+
+        {/*
+          全屏对话页的页面宽度：三项短枚举，同样走分段控件 + 悬浮预览。
+          **只作用于 `/$appId/sphere`**：那一页的会话区 + 输入区被同一个宽度约束包住
+          （见 `#/lib/page-width` 的 `aiChatWidthClass`）—— 面板是外壳级的一列 / 浮窗，
+          宽度由拖拽决定，不受这一项影响。
+
+          「跟随外观」跟的是外观「页面宽度」的**选择**，不是它的像素上限：
+          聊天收在 `max-w-4xl`，比页面的 1440px 窄（对话按行读，太宽反而难读）。
+          hint 里如实说明，免得用户以为两处限制应当一模一样。
+        */}
+        <SettingRow
+          label={t('profile.settings.aiPageWidth', '页面宽度')}
+          hint={t(
+            'profile.settings.aiPageWidthHint',
+            '全屏对话页的内容宽度；跟随外观即沿用「外观 → 页面宽度」的选择',
+          )}
+        >
+          <div
+            role="group"
+            aria-label={t('profile.settings.aiPageWidth', '页面宽度')}
+          >
+            <Tabs
+              value={aiPageWidth}
+              onValueChange={(next) => setAiPageWidth(next as AiPageWidthMode)}
+              activateOnFocus
+              tabs={AI_PAGE_WIDTH_OPTIONS.map((item) => {
+                const ItemIcon = item.icon
+                const label = t(item.labelKey, item.fallback)
+                return {
+                  value: item.key,
+                  label: (
+                    <span className="flex items-center gap-2">
+                      <ItemIcon size={16} className="text-kumo-subtle" />
+                      <span>{label}</span>
+                      <SettingChoicePreview
+                        label={label}
+                        triggerId={`ai-page-width-preview-${item.key}`}
+                      >
+                        <AiPageWidthPreview
+                          mode={item.key}
+                          followMode={pageWidth}
+                          accentColor={accentColor}
+                        />
+                      </SettingChoicePreview>
                     </span>
                   ),
                 }

@@ -25,12 +25,20 @@ apps/web/src/routes/
 └── $appId/                    # 业务控制台应用前缀（参数化动态应用路由，去除了中间冗余 _app）
     ├── route.tsx              #   AppShell 外壳：侧边栏 + 顶栏 + ⌘K 面板（App 校验、同步与规范化）
     ├── index.tsx              #   访问 /$appId 自动重定向至默认首页 /$appId/home
-    ├── home.tsx               #   /$appId/home 业务仪表盘默认首页
-    ├── $.tsx                  #   外壳内局部 404 页面
-    └── example/               #   /$appId/example 业务模块示例
-        ├── index.tsx          #     概览页
-        └── async.tsx          #     异步 loader 与状态演示
+    ├── home/                  #   /$appId/home 业务仪表盘默认首页（目录化模块）
+    ├── users/                 #   /$appId/users 用户运营
+    ├── system/                #   /$appId/system 系统（功能 / 数据字典）
+    └── $.tsx                  #   外壳内局部 404 页面
+└── $appId_.sphere/            # 全屏 AI 对话页 /$appId/sphere（**逃离 $appId 布局**，无应用侧边栏）
+    ├── route.tsx              #   全屏布局：守卫 + 会话侧边栏 + 圆角 chat 面板（<Outlet />）
+    ├── index.tsx              #   /$appId/sphere        新会话
+    ├── chat/$chatId.tsx       #   /$appId/sphere/chat/$chatId  指定会话（找不到 → 404）
+    └── -components/           #   模块私有组件（sphere-chat / sphere-sidebar / session-search-dialog）
 ```
+
+> **模块目录化（强制）**：业务模块一律用目录承载（`route.tsx` = 模块根与边界、`index.tsx` = 入口、
+> 私有代码放 `-` 前缀目录）。上面 `home/`、`users/`、`system/` 都是这套约定；`$appId_.sphere/`
+> 是同一个模块，只是用段尾下划线逃离了 `$appId` 布局 —— 见 §2「逃离父布局」。
 
 ---
 
@@ -44,6 +52,64 @@ apps/web/src/routes/
   - 顶栏面包屑自动剥离第一段 `$appId` 参数，使业务层级链路清晰直观（如 `/$appId/home` 显示为 `首页`，`/$appId/orders` 显示为 `首页 / 订单管理`）；
   - 历史别名路径（如 `/admin`）会自动规范化重定向至 `/$appId/home`；
   - 未知应用校验：若 URL 中指定的 `$appId` 不在可用应用列表与系统预设中，路由守卫直接抛出 `notFound()` 并在 `_main` 通用外壳中呈现 404 引导页，使用户仍可通过完整的导航与侧边栏回到工作空间。
+
+### 逃离父布局：全屏 AI 对话页（`$appId_.sphere`）
+`/$appId/sphere` 是 AI 面板头行「最大化」按钮的落点：一个**没有应用侧边栏**的独立
+chat 页面，自己的侧边栏是 AI 会话列表。
+
+它**不是** `$appId` 布局的子路由 —— 否则会一并继承 `AppShell` 的侧边栏、顶栏与面板。
+用的是 TanStack Router 的「**段尾下划线**」约定：目录名写成 `$appId_.sphere`，
+`$appId` 那一段就不再和 `$appId/route.tsx` 布局嵌套，路由挂到根布局下，
+但 URL 仍是 `/$appId/sphere`（`tsr generate` 会把它生成为 `id: '/$appId_/sphere'`、
+`path: '/$appId/sphere'`，**文件名里的下划线是约定，不是 URL 的一部分**）。
+
+由此带来两条必须记住的后果：
+
+1. **守卫要自己接**：拿不到 `$appId/route.tsx` 的 `beforeLoad`，必须在自己的
+   `beforeLoad` 里调用 `#/lib/app-route-guard` 的 `guardAppRoute`（认证 + appId 校验 +
+   激活应用同步）。**两处共用同一个函数**，不要各写一份 —— 它同时也是 `AppShell` 的守卫。
+2. **外壳桥要自己注册**：`AppShell` 里给 AI 工具层的 `registerAiShellBridge`
+   （`navigate` / `getRoutePath`）不会跟着过来，`$appId_.sphere/route.tsx` 里重新注册一次
+   （两者互斥挂载，单槽注册不会互相覆盖）。
+
+AI 状态（`lib/ai/session-store`）是模块级 zustand store，与路由无关，
+所以面板「最大化」到本页时当前这段对话**原样续上**，不存在两套会话。
+「最大化」的落点按**面板里有没有会话**分两种：有 → `sphere/chat/$chatId`，没有 → `sphere/`。
+
+页面自身的结构（`$appId_.sphere/`）：
+
+- `route.tsx`：最外层 `h-svh bg-kumo-canvas p-2`（整页留一圈内边距），里面是
+  `Sidebar.Provider`（Kumo，`contained` + `variant="inset"` + `collapsible="offcanvas"`）——
+  **侧边栏与 chat 区共用同一块 `rounded-xl border` 面板**；内外分隔线由侧边栏自己按开合
+  画（`variant="inset"` 让 Kumo 不加 `border-e`，否则收起后会剩一条悬空竖线）。
+  这里还统一加载会话列表
+  （`loadHistory({ fresh: true })`，只拉列表、**不恢复**上一次的会话）并挂 ⌘K 的
+  `CommandPaletteDialog`；
+- `index.tsx`：`/$appId/sphere` = **新会话**（挂载即 `startNewSession()`）；
+- `chat/$chatId.tsx`：`/$appId/sphere/chat/$chatId` = **指定会话**。loader 先确认这条
+  记录在当前应用里存在，不存在 `throw notFound()` → `SphereNotFound`（AI 形象 + 文案，
+  **不用**通用线框 404）；存在才让组件把 store 切过去（`activeSessionId` 已一致时不切，
+  避免把流式增量冲掉）；
+- `-components/sphere-header.tsx`：**头行挂在布局上**（三列等宽网格 → 标题居中，行首是
+  侧边栏收起时才出现的展开按钮、行尾是「收起」）。放在布局而不是页面里，是为了让会话 404
+  也留着头行（`notFoundComponent` 只替换路由组件）；标题因此按路由推导 ——
+  `sphere/` 用当前会话，`sphere/chat/$chatId` 从会话列表按 id 取，**列表里没有就留空**
+  （这正是「404 时 header 还在、只是不显示内容」）；
+- `-components/sphere-chat.tsx`：两个路由共用的 chat 本体（**只有会话区 + 输入区**），
+  输入区上沿不画分隔线；会话区用与面板共用的 `AiConversationScroller`（跟随滚动 / 回到底部）；
+  宽度档位见设置 → AI → 页面宽度（`#/lib/page-width` 的 `aiChatWidthClass`：跟随外观 /
+  全宽 / 限宽居中，上限是 `max-w-4xl`）——**约束挂在「内容」那一层，滚动容器仍铺满**，
+  滚动条才始终贴在面板边缘（限宽模式下也是）；配合 `scrollbar-gutter: stable both-edges`
+  让内容不跳动、中心与下方输入区对齐；
+- `-components/use-sphere-collapse.ts`：收起全屏 = 回到**点「最大化」时所在的那一页**
+  （href 记在 sessionStorage，见 `#/lib/ai/panel-session`；没有记录才回落应用首页）；
+- `-components/sphere-not-found.tsx`：会话 404 的空态（AI 形象 + 文案 + 「新对话」）；
+  头行还在，所以这里不再重复放「收起」；
+- `-components/sphere-sidebar.tsx`：Kumo `Sidebar` 组件写的会话侧边栏，头行 = 品牌 + 标题 +
+  **展开态下的收起按钮**；内外分隔线也归它（展开时才画 `border-e`，收起后随整列一起消失）；
+  会话选择走 **URL 导航**而不是直接调 store（一个落点只有一个所有者）；
+  收起按钮**一次只显示一个**：展开态在侧边栏头行、收起态在 chat 头行；
+- `-components/session-search-dialog.tsx`：只搜会话标题的独立弹窗，形态同命令面板。
 
 ### 外壳持久化（Zero-Remount）
 `AppShell` 与 `MainLayout` 分别挂载在 `$appId/route.tsx` 和 `_main/route.tsx` 上。子路由切换时：
@@ -117,7 +183,7 @@ apps/web/src/routes/
     - `settings/route.tsx`：模块根，只渲染 `<Outlet />`；`settings/index.tsx` 把 `/settings` 重定向到默认子页 `/settings/profile`（与 `$appId/users/` 同一套写法）。**设置模块的二级导航由 `MainLayout` 的 `MainSidebarSwitch` 按路由前缀切换**（`/settings`、`/settings/**` → `SettingsSidebar`，其余 → 通用导航）—— 嵌套路由只能替换内容区，无法接管外层侧边栏。两套导航共用品牌 Header（`SidebarBrandHeader`：方块 + 标题 + 移动端关闭按钮）与「快速搜索」入口（`SidebarSearchButton`，与 `AppSidebar` 同一套 Kumo 官方范式）；`SettingsSidebar` 在品牌行之下再加一行 `SettingsModuleHeader`（返回 `/` + 模块标题「设置」，参照 Cloudflare 控制台），**真正替换的只有模块行与菜单**。这是「同一 Sidebar 位置换内容」而非第二个 `Sidebar`，`Sidebar.Provider` 不重挂，折叠状态与拖拽宽度都保留。`_main` 外壳已挂 `CommandPaletteDialog`（⌘K / Ctrl+K，与 `AppShell` 同款接线），搜索按钮与快捷键共享同一面板。
     - `settings/profile.tsx`：个人资料 (`/settings/profile`)，只读展示 `GET /profile` 返回的账号资料与区域权限 —— 接口路径与前端路由无关，仍是同一支接口；后端没有更新接口，因此不做表单；接口不可用时逐项回落本地登录态（`useAuth().user`）并显式提示，不把兜底数据伪装成后端值。
     - `settings/appearance.tsx`：外观 (`/settings/appearance`)，单张 `LayerCard`（标题「通用设置」`profile.settings.general`，形态是 `LayerCard.Secondary` + `LayerCard.Primary`）里放着**五项**本机偏好：主题（`#/lib/use-color-mode`）/ 语言（`#/lib/use-locale`）/ 时区（`#/lib/timezone`）/ 详情打开方式（`#/lib/store` 的 `detailOpenMode`，见 [./detail-preview.md](./detail-preview.md)）/ 页面宽度（`#/lib/store` 的 `pageWidth`：全宽 / 限宽居中，默认全宽，落点在 `#/lib/page-width`）—— 五者都是**即时生效 + 持久化在 `admin.preferences:<appId>`（按应用隔离，见 [./store.md](./store.md)）**，所以**没有保存按钮、没有 dirty 状态，不要套 `UnsavedChangesBar` 那套编辑态契约**。控件选型：**短枚举（≤3 项）用 Kumo `Tabs` 的 segmented 分段控件**（主题、详情打开方式、页面宽度），长枚举（语言 7 项、时区 8 项）用 `Select`；**「详情打开方式」与「页面宽度」每段选项悬浮时还会弹一个浮层，用通用缩略图把该档位的页面变化演一遍**（`#/components/app-shell-preview`，见第 5 节）。账号安全 / 已连接应用 / API Token 等更重的设置后续扩展（往 `components/main-layout.tsx` 的 `SETTINGS_NAV_ITEMS` 追加导航项、或在卡片下方再加一张 `LayerCard` 即可）。
-    - `settings/AI.tsx`：AI (`/settings/AI`)，与外观页同一套「设置卡片 + 设置行」形态（`#/components/settings-card` 的 `SettingsCard` / `SettingRow`，不要再手写 `LayerCard`）。当前只有一项配置：**显示方式**（`admin.preferences:<appId>` 的 `aiPanelMode`，`split` = Split View / `float` = Float）—— 与外观页同属「即时生效 + 按应用隔离持久化」，**没有保存按钮、没有 dirty 状态**。控件是与「主题」一致的分段控件（`Tabs` + `role="group"` 兜可访问名称），并带与「详情打开方式」同款的悬浮预览（见第 5 节）。**卡片标题直接复用 `profile.settings.general`（「通用设置」），不另开 `aiSection` 之类的重复文案**；设置项文案在 `profile.settings.aiDisplayMode*`，**两个选项（`aiModes.split` / `aiModes.float`）是形态名、7 语言各自本地化**（中文「分屏视图 / 浮窗」，不要写成产品术语原文）。后续 AI 偏好继续往这张卡片加 `SettingRow`，或下方再加一张 `SettingsCard`。**文件名与路径保留大写的 `AI`**（缩写，与导航项显示名一致），由 `pnpm generate-routes` 生成的 `routeTree.gen.ts` 同步。
+    - `settings/AI.tsx`：AI (`/settings/AI`)，与外观页同一套「设置卡片 + 设置行」形态（`#/components/settings-card` 的 `SettingsCard` / `SettingRow`，不要再手写 `LayerCard`）。设置行有若干项，其中**显示方式**（`admin.preferences:<appId>` 的 `aiPanelMode`，`split` = Split View / `float` = Float）与**页面宽度**（`aiPageWidth`：跟随外观 / 全宽 / 限宽居中 —— **只作用于 `/$appId/sphere`**，会话区 + 输入区收在同一个宽度约束里；上限是聊天自己的 `max-w-4xl`，**比页面的 1440px 窄**，「跟随外观」只跟外观那个选择的档，落点见 `#/lib/page-width` 的 `aiChatWidthClass`）—— 与外观页同属「即时生效 + 按应用隔离持久化」，**没有保存按钮、没有 dirty 状态**。控件是与「主题」一致的分段控件（`Tabs` + `role="group"` 兜可访问名称），并带与「详情打开方式」同款的悬浮预览（见第 5 节；页面宽度那一行直接复用外观页的宽度缩略图动画）。**卡片标题直接复用 `profile.settings.general`（「通用设置」），不另开 `aiSection` 之类的重复文案**；设置项文案在 `profile.settings.aiDisplayMode*`，**两个选项（`aiModes.split` / `aiModes.float`）是形态名、7 语言各自本地化**（中文「分屏视图 / 浮窗」，不要写成产品术语原文）。后续 AI 偏好继续往这张卡片加 `SettingRow`，或下方再加一张 `SettingsCard`。**文件名与路径保留大写的 `AI`**（缩写，与导航项显示名一致），由 `pnpm generate-routes` 生成的 `routeTree.gen.ts` 同步。
     - 入口：侧边栏「个人资料」与顶栏 `UserMenu` 的 Profile 项（都指向 `/settings/profile`）；默认文案：中文「个人资料」、英文「Profile」（日语 `プロフィール`）。
   - `_main/$.tsx`：`_main` 外壳内局部 404 兜底路由；全局挂载 `notFoundComponent: NotFound`。
 - `$appId/`：与特定应用强绑定的动态业务路由体系（**模块目录化**，每个业务模块独占一个目录）。
@@ -155,6 +221,12 @@ apps/web/src/routes/
   `$appId/`（业务外壳，承载 `AppShell`）。**子路由切换外壳不重挂**，只换 `<Outlet />`。
 - `$appId/route.tsx` 的 `beforeLoad` 守卫：校验认证、同步 URL 的 `$appId` 与激活应用、
   历史别名（如 `/admin`）规范化重定向、appId 不存在直接 `notFound()`。
+  **守卫本体在 `#/lib/app-route-guard` 的 `guardAppRoute`**，逃离外壳的
+  `$appId_.sphere` 也调同一份。
+- **逃离父布局**：`/$appId/sphere`（全屏 AI 对话页）用目录名 `$appId_.sphere`
+  （段尾下划线）挂到根布局下，URL 不变但**不继承 `AppShell`**；代价是守卫与
+  `registerAiShellBridge` 都要自己接一遍。子路由：`sphere/` = 新会话、
+  `sphere/chat/$chatId` = 指定会话（loader 校验不到 → 404）。
 - **面包屑**剔除 `$appId` 并按 `NAV_GROUPS` 最长前缀匹配；剩余分段默认显示原始段，
   业务模块可用 `setBreadcrumbTrail(owner, …)` 注册成**带名称、可逐级点击**的层级链
   （按 `owner` 覆盖式注册、卸载即清除，未注册时行为不变）。

@@ -1,4 +1,4 @@
-import { Outlet, useNavigate, useRouter } from '@tanstack/react-router'
+import { Outlet, useNavigate, useParams, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { AiActivityGlow } from '#/components/ai-activity-glow'
 import { AiPanel } from '#/components/ai-panel'
@@ -7,7 +7,13 @@ import { AppSidebar } from '#/components/app-sidebar'
 import { CommandPaletteDialog } from '#/components/command-palette'
 import { DetailPreviewProvider } from '#/components/detail-preview'
 import { ShellSidebarProvider } from '#/components/shell-sidebar-provider'
-import { registerAiShellBridge } from '#/lib/ai'
+import {
+  persistAiPanelOpen,
+  readAiPanelOpen,
+  registerAiShellBridge,
+  rememberMaximizeOrigin,
+  useAiSessionStore,
+} from '#/lib/ai'
 import { usePreferencesStore } from '#/lib/store'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 
@@ -27,20 +33,24 @@ export function AppShell() {
    * `isAskAiOpen` 只用来画 `aria-expanded`，**没有视觉激活态** —— 面板已经占着屏幕了，
    * 按钮再亮一块浅底只是多一处动静）。
    *
-   * **刻意不持久化**（与详情预览浮层一致）：它是「临时看一眼」的浮层，刷新后自动收起
-   * 比记住上次展开更符合预期；需要跨会话保留的是它的**宽度**（`admin.shell-ui.aiPanelWidth`）。
+   * 状态存在 **sessionStorage**（`#/lib/ai/panel-session`）：面板头行的「最大化」会跳到
+   * `/$appId/sphere`，`AppShell` 整体卸载 —— 只放组件 state 的话，返回原页面时面板会被
+   * 重置成收起。放会话级存储后「收起全屏 → 面板还是展开的」。只跨路由、不跨浏览器会话
+   * （新标签页从收起开始），所以不用偏好 store 也用不着 localStorage。
    */
-  const [aiPanelOpen, setAiPanelOpen] = useState(false)
+  const [aiPanelOpen, setAiPanelOpen] = useState(readAiPanelOpen)
   /**
    * Float 浮窗是否被折成「只有头行」的窄条。
    *
    * 状态放在外壳而不是 `AiPanel` 内部：顶栏那颗「Ask AI」按钮要按它决定这一下是**展开**
    * 还是**关闭**（见 `handleToggleAskAi`），而按钮在 `AppHeader` 里 —— 真值只能有一份，
-   * 就放在两者共同的上层。同样**不持久化**（理由与 `aiPanelOpen` 相同）。
+   * 就放在两者共同的上层。**不持久化**（折叠是「这一次不想看」，与开关本身不同）。
    */
   const [aiFloatCollapsed, setAiFloatCollapsed] = useState(false)
   const aiEnabled = usePreferencesStore((state) => state.aiEnabled)
   const aiPanelMode = usePreferencesStore((state) => state.aiPanelMode)
+  /** 「最大化」跳哪个路由要看有没有当前会话（见 `handleMaximizeAi`） */
+  const activeSessionId = useAiSessionStore((state) => state.activeSessionId)
   // 移动端浮窗是整屏，折叠不成立（`AiPanel` 里也不发折叠按钮），这里跟着一起排除
   const isMobileViewport = useIsMobileViewport()
 
@@ -77,8 +87,44 @@ export function AppShell() {
     if (!aiEnabled) setAiPanelOpen(false)
   }, [aiEnabled])
 
+  /* 开合状态每次变化都写回 sessionStorage：跳 `/sphere` 再回来（外壳重新挂载）时读它 */
+  useEffect(() => {
+    persistAiPanelOpen(aiPanelOpen)
+  }, [aiPanelOpen])
+
   const navigate = useNavigate()
   const router = useRouter()
+  /*
+    URL 里的 appId：正常业务外壳下与 `currentApp` 由守卫同步成同一个值，
+    但「跳到全屏对话页」拼的是 URL，直接读参数比读 store 更贴近目标。
+  */
+  const { appId } = useParams({ from: '/$appId' })
+
+  /**
+   * AI 面板头行「最大化」：换成**全屏 AI 对话页**。
+   *
+   * 目标是哪个路由**取决于面板里现在有没有会话**：
+   * - 有（`activeSessionId` 非空）→ `/$appId/sphere/chat/$chatId`，当前这段对话原样续上
+   *   （AI 会话状态是模块级 store，与路由无关）；
+   * - 没有 → `/$appId/sphere`，全屏页按「新会话」打开。
+   *
+   * 走之前先把**当前 href 记进 sessionStorage**（含查询串）：`/sphere` 的「收起」要回到
+   * 这一页，而不是笼统的应用首页 —— 用户可能是在带筛选条件的列表页上最大化的。
+   *
+   * 面板自身不参与跳转 —— 它只把点击交回外壳（见 `AiPanelProps.onMaximize`）。
+   */
+  const handleMaximizeAi = () => {
+    rememberMaximizeOrigin(router.state.location.href)
+
+    if (activeSessionId) {
+      void navigate({
+        to: '/$appId/sphere/chat/$chatId',
+        params: { appId, chatId: activeSessionId },
+      })
+      return
+    }
+    void navigate({ to: '/$appId/sphere', params: { appId } })
+  }
 
   /**
    * 把「只有 React 侧才拿得到」的两件事交给 AI 工具层（见 `#/lib/ai/page-context` 的外壳桥）：
@@ -160,6 +206,8 @@ export function AppShell() {
           // 折叠态的真值在外壳（`handleToggleAskAi` 也要读它），面板只是受控显示
           collapsed={aiFloatCollapsed}
           onToggleCollapsed={() => setAiFloatCollapsed((collapsed) => !collapsed)}
+          // 头行「最大化」→ 全屏 AI 对话页
+          onMaximize={handleMaximizeAi}
         />
       </ShellSidebarProvider>
 

@@ -95,6 +95,14 @@ interface AiSessionState {
   startNewSession: () => void
   /** 切到某个历史会话 */
   switchSession: (sessionId: string) => Promise<void>
+  /**
+   * 该 app 里是否存在这个会话。
+   *
+   * 给全屏对话页的**路由校验**用（`/$appId/sphere/chat/$chatId`）：找不到就
+   * `notFound()`。这里刻意直接读 IDB 而不是看 `sessions` 状态 —— loader 可能在
+   * 会话列表加载完成之前就跑，用状态会误判成 404。
+   */
+  hasSession: (sessionId: string) => Promise<boolean>
   /** 删除一个历史会话（删的是当前会话时自动切到下一个） */
   removeSession: (sessionId: string) => Promise<void>
 }
@@ -369,6 +377,11 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
       pendingApproval: null,
     })
     void setActiveSessionId(appId, sessionId)
+  },
+
+  hasSession: async (sessionId) => {
+    const sessions = await listSessions(getAppScope())
+    return sessions.some((item) => item.id === sessionId)
   },
 
   removeSession: async (sessionId) => {

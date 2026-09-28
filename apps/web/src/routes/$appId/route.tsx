@@ -1,8 +1,8 @@
-import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { AppShell } from '#/components/app-shell'
 import { MainNotFound } from '#/components/main-layout'
 import { RouteError } from '#/components/route-states'
-import { getAuthSnapshot, selectAppAndComplete } from '#/lib/auth'
+import { guardAppRoute } from '#/lib/app-route-guard'
 
 /**
  * [appId] 业务外壳布局路由（/$appId/route.tsx）。
@@ -14,31 +14,13 @@ import { getAuthSnapshot, selectAppAndComplete } from '#/lib/auth'
  *
  * 可用应用列表来自 `GET /apps`（登录后写入认证状态），因此这里只认这一份，
  * 不再有「静态应用池」之类的第二真值。
+ *
+ * 守卫本体在 `#/lib/app-route-guard`：全屏 AI 对话页（`/$appId/sphere`）刻意逃离
+ * 本布局，拿不到这里的 `beforeLoad`，两处共用同一个函数才不会漂移。
  */
 export const Route = createFileRoute('/$appId')({
   beforeLoad: ({ location, params }) => {
-    const auth = getAuthSnapshot()
-    // 1. 未认证重定向到登录页
-    if (!auth.isAuthenticated) {
-      throw redirect({
-        to: '/login',
-        search: {
-          redirect: location.href,
-        },
-      })
-    }
-    // 2. 校验并同步 URL 中的 appId
-    const targetAppId = params.appId
-    const matchedApp = auth.availableApps.find((a) => a.id === targetAppId)
-
-    if (!matchedApp) {
-      throw notFound()
-    }
-
-    // 若当前生效的应用与 URL 不一致（例如直接粘贴链接进入），同步为 URL 指定的应用
-    if (!auth.currentApp || auth.currentApp.id !== targetAppId) {
-      selectAppAndComplete(matchedApp.id)
-    }
+    guardAppRoute({ appId: params.appId, href: location.href })
   },
   component: AppShell,
   errorComponent: RouteError,
