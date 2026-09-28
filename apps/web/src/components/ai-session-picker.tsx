@@ -12,6 +12,26 @@ import type { AiSessionSummary } from '#/lib/ai'
 import { cn } from '#/lib/cn'
 
 /**
+ * 当前会话的标题（没有标题的空白会话回落成「新对话」）。
+ *
+ * 两个使用点共用这一份：会话选择器的按钮文案，以及**折叠态浮窗**头行那句标题 ——
+ * 折叠态只是把选择器换成「头像 + 标题」，标题必须与展开时所见完全一致。
+ *
+ * 放在这里而不是 `#/lib/ai`：兜底文案要过 i18n（`ai` 命名空间），lib 层不依赖
+ * react-i18next；而「会话标题怎么取、怎么兜底」正是本模块的知识。
+ */
+export function useActiveSessionTitle(): string {
+  const { t } = useTranslation('ai')
+  const sessions = useAiSessionStore((state) => state.sessions)
+  const activeSessionId = useAiSessionStore((state) => state.activeSessionId)
+
+  return useMemo(() => {
+    const active = sessions.find((item) => item.id === activeSessionId)
+    return active?.title || t('sessionNew', '新对话')
+  }, [activeSessionId, sessions, t])
+}
+
+/**
  * 会话选择器：AI 面板头行左侧那颗按钮，点开是「搜索 + 按时间分组的历史 + 新对话」。
  *
  * 三件事都刻意做得很轻：
@@ -39,10 +59,7 @@ export function AiSessionPicker() {
   const titleOf = (session: AiSessionSummary) =>
     session.title || t('sessionNew', '新对话')
 
-  const activeTitle = useMemo(() => {
-    const active = sessions.find((item) => item.id === activeSessionId)
-    return active ? active.title || t('sessionNew', '新对话') : t('sessionNew', '新对话')
-  }, [activeSessionId, sessions, t])
+  const activeTitle = useActiveSessionTitle()
 
   const groups = useMemo(() => {
     const trimmed = keyword.trim().toLowerCase()

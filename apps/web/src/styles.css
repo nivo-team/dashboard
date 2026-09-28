@@ -185,17 +185,37 @@
 }
 
 /*
- * 面板拖拽期间的全局反馈（见 #/lib/use-panel-resize）。
+ * 面板尺寸拖拽期间的全局反馈（见 #/lib/use-panel-resize）。
  *
  * 拖拽时指针经常离开手柄、甚至离开面板，只在手柄上写 cursor 的话，光标掠过其它元素
- * 会闪回箭头，还会顺手选中表格里的文字。这里用根节点上的标记属性统一接管：
+ * 会闪回箭头，还会顺手选中表格里的文字。这里用根节点上的标记属性统一接管，
+ * **属性值就是光标种类**：`col` = 竖边手柄（改宽）/ `row` = 横边手柄（改高）/
+ * `both` = 角手柄（宽高一起改）。
+ *
  * - `*` 是必需的：子元素自己的 `cursor-pointer`（表格行、按钮）会覆盖继承值；
- * - `user-select: none` 同时挡住拖拽过程中的文本选区。
+ * - `user-select: none` 同时挡住拖拽过程中的文本选区；
+ * - 竖边手柄不需要按书写方向翻（左右拖都是 `col-resize`），角手柄需要
+ *   （LTR 是左上角 `nwse`、RTL 是右上角 `nesw`）。
  */
-[data-panel-resizing='true'],
-[data-panel-resizing='true'] * {
-  cursor: col-resize !important;
+[data-panel-resizing],
+[data-panel-resizing] * {
   user-select: none !important;
+}
+
+[data-panel-resizing='col'] * {
+  cursor: col-resize !important;
+}
+
+[data-panel-resizing='row'] * {
+  cursor: row-resize !important;
+}
+
+[data-panel-resizing='both'] * {
+  cursor: nwse-resize !important;
+}
+
+[dir='rtl'] [data-panel-resizing='both'] * {
+  cursor: nesw-resize !important;
 }
 
 /*

@@ -204,10 +204,12 @@ useAiPageContext(Route.id, {
 - **入口与范围**：顶栏 `#/components/header-actions` 的「Ask AI」按钮**只在 `$appId` 外壳
   （`AppHeader`）显示**（`HeaderActions.showAskAi` 默认 `false`）。面板本体是 `#/components/ai-panel`
   （`AiPanel`，受控 `open` / `onClose`），展开状态由 `AppShell` 持有、**刻意不持久化**。
-- **按钮是开关（toggle）**：点一次开、再点一次关 —— `AppShell` 传
-  `onToggleAskAi={() => setAiPanelOpen((open) => !open)}`，并把 `isAskAiOpen` 透给
-  `HeaderActions`（画出 `aria-expanded` 与展开态的浅底 `bg-kumo-tint`）。
-  **状态只有 `AppShell` 一份**，按钮组件不自己存，避免与真值分叉。
+- **按钮是开关（toggle），但折叠态优先展开**：点一次开、再点一次关 —— `AppShell` 的
+  `handleToggleAskAi` 负责分流（关着 → 打开完整面板；开着且 Float 折叠 → 展开；
+  开着且展开 → 关闭，见下面 Float 那一条），并把 `isAskAiOpen` 透给
+  `HeaderActions`（**只画 `aria-expanded`，展开态不加任何高亮** —— 面板本身已经占着
+  屏幕，按钮再亮一块浅底只是噪音；`Ask AI` 与相邻的 `Support`、账号菜单保持同一副 ghost 皮）。
+  **状态只有 `AppShell` 一份**（展开 + Float 折叠都是），按钮组件不自己存，避免与真值分叉。
 - **挂载点是「与 Sidebar 同级」的那一列**：它渲染在 `Sidebar.Provider` 之内、内容列**之后**
   （`<main>` 的兄弟节点，不是内容区的一部分）。因此路由切换、`<Outlet />` 重渲染都与它无关，
   `main` 的 `data-shell-content` 语义（404 铺满等）也不需要为它加特例。
@@ -217,17 +219,47 @@ useAiPageContext(Route.id, {
     内部头行固定 `h-[58px]` 与 `AppHeader` 同高，两条底边线连成一条。宽度落
     `admin.shell-ui.aiPanelWidth`（默认 400、300–720，拖拽 + 方向键，与详情分屏同一套
     `#/lib/use-panel-resize`，`onChange` 即时值 / `onCommit` 落盘）；
-  - **Float**（`float`）：`fixed` 在**行尾侧下角**（`end-*` / `bottom-*`，RTL 自动换边不压住侧边栏）、
-    浮在内容之上、不挤压布局，**从页面底部弹出**（入场动画 = styles.css 的
+  - **Float**（`float`）：`fixed` 在**行尾侧下角**（`md:end-4` / `md:bottom-4`，RTL 自动换边不压住侧边栏）、
+    浮在内容之上、不挤压布局，**从页面底部升起**（入场动画 = styles.css 的
     `[data-ai-float='true']` + `@keyframes ai-float-enter`，整体包在
-    `prefers-reduced-motion: no-preference` 里；只有入场没有退场）。浮窗是固定尺寸，**没有**可拖拽宽度。
+    `prefers-reduced-motion: no-preference` 里；只有入场没有退场）。
+    ⚠️ **`md:top-auto` 不能省**：`inset-0`（移动端整屏）写进去的 `top: 0` 不会被
+    `md:bottom-4` 顶掉 —— top / bottom / height 同时指定时浏览器忽略的是 bottom，
+    于是浮窗会贴到**视口顶端**（曾经就是这个 bug）。
+  - **Float 可折叠成一条窄条**：头行里「关闭」左侧那颗按钮（`CaretDown` 收起 / `CaretUp`
+    展开，`aria-expanded` 跟着走）把浮窗压成「只有头行」的一条 —— 会话区与输入区**整体不渲染**
+    （不是 CSS 压高：否则看不见的输入框与链接仍留在 tab 顺序里），左侧的会话选择器换成
+    「AI 头像 + 当前会话标题」（标题与展开时同源：`#/components/ai-session-picker` 的
+    `useActiveSessionTitle`；**头像不加圆形底色 / 描边**，与消息行里的那个一致）。
+    折叠态高度交给内容（不写内联 `height`），手柄只留**宽度**那一根。
+    **按钮只在 Float 出现**：Split 不把回调转给头行（靠回调有无，而不是在组件里判 mode）；
+    移动端浮窗是整屏、折叠不成立，按钮也不挂。
+  - **折叠状态的真值在 `AppShell`**（与面板展开状态同一层，都**不持久化**）：因为顶栏那颗
+    「Ask AI」按钮要按它分流 —— **关着**时打开（总是完整面板）、**开着且折叠**时这一下是
+    **展开**（用户点它想看的就是对话，不能把窄条关掉让他再点一次）、**开着且展开**时才是
+    关闭。Split 没有折叠态，分流条件里要带上 `aiPanelMode === 'float'`。
+  - **Float 可拖拽改尺寸**：顶边改高度、行首边改宽度、行首上角同时改两者
+    （`#/lib/use-panel-resize` 的 `useFloatPanelResize`，与分屏面板的 `usePanelResize`
+    分工：那个只有宽度、锚点在对侧边）。尺寸落 `admin.shell-ui.aiFloatWidth` /
+    `aiFloatHeight`（默认 380×560，宽 300–720、高 320–900）。**高度上限分两层**：
+    静态上限 + 视口上限（`100svh − AI_FLOAT_VIEWPORT_MARGIN`，矮窗口里只有后者能拦住它）——
+    CSS 的 `max-height` 与 hook 的拖拽上限必须用同一个常量，否则拖到顶时面板会先停住、
+    再被 CSS 悄悄压小。拖柄的键盘语义、`data-panel-resizing` 光标值与分屏面板一致，
+    但**视觉刻意相反**：浮窗的三个手柄不画任何常驻 / hover 线、角上也不放直角图标
+    ——「多出一笔」会干扰浮窗边缘的阅读，提示只在鼠标样式（`ns-resize` / `ew-resize` /
+    对角）上，只有键盘 `focus-visible` 留一条细线（否则 Tab 过来不知道在哪个手柄）。
+    ⚠️ **拖拽方向要按书写方向翻**：手柄在面板的行首边，`side` 传的是**面板**的物理侧
+    （`isRtl ? 'left' : 'right'`，与 `usePanelResize` 同一个约定），
+    宽度增量是 `side === 'left' ? +dx : -dx` —— 曾经按"忽略书写方向"算，RTL 下要反着拖。
   - 移动端两者都是**整屏**（`inset-0`）。Float 刻意**不做贴底卡片**：手机屏幕本来就小，
     卡片式再砍一截高度、左右各留 12px，能看内容的地方所剩无几；而且桌面端那两个形态的
     差别（挤压内容 vs 浮在内容上）在手机上本来就读不出来，留下的只有"更小的可用面积"。
-    因此 Float 的尺寸 / 圆角 / 边框 / 阴影类一律只在 `md:` 以上生效，
-    **不需要为它做 JS 视口判断**。
+    因此 Float 的位置 / 尺寸 / 圆角 / 边框 / 阴影类一律只在 `md:` 以上生效，
+    **不需要为它做 JS 视口判断**（尺寸走内联 style，移动端不发；拖柄也只在桌面端挂）。
 - **面板几何与手柄共用** `#/components/side-panel`（`CONTENT_PANEL_FRAME` 属内容区 /
   `SHELL_PANEL_FRAME` 属外壳）；**改面板高度、手柄手感只动这里**，不要在各自组件里再写一份。
+  浮窗（可拖两个方向）的手柄是 `ai-panel` 内部的 `AiFloatResizeHandle`（视觉与键盘语义
+  照抄 `SidePanelResizeHandle`），拖拽逻辑同上那一个 lib 文件 —— **不要**给浮窗另建一套。
 - **底部输入区**是 `#/components/ai-composer` 的 `AiComposer`（Kumo `Textarea` 的 `autoResize` +
   `minRows=2` / `maxRows=8`，最多 8 行、再多在框内滚动）。面板骨架因此是三段 flex 列 ——
   头行与输入区 `shrink-0`、中间内容区 `min-h-0 flex-1 overflow-y-auto`：**输入框不要放进滚动容器**，
@@ -258,7 +290,8 @@ useAiPageContext(Route.id, {
   （`AiToolDefinition.group`：页面 / 数据 / 表单）**由工具自己声明**，设置页的清单从
   `AI_TOOLS` 派生、不另抄名单（加工具只改工具文件）。**默认只读是刻意的**：AI 默认只能看，
   要它动数据得用户自己到设置里开。
-- 文案：面板 / 输入区 / 会话区都用 `ai` 命名空间（面板 `title` / `close` / `resize`；输入区
+- 文案：面板 / 输入区 / 会话区都用 `ai` 命名空间（面板 `title` / `close` / `resize`（分屏拖柄）/
+  `resizeFloat` / `resizeFloatWidth` / `resizeFloatHeight`（浮窗三个拖柄）；输入区
   `inputLabel` / `inputPlaceholder` / `send` / `mode*`；会话区 `greetings.*` / `greetingPrompt` /
   `thinking` / `tool*` / `tools.*`），7 语言齐。设置项在 `common:profile.settings` 下（卡片标题复用 `general`）：
   `aiDisplayMode` / `aiDisplayModeHint` / `aiModes.*` —— **必须挂 `profile.settings` 下**
@@ -406,7 +439,9 @@ useAiPageContext(Route.id, {
   所以路由切换、`<Outlet />` 重渲染都与它无关。**面板几何与拖拽手柄共用 `#/components/side-panel`**，
   改高度 / 手感只动那里，不要在组件里再写一份。
 - **两种打开方式**（`aiPanelMode`）：`split` 外壳级分屏列（宽度落 `admin.shell-ui.aiPanelWidth`）/
-  `float` 行尾侧下角浮窗（不挤压布局）。**两者在移动端都是整屏**，**不要为 Float 做 JS 视口判断**。
+  `float` 行尾侧下角浮窗（不挤压布局，可拖拽改尺寸，宽高落 `admin.shell-ui.aiFloatWidth` /
+  `aiFloatHeight`）。**两者在移动端都是整屏**，**不要为 Float 做 JS 视口判断**。
+  ⚠️ Float 的 `inset-0` 之外**必须**写 `md:top-auto`，否则它会贴在视口顶端而不是下角。
 - **三段 flex 列**：头行与输入区 `shrink-0`、中间滚动 —— **输入框不要放进滚动容器**，否则内容一长
   就被顶出视口。外观画在外层框上、内层 `Textarea` 逐项清零；`Enter` 发送、`Shift+Enter` 换行、
   **输入法组字中的回车要让开**（`event.nativeEvent.isComposing`）。

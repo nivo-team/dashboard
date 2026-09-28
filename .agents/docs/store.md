@@ -124,8 +124,9 @@ useTableUiStore.getState().resetTable('users/user')
 ### 5.4 外壳（侧边栏 / 分屏面板）UI 状态
 
 `useShellUiStore`（`admin.shell-ui`）记录**桌面端**的侧边栏展开态与宽度，**以及详情预览
-分屏面板的宽度**（`detailPanelWidth`）。两个外壳（`AppShell` 与 `MainLayout`）共用同一份，
-所以在 `/settings` 收起的侧边栏，回到业务页仍是收起的。
+分屏面板的宽度**（`detailPanelWidth`）、**AI 面板的尺寸**（分屏 `aiPanelWidth`；
+贴角浮窗 `aiFloatWidth` / `aiFloatHeight`，浮窗两个方向都可拖）。两个外壳（`AppShell` 与
+`MainLayout`）共用同一份，所以在 `/settings` 收起的侧边栏，回到业务页仍是收起的。
 
 接线方式刻意选择**非受控 + 回调持久化**：
 

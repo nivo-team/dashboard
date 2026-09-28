@@ -16,7 +16,7 @@ interface AppHeaderProps {
   onOpenCommandPalette: () => void
   /** 切换 AI 面板（`AppShell` 持有它的展开状态，见 components/app-shell.tsx） */
   onToggleAskAi: () => void
-  /** AI 面板当前是否展开：按钮据此给出 `aria-expanded` 与激活态 */
+  /** AI 面板当前是否展开：只用来给按钮画 `aria-expanded`（**不带视觉激活态**，见 `HeaderActions`） */
   isAskAiOpen: boolean
 }
 

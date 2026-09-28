@@ -18,6 +18,7 @@ import {
   useShellUiStore,
 } from '#/lib/store'
 import { useLocale } from '#/lib/use-locale'
+import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 
 /**
  * 管理后台外壳：左侧导航 + 顶栏 + 内容区。
@@ -33,13 +34,50 @@ export function AppShell() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   /**
    * AI 面板的展开状态：由顶栏「Ask AI」按钮**切换**（`onToggleAskAi`，按钮同时拿到
-   * `isAskAiOpen` 画 `aria-expanded` 与激活态）。
+   * `isAskAiOpen` 只用来画 `aria-expanded`，**没有视觉激活态** —— 面板已经占着屏幕了，
+   * 按钮再亮一块浅底只是多一处动静）。
    *
    * **刻意不持久化**（与详情预览浮层一致）：它是「临时看一眼」的浮层，刷新后自动收起
    * 比记住上次展开更符合预期；需要跨会话保留的是它的**宽度**（`admin.shell-ui.aiPanelWidth`）。
    */
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
+  /**
+   * Float 浮窗是否被折成「只有头行」的窄条。
+   *
+   * 状态放在外壳而不是 `AiPanel` 内部：顶栏那颗「Ask AI」按钮要按它决定这一下是**展开**
+   * 还是**关闭**（见 `handleToggleAskAi`），而按钮在 `AppHeader` 里 —— 真值只能有一份，
+   * 就放在两者共同的上层。同样**不持久化**（理由与 `aiPanelOpen` 相同）。
+   */
+  const [aiFloatCollapsed, setAiFloatCollapsed] = useState(false)
   const aiEnabled = usePreferencesStore((state) => state.aiEnabled)
+  const aiPanelMode = usePreferencesStore((state) => state.aiPanelMode)
+  // 移动端浮窗是整屏，折叠不成立（`AiPanel` 里也不发折叠按钮），这里跟着一起排除
+  const isMobileViewport = useIsMobileViewport()
+
+  /**
+   * 顶栏「Ask AI」按钮。
+   *
+   * - **面板关着**：打开（总是完整面板 —— 折叠只是「这一次不想看」，不跨开合保留）；
+   * - **面板开着且折叠**：这一下是**展开**，不是关闭 —— 用户点这颗按钮想看的就是对话，
+   *   若在这里把窄条关掉，他得再点一次才能看到内容；
+   * - **面板开着且展开**：关闭（原来的开关语义）。
+   *
+   * Split 形态没有折叠态（`collapsed` 只作用于 Float），因此按 `aiPanelMode` 分流。
+   */
+  const handleToggleAskAi = () => {
+    if (!aiPanelOpen) {
+      setAiPanelOpen(true)
+      setAiFloatCollapsed(false)
+      return
+    }
+
+    if (aiPanelMode === 'float' && aiFloatCollapsed && !isMobileViewport) {
+      setAiFloatCollapsed(false)
+      return
+    }
+
+    setAiPanelOpen(false)
+  }
 
   /*
     关掉 AI 功能后把**已经打开**的面板收起来：否则它会留在屏幕上，而顶栏的关闭/开关
@@ -110,8 +148,8 @@ export function AppShell() {
         <div className="flex min-w-0 flex-1 flex-col bg-kumo-canvas">
           <AppHeader
             onOpenCommandPalette={() => setPaletteOpen(true)}
-            // 开关：点一次开、再点一次关（按钮的 aria-expanded 与激活态跟着这个状态走）
-            onToggleAskAi={() => setAiPanelOpen((open) => !open)}
+            // 见 `handleToggleAskAi`：折叠态下这一下是展开，展开态下才是关闭
+            onToggleAskAi={handleToggleAskAi}
             isAskAiOpen={aiPanelOpen}
           />
           {/*
@@ -143,7 +181,13 @@ export function AppShell() {
           外壳级的整屏高列（一左一右），而不是内容区里的分屏。路由切换只替换上面的
           `<Outlet />`，面板不受影响；页面也无从感知它的存在。
         */}
-        <AiPanel open={aiPanelOpen} onClose={() => setAiPanelOpen(false)} />
+        <AiPanel
+          open={aiPanelOpen}
+          onClose={() => setAiPanelOpen(false)}
+          // 折叠态的真值在外壳（`handleToggleAskAi` 也要读它），面板只是受控显示
+          collapsed={aiFloatCollapsed}
+          onToggleCollapsed={() => setAiFloatCollapsed((collapsed) => !collapsed)}
+        />
       </Sidebar.Provider>
 
       {/*

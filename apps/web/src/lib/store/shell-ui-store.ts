@@ -46,6 +46,33 @@ export const AI_PANEL_DEFAULT_WIDTH = 400
 export const AI_PANEL_MIN_WIDTH = 300
 export const AI_PANEL_MAX_WIDTH = 720
 
+/**
+ * AI 浮窗（Float）的尺寸区间。
+ *
+ * 与分屏面板（只能拖宽度）不同，浮窗**两个方向都能拖**：宽度手柄在行首边、高度手柄在顶边，
+ * 底边与行尾边是锚点。默认值就是它作为「小窗」的原始尺寸（380×560）。
+ *
+ * 上限有**两层**，缺一不可：
+ * - 这里的静态上限（拖到底也不会盖满屏幕）；
+ * - 视口给的上限 —— 浮窗贴底向上长，视口矮时必须把高度压回来，否则会顶出屏幕。
+ *   视口高度只有运行时才知道，所以那层放在组件里（`AI_FLOAT_VIEWPORT_MARGIN` + `svh`），
+ *   不能只靠这里的常量。
+ */
+export const AI_FLOAT_DEFAULT_WIDTH = 380
+export const AI_FLOAT_MIN_WIDTH = 300
+export const AI_FLOAT_MAX_WIDTH = 720
+export const AI_FLOAT_DEFAULT_HEIGHT = 560
+export const AI_FLOAT_MIN_HEIGHT = 320
+export const AI_FLOAT_MAX_HEIGHT = 900
+
+/**
+ * 浮窗与视口之间必须留出的余量（px）：`bottom-4` 的 16px 贴底，加上顶部的呼吸空间。
+ *
+ * 拖拽的高度上限（JS，`ai-panel`）与 `max-height`（CSS，同一个内联 style）都从这个常量取值，
+ * **不要再写第二个数**：两处一旦分叉，拖动到上限时面板会先停住、再被 CSS 悄悄压小。
+ */
+export const AI_FLOAT_VIEWPORT_MARGIN = 80
+
 /** 拖拽期间的写盘节流：`onWidthChange` 每帧都会触发，同步写 localStorage 会卡。 */
 const WIDTH_PERSIST_DELAY_MS = 200
 
@@ -58,15 +85,31 @@ interface ShellUiState {
   detailPanelWidth: number
   /** AI 面板的宽度（px） */
   aiPanelWidth: number
+  /** AI 浮窗（Float）的宽度（px） */
+  aiFloatWidth: number
+  /** AI 浮窗（Float）的高度（px） */
+  aiFloatHeight: number
   setSidebarOpen: (open: boolean) => void
   setSidebarWidth: (width: number) => void
   setDetailPanelWidth: (width: number) => void
   setAiPanelWidth: (width: number) => void
+  /**
+   * 浮窗的两个方向一起写。
+   *
+   * **不给宽高各开一个 setter**：拖角手柄时两者是同一帧里的一次调整，
+   * 分两次 `set` 会多触发一轮订阅（也更容易漏掉其中一个）。
+   */
+  setAiFloatSize: (width: number, height: number) => void
 }
 
 type PersistedShellUi = Pick<
   ShellUiState,
-  'sidebarOpen' | 'sidebarWidth' | 'detailPanelWidth' | 'aiPanelWidth'
+  | 'sidebarOpen'
+  | 'sidebarWidth'
+  | 'detailPanelWidth'
+  | 'aiPanelWidth'
+  | 'aiFloatWidth'
+  | 'aiFloatHeight'
 >
 
 export function clampSidebarWidth(width: number): number {
@@ -84,6 +127,14 @@ export function clampAiPanelWidth(width: number): number {
   return Math.min(AI_PANEL_MAX_WIDTH, Math.max(AI_PANEL_MIN_WIDTH, Math.round(width)))
 }
 
+export function clampAiFloatWidth(width: number): number {
+  return Math.min(AI_FLOAT_MAX_WIDTH, Math.max(AI_FLOAT_MIN_WIDTH, Math.round(width)))
+}
+
+export function clampAiFloatHeight(height: number): number {
+  return Math.min(AI_FLOAT_MAX_HEIGHT, Math.max(AI_FLOAT_MIN_HEIGHT, Math.round(height)))
+}
+
 export const useShellUiStore = create<ShellUiState>()(
   persist(
     (set) => ({
@@ -91,6 +142,8 @@ export const useShellUiStore = create<ShellUiState>()(
       sidebarWidth: SIDEBAR_WIDTH,
       detailPanelWidth: DETAIL_PANEL_DEFAULT_WIDTH,
       aiPanelWidth: AI_PANEL_DEFAULT_WIDTH,
+      aiFloatWidth: AI_FLOAT_DEFAULT_WIDTH,
+      aiFloatHeight: AI_FLOAT_DEFAULT_HEIGHT,
       setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
       setSidebarWidth: (sidebarWidth) =>
         set({ sidebarWidth: clampSidebarWidth(sidebarWidth) }),
@@ -98,6 +151,11 @@ export const useShellUiStore = create<ShellUiState>()(
         set({ detailPanelWidth: clampDetailPanelWidth(detailPanelWidth) }),
       setAiPanelWidth: (aiPanelWidth) =>
         set({ aiPanelWidth: clampAiPanelWidth(aiPanelWidth) }),
+      setAiFloatSize: (width, height) =>
+        set({
+          aiFloatWidth: clampAiFloatWidth(width),
+          aiFloatHeight: clampAiFloatHeight(height),
+        }),
     }),
     {
       name: 'admin.shell-ui',
@@ -107,10 +165,13 @@ export const useShellUiStore = create<ShellUiState>()(
         sidebarWidth: state.sidebarWidth,
         detailPanelWidth: state.detailPanelWidth,
         aiPanelWidth: state.aiPanelWidth,
+        aiFloatWidth: state.aiFloatWidth,
+        aiFloatHeight: state.aiFloatHeight,
       }),
       /**
        * 旧存档没有 `detailPanelWidth` / `aiPanelWidth`（后续新增）—— 缺失或非法一律回落
        * 默认值，否则 `undefined` 会被当成宽度写进 `style.width`（渲染成 `width: undefinedpx`）。
+       * `aiFloatWidth` / `aiFloatHeight` 同理（浮窗可拖拽尺寸是更后面才加的）。
        */
       merge: (persisted, current) => {
         const saved = (persisted ?? {}) as Partial<PersistedShellUi>
@@ -135,6 +196,16 @@ export const useShellUiStore = create<ShellUiState>()(
             Number.isFinite(saved.aiPanelWidth)
               ? clampAiPanelWidth(saved.aiPanelWidth)
               : current.aiPanelWidth,
+          aiFloatWidth:
+            typeof saved.aiFloatWidth === 'number' &&
+            Number.isFinite(saved.aiFloatWidth)
+              ? clampAiFloatWidth(saved.aiFloatWidth)
+              : current.aiFloatWidth,
+          aiFloatHeight:
+            typeof saved.aiFloatHeight === 'number' &&
+            Number.isFinite(saved.aiFloatHeight)
+              ? clampAiFloatHeight(saved.aiFloatHeight)
+              : current.aiFloatHeight,
         }
       },
     },
@@ -195,4 +266,15 @@ export function persistDetailPanelWidth(width: number) {
 export function persistAiPanelWidth(width: number) {
   if (!isDesktopViewport()) return
   useShellUiStore.getState().setAiPanelWidth(width)
+}
+
+/**
+ * 记录 AI 浮窗的拖拽尺寸。约定同上：以 `onCommit` 为写入时机（一次拖动 / 一次按键只写一次）。
+ *
+ * 存档里就是**用户当时看到的那一档**（可能已被视口上限压小）：把「拖到的值」与「看到的值」
+ * 分开存，等用户换到大屏幕时会莫名其妙弹成存档里那个更大的值。
+ */
+export function persistAiFloatSize(size: { width: number; height: number }) {
+  if (!isDesktopViewport()) return
+  useShellUiStore.getState().setAiFloatSize(size.width, size.height)
 }

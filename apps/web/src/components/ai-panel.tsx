@@ -1,10 +1,11 @@
 import { Button } from '@cloudflare/kumo'
-import { ArrowDownIcon, XIcon } from '@phosphor-icons/react'
+import { ArrowDownIcon, CaretDownIcon, CaretUpIcon, XIcon } from '@phosphor-icons/react'
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { AiBotAvatar } from '#/components/ai-bot-avatar'
 import { AiComposer } from '#/components/ai-composer'
 import { AiConversation } from '#/components/ai-conversation'
-import { AiSessionPicker } from '#/components/ai-session-picker'
+import { AiSessionPicker, useActiveSessionTitle } from '#/components/ai-session-picker'
 import {
   SHELL_PANEL_FRAME,
   SidePanelResizeHandle,
@@ -12,21 +13,45 @@ import {
 import { useAiSessionStore } from '#/lib/ai'
 import { cn } from '#/lib/cn'
 import {
+  AI_FLOAT_MAX_HEIGHT,
+  AI_FLOAT_MAX_WIDTH,
+  AI_FLOAT_MIN_HEIGHT,
+  AI_FLOAT_MIN_WIDTH,
+  AI_FLOAT_VIEWPORT_MARGIN,
   AI_PANEL_MAX_WIDTH,
   AI_PANEL_MIN_WIDTH,
+  persistAiFloatSize,
   persistAiPanelWidth,
   usePreferencesStore,
   useShellUiStore,
 } from '#/lib/store'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 import { useLocale } from '#/lib/use-locale'
-import { usePanelResize } from '#/lib/use-panel-resize'
+import {
+  useFloatPanelResize,
+  usePanelResize,
+  type FloatResizeHandleProps as FloatResizeHandleBinderProps,
+} from '#/lib/use-panel-resize'
 
 export interface AiPanelProps {
   /** 是否展开 */
   open: boolean
   /** 请求关闭（关闭按钮 / Esc） */
   onClose: () => void
+  /**
+   * Float 浮窗是否折成「只有头行」的窄条。
+   *
+   * **真值在外壳**（`AppShell`）：顶栏「Ask AI」按钮要按它决定那一下是展开还是关闭，
+   * 所以面板只做受控显示，自己不存。Split 形态忽略它（没有折叠态）。
+   */
+  collapsed?: boolean
+  /**
+   * 折叠 / 展开切换。
+   *
+   * 传了才有折叠按钮（Split 分支不把它转给头行，因此不会出现那颗按钮）；
+   * 移动端也不发 —— 整屏浮窗折不出来。
+   */
+  onToggleCollapsed?: () => void
 }
 
 /**
@@ -39,21 +64,26 @@ export interface AiPanelProps {
  *   整屏高，夹在侧边栏与内容区之间，挤压内容而不覆盖它。它挂载在
  *   `Sidebar.Provider` 内容列**之后的兄弟节点**上（见 components/app-shell.tsx），
  *   内部头行固定 `h-[58px]` 与 `AppHeader` 同高，两条底边线连成一条；
- * - **Float**（`float`）：**从页面底部弹出**的浮窗，停在行尾侧下角、浮在内容之上
- *   （`fixed`，不挤压布局）。入场动画是「自下而上 + 淡入」，交给 styles.css 的
+ * - **Float**（`float`）：**从页面底部升起**的浮窗，停在**行尾侧下角**（LTR 右下、RTL 左下）、
+ *   浮在内容之上（`fixed`，不挤压布局）。入场动画是「自下而上 + 淡入」，交给 styles.css 的
  *   `[data-ai-float='true']` 规则（`prefers-reduced-motion: reduce` 下不播、状态照常）。
+ *   它是**可拖拽改变尺寸**的小窗：顶边改高度、行首边改宽度、行首上角同时改两者
+ *   （手柄见文件末尾的 `AiFloatResizeHandle`，逻辑在 `#/lib/use-panel-resize`）；
+ *   头行的折叠按钮还能把它压成**只有头行**的窄条（`collapsed`，受控于 `AppShell`）。
  *
  * 两处的降级：
- * - **移动端**：Split 退化成覆盖整屏的面板、Float 收成贴底的大卡片 —— 窄屏放不下并列两列，
- *   差异只剩尺寸与位置；Float 的固定宽度类只在 `md` 以上生效，因此不需要 JS 判断视口；
+ * - **移动端**：Split 退化成覆盖整屏的面板、Float 也收成整屏 —— 窄屏放不下并列两列，
+ *   差异只剩尺寸与位置。Float 的**位置 / 圆角 / 边框 / 阴影**用 `md:` 类表达，
+ *   **尺寸**（宽高来自 store，写不出静态类）则用同一断点的 `isMobile` 兜住：移动端不写内联
+ *   style、也不挂拖柄；
  * - **Esc 关闭**：面板没有遮罩可以点，键盘退出只能自己接（会让位给已处理 Esc 的上层浮层）。
  *
- * 宽度只属于 Split（`admin.shell-ui.aiPanelWidth`，与详情面板同源）：拖动中的即时值放
- * 本地 state，松手 / 键盘调整才由 `onCommit` 落盘 —— 与 `detail-preview` 完全一致的理由
- * （每帧写 localStorage 会卡，给 store 加节流又会让面板滞后）。Float 是固定尺寸的浮窗，
- * 没有可拖拽的宽度。
+ * 尺寸都落在 `admin.shell-ui`（与详情面板 / 侧边栏同源）：拖动中的即时值放本地 state，
+ * 松手 / 键盘调整才由 `onCommit` 落盘 —— 与 `detail-preview` 完全一致的理由
+ * （每帧写 localStorage 会卡，给 store 加节流又会让面板滞后）。
+ * Split 只有宽度（`aiPanelWidth`），Float 是宽 + 高（`aiFloatWidth` / `aiFloatHeight`）。
  */
-export function AiPanel({ open, onClose }: AiPanelProps) {
+export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed }: AiPanelProps) {
   const { t } = useTranslation('ai')
   const { isRtl } = useLocale()
   const isMobile = useIsMobileViewport()
@@ -63,10 +93,22 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
   const [panelWidth, setPanelWidth] = useState(storedPanelWidth)
   const panelRef = useRef<HTMLElement | null>(null)
 
+  const storedFloatWidth = useShellUiStore((state) => state.aiFloatWidth)
+  const storedFloatHeight = useShellUiStore((state) => state.aiFloatHeight)
+  const [floatSize, setFloatSize] = useState({
+    width: storedFloatWidth,
+    height: storedFloatHeight,
+  })
+  const floatPanelRef = useRef<HTMLElement | null>(null)
+
   /** store 变化（其它标签页拖动、或存档水合）时把即时值拉平 */
   useEffect(() => {
     setPanelWidth(storedPanelWidth)
   }, [storedPanelWidth])
+
+  useEffect(() => {
+    setFloatSize({ width: storedFloatWidth, height: storedFloatHeight })
+  }, [storedFloatWidth, storedFloatHeight])
 
   /** `side` 必须是**物理侧**：RTL 下面板贴在左侧，拖拽方向与方向键语义都要跟着翻。 */
   const { handleProps: resizeHandleProps } = usePanelResize({
@@ -77,6 +119,34 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
     onChange: setPanelWidth,
     onCommit: persistAiPanelWidth,
     panelRef,
+  })
+
+  /*
+    浮窗的高度上限**分两层**：存档里的静态上限（`AI_FLOAT_MAX_HEIGHT`）与视口给的上限
+    （`100svh − AI_FLOAT_VIEWPORT_MARGIN`）。浮窗贴底向上长，矮窗口里只有后者能拦住它。
+    函数形态让它在每次拖动时重新求值，而不是在挂载时算一次就定死。
+  */
+  const resolveMaxFloatHeight = () =>
+    typeof window === 'undefined'
+      ? AI_FLOAT_MAX_HEIGHT
+      : Math.min(AI_FLOAT_MAX_HEIGHT, window.innerHeight - AI_FLOAT_VIEWPORT_MARGIN)
+
+  const {
+    widthHandleProps: floatWidthHandleProps,
+    heightHandleProps: floatHeightHandleProps,
+    cornerHandleProps: floatCornerHandleProps,
+  } = useFloatPanelResize({
+    // `side` 是浮窗**贴的物理侧**（与分屏面板同一个约定）：LTR 贴右下角、RTL 贴左下角。
+    // 手柄在它的行首边，拖拽方向与方向键语义都由这里推导 —— 别再按"忽略书写方向"算。
+    side: isRtl ? 'left' : 'right',
+    size: floatSize,
+    minWidth: AI_FLOAT_MIN_WIDTH,
+    maxWidth: AI_FLOAT_MAX_WIDTH,
+    minHeight: AI_FLOAT_MIN_HEIGHT,
+    maxHeight: resolveMaxFloatHeight,
+    onChange: setFloatSize,
+    onCommit: persistAiFloatSize,
+    panelRef: floatPanelRef,
   })
 
   useEffect(() => {
@@ -94,10 +164,38 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
   if (!open) return null
 
   if (mode === 'float') {
+    /*
+      折叠只在桌面端成立：移动端浮窗是**整屏**（`inset-0` 会把没有高度的盒子照样撑满），
+      「只留一条」在那儿既画不出来也没意义。所以这里统一取「桌面端 + 已折叠」，
+      折叠按钮也只在桌面端挂 —— 状态本身保留着，窗口变宽回来仍是折叠的。
+    */
+    const isCollapsed = !isMobile && collapsed
+
     return (
       <aside
+        ref={floatPanelRef}
         data-ai-float="true"
         aria-label={t('title', 'Ask AI')}
+        /*
+          尺寸是**数据**（存档 / 拖拽的即时值），不是样式，所以走内联 style。
+          `maxHeight` 与 hook 的拖拽上限同源（同一个 `AI_FLOAT_VIEWPORT_MARGIN`），
+          视口变矮时把浮窗压回视口内 —— 两处一旦分叉，拖到上限时面板会先停住、
+          再被 CSS 悄悄压小。
+
+          折叠态**不写 `height`**：高度交给内容（只剩头行那一条），
+          展开时再用存档 / 拖拽出来的 `floatSize.height`。
+        */
+        style={
+          isMobile
+            ? undefined
+            : isCollapsed
+              ? { width: floatSize.width }
+              : {
+                  width: floatSize.width,
+                  height: floatSize.height,
+                  maxHeight: `calc(100svh - ${AI_FLOAT_VIEWPORT_MARGIN}px)`,
+                }
+        }
         className={cn(
           'fixed z-30 flex flex-col overflow-hidden bg-kumo-base',
           /*
@@ -111,12 +209,69 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
             圆角 / 边框 / 阴影同理下放到 `md:`：整屏面板的边缘就是屏幕边缘。
           */
           'inset-0',
-          // 桌面端：行尾侧下角的小窗；固定 380px 宽 + 高度上限，视口矮时不会顶到顶栏
-          'md:start-auto md:end-4 md:bottom-4 md:h-[560px] md:max-h-[calc(100svh-5rem)] md:w-[380px]',
+          /*
+            桌面端：**行尾侧下角**的小窗 —— LTR 右下、RTL 左下（`start` / `end` 是逻辑属性，
+            方向自己就会翻）。尺寸由上面的内联 style 给，这里只管贴哪一角。
+
+            ⚠️ `md:top-auto` **不能省**：`inset-0` 写进去的 `top: 0` 不会被 `md:bottom-4`
+            顶掉 —— top / bottom / height 同时指定时浏览器忽略的是 bottom，
+            于是浮窗会贴到**视口顶端**（而且照样带 560px 高，看起来像"从左上角弹出来"）。
+          */
+          'md:top-auto md:start-auto md:end-4 md:bottom-4',
           'md:rounded-xl md:border md:border-kumo-line md:shadow-lg',
         )}
       >
-        <AiPanelSurface onClose={onClose} />
+        <AiPanelSurface
+          onClose={onClose}
+          collapsed={isCollapsed}
+          // 移动端不挂折叠按钮（`isCollapsed` 恒为 false，两者的判断保持一致）
+          onToggleCollapsed={isMobile ? undefined : onToggleCollapsed}
+        />
+
+        {/*
+          尺寸手柄只在桌面端挂：移动端浮窗是整屏，没有可拖的尺寸。
+          手柄是浮窗**内部**的绝对定位热区，顺序放在内容之后、靠 `z-20` 压在上面；
+          它们**不画任何常驻 / hover 视觉**（连角上也不放图标），提示只在鼠标样式上。
+
+          折叠态只留**宽度**手柄：窄条的高度就是头行，改它没有意义（拖了也会被忽略）。
+        */}
+        {isMobile ? null : (
+          <>
+            {/* 顶边：只改高度 */}
+            {isCollapsed ? null : (
+              <AiFloatResizeHandle
+                label={t('resizeFloatHeight', '调整浮窗高度')}
+                orientation="horizontal"
+                valueNow={floatSize.height}
+                valueMin={AI_FLOAT_MIN_HEIGHT}
+                valueMax={resolveMaxFloatHeight()}
+                handleProps={floatHeightHandleProps}
+                className="inset-x-0 top-0 h-1.5 cursor-ns-resize"
+                focusLineClassName="inset-x-0 my-auto h-0.5"
+              />
+            )}
+            {/* 行首边：只改宽度 */}
+            <AiFloatResizeHandle
+              label={t('resizeFloatWidth', '调整浮窗宽度')}
+              orientation="vertical"
+              valueNow={floatSize.width}
+              valueMin={AI_FLOAT_MIN_WIDTH}
+              valueMax={AI_FLOAT_MAX_WIDTH}
+              handleProps={floatWidthHandleProps}
+              className="inset-y-0 start-0 w-1.5 cursor-ew-resize"
+              focusLineClassName="inset-y-0 mx-auto w-0.5"
+            />
+            {/* 行首上角：同时改宽高（对角光标在 RTL 下镜像成 `nesw`）；折叠态不挂 */}
+            {isCollapsed ? null : (
+              <AiFloatResizeHandle
+                label={t('resizeFloat', '调整浮窗大小')}
+                handleProps={floatCornerHandleProps}
+                className="start-0 top-0 size-3 cursor-nwse-resize rtl:cursor-nesw-resize"
+                focusLineClassName="start-1 top-1 size-1.5 rounded-full"
+              />
+            )}
+          </>
+        )}
       </aside>
     )
   }
@@ -155,15 +310,32 @@ export function AiPanel({ open, onClose }: AiPanelProps) {
  * 两种形态共用的面板骨架：头行（标题 + 关闭）+ 可滚动内容区 + **固定在底部的输入区**。
  *
  * 头行固定 `h-[58px]` = `AppHeader` 高度，因此 Split 形态下三条横线（侧边栏品牌行、
- * 顶栏、面板头行）落在同一条底边上；Float 是浮窗，这个高度只是顺带保持统一。
+ * 顶栏、面板头行）落在同一条底边上；Float 是浮窗，这个高度只是顺带保持统一 ——
+ * 顺带也是 Float **折叠态**的总高度（折叠 = 只留头行这一条）。
  *
  * 三段是 flex 列：头行与输入区 `shrink-0`、中间内容区 `min-h-0 flex-1 overflow-y-auto`，
  * 所以对话再长输入框也不会被顶出视口（**不要**把输入区放进滚动容器里）。
  *
  * 面板内部自己管 padding（外层容器不带），分隔线因此能通到面板两侧边缘。
  */
-function AiPanelSurface({ onClose }: { onClose: () => void }) {
+function AiPanelSurface({
+  onClose,
+  collapsed = false,
+  onToggleCollapsed,
+}: {
+  onClose: () => void
+  /** 是否折成「只有头行」的窄条（Float 专属，Split 恒为 `false`） */
+  collapsed?: boolean
+  /**
+   * 折叠 / 展开的切换回调。
+   *
+   * **只有 Float 传**：不传就没有那颗按钮 —— 所以「折叠按钮只在 float 模式出现」
+   * 不是靠 mode 判断，而是靠这个回调的有无（Split 传不了，也不该传）。
+   */
+  onToggleCollapsed?: () => void
+}) {
   const { t } = useTranslation('ai')
+  const activeSessionTitle = useActiveSessionTitle()
   const autoScroll = usePreferencesStore((state) => state.aiAutoScroll)
   // 新消息、流式增量、工具卡片出现都会改动 messages，跟滚只需盯它（status 是保险）
   const messages = useAiSessionStore((state) => state.messages)
@@ -279,62 +451,191 @@ function AiPanelSurface({ onClose }: { onClose: () => void }) {
         头行左侧是**会话选择器**（替换掉原来的静态标题「Ask AI」）：点开可搜索历史会话、
         切换、开新对话。`px-2` 而不是 `px-4` —— 选择器按钮自带 `px-2`，
         这样它的文字与下面的会话内容仍然对齐在 16px 上。
+        折叠态这里换成「AI 头像 + 当前会话标题」（不可点，见下）。
       */}
       {/*
         头行要**自己的底色**：点阵背景铺满了整个面板，不给底色它就会从这后面透出来。
         取与面板相同的 `bg-kumo-base` 而不是另找一个色 —— 与 Cloudflare 面板一致：
         头行与内容区靠**一条分隔线**区分，不靠色差。
+        折叠态没有下半部分，那条底边线要收掉 —— 否则贴着浮窗下沿的一条线像是没画完。
       */}
-      <header className="relative z-10 flex h-[58px] shrink-0 items-center justify-between gap-2 border-b border-kumo-line bg-kumo-base px-2">
-        <AiSessionPicker />
+      <header
+        className={cn(
+          'relative z-10 flex h-[58px] shrink-0 items-center justify-between gap-2 bg-kumo-base px-2',
+          collapsed ? 'border-b-0' : 'border-b border-kumo-line',
+        )}
+      >
+        {collapsed ? (
+          /*
+            折叠态：会话选择器换成「AI 头像 + 当前会话标题」，两者与展开时**同源**
+            （`useActiveSessionTitle`）—— 折起来之后仍能认出是哪一段对话。
+            头像**不加底**（没有圆形底色 / 描边），与消息行里的那个一致：一条窄条上，
+            多一层底只是多一笔视觉噪音。
+            这里刻意不再可点：窄条上开浮层会把选择器顶出去，想换会话就展开面板。
+          */
+          <div className="flex min-w-0 items-center gap-2">
+            <AiBotAvatar size={24} className="shrink-0" />
+            <span className="min-w-0 truncate text-sm font-medium text-kumo-default">
+              {activeSessionTitle}
+            </span>
+          </div>
+        ) : (
+          <AiSessionPicker />
+        )}
 
-        <Button
-          variant="ghost"
-          shape="square"
-          onClick={onClose}
-          aria-label={t('close', '关闭面板')}
-        >
-          <XIcon size={16} />
-        </Button>
+        {/*
+          动作区：折叠（只有 Float 有）+ 关闭。折叠按钮排在**关闭按钮之前** ——
+          顺序上更靠近内容，RTL 下由 flex 自己镜像到另一侧。
+        */}
+        <div className="flex shrink-0 items-center gap-1">
+          {onToggleCollapsed ? (
+            <Button
+              variant="ghost"
+              shape="square"
+              onClick={onToggleCollapsed}
+              // 折叠按钮是开关：读屏要能听出「现在是展开还是收起」
+              aria-expanded={!collapsed}
+              aria-label={collapsed ? t('expand', '展开对话') : t('collapse', '收起对话')}
+            >
+              {/*
+                `CaretDown` = 收起（把对话往下压扁）、`CaretUp` = 展开。
+                上下向图标不随书写方向翻转，所以**不加 `rtl-flip`**。
+              */}
+              {collapsed ? <CaretUpIcon size={16} /> : <CaretDownIcon size={16} />}
+            </Button>
+          ) : null}
+
+          <Button
+            variant="ghost"
+            shape="square"
+            onClick={onClose}
+            aria-label={t('close', '关闭面板')}
+          >
+            <XIcon size={16} />
+          </Button>
+        </div>
       </header>
 
       {/*
-        会话区：消息、工具执行态、空态与「还没配模型」的引导都在 `AiConversation` 里。
-        这里只负责给它一块可滚动的容器 —— 消息再长也不会把下面的输入框顶走。
+        折叠态：**只留头行**。会话区与输入区整体不渲染 —— 而不是靠 CSS 把它们压成 0 高：
+        否则输入框、消息里的链接仍留在 tab 顺序里（看不见却能聚焦），
+        读屏也会把整段对话读出来，而屏幕上只是一条窄条。
       */}
-      {/*
-        滚动区外面包一层 `relative`：好让「回到底部」按钮**居中浮在它的下缘**。
-        按钮层用 `pointer-events-none` + 按钮自身 `pointer-events-auto` ——
-        否则这层透明遮罩会拦住下面的消息（消息里的链接就点不到了）。
-      */}
-      <div className="relative z-10 min-h-0 flex-1">
-        <div
-          ref={scrollRef}
-          onScroll={handleScroll}
-          className="h-full overflow-y-auto"
-        >
-          <AiConversation />
-        </div>
-
-        {/* 只在**没贴底**时出现：贴底时它既没用、又盖住最后一行内容 */}
-        {!pinnedToBottom ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={scrollToBottom}
-              className="pointer-events-auto shadow-md"
+      {collapsed ? null : (
+        <>
+          {/*
+            会话区：消息、工具执行态、空态与「还没配模型」的引导都在 `AiConversation` 里。
+            这里只负责给它一块可滚动的容器 —— 消息再长也不会把下面的输入框顶走。
+          */}
+          {/*
+            滚动区外面包一层 `relative`：好让「回到底部」按钮**居中浮在它的下缘**。
+            按钮层用 `pointer-events-none` + 按钮自身 `pointer-events-auto` ——
+            否则这层透明遮罩会拦住下面的消息（消息里的链接就点不到了）。
+          */}
+          <div className="relative z-10 min-h-0 flex-1">
+            <div
+              ref={scrollRef}
+              onScroll={handleScroll}
+              className="h-full overflow-y-auto"
             >
-              <ArrowDownIcon size={14} />
-              {t('scrollToBottom', '回到底部')}
-            </Button>
-          </div>
-        ) : null}
-      </div>
+              <AiConversation />
+            </div>
 
-      <div className="relative z-10 shrink-0 p-3">
-        <AiComposer />
-      </div>
+            {/* 只在**没贴底**时出现：贴底时它既没用、又盖住最后一行内容 */}
+            {!pinnedToBottom ? (
+              <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={scrollToBottom}
+                  className="pointer-events-auto shadow-md"
+                >
+                  <ArrowDownIcon size={14} />
+                  {t('scrollToBottom', '回到底部')}
+                </Button>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="relative z-10 shrink-0 p-3">
+            <AiComposer />
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+interface AiFloatResizeHandleProps {
+  /** 可访问名称（「调整浮窗宽度 / 高度 / 大小」） */
+  label: string
+  /**
+   * 手柄的**视觉**朝向，直接作为 `aria-orientation`：竖边手柄（改宽）= `vertical`，
+   * 横边手柄（改高）= `horizontal`。角手柄两个方向都管，不传。
+   */
+  orientation?: 'horizontal' | 'vertical'
+  /**
+   * 手柄当前对应的尺寸值（**已含视口上限**的上限值由调用方给）。
+   * 角手柄一次改两个数，没有单一数值可报，不传。
+   */
+  valueNow?: number
+  valueMin?: number
+  valueMax?: number
+  /** `#/lib/use-panel-resize` 的 `useFloatPanelResize()` 给出的某一轴属性 */
+  handleProps: FloatResizeHandleBinderProps
+  /** 热区的位置 / 大小 / 光标（绝对定位，相对浮窗） */
+  className: string
+  /**
+   * **键盘焦点**提示线的几何（绝对定位 + 尺寸 / 位置）——
+   * 鼠标怎么划都不会出现，只在 `:focus-visible`（Tab 进来）时显形。
+   */
+  focusLineClassName: string
+}
+
+/**
+ * 浮窗（Float）的尺寸手柄。
+ *
+ * 不用 CSS 的 `resize: both`：它只能改右下角、不跟 RTL、`overflow-hidden` 下不出现，
+ * 而且完全不支持键盘（读屏与键盘用户就彻底改不了尺寸）。这里用最朴素的做法 ——
+ * 三条绝对定位的透明热区：顶边（改高）、行首边（改宽）、行首上角（两个都改）。
+ *
+ * **刻意不画任何常驻 / hover 视觉**：提示只在**鼠标样式**上（`ns-resize` /
+ * `ew-resize` / 对角）。之前 hover 浮出的细线、角上那段直角，都会在浮窗边缘"多出一笔"
+ * 干扰阅读，而此刻光标已经说明了一切 —— 所以一律去掉（拖拽期间同样不画）。
+ * 只保留键盘焦点的细线：没有它，Tab 到某个手柄的键盘用户不知道自己在哪。
+ *
+ * `role="separator"` + `tabIndex={0}` 是 ARIA 的窗口分隔条语义：因此它必须能拿焦点、
+ * 必须有名字，方向键 / `Home` / `End` 由 hook 处理。
+ */
+function AiFloatResizeHandle({
+  label,
+  orientation,
+  valueNow,
+  valueMin,
+  valueMax,
+  handleProps,
+  className,
+  focusLineClassName,
+}: AiFloatResizeHandleProps) {
+  return (
+    <div
+      role="separator"
+      tabIndex={0}
+      aria-label={label}
+      aria-orientation={orientation}
+      aria-valuenow={valueNow === undefined ? undefined : Math.round(valueNow)}
+      aria-valuemin={valueMin}
+      aria-valuemax={valueMax === undefined ? undefined : Math.round(valueMax)}
+      className={cn('group absolute z-20 focus:outline-none', className)}
+      {...handleProps}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          'absolute bg-transparent transition-colors group-focus-visible:bg-kumo-hairline',
+          focusLineClassName,
+        )}
+      />
     </div>
   )
 }

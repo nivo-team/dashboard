@@ -2,7 +2,6 @@ import { Button } from '@cloudflare/kumo'
 import { QuestionIcon, SparkleIcon } from '@phosphor-icons/react'
 import { useTranslation } from 'react-i18next'
 import { UserMenu } from '#/components/user-menu'
-import { cn } from '#/lib/cn'
 
 export interface HeaderActionsProps {
   /**
@@ -13,13 +12,16 @@ export interface HeaderActionsProps {
   showAskAi?: boolean
   /**
    * AI 入口回调。**是个开关**：由调用方实现成 toggle（点一次开、再点一次关），
-   * 状态本身不在这个组件里 —— 它只负责把 `aria-expanded` 与激活态画出来。
+   * 状态本身不在这个组件里 —— 它只负责把 `aria-expanded` 画出来。
    * 目前由带 `appId` 的业务外壳（`AppHeader` → `AppShell`）传入。
    */
   onAskAi?: () => void
   /**
-   * AI 面板当前是否展开。决定按钮的 `aria-expanded` 与激活态（面板开着时保持
-   * `bg-kumo-tint`，看起来是「按下去」的），与 `onAskAi` 配套使用。
+   * AI 面板当前是否展开 —— **只影响 `aria-expanded`**，不画任何视觉差异。
+   *
+   * 展开态刻意**不加浅底高亮**：面板本身（Split 列 / Float 浮窗）已经在屏幕上，
+   * 按钮再亮一块底色只是多一处动静；按钮的 `variant="ghost"` 保持与相邻的
+   * `Support`、账号菜单完全一致。与 `onAskAi` 配套使用。
    */
   askAiExpanded?: boolean
   /** Support 入口回调。**当前无人传入**：这里只布局好位置与样式，点击暂无动作。 */
@@ -35,10 +37,10 @@ export interface HeaderActionsProps {
  * `Ask AI`（SparkleIcon，可选）在左、`Support`（QuestionIcon）居中、账号菜单收尾 ——
  * 按钮都用 Kumo 默认尺寸（h-9），与 `UserMenu` 的方形触发器等高对齐。
  *
- * **`Ask AI` 是开关按钮**：它控制 `#/components/ai-panel` 那块面板的显隐，
- * 因此带上 `aria-expanded`，并在面板展开时保持浅底（`bg-kumo-tint`）——
- * 与 hover 同色，读起来就是「按钮还按着」。开关状态由调用方持有（`askAiExpanded`），
- * 这里不存状态，避免和 `AppShell` 里的真值分叉。
+ * **`Ask AI` 是开关按钮**：它控制 `#/components/ai-panel` 那块面板的显隐，因此带上
+ * `aria-expanded`（读屏听得出来），但**展开态不换皮** —— 保持 `text-kumo-subtle`
+ * 与 hover 反馈，与旁边的 `Support` 完全一致，别再加 `bg-*` 之类的激活底色。
+ * 开关状态由调用方持有（`askAiExpanded`），这里不存状态，避免和 `AppShell` 里的真值分叉。
  *
  * 放外层 `ms-auto` 而不是让调用方各写一遍：两个 header 一个用 `justify-between`、
  * 一个用 `gap-2`，靠 `ms-auto` 统一推到行末才不会分叉（RTL 下自动换边）。
@@ -61,11 +63,7 @@ export function HeaderActions({
         <Button
           variant="ghost"
           icon={<SparkleIcon size={16} />}
-          className={cn(
-            'text-kumo-subtle hover:text-kumo-default',
-            // 展开态 = 「按下去」：与 hover 同色，面板一关就恢复
-            askAiExpanded && 'bg-kumo-tint text-kumo-default',
-          )}
+          className="text-kumo-subtle hover:text-kumo-default"
           aria-label={askAiLabel}
           aria-expanded={askAiExpanded}
           onClick={onAskAi}
