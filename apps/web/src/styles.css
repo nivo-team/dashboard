@@ -242,6 +242,10 @@
  * 用独立变换属性（`translate` / `scale`）而不是 `transform`：它们与其它可能存在的
  * transform 互不覆盖。动画整体包在 `prefers-reduced-motion: no-preference` 里 ——
  * 用户要求减弱动效时不播，但面板照常出现（状态正确性不依赖动画）。
+ *
+ * **属性是开关，不是常驻标记**：从最大化返回时面板一直开着（只是宿主 `AppShell`
+ * 被卸载过），`AiPanel` 那一次不给 `data-ai-float`，于是这条动画不播 —— 否则同一块
+ * 浮窗会连着演两遍「升起」（见 `AiPanelProps.skipEnterAnimation`）。
  */
 @keyframes ai-float-enter {
   from {

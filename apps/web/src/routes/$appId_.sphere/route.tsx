@@ -1,9 +1,17 @@
 import { Sidebar } from '@cloudflare/kumo'
-import { createFileRoute, Outlet, useNavigate, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Outlet, useNavigate, useRouter, useRouterState } from '@tanstack/react-router'
+import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { CommandPaletteDialog } from '#/components/command-palette'
 import { SphereHeader } from './-components/sphere-header'
 import { SphereSidebar } from './-components/sphere-sidebar'
+import {
+  SPHERE_PANEL_ENTER_MS,
+  SPHERE_PANEL_EXIT_MS,
+  SphereTransitionProvider,
+  useSphereTransition,
+} from './-components/sphere-transition'
+import { useSphereCollapseNow } from './-components/use-sphere-collapse'
 import { registerAiShellBridge, useAiSessionStore } from '#/lib/ai'
 import { guardAppRoute } from '#/lib/app-route-guard'
 import { useLocale } from '#/lib/use-locale'
@@ -34,6 +42,20 @@ import { useLocale } from '#/lib/use-locale'
  * 收起按钮有**两个、一次只显示一个**：展开时在侧边栏头行的标题右侧，收起后整列滑走，
  * 改由 chat 头行行首那个显示（见各组件里的 `Tooltip + Sidebar.Trigger`）。
  *
+ * ## 进出场动画
+ *
+ * 动效容器夹在 `p-2` 那层与 `Sidebar.Provider` **之间**：canvas 底色与内边距不动，
+ * 缩放的只有那块圆角面板 —— 于是入场读起来是「面板从画布中央顶出来」，
+ * 而不是整页连背景一起放大。
+ *
+ * - **入场**：`scale 0.8 → 1` + `opacity 0 → 1`，普通缓动（**没有回弹**，与退场同一种手感）；
+ * - **出场**（点收起）：`scale → 0.9` + 淡出，跑完才导航（编排见
+ *   `-components/sphere-transition.tsx`）。幅度比入场小一点：退场要读成「收回去」，
+ *   把入场原样倒放会显得拖沓。
+ *
+ * `prefers-reduced-motion: reduce` 时不播：`initial={false}` 直接落到位，
+ * 收起按钮也立即导航（状态正确性不依赖动画）。
+ *
  * ## 会话从哪来
  *
  * 历史列表由本布局**统一加载**（`fresh: true`，只拉列表、不恢复上一次的会话）；
@@ -53,13 +75,38 @@ export const Route = createFileRoute('/$appId_/sphere')({
   component: SphereLayout,
 })
 
+/** 动效容器 `useSphereTransition()` 的读取点 —— 必须在 Provider 内部 */
 function SphereLayout() {
+  const { appId } = Route.useParams()
+  // 收起后的落点（立即导航）；过渡动画跑完才由 Provider 调它
+  const collapseNow = useSphereCollapseNow(appId)
+
+  return (
+    <SphereTransitionProvider onExited={collapseNow}>
+      <SphereLayoutBody appId={appId} />
+    </SphereTransitionProvider>
+  )
+}
+
+function SphereLayoutBody({ appId }: { appId: string }) {
   const navigate = useNavigate()
   const router = useRouter()
   const { isRtl } = useLocale()
-  const { appId } = Route.useParams()
   const loadHistory = useAiSessionStore((state) => state.loadHistory)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const reduceMotion = useReducedMotion()
+  /** 面板此刻是不是正在播收起过渡（真值在 Provider 里，见 sphere-transition.tsx） */
+  const { leaving, notifyLeaveComplete, cancelCollapse } = useSphereTransition()
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
+
+  /*
+    收起动画期间用户又切到了别的会话（侧边栏 / 命令面板 / AI 工具导航）：那一次收起作废。
+    路由一换说明人已经去别处了，兜底计时不该再把他送回「最大化」前的那一页。
+    首次渲染也会跑一次 —— 此时不在收起中，`cancelCollapse` 是空操作。
+  */
+  useEffect(() => {
+    cancelCollapse()
+  }, [pathname, cancelCollapse])
 
   /*
     会话列表：本页只有这一处触发加载。
@@ -106,39 +153,60 @@ function SphereLayout() {
         在这层 padding 里会顶出去；contained 同时把侧边栏收进这个有界容器。
       */}
       <div className="h-svh bg-kumo-canvas p-2">
-        <Sidebar.Provider
-          /*
-            inset：**不画内外分隔线**（Kumo 只给 variant="sidebar" 加 `border-e`）。
-            那条分隔线由侧边栏自己按开合状态画（见 sphere-sidebar.tsx 的
-            `contentClassName`）：收起后侧边栏整列滑走，线也跟着消失，不会剩一条
-            悬空的竖线。
+        {/*
+          动效容器：进出场只动 `opacity` / `scale`（合成层动画，不触发布局），
+          内部尺寸与布局一概不变 —— 缩放期间会话区不会重新换行。
 
-            底色不能靠 wrapper：inset 会把 wrapper 底色设成 recessed，而这里要的是
-            一块 base 面板 —— 所以由两个子列各自铺满底色（侧边栏自带 `--sidebar-bg`，
-            main 显式 `bg-kumo-base`），wrapper 那层反而看不见。
-          */
-          variant="inset"
-          side={isRtl ? 'right' : 'left'}
-          // 收起 = 整列滑走（offcanvas）：会话行没有图标，收成 icon 轨道会只剩空行
-          collapsible="offcanvas"
-          resizable
-          contained
-          defaultWidth={272}
-          minWidth={220}
-          maxWidth={420}
-          className="h-full min-h-0 gap-0 overflow-hidden rounded-xl border border-kumo-line"
+          两边都是普通的时长 + 缓动（**不回弹**）：入场 `easeOut`（到位的瞬间收住）、
+          退场 `easeIn`（加速离开），读起来是同一套手感的正反面。
+        */}
+        <motion.div
+          className="h-full min-h-0"
+          // 减少动效时 `false` = 挂载瞬间直接落到终态，入场动画整段跳过
+          initial={reduceMotion ? false : { opacity: 0, scale: 0.8 }}
+          animate={leaving ? { opacity: 0, scale: 0.9 } : { opacity: 1, scale: 1 }}
+          transition={
+            leaving
+              ? { duration: SPHERE_PANEL_EXIT_MS / 1000, ease: 'easeIn' }
+              : { duration: SPHERE_PANEL_ENTER_MS / 1000, ease: 'easeOut' }
+          }
+          // 入场动画跑完时 `leaving` 还是 false，Provider 里会忽略这一次
+          onAnimationComplete={notifyLeaveComplete}
         >
-          <SphereSidebar appId={appId} />
-          {/*
-            圆角与边框由外层面板承担。头行挂在**布局**上而不是各页面里：会话 404 时
-            `notFoundComponent` 会替换掉路由组件，头行若在页面里就一起没了 ——
-            用户会被困在一张没有出口的空页上。标题也由头行按路由推导（找不到的那段留空）。
-          */}
-          <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-kumo-base">
-            <SphereHeader appId={appId} />
-            <Outlet />
-          </main>
-        </Sidebar.Provider>
+          <Sidebar.Provider
+            /*
+              inset：**不画内外分隔线**（Kumo 只给 variant="sidebar" 加 `border-e`）。
+              那条分隔线由侧边栏自己按开合状态画（见 sphere-sidebar.tsx 的
+              `contentClassName`）：收起后侧边栏整列滑走，线也跟着消失，不会剩一条
+              悬空的竖线。
+
+              底色不能靠 wrapper：inset 会把 wrapper 底色设成 recessed，而这里要的是
+              一块 base 面板 —— 所以由两个子列各自铺满底色（侧边栏自带 `--sidebar-bg`，
+              main 显式 `bg-kumo-base`），wrapper 那层反而看不见。
+            */
+            variant="inset"
+            side={isRtl ? 'right' : 'left'}
+            // 收起 = 整列滑走（offcanvas）：会话行没有图标，收成 icon 轨道会只剩空行
+            collapsible="offcanvas"
+            resizable
+            contained
+            defaultWidth={272}
+            minWidth={220}
+            maxWidth={420}
+            className="h-full min-h-0 gap-0 overflow-hidden rounded-xl border border-kumo-line"
+          >
+            <SphereSidebar appId={appId} />
+            {/*
+              圆角与边框由外层面板承担。头行挂在**布局**上而不是各页面里：会话 404 时
+              `notFoundComponent` 会替换掉路由组件，头行若在页面里就一起没了 ——
+              用户会被困在一张没有出口的空页上。标题也由头行按路由推导（找不到的那段留空）。
+            */}
+            <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-kumo-base">
+              <SphereHeader appId={appId} />
+              <Outlet />
+            </main>
+          </Sidebar.Provider>
+        </motion.div>
       </div>
 
       <CommandPaletteDialog open={paletteOpen} onOpenChange={setPaletteOpen} />

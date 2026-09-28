@@ -31,6 +31,7 @@ apps/web/src/routes/
     └── $.tsx                  #   外壳内局部 404 页面
 └── $appId_.sphere/            # 全屏 AI 对话页 /$appId/sphere（**逃离 $appId 布局**，无应用侧边栏）
     ├── route.tsx              #   全屏布局：守卫 + 会话侧边栏 + 圆角 chat 面板（<Outlet />）
+    │                          #     面板的进出场动画也在这一层（scale + 透明度）
     ├── index.tsx              #   /$appId/sphere        新会话
     ├── chat/$chatId.tsx       #   /$appId/sphere/chat/$chatId  指定会话（找不到 → 404）
     └── -components/           #   模块私有组件（sphere-chat / sphere-sidebar / session-search-dialog）

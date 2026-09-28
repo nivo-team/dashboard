@@ -8,7 +8,10 @@ import { CommandPaletteDialog } from '#/components/command-palette'
 import { DetailPreviewProvider } from '#/components/detail-preview'
 import { ShellSidebarProvider } from '#/components/shell-sidebar-provider'
 import {
+  clearAiPanelMaximized,
+  markAiPanelMaximized,
   persistAiPanelOpen,
+  readAiPanelMaximized,
   readAiPanelOpen,
   registerAiShellBridge,
   rememberMaximizeOrigin,
@@ -39,6 +42,17 @@ export function AppShell() {
    * （新标签页从收起开始），所以不用偏好 store 也用不着 localStorage。
    */
   const [aiPanelOpen, setAiPanelOpen] = useState(readAiPanelOpen)
+  /**
+   * 本次外壳挂载是不是**从最大化返回**（见 `#/lib/ai/panel-session`）。
+   *
+   * 那种情况下面板**一直开着**（`aiPanelOpen` 从 sessionStorage 读回 `true`），只是宿主
+   * `AppShell` 在 `/sphere` 期间被卸载过 —— 重新挂载时不该再演一遍「打开」：
+   * Float 会从底部再升起一次、Split 会从 0 宽再滑入一次，读起来像面板被莫名关掉又打开。
+   *
+   * 惰性初始化 = 挂载时读一次（纯读，副作用由下面的 effect 显式清）；effect 在**首帧之后**
+   * 把它作废，于是用户之后自己关掉再打开面板时，入场动画照常（那是真正的一次「打开」）。
+   */
+  const [skipPanelEnter, setSkipPanelEnter] = useState(readAiPanelMaximized)
   /**
    * Float 浮窗是否被折成「只有头行」的窄条。
    *
@@ -92,6 +106,22 @@ export function AppShell() {
     persistAiPanelOpen(aiPanelOpen)
   }, [aiPanelOpen])
 
+  /*
+    跳过入场只覆盖「返回后的首帧」：`AiPanel` 在那一次渲染里已经把它读成快照
+    （Float 记进属性、Split 记进初始宽度），之后就得把 prop 放回 false —— 否则用户
+    之后自己关掉再打开面板时，那一次**真正**的「打开」也会不播动画。
+    用 `requestAnimationFrame` 而不是 `setTimeout(0)`：要的正是「首帧渲染之后」这一刻。
+    同一刻把会话级标记也清掉：这次「从最大化返回」已经消费完了。
+  */
+  useEffect(() => {
+    if (!skipPanelEnter) return
+    const frame = requestAnimationFrame(() => {
+      setSkipPanelEnter(false)
+      clearAiPanelMaximized()
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [skipPanelEnter])
+
   const navigate = useNavigate()
   const router = useRouter()
   /*
@@ -115,6 +145,8 @@ export function AppShell() {
    */
   const handleMaximizeAi = () => {
     rememberMaximizeOrigin(router.state.location.href)
+    // 面板是被「带走」的，不是被关掉的：回来时据此跳过它重播的入场动画
+    markAiPanelMaximized()
 
     if (activeSessionId) {
       void navigate({
@@ -203,6 +235,8 @@ export function AppShell() {
         <AiPanel
           open={aiPanelOpen}
           onClose={() => setAiPanelOpen(false)}
+          // 从最大化返回：面板一直开着，跳过它这一次的入场（见 `skipPanelEnter`）
+          skipEnterAnimation={skipPanelEnter}
           // 折叠态的真值在外壳（`handleToggleAskAi` 也要读它），面板只是受控显示
           collapsed={aiFloatCollapsed}
           onToggleCollapsed={() => setAiFloatCollapsed((collapsed) => !collapsed)}

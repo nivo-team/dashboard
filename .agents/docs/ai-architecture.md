@@ -28,7 +28,9 @@ L1  UI          components/ai-panel · ai-conversation · ai-composer · ai-sess
                 routes/$appId_.sphere（全屏 AI 对话页：`ai-panel` 头行「最大化」的落点，
                   逃离 `$appId` 布局、没应用侧边栏；见 routing-architecture.md §2「逃离父布局」）
                   ├─ route.tsx  布局里挂 `sphere-header`（头行常驻：会话 404 时也在，
-                  │     只是标题留空）+ 会话列表加载
+                  │     只是标题留空）+ 会话列表加载；整块面板的**进出场动画**也在这里
+                  │     （入场 scale 0.8→1 + 淡入，退场缩小淡出后才导航；
+                  │     `prefers-reduced-motion` 下都不播）
                   ├─ index.tsx   $appId/sphere = 新会话（挂载即 startNewSession）
                   ├─ chat/$chatId.tsx  $appId/sphere/chat/$chatId = 指定会话，
                   │     loader 用 store.hasSession 校验，找不到 → sphere-not-found
@@ -39,11 +41,16 @@ L1  UI          components/ai-panel · ai-conversation · ai-composer · ai-sess
                   ├─ -components/sphere-sidebar  侧边栏：Kumo `Sidebar`，只有会话；
                   │     展开态下收起按钮在头行标题右侧、分隔线也画在这里（收起即消失）
                   ├─ -components/sphere-not-found  会话 404（AI 形象 + 文案 + 新对话）
-                  ├─ -components/use-sphere-collapse  收起 = 回 sessionStorage 记的来源页
+                  ├─ -components/use-sphere-collapse  收起 = 回 sessionStorage 记的来源页；
+                  │     出口组件调它即可（有过渡上下文就**先播收起动画再导航**，
+                  │     没有就立即导航 —— 动画细节不出现在按钮里）
+                  ├─ -components/sphere-transition  收起过渡的编排：状态 + 「动画跑完
+                  │     （或兜底计时到点）才真正导航」，避免动画被打断时用户出不去
                   └─ -components/session-search-dialog  独立的会话搜索弹窗（只搜标题，
                         形态同命令面板但**不占 ⌘K**；⌘K 仍是全局命令面板）
                 lib/ai/session-groups（会话的时间分组 / 相对时间口径，两个列表共用）
-                lib/ai/panel-session（会话级记忆：面板开合状态 + 最大化前的来源 href）
+                lib/ai/panel-session（会话级记忆：面板开合状态 + 最大化前的来源 href +
+                  「面板是被最大化带走的」标记 —— 回来时据此跳过面板重播的入场动画）
 L2  状态        lib/ai/session-store（消息 / 状态 / 审批 / 落盘）
                 lib/ai/session-boot（本次页面载入算不算「重新载入」）
                 lib/store/preferences-store（本机偏好，按 app 隔离）
@@ -251,11 +258,15 @@ useAiPageContext(Route.id, {
     `splitMounted` / `splitExpanded` / `splitAnimating`，卸载计时与 CSS 时长同源
     `SPLIT_SLIDE_MS`）；③ 拖拽宽度时**摘掉过渡**（`!resizing`），否则每帧都落在 200ms
     过渡上面板不跟手；④ 移动端（覆盖式、无宽度可动）与 `prefers-reduced-motion: reduce`
-    都直接切到位，不走进过渡窗口。退场期间挂 `aria-hidden` + `inert`（读屏与键盘先「消失」）；
+    都直接切到位，不走进过渡窗口；⑤ **从最大化返回时这一次入场不播** —— 面板一直开着，
+    只是宿主 `AppShell` 在 `/sphere` 期间被卸载过，再滑入一次会读成「被关掉又打开」
+    （外壳传 `skipEnterAnimation`，这里初值直接落在展开位，见 `AiPanelProps`）。
+    退场期间挂 `aria-hidden` + `inert`（读屏与键盘先「消失」）；
   - **Float**（`float`）：`fixed` 在**行尾侧下角**（`md:end-4` / `md:bottom-4`，RTL 自动换边不压住侧边栏）、
     浮在内容之上、不挤压布局，**从页面底部升起**（入场动画 = styles.css 的
     `[data-ai-float='true']` + `@keyframes ai-float-enter`，整体包在
-    `prefers-reduced-motion: no-preference` 里；只有入场没有退场）。
+    `prefers-reduced-motion: no-preference` 里；只有入场没有退场；**从最大化返回时
+    干脆不带 `data-ai-float`**，那一次不播 —— 同上，面板并没有被关掉过）。
     ⚠️ **`md:top-auto` 不能省**：`inset-0`（移动端整屏）写进去的 `top: 0` 不会被
     `md:bottom-4` 顶掉 —— top / bottom / height 同时指定时浏览器忽略的是 bottom，
     于是浮窗会贴到**视口顶端**（曾经就是这个 bug）。

@@ -110,6 +110,15 @@ export interface AiPanelProps {
    * 同一套受控约定。传了才画那颗按钮。
    */
   onMaximize?: () => void
+  /**
+   * 跳过**这一次**入场动画（外壳在「从最大化返回」时置真，见 `AppShell`）。
+   *
+   * 那种情况下面板并没有被关掉过 —— 它一直开着，只是宿主 `AppShell` 在 `/sphere`
+   * 期间被卸载了。再演一遍「Float 从底部升起 / Split 从 0 宽滑入」会读成
+   * 「面板被关掉又打开」。外壳只在**返回后的首帧**置真、随后复位，
+   * 所以用户自己开关面板时那一次真正的「打开」照常演。
+   */
+  skipEnterAnimation?: boolean
 }
 
 /**
@@ -144,8 +153,20 @@ export interface AiPanelProps {
  * 松手 / 键盘调整才由 `onCommit` 落盘 —— 与 `detail-preview` 完全一致的理由
  * （每帧写 localStorage 会卡，给 store 加节流又会让面板滞后）。
  * Split 只有宽度（`aiPanelWidth`），Float 是宽 + 高（`aiFloatWidth` / `aiFloatHeight`）。
+ *
+ * **两处入场动画都按「挂载」触发**（Split 的宽度过渡 / Float 的 `data-ai-float`），
+ * 于是「从最大化返回」时会各自重播一次 —— 而面板那时一直开着（只是宿主被卸载过），
+ * 再演一遍会读成「被关掉又打开」。外壳为此在返回后的首帧传 `skipEnterAnimation`，
+ * 两种形态各自记住这个快照（见 `skipEnterOnce` / `floatSkipEnter`）。
  */
-export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed, onMaximize }: AiPanelProps) {
+export function AiPanel({
+  open,
+  onClose,
+  collapsed = false,
+  onToggleCollapsed,
+  onMaximize,
+  skipEnterAnimation = false,
+}: AiPanelProps) {
   const { t } = useTranslation('ai')
   const { isRtl } = useLocale()
   const isMobile = useIsMobileViewport()
@@ -164,6 +185,30 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed, o
   const floatPanelRef = useRef<HTMLElement | null>(null)
 
   /**
+   * 「从最大化返回」时跳过**这一次**入场（见 `AiPanelProps.skipEnterAnimation`）。
+   *
+   * 两种形态的落点不同，但都必须是**挂载时的快照**：
+   * - **Split**：初始就落在展开位（见下面 `splitMounted` / `splitExpanded` 的初值）；
+   * - **Float**：入场是 CSS 动画，由 `data-ai-float="true"` 这个属性触发 —— 属性在元素
+   *   存活期内来回变会让动画**重新触发**，所以这个决定记进 state，只在「浮窗从无到有」
+   *   的那一次渲染里更新。
+   */
+  const skipEnterOnce = skipEnterAnimation && open
+
+  /** 浮窗这一次「出现」要不要跳过入场（挂载时快照，prop 复位后不再影响已挂载的那个） */
+  const floatVisible = mode === 'float' && open
+  const [floatSkipEnter, setFloatSkipEnter] = useState(skipEnterOnce)
+  const [floatWasVisible, setFloatWasVisible] = useState(false)
+  /*
+    渲染期派生（同下面 `floatDeforming` 的写法）：浮窗每次「重新出现」都重新读一次 prop ——
+    外壳把 `skipEnterAnimation` 复位之后，用户自己打开浮窗那一次必须照常演入场。
+  */
+  if (floatVisible !== floatWasVisible) {
+    setFloatWasVisible(floatVisible)
+    if (floatVisible) setFloatSkipEnter(skipEnterAnimation)
+  }
+
+  /**
    * Split 形态的两段式开关（Float 不需要：它只有入场动画，关闭即卸载）。
    *
    * - `splitMounted`：在不在树上 —— **退场动画期间必须留在树上**，否则宽度还没收回就没了；
@@ -171,10 +216,18 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed, o
    *   「从行尾侧滑进来」（面板贴行尾，宽度一变，内容列跟着被推开）；
    * - `splitAnimating`：过渡窗口内为真，用来把内层**钉在最终宽度**上 ——
    *   否则动画期间内容是「被挤着重排」（文字不停换行）而不是「滑进来」。
+   *
+   * **初值不是写死的 `false`**：从最大化返回时面板一直开着（见 `skipEnterOnce`），
+   * 第一帧就得落在展开位 —— 没有「0 宽」这个起点，浏览器也就不会播那次滑入。
    */
-  const [splitMounted, setSplitMounted] = useState(false)
-  const [splitExpanded, setSplitExpanded] = useState(false)
+  const [splitMounted, setSplitMounted] = useState(skipEnterOnce)
+  const [splitExpanded, setSplitExpanded] = useState(skipEnterOnce)
   const [splitAnimating, setSplitAnimating] = useState(false)
+  /**
+   * 这一次展开是不是「从最大化返回」的那次 —— **读一次就作废**：之后用户自己开关面板，
+   * 那才是真正的一次展开 / 收起，必须照常演。
+   */
+  const skipSplitEnterRef = useRef(skipEnterOnce)
 
   const reduceMotion = useReducedMotion()
 
@@ -240,11 +293,19 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed, o
     }
 
     /*
-      两种「没有过渡」的情形，直接切到位：
+      从最大化返回的那一次没有起点可演（面板本来就展开着）—— 直接切到位。
+      消费掉这个标记，之后用户自己开关面板时照常演。
+    */
+    const skipEnter = skipSplitEnterRef.current
+    skipSplitEnterRef.current = false
+
+    /*
+      三种「没有过渡」的情形，直接切到位：
+      - 从最大化返回（上面那条）；
       - 移动端：Split 是覆盖式（`inset-x-0`），没有宽度可动；
       - 系统要求减少动效：状态照旧，只是不播（与 styles.css 里各处媒体查询同义）。
     */
-    if (isMobile || prefersReducedMotion()) {
+    if (skipEnter || isMobile || prefersReducedMotion()) {
       setSplitExpanded(open)
       setSplitAnimating(false)
       if (!open) setSplitMounted(false)
@@ -364,7 +425,12 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed, o
     return (
       <motion.aside
         ref={floatPanelRef}
-        data-ai-float="true"
+        /*
+          `data-ai-float` 就是入场动画的开关（styles.css 的 `ai-float-enter`）：
+          从最大化返回时它不带这个属性，浮窗直接落在最终位置 —— 面板一直开着，不该再演一次。
+          这个值来自挂载时的快照（见 `floatSkipEnter`），之后 prop 复位也不会把它改回来。
+        */
+        data-ai-float={floatSkipEnter ? undefined : 'true'}
         aria-label={t('title', 'Ask AI')}
         /*
           变形**只动外框的宽高**，内容钉在展开尺寸上被裁切（见下面那层 div）。
