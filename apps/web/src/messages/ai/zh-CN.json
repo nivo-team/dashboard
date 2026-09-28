@@ -5,6 +5,8 @@
   "modeLabel": "输入模式",
   "modeAsk": "询问",
   "modeAuto": "自动",
+  "modeAskHint": "每次填写表单都会请你确认",
+  "modeAutoHint": "自动填写并提交表单",
   "send": "发送",
   "sendTooltip": "发送消息（Enter 发送，Shift + Enter 换行）",
   "stop": "停止",

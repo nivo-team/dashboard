@@ -3,7 +3,7 @@ import {
   ArrowUpIcon,
   CaretDoubleRightIcon,
   CheckIcon,
-  EyeIcon,
+  PencilLineIcon,
   StopIcon,
   type Icon,
 } from '@phosphor-icons/react'
@@ -24,27 +24,45 @@ export interface AiComposerProps {
 }
 
 /**
- * 输入模式的菜单项：`labelKey` 是 `ai` 命名空间下的文案键，`fallback` 是兜底。
+ * 输入模式的菜单项：`labelKey` / `hintKey` 是 `ai` 命名空间下的文案键，`fallback` 是兜底。
  *
- * **模式名是本地化的**（中文「询问 / 自动」）—— 与 设置 → AI 的两种形态名同一条约定：
- * 代码里叫 ask / auto，但界面上不该把英文术语直接丢给各语言用户。
+ * **模式名与说明都是本地化的**（中文「询问 / 自动」）—— 与 设置 → AI 的两种形态名同一条
+ * 约定：代码里叫 ask / auto，但界面上不该把英文术语直接丢给各语言用户。
+ *
+ * **两项的差别落在「填写表单」这件事上**（工具层也是这么实现的）：
+ * - `ask`：`fill_form` / `submit_form` 每次都要用户点确认；
+ * - `auto`：`fill_form` 直接写、`submit_form` 在 `canSubmit()` 通过时直接提交
+ *   （`call_write_api` 是例外，两种模式下都要确认）。
+ * 菜单里那句说明就是把这条差别讲清楚 —— 只说「询问 / 自动」，用户猜不到它管什么。
  *
  * 图标同时用在**触发按钮**（跟着当前模式变）与**菜单项**（每项各一个）上：
- * 询问 = 眼睛（先看、不动手），自动 = 右向双箭头（放行、让它自己往下走）。
+ * 询问 = 铅笔（要动笔、但先给你看），自动 = 右向双箭头（放行、让它自己往下走）。
  */
 const COMPOSER_MODE_OPTIONS: ReadonlyArray<{
   value: AiComposerMode
   labelKey: string
   fallback: string
+  /** 菜单项第二行的说明（见上：说明它到底管哪一步） */
+  hintKey: string
+  hintFallback: string
   icon: Icon
-  /** 图标是否随书写方向镜像：右向箭头要（RTL 的「前进」朝左），眼睛不要 */
+  /** 图标是否随书写方向镜像：右向箭头要（RTL 的「前进」朝左），铅笔不要 */
   flipIcon?: boolean
 }> = [
-  { value: 'ask', labelKey: 'modeAsk', fallback: '询问', icon: EyeIcon },
+  {
+    value: 'ask',
+    labelKey: 'modeAsk',
+    fallback: '询问',
+    hintKey: 'modeAskHint',
+    hintFallback: '每次填写表单都会请你确认',
+    icon: PencilLineIcon,
+  },
   {
     value: 'auto',
     labelKey: 'modeAuto',
     fallback: '自动',
+    hintKey: 'modeAutoHint',
+    hintFallback: '自动填写并提交表单',
     icon: CaretDoubleRightIcon,
     flipIcon: true,
   },
@@ -174,8 +192,11 @@ export function AiComposer({ className }: AiComposerProps) {
             <span>{t(activeMode.labelKey, activeMode.fallback)}</span>
           </Tooltip>
 
-          {/* 触发区在面板最底部：菜单必须**往上**弹，否则会顶出视口（`Content` 默认 sideOffset 8） */}
-          <DropdownMenu.Content side="top" align="start" className="w-40">
+          {/*
+            触发区在面板最底部：菜单必须**往上**弹，否则会顶出视口（`Content` 默认 sideOffset 8）。
+            宽度要放得下第二行的说明，所以比普通菜单宽（`w-64`），说明允许折行、不做截断。
+          */}
+          <DropdownMenu.Content side="top" align="start" className="w-64">
             <DropdownMenu.RadioGroup
               value={composerMode}
               onValueChange={(value) => {
@@ -184,32 +205,45 @@ export function AiComposer({ className }: AiComposerProps) {
             >
               {COMPOSER_MODE_OPTIONS.map((option) => {
                 const OptionIcon = option.icon
+                const selected = option.value === composerMode
                 return (
-                  // 图标作为 children 的第一个节点 + `gap-2`，**不要**用 `icon` prop：
-                  // Kumo 那里写死了 `mr-2`（物理方向），RTL 下间距不会镜像。
+                  /*
+                    每一项是**两行**（标题 + 一句说明），与截图里那种「选项即解释」的写法
+                    一致：只说「询问 / 自动」，没人知道它管的是表单要不要确认。
+
+                    图标作为 children 的第一个节点 + `gap-2`，**不要**用 `icon` prop：
+                    Kumo 那里写死了 `mr-2`（物理方向），RTL 下间距不会镜像。
+                    基类是 `items-center`（单行菜单的居中）；这里两行文字，改成 `items-start`
+                    让图标与勾跟**第一行**对齐（Kumo 的 `cn` 走 tailwind-merge，同类名会被顶掉）。
+                  */
                   <DropdownMenu.RadioItem
                     key={option.value}
                     value={option.value}
-                    className="gap-2"
+                    className="items-start gap-2 py-2"
                   >
                     <OptionIcon
-                      size={14}
+                      size={15}
                       className={cn(
-                        'shrink-0 text-kumo-subtle',
+                        'mt-0.5 shrink-0',
+                        // 当前模式那颗用品牌色，一眼能看出选中的是哪个（勾在行尾，颜色在这里）
+                        selected ? 'text-kumo-brand' : 'text-kumo-subtle',
                         option.flipIcon && 'rtl-flip',
                       )}
                     />
-                    <span className="min-w-0 truncate">
-                      {t(option.labelKey, option.fallback)}
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="truncate">{t(option.labelKey, option.fallback)}</span>
+                      <span className="text-xs leading-snug text-kumo-subtle">
+                        {t(option.hintKey, option.hintFallback)}
+                      </span>
                     </span>
                     {/*
                       选中标记自己画：Kumo 的 `RadioItemIndicator` 写死了 `ml-auto`（物理方向），
                       RTL 下会和 `ms-auto` 打架、把勾推到中间。这里只留 `ms-auto`。
                     */}
-                    {option.value === composerMode ? (
+                    {selected ? (
                       <CheckIcon
                         size={14}
-                        className="ms-auto shrink-0 text-kumo-brand"
+                        className="ms-auto mt-0.5 shrink-0 text-kumo-brand"
                       />
                     ) : null}
                   </DropdownMenu.RadioItem>

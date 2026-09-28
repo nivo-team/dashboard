@@ -5,6 +5,8 @@
   "modeLabel": "इनपुट मोड",
   "modeAsk": "पूछें",
   "modeAuto": "स्वतः",
+  "modeAskHint": "हर बदलाव की समीक्षा करके स्वीकृति दें",
+  "modeAutoHint": "फ़ॉर्म अपने आप भरें और भेजें",
   "send": "भेजें",
   "sendTooltip": "संदेश भेजें (भेजने के लिए Enter, नई पंक्ति के लिए Shift + Enter)",
   "stop": "रोकें",

@@ -5,6 +5,8 @@
   "modeLabel": "Modo de entrada",
   "modeAsk": "Preguntar",
   "modeAuto": "Automático",
+  "modeAskHint": "Revisa y aprueba cada cambio",
+  "modeAutoHint": "Rellena y envía formularios automáticamente",
   "send": "Enviar",
   "sendTooltip": "Enviar mensaje (Enter para enviar, Mayús + Enter para nueva línea)",
   "stop": "Detener",

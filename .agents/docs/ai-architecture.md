@@ -344,9 +344,12 @@ useAiPageContext(Route.id, {
   三条坑（细节见代码注释）：① 菜单**必须 `side="top"`**；
   ② 选中标记不要用 `RadioItemIndicator`（写死 `ml-auto`，RTL 与 `ms-auto` 打架），
   自己画 `CheckIcon` + `ms-auto`；③ 菜单项图标别用 `icon` prop（写死 `mr-2`），
-  图标作 children 首节点 + `gap-2`。模式图标跟着当前模式走（`ask` = `EyeIcon`、
+  图标作 children 首节点 + `gap-2`。模式图标跟着当前模式走（`ask` = `PencilLineIcon`、
   `auto` = `CaretDoubleRightIcon`），映射只在 `COMPOSER_MODE_OPTIONS.icon` 一处；
   右向双箭头标 `flipIcon` 走 `rtl-flip`。两个模式名**必须本地化**（中文「询问 / 自动」）。
+  菜单项是**两行**（模式名 + 一句说明，`modeAskHint` / `modeAutoHint`），说清它管的是
+  「表单要不要确认」——只写「询问 / 自动」没人知道指的是什么；因此 `Content` 用 `w-64`，
+  且项上要 `items-start` 顶掉 Kumo 基类的 `items-center`（两行文字时图标 / 勾跟首行对齐）。
 - **AI 权限**（`aiPermission` + `aiAllowedTools`，**默认 `readonly`**，设置 → AI）：**能用哪些工具**
   只看这里。三档 `full` / `readonly` / `custom`，自定义时按 `aiAllowedTools` 逐项放行；
   `getAllowedTools(permission, customTools)` 是**唯一**过滤点。它与模式**正交** ——

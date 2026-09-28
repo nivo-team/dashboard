@@ -5,6 +5,8 @@
   "modeLabel": "入力モード",
   "modeAsk": "質問",
   "modeAuto": "自動",
+  "modeAskHint": "フォームへの入力は毎回確認します",
+  "modeAutoHint": "フォームを自動で入力・送信します",
   "send": "送信",
   "sendTooltip": "メッセージを送信（Enter で送信、Shift + Enter で改行）",
   "stop": "停止",

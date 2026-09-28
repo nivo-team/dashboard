@@ -5,6 +5,8 @@
   "modeLabel": "وضع الإدخال",
   "modeAsk": "سؤال",
   "modeAuto": "تلقائي",
+  "modeAskHint": "راجع كل تغيير ووافق عليه",
+  "modeAutoHint": "املأ النماذج وأرسلها تلقائيًا",
   "send": "إرسال",
   "sendTooltip": "إرسال الرسالة (Enter للإرسال، Shift + Enter لسطر جديد)",
   "stop": "إيقاف",

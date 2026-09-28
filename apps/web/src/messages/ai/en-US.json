@@ -5,6 +5,8 @@
   "modeLabel": "Input mode",
   "modeAsk": "Ask",
   "modeAuto": "Auto",
+  "modeAskHint": "Review and approve each change",
+  "modeAutoHint": "Fill and submit forms automatically",
   "send": "Send",
   "sendTooltip": "Send message (Enter to send, Shift + Enter for a new line)",
   "stop": "Stop",

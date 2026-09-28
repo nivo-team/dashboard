@@ -5,6 +5,8 @@
   "modeLabel": "Giriş modu",
   "modeAsk": "Sor",
   "modeAuto": "Otomatik",
+  "modeAskHint": "Her değişikliği inceleyip onayla",
+  "modeAutoHint": "Formları otomatik doldur ve gönder",
   "send": "Gönder",
   "sendTooltip": "Mesaj gönder (Göndermek için Enter, yeni satır için Shift + Enter)",
   "stop": "Durdur",
