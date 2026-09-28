@@ -36,6 +36,7 @@
     "border-beam": "^1.4.1",
     "bot-avatars": "^0.1.1",
     "i18next": "^24.2.2",
+    "motion": "^13.4.4",
     "ofetch": "^1.5.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

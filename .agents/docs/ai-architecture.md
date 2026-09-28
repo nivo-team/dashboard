@@ -260,11 +260,20 @@ useAiPageContext(Route.id, {
     `md:bottom-4` 顶掉 —— top / bottom / height 同时指定时浏览器忽略的是 bottom，
     于是浮窗会贴到**视口顶端**（曾经就是这个 bug）。
   - **Float 可折叠成一条窄条**：头行里「关闭」左侧那颗按钮（`CaretDown` 收起 / `CaretUp`
-    展开，`aria-expanded` 跟着走）把浮窗压成「只有头行」的一条 —— 会话区与输入区**整体不渲染**
-    （不是 CSS 压高：否则看不见的输入框与链接仍留在 tab 顺序里），左侧的会话选择器换成
-    「AI 头像 + 当前会话标题」（标题与展开时同源：`#/components/ai-session-picker` 的
-    `useActiveSessionTitle`；**头像不加圆形底色 / 描边**，与消息行里的那个一致）。
-    折叠态高度交给内容（不写内联 `height`），手柄只留**宽度**那一根。
+    展开，`aria-expanded` 跟着走）把浮窗压成「只有头行」的一条。这条过渡用
+    **`motion/react`**（`#/components/ai-panel`）：
+    - **只动外框的宽高**（折叠终点 = `AI_FLOAT_MIN_WIDTH` × 头行高 `AI_PANEL_HEADER_HEIGHT`，
+      展开终点 = `floatSize`）；内层那一格的宽高在变形期间被**钉在展开尺寸**上，
+      由 `overflow-hidden` 裁切 —— 文字一次都不用重新换行，每帧重排的只有外框。
+      钉住之后动画结束才解除，折叠态才真正只剩头行那一条；
+    - **内容切换发生在动画结束时**（`isDeforming`），不是一变就切：否则动画没有内容可收缩；
+    - **只有变形带时长**，拖拽改尺寸走同一条 `animate` 但 `duration: 0`，否则浮窗会追着光标跑；
+    - `prefers-reduced-motion` 下直接切（`useReducedMotion`）；
+    - **折叠态三个手柄一个都不挂**（不只是"不画"）：拖拽会在 `onCommit` 落盘，
+      折叠期间的尺寸不该污染存档；`aiFloatWidth` / `aiFloatHeight` 里始终留着上次展开的尺寸，
+      展开即原样恢复（头行右侧的会话选择器也在这个阶段才换成「AI 头像 + 当前会话标题」，
+      标题与展开时同源：`#/components/ai-session-picker` 的 `useActiveSessionTitle`；
+      **头像不加圆形底色 / 描边**，与消息行里的那个一致）。
     **按钮只在 Float 出现**：Split 不把回调转给头行（靠回调有无，而不是在组件里判 mode）；
     移动端浮窗是整屏、折叠不成立，按钮也不挂。
   - **折叠状态的真值在 `AppShell`**（与面板展开状态同一层，都**不持久化**）：因为顶栏那颗
@@ -288,7 +297,8 @@ useAiPageContext(Route.id, {
     卡片式再砍一截高度、左右各留 12px，能看内容的地方所剩无几；而且桌面端那两个形态的
     差别（挤压内容 vs 浮在内容上）在手机上本来就读不出来，留下的只有"更小的可用面积"。
     因此 Float 的位置 / 尺寸 / 圆角 / 边框 / 阴影类一律只在 `md:` 以上生效，
-    **不需要为它做 JS 视口判断**（尺寸走内联 style，移动端不发；拖柄也只在桌面端挂）。
+    **不需要为它做 JS 视口判断**（宽高由 `motion` 写内联样式，移动端整屏不给像素值；
+    拖柄也只在桌面端挂）。
 - **面板几何与手柄共用** `#/components/side-panel`（`CONTENT_PANEL_FRAME` 属内容区 /
   `SHELL_PANEL_FRAME` 属外壳）；**改面板高度、手柄手感只动这里**，不要在各自组件里再写一份。
   浮窗（可拖两个方向）的手柄是 `ai-panel` 内部的 `AiFloatResizeHandle`（视觉与键盘语义

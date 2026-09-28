@@ -6,6 +6,7 @@ import {
   PlusIcon,
   XIcon,
 } from '@phosphor-icons/react'
+import { motion, useReducedMotion } from 'motion/react'
 import {
   useEffect,
   useRef,
@@ -52,6 +53,27 @@ import {
  * 收起后残留一小会儿（或提前被砍掉）。
  */
 const SPLIT_SLIDE_MS = 200
+
+/**
+ * Float 浮窗「展开 ↔ 折叠成窄条」的变形时长（ms）与缓动。
+ *
+ * 缓动与 `Sidebar` 用的是同一条曲线（`styles.css` 的 `--sidebar-easing`），
+ * 于是「收起来」这件事在侧边栏和浮窗上读起来是同一种手感。
+ *
+ * 变形期间不卸载任何内容（见下面 `isDeforming` 的注释），所以这里**不需要**
+ * 「动画跑完才能卸载」那种计时契约 —— 计时只用来决定什么时候把内容切成折叠态。
+ */
+const FLOAT_COLLAPSE_MS = 220
+/** 交给 `motion` 的缓动（四参贝塞尔要显式标注成元组，否则推断成 `number[]` 不被接受）。 */
+const FLOAT_COLLAPSE_EASE: [number, number, number, number] = [0.77, 0, 0.175, 1]
+
+/**
+ * AI 面板头行的高度（px）。
+ *
+ * **必须与头行上的 `h-[58px]` 一致**（也与 `AppHeader` 同高）：浮窗折叠后就是
+ * 这一条，动画的终点高度直接用它。
+ */
+const AI_PANEL_HEADER_HEIGHT = 58
 
 /** 系统是否要求「减少动效」（与 styles.css 里那些 `prefers-reduced-motion` 媒体查询同义）。 */
 function prefersReducedMotion(): boolean {
@@ -153,6 +175,40 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed, o
   const [splitMounted, setSplitMounted] = useState(false)
   const [splitExpanded, setSplitExpanded] = useState(false)
   const [splitAnimating, setSplitAnimating] = useState(false)
+
+  const reduceMotion = useReducedMotion()
+
+  /**
+   * Float 这一次「展开 ↔ 折叠」的变形是不是还在跑（motion 的动效跑完即归位）。
+   *
+   * 为什么要这个标记：折叠不是**换一套内容**，而是**把同一套内容裁小** ——
+   * 变形期间要保持展开态的内容、并把它钉在展开尺寸上，文字才不会每帧重新换行。
+   * 变形结束才切成「只剩头行」的折叠态。
+   *
+   * 用**渲染期派生**（React 官方的「props 变了就调整 state」写法）而不是 `useEffect`：
+   * 后者会让「已折叠」的那一帧先提交到 DOM 再被纠正，肉眼能看到内容闪一下。
+   * 渲染期 `setState` 会被 React 立刻重算、中间那一帧根本不会提交。
+   */
+  const [floatDeforming, setFloatDeforming] = useState(false)
+  const [lastCollapsed, setLastCollapsed] = useState(collapsed)
+  if (lastCollapsed !== collapsed) {
+    setLastCollapsed(collapsed)
+    setFloatDeforming(true)
+  }
+
+  /*
+    兜底：`motion` 的 `onAnimationComplete` 正常会先把它清掉；万一某个浏览器 /
+    动效被打断导致它没来（那个状态下窄条会一直显示展开态的头行），这里按
+    「时长 + 一点余量」再关一次。依赖里带上 `lastCollapsed`，连点两次也会重新计时。
+  */
+  useEffect(() => {
+    if (!floatDeforming) return
+    const timer = window.setTimeout(
+      () => setFloatDeforming(false),
+      FLOAT_COLLAPSE_MS + 120,
+    )
+    return () => window.clearTimeout(timer)
+  }, [floatDeforming, lastCollapsed])
 
   /** store 变化（其它标签页拖动、或存档水合）时把即时值拉平 */
   useEffect(() => {
@@ -281,36 +337,69 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed, o
     */
     const isCollapsed = !isMobile && collapsed
 
+    /**
+     * 「展开 ↔ 折叠」的变形是否正在进行。
+     *
+     * 三个条件缺一不可：
+     * - 桌面端：移动端浮窗是整屏，没有可变的宽高；
+     * - `floatDeforming`：目标刚变过（见组件上方那个标记）；
+     * - 没有要求减少动效：那就直接切，不留 220ms 的「过渡窗口」。
+     */
+    const isDeforming = !isMobile && floatDeforming && !reduceMotion
+
+    /**
+     * 头行 / 动作区按哪个形态渲染。
+     *
+     * **变形结束才算折叠**：变形期间保持展开态的内容（会话选择器 + 四颗按钮），
+     * 让它们随着外框一起被裁掉；一变就直接换成窄条头行的话，动画就没有内容可收缩了。
+     */
+    const surfaceCollapsed = isCollapsed && !isDeforming
+
+    /** 变形的终点尺寸：折叠 = 一条头行；展开 = 存档 / 拖拽出来的那一档 */
+    const targetWidth = isCollapsed ? AI_FLOAT_MIN_WIDTH : floatSize.width
+    const targetHeight = isCollapsed
+      ? AI_PANEL_HEADER_HEIGHT
+      : floatSize.height
+
     return (
-      <aside
+      <motion.aside
         ref={floatPanelRef}
         data-ai-float="true"
         aria-label={t('title', 'Ask AI')}
         /*
-          尺寸是**数据**（存档 / 拖拽的即时值），不是样式，所以走内联 style。
+          变形**只动外框的宽高**，内容钉在展开尺寸上被裁切（见下面那层 div）。
+          于是每帧要重新布局的只有这个盒子，会话里的文字一次都不用重新换行 ——
+          这正是「动画期间不重新排列文本」的做法，也是它比整块重排更省的原因。
+
+          `initial={false}`：挂载瞬间直接落在目标尺寸上，入场动画由 styles.css 的
+          `@keyframes ai-float-enter`（位移 + 淡入 + 极轻微缩放）负责，两者互不打扰。
+        */
+        initial={false}
+        animate={
+          isMobile
+            ? // 移动端整屏：用 100% 覆盖 `inset-0`，顺带把上一档留下的像素值顶掉
+              { width: '100%', height: '100%' }
+            : { width: targetWidth, height: targetHeight }
+        }
+        /*
+          **只有变形本身才带时长**：拖拽改尺寸走的是同一条 `animate`，若也带 220ms
+          过渡，浮窗会一路追着光标跑、根本拖不准。其余情况一律 0 = 立即生效。
+        */
+        transition={
+          isDeforming
+            ? { duration: FLOAT_COLLAPSE_MS / 1000, ease: FLOAT_COLLAPSE_EASE }
+            : { duration: 0 }
+        }
+        onAnimationComplete={() => setFloatDeforming(false)}
+        /*
           `maxHeight` 与 hook 的拖拽上限同源（同一个 `AI_FLOAT_VIEWPORT_MARGIN`），
           视口变矮时把浮窗压回视口内 —— 两处一旦分叉，拖到上限时面板会先停住、
-          再被 CSS 悄悄压小。
-
-          折叠态与展开态的尺寸是**两回事**：
-          - 折叠：宽度直接取**最小宽度**（一条窄条，够放头像 + 标题 + 两个按钮），
-            不写 `height` —— 高度交给内容（只剩头行那一条）；
-          - 展开：回到 `floatSize`（存档 / 拖拽出来的宽 + 高）。
-
-          折叠期间**不碰 `floatSize`、也不落盘**（手柄在折叠态根本不挂，见下）：
-          所以 `aiFloatWidth` / `aiFloatHeight` 里留的始终是「上一次展开时的尺寸」，
-          展开即恢复；关掉面板再打开也是这个尺寸。
+          再被 CSS 悄悄压小。宽高本身由 motion 写内联样式，不走这里。
         */
         style={
           isMobile
             ? undefined
-            : isCollapsed
-              ? { width: AI_FLOAT_MIN_WIDTH }
-              : {
-                  width: floatSize.width,
-                  height: floatSize.height,
-                  maxHeight: `calc(100svh - ${AI_FLOAT_VIEWPORT_MARGIN}px)`,
-                }
+            : { maxHeight: `calc(100svh - ${AI_FLOAT_VIEWPORT_MARGIN}px)` }
         }
         className={cn(
           'fixed z-30 flex flex-col overflow-hidden bg-kumo-base',
@@ -327,24 +416,40 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed, o
           'inset-0',
           /*
             桌面端：**行尾侧下角**的小窗 —— LTR 右下、RTL 左下（`start` / `end` 是逻辑属性，
-            方向自己就会翻）。尺寸由上面的内联 style 给，这里只管贴哪一角。
+            方向自己就会翻）。尺寸由 motion 给，这里只管贴哪一角。
 
             ⚠️ `md:top-auto` **不能省**：`inset-0` 写进去的 `top: 0` 不会被 `md:bottom-4`
             顶掉 —— top / bottom / height 同时指定时浏览器忽略的是 bottom，
             于是浮窗会贴到**视口顶端**（而且照样带 560px 高，看起来像"从左上角弹出来"）。
+            现在高度由 motion 显式写内联值，这个问题自然不存在了，但这几行仍不能删：
+            它们决定贴哪一角。
           */
           'md:top-auto md:start-auto md:end-4 md:bottom-4',
           'md:rounded-xl md:border md:border-kumo-line md:shadow-lg',
         )}
       >
-        <AiPanelSurface
-          onClose={onClose}
-          collapsed={isCollapsed}
-          // 移动端不挂折叠按钮（`isCollapsed` 恒为 false，两者的判断保持一致）
-          onToggleCollapsed={isMobile ? undefined : onToggleCollapsed}
-          onMaximize={onMaximize}
-        />
-
+        {/*
+          内层在变形期间**钉住展开尺寸**（宽 + 高都写死），所以外框收缩时内容是被
+          `overflow-hidden` **裁掉**的，而不是跟着重排 —— 文字换行、头像位置一律不动。
+          钉的尺寸取 `floatSize`：收起时它是「出发尺寸」、展开时是「到达尺寸」，
+          两种方向都对（变形结束就解除钉住，折叠态真正只剩头行那一条）。
+        */}
+        <div
+          className="flex h-full w-full flex-col"
+          style={
+            isDeforming
+              ? { width: floatSize.width, height: floatSize.height }
+              : undefined
+          }
+        >
+          <AiPanelSurface
+            onClose={onClose}
+            collapsed={surfaceCollapsed}
+            // 移动端不挂折叠按钮（`isCollapsed` 恒为 false，两者的判断保持一致）
+            onToggleCollapsed={isMobile ? undefined : onToggleCollapsed}
+            onMaximize={onMaximize}
+          />
+        </div>
         {/*
           尺寸手柄只在桌面端挂：移动端浮窗是整屏，没有可拖的尺寸。
           手柄是浮窗**内部**的绝对定位热区，顺序放在内容之后、靠 `z-20` 压在上面；
@@ -353,8 +458,10 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed, o
           **折叠态三个手柄一个都不挂**：窄条的宽就是最小宽度、高就是头行，拖它没有意义；
           更重要的是拖拽会在 `onCommit` 里落盘，而折叠期间的尺寸**不该污染存档** ——
           存档要留着「上次展开时的宽高」，展开才能原样恢复（见上面的 style 注释）。
+
+          变形期间同样不挂：此刻外框的宽高是动画在写，热区跟着它一起动只会误触。
         */}
-        {isMobile || isCollapsed ? null : (
+        {isMobile || isCollapsed || isDeforming ? null : (
           <>
             {/* 顶边：只改高度 */}
             <AiFloatResizeHandle
@@ -387,7 +494,7 @@ export function AiPanel({ open, onClose, collapsed = false, onToggleCollapsed, o
             />
           </>
         )}
-      </aside>
+      </motion.aside>
     )
   }
 
