@@ -1,6 +1,6 @@
 import { Sidebar } from '@cloudflare/kumo'
 import { createFileRoute, Outlet, useNavigate, useRouter, useRouterState } from '@tanstack/react-router'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { CommandPaletteDialog } from '#/components/command-palette'
 import { SphereHeader } from './-components/sphere-header'
@@ -15,6 +15,7 @@ import { useSphereCollapseNow } from './-components/use-sphere-collapse'
 import { registerAiShellBridge, useAiSessionStore } from '#/lib/ai'
 import { guardAppRoute } from '#/lib/app-route-guard'
 import { useLocale } from '#/lib/use-locale'
+import { useMotionEnabled } from '#/lib/use-motion'
 
 /**
  * 全屏 AI 对话页的布局（`/$appId/sphere`）。
@@ -53,8 +54,9 @@ import { useLocale } from '#/lib/use-locale'
  *   `-components/sphere-transition.tsx`）。幅度比入场小一点：退场要读成「收回去」，
  *   把入场原样倒放会显得拖沓。
  *
- * `prefers-reduced-motion: reduce` 时不播：`initial={false}` 直接落到位，
- * 收起按钮也立即导航（状态正确性不依赖动画）。
+ * `motionEnabled` 为假时不播（`#/lib/use-motion` 的判定：设置 → 外观 → 「界面动效」关掉，
+ * 或系统要求减少动效）：`initial={false}` 直接落到位，收起按钮也立即导航
+ * （状态正确性不依赖动画）。
  *
  * ## 会话从哪来
  *
@@ -94,7 +96,11 @@ function SphereLayoutBody({ appId }: { appId: string }) {
   const { isRtl } = useLocale()
   const loadHistory = useAiSessionStore((state) => state.loadHistory)
   const [paletteOpen, setPaletteOpen] = useState(false)
-  const reduceMotion = useReducedMotion()
+  /**
+   * 现在能不能播动画（设置 → 外观 → 「界面动效」且系统没要求减少动效，
+   * 判定在 `#/lib/use-motion`）。关掉时面板直接出现、收起直接切走，不留过渡。
+   */
+  const motionEnabled = useMotionEnabled()
   /** 面板此刻是不是正在播收起过渡（真值在 Provider 里，见 sphere-transition.tsx） */
   const { leaving, notifyLeaveComplete, cancelCollapse } = useSphereTransition()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
@@ -159,16 +165,20 @@ function SphereLayoutBody({ appId }: { appId: string }) {
 
           两边都是普通的时长 + 缓动（**不回弹**）：入场 `easeOut`（到位的瞬间收住）、
           退场 `easeIn`（加速离开），读起来是同一套手感的正反面。
+          `motionEnabled` 为假（关掉「界面动效」或系统要求减少动效）时 initial 直接落到位、
+          时长归零 —— 状态照旧，只是没有过渡。
         */}
         <motion.div
           className="h-full min-h-0"
-          // 减少动效时 `false` = 挂载瞬间直接落到终态，入场动画整段跳过
-          initial={reduceMotion ? false : { opacity: 0, scale: 0.8 }}
+          // `false` = 挂载瞬间直接落到终态，入场动画整段跳过
+          initial={motionEnabled ? { opacity: 0, scale: 0.8 } : false}
           animate={leaving ? { opacity: 0, scale: 0.9 } : { opacity: 1, scale: 1 }}
           transition={
-            leaving
-              ? { duration: SPHERE_PANEL_EXIT_MS / 1000, ease: 'easeIn' }
-              : { duration: SPHERE_PANEL_ENTER_MS / 1000, ease: 'easeOut' }
+            motionEnabled
+              ? leaving
+                ? { duration: SPHERE_PANEL_EXIT_MS / 1000, ease: 'easeIn' }
+                : { duration: SPHERE_PANEL_ENTER_MS / 1000, ease: 'easeOut' }
+              : { duration: 0 }
           }
           // 入场动画跑完时 `leaving` 还是 false，Provider 里会忽略这一次
           onAnimationComplete={notifyLeaveComplete}

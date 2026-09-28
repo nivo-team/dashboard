@@ -91,6 +91,8 @@
       },
       "pageWidth": "Ancho de página",
       "pageWidthHint": "Si el área de contenido se limita a un ancho máximo; el ancho completo es mejor para tablas",
+      "motion": "Animaciones de la interfaz",
+      "motionHint": "Al desactivarlas, el panel de IA y la página de chat a pantalla completa cambian al instante sin animación; la opción «Reducir movimiento» del sistema siempre tiene prioridad",
       "pageWidths": {
         "full": "Ancho completo",
         "follow": "Según apariencia",

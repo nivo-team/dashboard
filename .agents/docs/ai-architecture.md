@@ -30,7 +30,7 @@ L1  UI          components/ai-panel · ai-conversation · ai-composer · ai-sess
                   ├─ route.tsx  布局里挂 `sphere-header`（头行常驻：会话 404 时也在，
                   │     只是标题留空）+ 会话列表加载；整块面板的**进出场动画**也在这里
                   │     （入场 scale 0.8→1 + 淡入，退场缩小淡出后才导航；
-                  │     `prefers-reduced-motion` 下都不播）
+                  │     `useMotionEnabled()` 为假时都不播，见 ui-and-styling.md「动效开关」）
                   ├─ index.tsx   $appId/sphere = 新会话（挂载即 startNewSession）
                   ├─ chat/$chatId.tsx  $appId/sphere/chat/$chatId = 指定会话，
                   │     loader 用 store.hasSession 校验，找不到 → sphere-not-found
@@ -257,16 +257,19 @@ useAiPageContext(Route.id, {
     `min-width: auto` 归零，宽度才真能收到 0）；② 退场要**留在树上等动画跑完**（三态
     `splitMounted` / `splitExpanded` / `splitAnimating`，卸载计时与 CSS 时长同源
     `SPLIT_SLIDE_MS`）；③ 拖拽宽度时**摘掉过渡**（`!resizing`），否则每帧都落在 200ms
-    过渡上面板不跟手；④ 移动端（覆盖式、无宽度可动）与 `prefers-reduced-motion: reduce`
-    都直接切到位，不走进过渡窗口；⑤ **从最大化返回时这一次入场不播** —— 面板一直开着，
+    过渡上面板不跟手；④ 移动端（覆盖式、无宽度可动）与**不能播动画时**
+    （`useMotionEnabled()` 为假：关掉 设置 → 外观 →「界面动效」，或系统
+    `prefers-reduced-motion: reduce`；此时连过渡类一起摘掉）都直接切到位，不走进过渡窗口；
+    ⑤ **从最大化返回时这一次入场不播** —— 面板一直开着，
     只是宿主 `AppShell` 在 `/sphere` 期间被卸载过，再滑入一次会读成「被关掉又打开」
     （外壳传 `skipEnterAnimation`，这里初值直接落在展开位，见 `AiPanelProps`）。
     退场期间挂 `aria-hidden` + `inert`（读屏与键盘先「消失」）；
   - **Float**（`float`）：`fixed` 在**行尾侧下角**（`md:end-4` / `md:bottom-4`，RTL 自动换边不压住侧边栏）、
     浮在内容之上、不挤压布局，**从页面底部升起**（入场动画 = styles.css 的
     `[data-ai-float='true']` + `@keyframes ai-float-enter`，整体包在
-    `prefers-reduced-motion: no-preference` 里；只有入场没有退场；**从最大化返回时
-    干脆不带 `data-ai-float`**，那一次不播 —— 同上，面板并没有被关掉过）。
+    `prefers-reduced-motion: no-preference` 里；只有入场没有退场；**从最大化返回、
+    或关掉「界面动效」时干脆不带 `data-ai-float`**，那一次不播
+    —— 前者是面板并没有被关掉过，后者是用户明确要求没有过渡）。
     ⚠️ **`md:top-auto` 不能省**：`inset-0`（移动端整屏）写进去的 `top: 0` 不会被
     `md:bottom-4` 顶掉 —— top / bottom / height 同时指定时浏览器忽略的是 bottom，
     于是浮窗会贴到**视口顶端**（曾经就是这个 bug）。
@@ -279,7 +282,7 @@ useAiPageContext(Route.id, {
       钉住之后动画结束才解除，折叠态才真正只剩头行那一条；
     - **内容切换发生在动画结束时**（`isDeforming`），不是一变就切：否则动画没有内容可收缩；
     - **只有变形带时长**，拖拽改尺寸走同一条 `animate` 但 `duration: 0`，否则浮窗会追着光标跑；
-    - `prefers-reduced-motion` 下直接切（`useReducedMotion`）；
+    - 不能播动画时直接切（`useMotionEnabled()` 为假，见 ui-and-styling.md「动效开关」）；
     - **折叠态三个手柄一个都不挂**（不只是"不画"）：拖拽会在 `onCommit` 落盘，
       折叠期间的尺寸不该污染存档；`aiFloatWidth` / `aiFloatHeight` 里始终留着上次展开的尺寸，
       展开即原样恢复（头行右侧的会话选择器也在这个阶段才换成「AI 头像 + 当前会话标题」，

@@ -74,6 +74,22 @@ export const AI_FLOAT_MAX_HEIGHT = 900
  */
 export const AI_FLOAT_VIEWPORT_MARGIN = 80
 
+/**
+ * 界面动效的总开关（默认**开**）。
+ *
+ * 关掉后「AI 面板」与「全屏对话页 `/$appId/sphere`」的过渡**直接切换**，不做动画
+ * （判定与接入见 `#/lib/use-motion`）。
+ *
+ * **为什么放这个全局 store，而不是按应用分区的偏好 store**：判定原则是「这个状态换个
+ * 应用还成立吗」——「要不要动效」显然成立，与侧边栏宽度同属外壳形态偏好。放全局才能做到
+ * 「关一次，所有应用都不动」；放进 `admin.preferences:<appId>` 反而会被单个应用改过的
+ * 存档锁住（那个键一旦写过就整份独立，收不到 `:global` 基线的后续变化）。
+ *
+ * 与系统 `prefers-reduced-motion` 的关系：**取更严格的那个** —— 系统要求减少动效时，
+ * 即使用户把这里开着也不播动画。
+ */
+export const DEFAULT_MOTION_ENABLED = true
+
 /** 拖拽期间的写盘节流：`onWidthChange` 每帧都会触发，同步写 localStorage 会卡。 */
 const WIDTH_PERSIST_DELAY_MS = 200
 
@@ -90,10 +106,13 @@ interface ShellUiState {
   aiFloatWidth: number
   /** AI 浮窗（Float）的高度（px） */
   aiFloatHeight: number
+  /** 界面动效总开关（默认开；关掉后 AI 面板与全屏对话页的过渡直接切换） */
+  motionEnabled: boolean
   setSidebarOpen: (open: boolean) => void
   setSidebarWidth: (width: number) => void
   setDetailPanelWidth: (width: number) => void
   setAiPanelWidth: (width: number) => void
+  setMotionEnabled: (enabled: boolean) => void
   /**
    * 浮窗的两个方向一起写。
    *
@@ -111,6 +130,7 @@ type PersistedShellUi = Pick<
   | 'aiPanelWidth'
   | 'aiFloatWidth'
   | 'aiFloatHeight'
+  | 'motionEnabled'
 >
 
 export function clampSidebarWidth(width: number): number {
@@ -145,6 +165,7 @@ export const useShellUiStore = create<ShellUiState>()(
       aiPanelWidth: AI_PANEL_DEFAULT_WIDTH,
       aiFloatWidth: AI_FLOAT_DEFAULT_WIDTH,
       aiFloatHeight: AI_FLOAT_DEFAULT_HEIGHT,
+      motionEnabled: DEFAULT_MOTION_ENABLED,
       setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
       setSidebarWidth: (sidebarWidth) =>
         set({ sidebarWidth: clampSidebarWidth(sidebarWidth) }),
@@ -157,6 +178,7 @@ export const useShellUiStore = create<ShellUiState>()(
           aiFloatWidth: clampAiFloatWidth(width),
           aiFloatHeight: clampAiFloatHeight(height),
         }),
+      setMotionEnabled: (motionEnabled) => set({ motionEnabled }),
     }),
     {
       name: 'admin.shell-ui',
@@ -168,11 +190,13 @@ export const useShellUiStore = create<ShellUiState>()(
         aiPanelWidth: state.aiPanelWidth,
         aiFloatWidth: state.aiFloatWidth,
         aiFloatHeight: state.aiFloatHeight,
+        motionEnabled: state.motionEnabled,
       }),
       /**
        * 旧存档没有 `detailPanelWidth` / `aiPanelWidth`（后续新增）—— 缺失或非法一律回落
        * 默认值，否则 `undefined` 会被当成宽度写进 `style.width`（渲染成 `width: undefinedpx`）。
-       * `aiFloatWidth` / `aiFloatHeight` 同理（浮窗可拖拽尺寸是更后面才加的）。
+       * `aiFloatWidth` / `aiFloatHeight` 同理（浮窗可拖拽尺寸是更后面才加的）；
+       * `motionEnabled` 是布尔：只认 boolean，缺失时回落到**默认开**（升级用户不该突然没动画）。
        */
       merge: (persisted, current) => {
         const saved = (persisted ?? {}) as Partial<PersistedShellUi>
@@ -207,6 +231,10 @@ export const useShellUiStore = create<ShellUiState>()(
             Number.isFinite(saved.aiFloatHeight)
               ? clampAiFloatHeight(saved.aiFloatHeight)
               : current.aiFloatHeight,
+          motionEnabled:
+            typeof saved.motionEnabled === 'boolean'
+              ? saved.motionEnabled
+              : current.motionEnabled,
         }
       },
     },

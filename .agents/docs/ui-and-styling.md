@@ -41,6 +41,16 @@ Kumo 采用语义化颜色系统，通过根节点上的 `data-mode="light|dark"
 | **字距** | **禁止调整** | 不得使用 Tailwind 的 `tracking-*` 类名 |
 | **字重** | **禁止粗体** | 禁用 `font-bold`；标题采用 `font-semibold`，强调文本采用 `font-medium` |
 | **Hover 动画** | **即时响应** | 按钮与交互项的悬停态不配置颜色过渡过渡效果（无 `transition-colors duration-*`） |
+| **动效开关** | **问 `useMotionEnabled()`** | 设置 → 外观 → 「界面动效」关掉、或系统 `prefers-reduced-motion: reduce` 时，过渡直接切换；判定唯一入口是 `#/lib/use-motion`，**不要自己拼这两个条件** |
+
+> **动效判定只有一处**：`apps/web/src/lib/use-motion.ts` 的 `useMotionEnabled()` =
+> 用户开关（`admin.shell-ui` 的 `motionEnabled`，全局、默认开）**且** 系统没要求减少动效。
+> 系统设置优先级更高 —— 用户开着开关，系统说减少动效也不播。
+>
+> 目前接入的是 **AI 面板**（Split 宽度进出场、Float 升起与折叠变形）与
+> **全屏对话页 `/$appId/sphere`**（面板进出场、收起过渡）。其余过渡（详情分屏、
+> 侧边栏、设置页缩略图、光晕）暂时仍只跟随系统设置，走各自的 `motion-safe:` 或媒体查询；
+> 要扩到它们时把判定换成 `useMotionEnabled()` 即可，不要另写一套。
 
 ---
 

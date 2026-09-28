@@ -1,4 +1,4 @@
-import { Select, Tabs, Tooltip } from '@cloudflare/kumo'
+import { Select, Switch, Tabs, Tooltip } from '@cloudflare/kumo'
 import {
   ArrowSquareOutIcon,
   ArrowsInLineHorizontalIcon,
@@ -28,6 +28,7 @@ import {
   DEFAULT_COLOR_VALUE,
   NEUTRAL_COLOR_OPTIONS,
   usePreferencesStore,
+  useShellUiStore,
   type DetailOpenMode,
   type PageWidthMode,
   type ThemeColorOption,
@@ -42,7 +43,7 @@ import type { TimezoneKey } from '#/lib/timezone'
 /**
  * 设置 → 外观（/_main/settings/appearance.tsx -> "/settings/appearance"）
  *
- * 这一页装的是五项「本机偏好」，都是**即时生效 + 即时持久化**，
+ * 这一页装的是六项「本机偏好」，都是**即时生效 + 即时持久化**，
  * 所以这里是设置页而不是表单页：没有保存按钮，也没有 dirty 状态
  * （不要套 `#/components/unsaved-changes-bar` 那套编辑态契约）。
  *
@@ -51,13 +52,18 @@ import type { TimezoneKey } from '#/lib/timezone'
  * - 时区：`#/lib/timezone`（偏好 store 的 timezone，全站时间格式化共用同一份状态）
  * - 详情打开方式：`#/lib/store` 的 detailOpenMode（表格里点开详情的行为，见 .agents/docs/detail-preview.md）
  * - 页面宽度：`#/lib/store` 的 pageWidth（全宽 / 限宽居中，落点在 `#/lib/page-width`）
+ * - 界面动效：`#/lib/store` 的 motionEnabled（关掉后 AI 面板与全屏对话页的过渡直接切换，
+ *   判定在 `#/lib/use-motion`）
  *
- * 五项都持久化在 `admin.preferences:<appId>`（按应用隔离，见 .agents/docs/store.md）。
+ * 前五项持久化在 `admin.preferences:<appId>`（按应用隔离，见 .agents/docs/store.md）；
+ * 最后一项是**全局**的 `admin.shell-ui` —— 「要不要动效」换个应用仍成立，不该按应用各存一份
+ * （理由见 `#/lib/store/shell-ui-store` 里 `motionEnabled` 的注释）。
  * 布局是「一张卡片 + 若干设置行」，每行左 label、右控件（`SettingRow`）——
  * 用 flex 的书写方向自适应，RTL 下主轴翻转，label 自动落到右边，**不要写 rtl: 变体**。
  *
  * 控件选型：**短枚举（≤3 项）一律用 Kumo `Tabs` 的 segmented 分段控件**
- * （主题、详情打开方式、页面宽度），长枚举（语言 7 项、时区 8 项）用 `Select`；
+ * （主题、详情打开方式、页面宽度），长枚举（语言 7 项、时区 8 项）用 `Select`，
+ * **开关型偏好用 `Switch`**（界面动效）；
  * `Tabs` 是数据驱动 + 受控的，可访问名称需要外层 `role="group"` 兜（详见该处注释）。
  *
  * **三处「可视化说明」都用 `#/components/app-shell-preview` 的通用缩略图**：
@@ -280,6 +286,9 @@ function AppearanceSettingsPage() {
   const setDetailOpenMode = usePreferencesStore((state) => state.setDetailOpenMode)
   const pageWidth = usePreferencesStore((state) => state.pageWidth)
   const setPageWidth = usePreferencesStore((state) => state.setPageWidth)
+  // 界面动效是**全局**偏好（不按应用隔离），所以在另一个 store 里
+  const motionEnabled = useShellUiStore((state) => state.motionEnabled)
+  const setMotionEnabled = useShellUiStore((state) => state.setMotionEnabled)
   const { locale, setLocale, supportedLocales } = useLocale()
   const {
     timezone,
@@ -471,6 +480,31 @@ function AppearanceSettingsPage() {
                 })}
               />
             </div>
+          </SettingRow>
+
+          {/*
+            界面动效：**开关型**偏好，所以用 Kumo `Switch`（同 设置 → AI 的「进行中光晕」），
+            并且像那里一样**不传 `label`** —— 那会渲染一行可见文字、与 `SettingRow` 的
+            label 重复；改传 `aria-label`，Kumo 的 Switch 会读它作为可访问名称。
+
+            值**不与上面几项同源**：它落在全局的 `admin.shell-ui`（`motionEnabled`），
+            不按应用隔离 —— 「要不要动效」换个应用仍然成立，放全局才能关一次全站生效
+            （理由见 `#/lib/store/shell-ui-store` 里该字段的注释）。
+            系统「减少动态效果」优先级更高：系统要求减少动效时，这个开关开着也不播，
+            判定统一在 `#/lib/use-motion`。
+          */}
+          <SettingRow
+            label={t('profile.settings.motion', '界面动效')}
+            hint={t(
+              'profile.settings.motionHint',
+              '关闭后 AI 面板与全屏对话页的过渡直接切换，不做动画；系统的「减少动态效果」始终优先',
+            )}
+          >
+            <Switch
+              checked={motionEnabled}
+              onCheckedChange={setMotionEnabled}
+              aria-label={t('profile.settings.motion', '界面动效')}
+            />
           </SettingRow>
       </SettingsCard>
 

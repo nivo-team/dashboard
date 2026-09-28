@@ -13,7 +13,7 @@
 | 本机偏好（语言 / 外观 / 时区 / 详情打开方式 / 页面宽度） | `apps/web/src/lib/store/preferences-store.ts` | `admin.preferences:<appId>` | **是** —— 每个应用一套，没改过时继承 `:global` 基线 |
 | 表格 UI（列设置 / 筛选 / 排序 / 分页） | `apps/web/src/lib/store/table-ui-store.ts` | `admin.table-ui:<appId>` | **是** |
 | 仪表盘布局（卡片位置 / 尺寸） | `apps/web/src/lib/store/dashboard-store.ts` | `admin.dashboard:<appId>` | **是** —— 见 [dashboard-module.md](./dashboard-module.md) |
-| 外壳 UI（侧边栏折叠 / 宽度、分屏预览宽度） | `apps/web/src/lib/store/shell-ui-store.ts` | `admin.shell-ui` | 否 —— 外壳形态偏好，全局一份（**移动端不记录**） |
+| 外壳 UI（侧边栏折叠 / 宽度、分屏预览宽度、界面动效开关） | `apps/web/src/lib/store/shell-ui-store.ts` | `admin.shell-ui` | 否 —— 外壳形态偏好，全局一份（**移动端不记录**） |
 | 查询缓存（内存） | `apps/web/src/lib/query-client.ts` | —（不落盘） | **是** —— 每个应用一个 `QueryClient` |
 
 判定原则：**「这个状态换个应用还成立吗？」** 成立就全局，不成立就按应用隔离。
@@ -22,6 +22,7 @@
 
 > ⚠️ 行为提醒：语言 / 外观 / 时区 / 详情打开方式 / 页面宽度现在都随应用走 —— **切换应用会切换这几项**
 > （前提是你在这个应用里改过；没改过就一直用基线）。这是刻意的，别当成 bug。
+> **界面动效开关是例外**：它放全局的 `admin.shell-ui`（不随应用走），见 §5.4。
 > 其中「详情打开方式」（`detailOpenMode`：分屏 / 抽屉 / 跳转详情页）见
 > [detail-preview.md](./detail-preview.md)；「页面宽度」（`pageWidth`：全宽 / 限宽居中）
 > 的类名真值在 `apps/web/src/lib/page-width.ts`，两个外壳的 `<main>` 都从那里取。
@@ -128,6 +129,12 @@ useTableUiStore.getState().resetTable('users/user')
 分屏面板的宽度**（`detailPanelWidth`）、**AI 面板的尺寸**（分屏 `aiPanelWidth`；
 贴角浮窗 `aiFloatWidth` / `aiFloatHeight`，浮窗两个方向都可拖）。两个外壳（`AppShell` 与
 `MainLayout`）共用同一份，所以在 `/settings` 收起的侧边栏，回到业务页仍是收起的。
+
+它还放**界面动效开关**（`motionEnabled`，默认开）：关掉后 AI 面板与全屏对话页的过渡直接切换。
+它属于这里而不是按应用分区的偏好 store，理由见 `shell-ui-store.ts` 里该字段的注释 ——
+一句话是判定原则「换个应用还成立就全局」，另一句是**别把它困在某个应用的存档里**
+（`admin.preferences:<appId>` 一旦写过一次就整份独立，收不到 `:global` 基线的后续变化）。
+判定与接入见 [ui-and-styling.md](./ui-and-styling.md) 的「动效开关」一节与 `#/lib/use-motion`。
 
 接线方式**桌面非受控 + 移动端受控**，代码只有一份：
 `#/components/shell-sidebar-provider` 的 `ShellSidebarProvider`（两个外壳都套它，

@@ -91,6 +91,8 @@
       },
       "pageWidth": "Sayfa genişliği",
       "pageWidthHint": "İçerik alanının maksimum genişlikle sınırlanıp sınırlanmayacağı; tablo ağırlıklı panellerde tam genişlik daha iyidir",
+      "motion": "Arayüz hareketi",
+      "motionHint": "Kapalıyken AI paneli ve tam ekran sohbet sayfası animasyonsuz olarak anında geçiş yapar; sistemin \"hareketi azalt\" ayarı her zaman önceliklidir",
       "pageWidths": {
         "full": "Tam genişlik",
         "follow": "Görünümü izle",

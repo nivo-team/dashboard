@@ -6,7 +6,7 @@ import {
   PlusIcon,
   XIcon,
 } from '@phosphor-icons/react'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
 import {
   useEffect,
   useRef,
@@ -39,6 +39,7 @@ import {
 } from '#/lib/store'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 import { useLocale } from '#/lib/use-locale'
+import { useMotionEnabled } from '#/lib/use-motion'
 import {
   useFloatPanelResize,
   usePanelResize,
@@ -74,14 +75,6 @@ const FLOAT_COLLAPSE_EASE: [number, number, number, number] = [0.77, 0, 0.175, 1
  * 这一条，动画的终点高度直接用它。
  */
 const AI_PANEL_HEADER_HEIGHT = 58
-
-/** 系统是否要求「减少动效」（与 styles.css 里那些 `prefers-reduced-motion` 媒体查询同义）。 */
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  )
-}
 
 export interface AiPanelProps {
   /** 是否展开 */
@@ -137,7 +130,8 @@ export interface AiPanelProps {
  *   `splitExpanded` / `splitAnimating`，见组件里的注释）；
  * - **Float**（`float`）：**从页面底部升起**的浮窗，停在**行尾侧下角**（LTR 右下、RTL 左下）、
  *   浮在内容之上（`fixed`，不挤压布局）。入场动画是「自下而上 + 淡入」，交给 styles.css 的
- *   `[data-ai-float='true']` 规则（`prefers-reduced-motion: reduce` 下不播、状态照常）。
+ *   `[data-ai-float='true']` 规则；**属性由 `motionEnabled` 决定要不要带**，
+ *   所以关掉「界面动效」或系统要求减少动效时根本不走这条动画（状态照常）。
  *   它是**可拖拽改变尺寸**的小窗：顶边改高度、行首边改宽度、行首上角同时改两者
  *   （手柄见文件末尾的 `AiFloatResizeHandle`，逻辑在 `#/lib/use-panel-resize`）；
  *   头行的折叠按钮还能把它压成**只有头行**的窄条（`collapsed`，受控于 `AppShell`）。
@@ -229,7 +223,12 @@ export function AiPanel({
    */
   const skipSplitEnterRef = useRef(skipEnterOnce)
 
-  const reduceMotion = useReducedMotion()
+  /**
+   * 现在能不能播动画：设置 → 外观 → 「界面动效」**且** 系统没要求减少动效
+   * （判定统一在 `#/lib/use-motion`，不要在这里重拼条件）。
+   * 关掉时面板的进出场、浮窗的升起与折叠变形一律**直接切到位**。
+   */
+  const motionEnabled = useMotionEnabled()
 
   /**
    * Float 这一次「展开 ↔ 折叠」的变形是不是还在跑（motion 的动效跑完即归位）。
@@ -303,9 +302,10 @@ export function AiPanel({
       三种「没有过渡」的情形，直接切到位：
       - 从最大化返回（上面那条）；
       - 移动端：Split 是覆盖式（`inset-x-0`），没有宽度可动；
-      - 系统要求减少动效：状态照旧，只是不播（与 styles.css 里各处媒体查询同义）。
+      - 关掉了「界面动效」（设置 → 外观），或系统要求减少动效 —— 状态照旧，只是不播
+        （见 `#/lib/use-motion`）。
     */
-    if (skipEnter || isMobile || prefersReducedMotion()) {
+    if (skipEnter || isMobile || !motionEnabled) {
       setSplitExpanded(open)
       setSplitAnimating(false)
       if (!open) setSplitMounted(false)
@@ -404,9 +404,10 @@ export function AiPanel({
      * 三个条件缺一不可：
      * - 桌面端：移动端浮窗是整屏，没有可变的宽高；
      * - `floatDeforming`：目标刚变过（见组件上方那个标记）；
-     * - 没有要求减少动效：那就直接切，不留 220ms 的「过渡窗口」。
+     * - 能播动画（`motionEnabled`）：关掉「界面动效」或系统要求减少动效时直接切，
+     *   不留 220ms 的「过渡窗口」。
      */
-    const isDeforming = !isMobile && floatDeforming && !reduceMotion
+    const isDeforming = !isMobile && floatDeforming && motionEnabled
 
     /**
      * 头行 / 动作区按哪个形态渲染。
@@ -429,8 +430,9 @@ export function AiPanel({
           `data-ai-float` 就是入场动画的开关（styles.css 的 `ai-float-enter`）：
           从最大化返回时它不带这个属性，浮窗直接落在最终位置 —— 面板一直开着，不该再演一次。
           这个值来自挂载时的快照（见 `floatSkipEnter`），之后 prop 复位也不会把它改回来。
+          关掉「界面动效」时同样不带 —— 用户要的就是没有过渡。
         */
-        data-ai-float={floatSkipEnter ? undefined : 'true'}
+        data-ai-float={floatSkipEnter || !motionEnabled ? undefined : 'true'}
         aria-label={t('title', 'Ask AI')}
         /*
           变形**只动外框的宽高**，内容钉在展开尺寸上被裁切（见下面那层 div）。
@@ -607,11 +609,15 @@ export function AiPanel({
           // `z-20` 与 styles.css 给侧边栏的层级一致（两者同为外壳级，不该有高低之分）。
           'md:sticky md:inset-x-auto md:z-20 md:shrink-0 md:max-w-[calc(100%_-_320px)] md:border-s',
           /*
-            展开 / 收起的宽度过渡。**拖拽宽度时必须摘掉**（`!resizing`）：否则每一帧
-            宽度都落在 200ms 的过渡上，面板会滞后一大截、根本不跟手。
+            展开 / 收起的宽度过渡。两处摘掉它的情形：
+            - **拖拽宽度时**（`!resizing`）：否则每一帧宽度都落在 200ms 的过渡上，
+              面板会滞后一大截、根本不跟手；
+            - **关掉「界面动效」时**（`motionEnabled`）：用户要的就是直接切换；
+              `motion-safe:` 只管系统设置，用户开关得在这里把类整体去掉。
             时长与 `SPLIT_SLIDE_MS` 同步。
           */
           !resizing &&
+            motionEnabled &&
             'md:motion-safe:transition-[width] md:motion-safe:duration-200 md:motion-safe:ease-out',
           SHELL_PANEL_FRAME,
         )}

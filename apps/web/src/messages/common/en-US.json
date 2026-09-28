@@ -91,6 +91,8 @@
       },
       "pageWidth": "Page width",
       "pageWidthHint": "Whether the content area is capped at a maximum width; full width suits data-heavy tables",
+      "motion": "Interface motion",
+      "motionHint": "When off, the AI panel and the full-screen chat page switch instantly instead of animating; your system's \"reduce motion\" setting always takes precedence",
       "pageWidths": {
         "full": "Full width",
         "follow": "Match appearance",

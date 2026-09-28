@@ -1,4 +1,4 @@
-import { useReducedMotion } from 'motion/react'
+import { useMotionEnabled } from '#/lib/use-motion'
 import {
   createContext,
   useCallback,
@@ -95,7 +95,8 @@ export function SphereTransitionProvider({
   onExited: () => void
   children: ReactNode
 }) {
-  const reduceMotion = useReducedMotion()
+  /** 现在能不能播动画（用户开关 + 系统 reduce，判定在 `#/lib/use-motion`） */
+  const motionEnabled = useMotionEnabled()
   const [leaving, setLeaving] = useState(false)
 
   /*
@@ -118,18 +119,19 @@ export function SphereTransitionProvider({
   /**
    * 收起。
    *
-   * **要求减少动效时直接导航**：那种情况下不该播动画，但「点了收起要能出去」这个状态
-   * 正确性不能依赖动画（与 `ai-panel.tsx` 里 Split 形态的处理同义）。
+   * **不能播动画时直接导航**（设置 → 外观 关掉「界面动效」，或系统要求减少动效）：
+   * 那种情况下不该有过渡，但「点了收起要能出去」这个状态正确性不能依赖动画
+   * （与 `ai-panel.tsx` 里 Split 形态的处理同义）。
    */
   const requestCollapse = useCallback(() => {
     if (leavingRef.current) return
-    if (reduceMotion) {
+    if (!motionEnabled) {
       exitOnce()
       return
     }
     leavingRef.current = true
     setLeaving(true)
-  }, [reduceMotion, exitOnce])
+  }, [motionEnabled, exitOnce])
 
   /*
     兜底：`motion` 的 `onAnimationComplete` 正常会先到；万一没来（动效被打断、标签页在
