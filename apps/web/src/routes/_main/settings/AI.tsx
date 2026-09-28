@@ -22,6 +22,7 @@ import {
 } from '#/components/app-shell-preview'
 import {
   GLOW_COLOR_VARIANT,
+  GLOW_REDUCED_MOTION_CSS,
   GLOW_STRENGTH,
 } from '#/components/ai-activity-glow'
 import { PageHeader } from '#/components/page-header'
@@ -256,6 +257,8 @@ function AiActivityGlowPreview({ accentColor }: { accentColor: string }) {
         theme={resolved}
         active={showGlow}
         borderRadius={8}
+        // 减动效下别把预览演成「这里什么都没有」（见 GLOW_REDUCED_MOTION_CSS）
+        css={GLOW_REDUCED_MOTION_CSS}
         className="rounded-lg"
       >
         <AppShellPreview

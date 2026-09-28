@@ -65,6 +65,26 @@ export function glowTuning(theme: 'light' | 'dark') {
 }
 
 /**
+ * **`prefers-reduced-motion` 下的兜底：让光晕停在满亮，而不是消失。**
+ *
+ * 这个包的呼吸/淡入全都挂在 `--beam-opacity-{id}` 上，而那个属性的 `@property` 注册初值是 **0**；
+ * 一旦进了 `prefers-reduced-motion: reduce`，包自己的媒体查询会 `animation: none !important`
+ * 把淡入关掉 —— 于是这个变量永远停在 0，**整层光晕什么都不画**（它的 JS 呼吸循环同时也主动
+ * 不启动，所以没有第二条路能把它顶上去）。
+ *
+ * 旧那层 CSS 在同样的偏好下只是「不呼吸」，光还在；换成这个包之后就成了「没有光」，
+ * 是这次改造引入的回退。这里用包留给消费方的 `css` 口子（追加在它自己那份样式之后、
+ * `{id}` 会按实例替换）把变量钉成 1：**要减的是动效，不是这个反馈本身** —— 这类用户仍然
+ * 该看到「AI 正在跑」的一圈静止的光。
+ *
+ * 两处（运行态 + 设置页预览）共用。用 `!important` 是必须的：包那条
+ * `animation: none !important` 是同一层里更靠前的 `!important` 声明，只有同级才能压住结果
+ * （它关的是动画，我们直接给变量赋值，两者不冲突）。
+ */
+export const GLOW_REDUCED_MOTION_CSS =
+  '@media (prefers-reduced-motion: reduce) { [data-beam="{id}"] { --beam-opacity-{id}: 1 !important } }'
+
+/**
  * **满视口那一档的模糊半径倍率**（预览那处不传，用包默认的 1）。
  *
  * `border-beam` 的 pulse 档是按「一张卡片」调的半径，而这里的元素是整块视口（1440px 上下）——
@@ -142,6 +162,8 @@ export function AiActivityGlow() {
       saturation={tuning.saturation}
       theme={resolved}
       borderRadius={0}
+      // 减动效下别把整个反馈一起减掉（见 GLOW_REDUCED_MOTION_CSS）
+      css={GLOW_REDUCED_MOTION_CSS}
       style={{
         position: 'fixed',
         inset: 0,

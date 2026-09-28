@@ -391,9 +391,10 @@ useAiPageContext(Route.id, {
   `pointerEvents: 'none'` 尤其不能漏（包的光层自带，**根节点没有**，漏了就是一整层吞点击的遮罩）；
   ③ **不要改成包住 `AppShell`** —— 包裹等于给 `Sidebar.Provider` 再套一层容器（sidebar 的 sticky、
   AI 面板的 fixed、详情分屏的 grid 都可能受影响），而且外壳高度随内容增长，光晕会跟着内容滚出视口；
-  ④ **`prefers-reduced-motion` 下它会整个消失**（包用 `animation: none !important` 关掉淡入，
-  而 `--beam-opacity` 的注册初值是 0 —— 旧那层 CSS 只是不呼吸、光还在）。要修就给 `css`
-  传一条把 `--beam-opacity-{id}` 钉成 1 的媒体查询。
+  ④ **`prefers-reduced-motion: reduce` 下它本来会整个消失**（包用 `animation: none !important`
+  关掉淡入，而 `--beam-opacity-{id}` 的 `@property` 注册初值是 0，包的 JS 呼吸循环同时也主动不启动
+  —— 旧那层 CSS 只是不呼吸、光还在）。所以两处都传了 `GLOW_REDUCED_MOTION_CSS`：一条追加的
+  媒体查询把那个变量钉成 1，**减的是动效，不是这个反馈本身**。
   包会进**主 bundle**（运行态这层挂在 AppShell 上，路由级懒加载兜不住）：dist 约 99 KB、gzip 14 KB。
   用户可在 **设置 → AI** 里关掉它（`aiActivityGlow`，落在 `admin.preferences:<appId>`、默认开）。
 
