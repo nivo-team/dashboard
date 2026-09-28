@@ -192,6 +192,7 @@
         "fill_form": "フォームに入力",
         "submit_form": "フォームを送信"
       },
+      "aiToolListHint": "読み取り専用と完全アクセスは上の権限範囲で決まります。個別に調整するには「カスタム」に切り替えてください",
       "aiOutputLanguage": "出力言語",
       "aiOutputLanguageHint": "AI が答える言語。既定ではインターフェースに合わせます",
       "aiOutputLanguageAuto": "インターフェースに合わせる",

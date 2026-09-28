@@ -326,6 +326,22 @@ useAiPageContext(Route.id, {
   （`px-4 pt-4 pb-0`）而不是 `p-4`，免得与 Kumo 的 `py-2` 拼出多余的上下留白。
   键盘约定：`Enter` 发送、`Shift + Enter` 换行、**输入法组字中的回车要让开**
   （`event.nativeEvent.isComposing`）；发送后清空、运行中禁用提交（见第 10 节）。
+  发送按钮左侧是一颗**「AI 设置」按钮**（滑杆图标 `SlidersHorizontalIcon`，`size="sm"` ——
+  `shape="circle"` 下是 `compactSize.sm` = `size-6.5`，26px，**与发送 / 停止按钮同档**才齐平；
+  不传 `size` 会落到 `base` 档的 36px、大一圈）。**面板与全屏对话页共用这一个 `AiComposer`，
+  只靠参数区分**，于是这颗按钮两处都有，下拉内容是：
+  - **选择模型**（子菜单 `DropdownMenu.Sub` / `.SubTrigger` / `.SubContent`）：列表来自
+    `#/lib/store/ai-store` 的 `models`，点一项 `setActiveModel`。触发项是**一行**：
+    标签在左、当前模型名在右（`flex-1 text-end` 顶到箭头前），即「标题 + 当前值」的常见写法；
+    两处都给，**一个模型都没配时换成一条「去设置」的引导项**（`/settings/AI`），不留空菜单；
+  - **配置权限**（齿轮 `GearSixIcon`）：只有面板给（传了 `onConfigurePermissions` 才有）——
+    权限视图是「整块替换面板内容」的，全屏对话页没有承载它的地方。
+  **触发按钮是滑杆、齿轮只在「配置权限」那一项上**，别调换。Kumo 的 `SubTrigger` 自带行尾
+  右向箭头，不要再自绘；子菜单图标也别用 `icon` prop（那里写死物理方向的 `mr-2`）。
+  行尾的 `ms-auto` **只挂这颗按钮**：提交位再挂一个，剩余空隙会被平分、设置按钮跑到中间
+  （全屏页踩过一次）。
+  行尾的 `ms-auto` 挂在**这颗**按钮上（没有入口时才归发送 / 停止那颗）—— 自动外边距挂到发送上，
+  空白会落在两者之间，权限按钮就被推回左侧去了；挂在这颗，「权限 + 发送」才作为一组贴在行尾。
   **输入区每次挂载即聚焦**（`useEffect` + `focus({ preventScroll: true })`）—— 面板打开、
   浮窗从折叠态展开都会让它重新挂载，于是「打开就能直接打字」；`preventScroll` 是必需的，
   否则 Split 进场（宽度还在从 0 长出来、输入框被裁在外侧）会触发页面横向滚动的补偿；
@@ -372,9 +388,22 @@ useAiPageContext(Route.id, {
   （`AiToolDefinition.group`：页面 / 数据 / 表单）**由工具自己声明**，设置页的清单从
   `AI_TOOLS` 派生、不另抄名单（加工具只改工具文件）。**默认只读是刻意的**：AI 默认只能看，
   要它动数据得用户自己到设置里开。
+  配置界面**只有一份**：`#/components/ai-permission-config` 的 `AiPermissionConfig`（受控：
+  三档 + **始终列出**的工具清单，清单从 `AI_TOOLS` 派生）。preset 档的勾选**按档位派生**
+  （只读 = `read` 类、完全访问 = 全部）且整组 `disabled`，只有 `custom` 能勾 ——
+  切档时清单不闪不跳，用户能直接对比两档差在哪；切到 `custom` 时把这份派生集合继承成
+  `allowedTools`，于是是「接着改」而不是「从零勾」。设置页拿它**即时写 store**；
+  AI 面板的权限视图（`ai-panel` 里的 `AiPermissionView`）拿它写**本地草稿**，点「保存」才落
+  store —— 权限是影响之后每一次对话的全局项，「误点一下就生效」比「多点一下保存」糟得多。
+  权限视图是**整块替换**面板内容（对话区用 `hidden` 留在树上，别卸载：卸载会丢滚动位置、
+  还会让 `AiConversationScroller` 重跑一次会话加载），头行仍是同一个 `h-[58px]`，
+  左侧换成「返回 + 标题」，动作区只留关闭。
 - 文案：面板 / 输入区 / 会话区都用 `ai` 命名空间（面板 `title` / `close` / `resize`（分屏拖柄）/
   `resizeFloat` / `resizeFloatWidth` / `resizeFloatHeight`（浮窗三个拖柄）；输入区
-  `inputLabel` / `inputPlaceholder` / `send` / `mode*`；会话区 `greetings.*` / `greetingPrompt` /
+  `inputLabel` / `inputPlaceholder` / `send` / `mode*` / `aiSettings`（行尾设置按钮）/
+  `selectModel` / `modelNone` / `modelEmpty`（模型子菜单与未配置引导）/
+  `configurePermissions*`（配置权限那一项）/ `permissions*`（面板权限视图：标题 / 返回 / 保存 / 未保存提示；
+  配置体自身的档位与工具名复用 `common:profile.settings.aiPermission*`）；会话区 `greetings.*` / `greetingPrompt` /
   `thinking` / `tool*` / `tools.*`），7 语言齐。设置项在 `common:profile.settings` 下（卡片标题复用 `general`）：
   `aiDisplayMode` / `aiDisplayModeHint` / `aiModes.*` —— **必须挂 `profile.settings` 下**
   （曾误挂到 `profile` 顶层，各语言一律回落成中文默认值）。「Ask AI」是**产品入口名**、

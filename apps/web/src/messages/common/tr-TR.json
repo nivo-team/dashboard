@@ -192,6 +192,7 @@
         "fill_form": "Form doldur",
         "submit_form": "Form gönder"
       },
+      "aiToolListHint": "Yalnızca okuma ve Tam erişim yukarıdaki kapsamla belirlenir; her izni ayrı ayrı ayarlamak için «Özel»e geçin",
       "aiOutputLanguage": "Çıktı dili",
       "aiOutputLanguageHint": "Yapay zekanın hangi dilde yanıt verdiği; varsayılan olarak arayüzü izler",
       "aiOutputLanguageAuto": "Arayüzü izle",

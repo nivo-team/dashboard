@@ -192,6 +192,7 @@
         "fill_form": "填写表单",
         "submit_form": "提交表单"
       },
+      "aiToolListHint": "只读与完全访问由上方档位决定；想逐项调整就切到「自定义」",
       "aiOutputLanguage": "输出语言",
       "aiOutputLanguageHint": "AI 用什么语言回答；默认跟随界面语言",
       "aiOutputLanguageAuto": "跟随界面语言",

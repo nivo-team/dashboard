@@ -1,4 +1,4 @@
-import { Checkbox, Select, Switch, Tabs } from '@cloudflare/kumo'
+import { Select, Switch, Tabs } from '@cloudflare/kumo'
 import { BorderBeam } from 'border-beam'
 import { BotAvatar } from 'bot-avatars'
 import {
@@ -8,12 +8,9 @@ import {
   CheckCircleIcon,
   ClockCounterClockwiseIcon,
   ColumnsIcon,
-  EyeIcon,
   HourglassIcon,
   LightningIcon,
   PlusCircleIcon,
-  ShieldCheckIcon,
-  SlidersHorizontalIcon,
   SwatchesIcon,
 } from '@phosphor-icons/react'
 import { createFileRoute } from '@tanstack/react-router'
@@ -28,6 +25,7 @@ import {
   GLOW_REDUCED_MOTION_CSS,
   GLOW_STRENGTH,
 } from '#/components/ai-activity-glow'
+import { AiPermissionConfig } from '#/components/ai-permission-config'
 import { PageHeader } from '#/components/page-header'
 import {
   SettingChoicePreview,
@@ -35,7 +33,6 @@ import {
 } from '#/components/settings-choice-preview'
 import { SettingsCard, SettingRow } from '#/components/settings-card'
 import { BetaBadge } from '#/components/beta-badge'
-import { AI_TOOLS, resolveAllowedToolNames, type AiPermissionMode } from '#/lib/ai'
 import { cn } from '#/lib/cn'
 import { SUPPORTED_LOCALES } from '#/lib/locale'
 import {
@@ -151,51 +148,6 @@ const AI_PAGE_WIDTH_OPTIONS: Array<{
     icon: ArrowsInLineHorizontalIcon,
   },
 ]
-
-interface AiPermissionOption {
-  key: AiPermissionMode
-  labelKey: string
-  fallback: string
-  icon: typeof ColumnsIcon
-}
-
-/**
- * 权限三档。默认在前的 `readonly` 就是默认值：AI 默认只能看，
- * 要让它改东西得用户自己来开。
- */
-const AI_PERMISSION_OPTIONS: AiPermissionOption[] = [
-  {
-    key: 'readonly',
-    labelKey: 'profile.settings.aiPermissionModes.readonly',
-    fallback: '只读',
-    icon: EyeIcon,
-  },
-  {
-    key: 'full',
-    labelKey: 'profile.settings.aiPermissionModes.full',
-    fallback: '完全访问',
-    icon: ShieldCheckIcon,
-  },
-  {
-    key: 'custom',
-    labelKey: 'profile.settings.aiPermissionModes.custom',
-    fallback: '自定义',
-    icon: SlidersHorizontalIcon,
-  },
-]
-
-/**
- * 工具清单按注册表里的 `group` 分堆 —— **只有 `AI_TOOLS` 一份真值**，
- * 这里不另抄名单（加工具时只改工具文件，界面自动跟上）。
- */
-const TOOL_GROUPS = [
-  { key: 'page', fallback: '页面', hintFallback: '读取当前页面、列出导航、跳转' },
-  { key: 'data', fallback: '数据', hintFallback: '查接口、读数据；写接口每次都会请你确认' },
-  { key: 'form', fallback: '表单', hintFallback: '读取页面表单、填写、提交' },
-].map((group) => ({
-  ...group,
-  tools: AI_TOOLS.filter((tool) => tool.group === group.key),
-}))
 
 /**
  * 输出方式的两项。默认在前的 `wait`：普通用户看"半截的 Markdown"很累 ——
@@ -844,88 +796,16 @@ function AiSettingsPage() {
         于是那个模式变成了一个连表都填不了的模式。
       */}
       <SettingsCard title={t('profile.settings.aiPermission', 'AI 权限')}>
-        <SettingRow
-          label={t('profile.settings.aiPermissionMode', '权限范围')}
-          hint={t(
-            'profile.settings.aiPermissionModeHint',
-            '控制 AI 能做什么；改成「完全访问」它才能填表、提交与调用写接口',
-          )}
-        >
-          <div
-            role="group"
-            aria-label={t('profile.settings.aiPermissionMode', '权限范围')}
-          >
-            <Tabs
-              value={aiPermission}
-              onValueChange={(next) => {
-                const mode = next as AiPermissionMode
-                /*
-                  从预设档（只读 / 完全访问）切到「自定义」时**继承当前档实际勾选的工具**，
-                  而不是从空开始 —— 三档本来就是对同一份勾选清单的预设，
-                  用户在只读下看到的那几项，切过去应当还勾着，否则他得从零再点一遍。
-                */
-                if (mode === 'custom' && aiPermission !== 'custom') {
-                  setAiAllowedTools(resolveAllowedToolNames(aiPermission, aiAllowedTools))
-                }
-                setAiPermission(mode)
-              }}
-              activateOnFocus
-              tabs={AI_PERMISSION_OPTIONS.map((item) => {
-                const ItemIcon = item.icon
-                return {
-                  value: item.key,
-                  label: (
-                    <span className="flex items-center gap-2">
-                      <ItemIcon size={16} className="text-kumo-subtle" />
-                      <span>{t(item.labelKey, item.fallback)}</span>
-                    </span>
-                  ),
-                }
-              })}
-            />
-          </div>
-        </SettingRow>
-
         {/*
-          只有「自定义」才展开工具清单：另两档已经把范围说清楚了，再把一堆复选框摆出来
-          只会让人以为还得选点什么。
-
-          每个分组一个 `Checkbox.Group`（它渲染成 fieldset + legend，读屏能听出分组），
-          但 `onValueChange` 拿到的是**该组自己**的勾选值 —— 所以合并时要先把这一组原有的
-          成员摘掉、再并上新的，否则组与组之间会互相覆盖。
+          配置体与 AI 面板的权限视图**共用同一份**（见 `#/components/ai-permission-config`）。
+          这里即时生效（直接写偏好 store）；面板那边先存草稿、点保存才写回。
         */}
-        {aiPermission === 'custom' ? (
-          <div className="flex flex-col gap-4 px-4 py-3.5">
-            {TOOL_GROUPS.map((group) => {
-              const names = group.tools.map((tool) => tool.name)
-              return (
-                <Checkbox.Group
-                  key={group.key}
-                  legend={t(`profile.settings.aiToolGroups.${group.key}`, group.fallback)}
-                  description={t(
-                    `profile.settings.aiToolGroupHints.${group.key}`,
-                    group.hintFallback,
-                  )}
-                  value={aiAllowedTools}
-                  onValueChange={(next) =>
-                    setAiAllowedTools([
-                      ...aiAllowedTools.filter((name) => !names.includes(name)),
-                      ...next,
-                    ])
-                  }
-                >
-                  {group.tools.map((tool) => (
-                    <Checkbox.Item
-                      key={tool.name}
-                      value={tool.name}
-                      label={t(`profile.settings.aiToolNames.${tool.name}`, tool.name)}
-                    />
-                  ))}
-                </Checkbox.Group>
-              )
-            })}
-          </div>
-        ) : null}
+        <AiPermissionConfig
+          permission={aiPermission}
+          allowedTools={aiAllowedTools}
+          onPermissionChange={setAiPermission}
+          onAllowedToolsChange={setAiAllowedTools}
+        />
       </SettingsCard>
 
       {/*

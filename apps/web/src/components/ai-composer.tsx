@@ -3,10 +3,14 @@ import {
   ArrowUpIcon,
   CaretDoubleRightIcon,
   CheckIcon,
+  CpuIcon,
+  GearSixIcon,
   PencilLineIcon,
+  SlidersHorizontalIcon,
   StopIcon,
   type Icon,
 } from '@phosphor-icons/react'
+import { useRouter } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -14,6 +18,7 @@ import { sendAiMessage, stopAiMessage, useAiSessionStore } from '#/lib/ai'
 import { cn } from '#/lib/cn'
 import {
   isAiComposerMode,
+  useAiConfigStore,
   usePreferencesStore,
   type AiComposerMode,
 } from '#/lib/store'
@@ -21,6 +26,15 @@ import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 
 export interface AiComposerProps {
   className?: string
+  /**
+   * 「配置权限」入口：**传了才在设置菜单里放这一项**（与头行的折叠按钮同一个约定 ——
+   * 用回调的有无表达「这个形态有没有入口」，不再另加一个布尔 prop）。
+   *
+   * 它与「选择模型」共享行尾同一颗设置按钮、同一个下拉（模型是子菜单，见组件注释）。
+   * 全屏对话页不传：那一页没有可替换的面板内容，权限仍走设置页 ——
+   * 于是那里的下拉只剩「选择模型」一项。
+   */
+  onConfigurePermissions?: () => void
 }
 
 /**
@@ -80,9 +94,14 @@ const COMPOSER_MODE_OPTIONS: ReadonlyArray<{
  *
  * 尺寸随容器走：`Textarea` 的 `autoResize` 从 2 行起、最多 8 行（再多就在框内滚动），
  * 面板被拖窄 / 拉宽时 `ResizeObserver` 会重算换行后的高度，不需要外部传宽度。
+ *
+ * 行尾发送按钮左侧是一颗**设置按钮**（滑杆图标）：下拉里是「选择模型」子菜单
+ * （只要配置了模型就有，面板与全屏对话页都给）+「配置权限」一项（只有面板给 ——
+ * 传了 `onConfigurePermissions` 才有，见 `#/components/ai-panel` 的权限视图）。
  */
-export function AiComposer({ className }: AiComposerProps) {
+export function AiComposer({ className, onConfigurePermissions }: AiComposerProps) {
   const { t } = useTranslation('ai')
+  const router = useRouter()
   const [value, setValue] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const isMobile = useIsMobileViewport()
@@ -90,6 +109,15 @@ export function AiComposer({ className }: AiComposerProps) {
   const isStreaming = useAiSessionStore((state) => state.status === 'streaming')
   const composerMode = usePreferencesStore((state) => state.aiComposerMode)
   const setComposerMode = usePreferencesStore((state) => state.setAiComposerMode)
+
+  /*
+    模型是**全局配置**（`admin.ai`，不按应用隔离 —— 见 `#/lib/store/ai-store`）：
+    这里只读当前模型列表 / 选中项与切换动作，配置本身仍归 设置 → AI。
+  */
+  const models = useAiConfigStore((state) => state.models)
+  const providers = useAiConfigStore((state) => state.providers)
+  const activeModelId = useAiConfigStore((state) => state.activeModelId)
+  const setActiveModel = useAiConfigStore((state) => state.setActiveModel)
 
   /*
     打开面板就能直接打字：输入区**每次挂载**都聚焦一次 —— 而面板打开、浮窗从折叠态
@@ -115,6 +143,19 @@ export function AiComposer({ className }: AiComposerProps) {
 
   /** 触发按钮上的图标跟着当前模式走（询问 = 眼睛，自动 = 右向双箭头） */
   const ActiveIcon = activeMode.icon
+
+  /** 当前模型。`activeModelId` 可能悬空（模型刚被删），store 的 `merge` 会兜，这里再兜一次 */
+  const activeModel = models.find((model) => model.id === activeModelId) ?? null
+
+  /** 模型条目第二行里的厂商标注；厂商名取不到就只留模型名 */
+  const providerName = (providerId: string) =>
+    providers.find((provider) => provider.id === providerId)?.name ?? ''
+
+  /*
+    行尾那颗**设置按钮总是渲染**，因为面板与全屏对话页共用这一个输入区、只是参数不同：
+    - 面板额外给「配置权限」（`onConfigurePermissions`）；
+    - 两处都给「选择模型」，一个模型都没配时换成一条「去设置」的引导，不留空菜单。
+  */
 
   // 正在跑一轮时禁用提交：既避免并发请求，也避免用户以为「点了没反应」
   const canSubmit = value.trim().length > 0 && !isStreaming
@@ -253,6 +294,134 @@ export function AiComposer({ className }: AiComposerProps) {
           </DropdownMenu.Content>
       </DropdownMenu>
 
+        {/*
+          **AI 设置**入口：紧贴发送按钮左侧，尺寸取 `sm`（`shape="circle"` 下是
+          `size-6.5` = 26px）—— **与发送 / 停止按钮同档**，两颗圆钮才齐平。
+          图标分工按 Cloudflare 那张参照图来 —— 触发按钮是**滑杆**（`SlidersHorizontalIcon`），
+          **齿轮（`GearSixIcon`）只出现在「配置权限」那一项**上，别把两者调换。
+
+          面板与全屏对话页共用这一个输入区，差别只在参数 —— 这颗按钮**两处都有**：
+          - **选择模型**（子菜单）两处都给；没配模型时换成一条「去设置」的引导；
+          - **配置权限**只有面板给（`onConfigurePermissions`）：权限配置是「整块替换面板内容」
+            的视图，全屏对话页没有承载它的地方。
+          行尾的 `ms-auto` 只挂在这颗上：它负责把「设置 + 提交」**一起**顶到行尾 ——
+          提交位再挂一个，剩余空隙会被平分，设置按钮就跑到中间去了（全屏页踩过这个坑）。
+        */}
+        <DropdownMenu>
+          <Tooltip
+            content={t('aiSettings', 'AI 设置')}
+            className="cursor-pointer"
+            render={
+              <DropdownMenu.Trigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    shape="circle"
+                    size="sm"
+                    aria-label={t('aiSettings', 'AI 设置')}
+                    className="ms-auto !text-kumo-subtle not-disabled:hover:!text-kumo-default"
+                  />
+                }
+              />
+            }
+          >
+            <SlidersHorizontalIcon size={14} />
+          </Tooltip>
+
+          {/* 与输入模式菜单同一个理由：贴底的行尾，菜单必须往上弹 */}
+          <DropdownMenu.Content side="top" align="end" className="w-64">
+            {/*
+              选择模型：当前设计支持多模型（`#/lib/store/ai-store` 的 `models` + `activeModelId`），
+              这里做成**子菜单** —— 主菜单保持短，模型再多也不把它撑长，且当前模型名直接写在
+              子菜单触发项上，不点开也看得见正在用哪个。
+
+              Kumo 的 `SubTrigger` 会在行尾**自己补一个右向箭头**（`CaretRightIcon` + `ml-auto`），
+              不要再自绘一个；图标也**不要**用 `icon` prop（那里写死物理方向的 `mr-2`）。
+            */}
+            {models.length > 0 ? (
+              <DropdownMenu.Sub>
+                {/*
+                  触发项是**一行**：左边标签、右边当前模型名（`flex-1` + `text-end` 把它顶到
+                  箭头前，模型名再长也只截断它自己），跟「设置项 = 标题 + 当前值」的常见写法一致。
+                  `SubTrigger` 的 `items-center` 是基类给的，单行不用动；一旦再放第二行才需要
+                  `items-start`（子菜单里的模型条目就是两行，那儿有）。
+                */}
+                <DropdownMenu.SubTrigger className="gap-2 text-sm">
+                  <CpuIcon size={15} className="shrink-0 text-kumo-subtle" />
+                  <span className="shrink-0 truncate">{t('selectModel', '选择模型')}</span>
+                  <span className="min-w-0 flex-1 truncate text-end text-kumo-subtle">
+                    {activeModel?.displayName ?? t('modelNone', '未选择')}
+                  </span>
+                </DropdownMenu.SubTrigger>
+
+                <DropdownMenu.SubContent className="w-64">
+                  {models.map((model) => {
+                    const isActive = model.id === activeModelId
+                    return (
+                      <DropdownMenu.Item
+                        key={model.id}
+                        onClick={() => setActiveModel(model.id)}
+                        className="items-start gap-2 py-2 text-sm"
+                      >
+                        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                          <span className="truncate">{model.displayName}</span>
+                          <span className="truncate text-xs leading-snug text-kumo-subtle">
+                            {[providerName(model.providerId), model.modelId]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </span>
+                        </span>
+                        {/*
+                          选中标记自己画：与输入模式菜单同一条理由 ——
+                          `RadioItemIndicator` 写死 `ml-auto`，RTL 下会和 `ms-auto` 打架。
+                        */}
+                        {isActive ? (
+                          <CheckIcon
+                            size={14}
+                            className="ms-auto mt-0.5 shrink-0 text-kumo-brand"
+                          />
+                        ) : null}
+                      </DropdownMenu.Item>
+                    )
+                  })}
+                </DropdownMenu.SubContent>
+              </DropdownMenu.Sub>
+            ) : (
+              /*
+                一个模型都没配：给一条**去设置**的引导，而不是留一个空菜单 ——
+                去处与 `AiConversation` 未配置时的空态一致（设置 → AI）。
+              */
+              <DropdownMenu.Item
+                onClick={() => router.navigate({ to: '/settings/AI' })}
+                className="items-start gap-2 py-2 text-sm"
+              >
+                <CpuIcon size={15} className="mt-0.5 shrink-0 text-kumo-subtle" />
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="truncate">{t('modelEmpty', '还没有配置模型')}</span>
+                  <span className="truncate text-xs leading-snug text-kumo-subtle">
+                    {t('goToSettings', '去设置')}
+                  </span>
+                </span>
+              </DropdownMenu.Item>
+            )}
+
+            {models.length > 0 && onConfigurePermissions ? <DropdownMenu.Separator /> : null}
+
+            {onConfigurePermissions ? (
+              <DropdownMenu.Item
+                onClick={onConfigurePermissions}
+                className="flex items-center gap-2.5"
+              >
+                <GearSixIcon size={15} className="shrink-0 text-kumo-subtle" />
+                <span className="min-w-0 flex-1 truncate text-sm font-medium text-kumo-default">
+                  {t('configurePermissions', '配置权限')}
+                </span>
+              </DropdownMenu.Item>
+            ) : null}
+          </DropdownMenu.Content>
+        </DropdownMenu>
+
         {isStreaming ? (
           /*
             跑一轮时把提交位换成「停止」：模型答到一半发现跑偏了，用户必须能打断。
@@ -267,7 +436,6 @@ export function AiComposer({ className }: AiComposerProps) {
                 variant="secondary"
                 shape="circle"
                 size="sm"
-                className="ms-auto"
                 onClick={stopAiMessage}
                 aria-label={t('stop', '停止')}
               />
@@ -285,7 +453,6 @@ export function AiComposer({ className }: AiComposerProps) {
                 variant="primary"
                 shape="circle"
                 size="sm"
-                className="ms-auto"
                 disabled={!canSubmit}
                 onClick={submit}
                 aria-label={t('send', '发送')}

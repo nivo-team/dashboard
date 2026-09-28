@@ -192,6 +192,7 @@
         "fill_form": "Fill in a form",
         "submit_form": "Submit a form"
       },
+      "aiToolListHint": "Read only and Full access are set by the scope above; switch to Custom to adjust each tool",
       "aiOutputLanguage": "Output language",
       "aiOutputLanguageHint": "Which language the AI answers in; follows the interface by default",
       "aiOutputLanguageAuto": "Follow interface",

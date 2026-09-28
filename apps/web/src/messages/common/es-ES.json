@@ -192,6 +192,7 @@
         "fill_form": "Rellenar un formulario",
         "submit_form": "Enviar un formulario"
       },
+      "aiToolListHint": "Solo lectura y Acceso completo los define el alcance de arriba; cambia a «Personalizado» para ajustar cada permiso",
       "aiOutputLanguage": "Idioma de salida",
       "aiOutputLanguageHint": "En qué idioma responde la IA; por defecto sigue la interfaz",
       "aiOutputLanguageAuto": "Seguir la interfaz",

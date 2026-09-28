@@ -1,5 +1,6 @@
 import { Button, Tooltip } from '@cloudflare/kumo'
 import {
+  ArrowLeftIcon,
   ArrowsOutSimpleIcon,
   CaretDownIcon,
   CaretUpIcon,
@@ -17,12 +18,14 @@ import { useTranslation } from 'react-i18next'
 import { AiBotAvatar } from '#/components/ai-bot-avatar'
 import { AiComposer } from '#/components/ai-composer'
 import { AiConversationScroller } from '#/components/ai-conversation-scroller'
+import { AiPermissionConfig } from '#/components/ai-permission-config'
 import { AiSessionPicker, useActiveSessionTitle } from '#/components/ai-session-picker'
 import {
   SHELL_PANEL_FRAME,
   SidePanelResizeHandle,
 } from '#/components/side-panel'
-import { useAiSessionStore } from '#/lib/ai'
+import { SettingsCard } from '#/components/settings-card'
+import { useAiSessionStore, type AiPermissionMode } from '#/lib/ai'
 import { cn } from '#/lib/cn'
 import {
   AI_FLOAT_MAX_HEIGHT,
@@ -674,6 +677,18 @@ function AiPanelSurface({
   /** 头行「新对话」快捷按钮：直接开一段新会话，不必先点开会话选择器 */
   const startNewSession = useAiSessionStore((state) => state.startNewSession)
 
+  /**
+   * 面板内容当前显示什么：对话，还是权限配置。
+   *
+   * 权限配置**替换**整个面板内容（而不是另开弹窗 / 抽屉）：面板本身已经是一块完整的
+   * 侧栏，再叠一层浮层只会多一层「我把什么东西盖住了」的疑问；替换后头行高度、
+   * 分隔线、底色全部沿用同一套骨架，只在左侧换成「返回 + 标题」。
+   *
+   * 状态挂在 Surface 上而不是更外面：Split 与 Float 是两条渲染分支，各自渲染一个 Surface，
+   * 于是「换形态」时自动回到对话（两种形态本来就不共享滚动与输入草稿）。
+   */
+  const [view, setView] = useState<'chat' | 'permissions'>('chat')
+
   /*
     指针高亮：把坐标写进 CSS 变量，由背景层（`.ai-dot-spotlight`）自己裁。
 
@@ -760,7 +775,32 @@ function AiPanelSurface({
           collapsed ? 'border-b-0' : 'border-b border-kumo-line',
         )}
       >
-        {collapsed ? (
+        {view === 'permissions' ? (
+          /*
+            权限视图的头行：左侧「返回 + 标题」。高度与其余形态共用同一个 `h-[58px]`，
+            底边线照画 —— 换的是内容，不是骨架。
+            返回箭头是方向性图标：RTL 下镜像（`rtl-flip`），「返回」在那儿朝右。
+          */
+          <div className="flex min-w-0 items-center gap-1">
+            <Tooltip
+              content={t('permissionsBack', '返回对话')}
+              className="cursor-pointer"
+              render={
+                <Button
+                  variant="ghost"
+                  shape="square"
+                  onClick={() => setView('chat')}
+                  aria-label={t('permissionsBack', '返回对话')}
+                />
+              }
+            >
+              <ArrowLeftIcon size={16} className="rtl-flip" />
+            </Tooltip>
+            <span className="min-w-0 truncate text-sm font-medium text-kumo-default">
+              {t('permissionsTitle', 'AI 权限')}
+            </span>
+          </div>
+        ) : collapsed ? (
           /*
             折叠态：会话选择器换成「AI 头像 + 当前会话标题」，两者与展开时**同源**
             （`useActiveSessionTitle`）—— 折起来之后仍能认出是哪一段对话。
@@ -791,7 +831,7 @@ function AiPanelSurface({
             「新对话」快捷按钮：会话选择器浮层里本来也有一个，但那是「点开 → 再点一下」；
             开新对话是高频动作，头行留一颗直给。
           */}
-          {collapsed ? null : (
+          {collapsed || view === 'permissions' ? null : (
             <Tooltip
               content={t('sessionNew', '新对话')}
               className="cursor-pointer"
@@ -808,7 +848,7 @@ function AiPanelSurface({
             </Tooltip>
           )}
 
-          {!collapsed && onMaximize ? (
+          {!collapsed && view === 'chat' && onMaximize ? (
             <Tooltip
               content={t('maximizeTooltip', '在全屏对话中打开')}
               className="cursor-pointer"
@@ -829,7 +869,7 @@ function AiPanelSurface({
             </Tooltip>
           ) : null}
 
-          {onToggleCollapsed ? (
+          {view === 'chat' && onToggleCollapsed ? (
             <Tooltip
               content={
                 collapsed
@@ -882,17 +922,114 @@ function AiPanelSurface({
       {collapsed ? null : (
         <>
           {/*
-            会话区：消息、空态、工具执行态、审批卡，以及「跟随滚动 / 回到底部」都在
-            `AiConversationScroller` 里 —— 那是**与全屏对话页共用**的一份，
-            两处的滚动行为因此必然一致。这里只把点阵背景压住（`z-10`）。
+            对话本体**始终挂载**，权限视图只是盖在它上面（`hidden`）——
+            卸载会话区会丢掉滚动位置、还会让 `AiConversationScroller` 重新走一次会话加载，
+            而权限视图只是一次「临时去改个设置」的往返，不该把对话归零。
+            `hidden`（display:none）同时把里面的链接、输入框移出 tab 顺序。
           */}
-          <AiConversationScroller className="z-10" />
+          <div
+            className={cn(
+              'flex min-h-0 flex-1 flex-col',
+              view === 'permissions' && 'hidden',
+            )}
+          >
+            {/*
+              会话区：消息、空态、工具执行态、审批卡，以及「跟随滚动 / 回到底部」都在
+              `AiConversationScroller` 里 —— 那是**与全屏对话页共用**的一份，
+              两处的滚动行为因此必然一致。这里只把点阵背景压住（`z-10`）。
+            */}
+            <AiConversationScroller className="z-10" />
 
-          <div className="relative z-10 shrink-0 p-3">
-            <AiComposer />
+            <div className="relative z-10 shrink-0 p-3">
+              {/*
+                「配置权限」入口只在**面板**给：全屏对话页的输入框不传这个回调 ——
+                那一页没有可替换的面板内容，改权限仍走设置页。
+              */}
+              <AiComposer onConfigurePermissions={() => setView('permissions')} />
+            </div>
           </div>
+
+          {view === 'permissions' ? <AiPermissionView onDone={() => setView('chat')} /> : null}
         </>
       )}
+    </div>
+  )
+}
+
+/**
+ * 面板里的**权限配置视图**：对话内容被它整块替换，头行与骨架沿用同一套。
+ *
+ * 草稿语义（与设置页的即时生效刻意不同）：进来先拷一份当前设置，改的都是本地副本，
+ * 点「保存」才写回偏好 store；点返回 / 关闭直接丢弃。权限是会影响**之后每一次对话**的
+ * 全局项，「误点一下就悄悄生效」比「多点一下保存」糟得多。
+ *
+ * 配置体与设置页共用 `AiPermissionConfig`（见 `#/components/ai-permission-config`）——
+ * 两处的档位定义、继承逻辑、工具清单与文案因此不可能分叉。
+ */
+function AiPermissionView({ onDone }: { onDone: () => void }) {
+  const { t } = useTranslation('ai')
+  const aiPermission = usePreferencesStore((state) => state.aiPermission)
+  const aiAllowedTools = usePreferencesStore((state) => state.aiAllowedTools)
+  const setAiPermission = usePreferencesStore((state) => state.setAiPermission)
+  const setAiAllowedTools = usePreferencesStore((state) => state.setAiAllowedTools)
+
+  /*
+    副本只在**挂载时**拷一次（每次进入权限视图本组件都重新挂载），之后与 store 解耦 ——
+    以它是初值而不是「每次 store 变就同步」，否则用户在别处改了设置会把草稿顶掉。
+  */
+  const [permission, setPermission] = useState<AiPermissionMode>(aiPermission)
+  const [allowedTools, setAllowedTools] = useState<string[]>(aiAllowedTools)
+
+  /*
+    有没有改动：档位不同，或工具**集合**不同。
+    集合按「成员」比较而不是顺序 —— `custom` 的勾选顺序跟着点击走，按顺序比会在
+    内容没变时报「有未保存的更改」。
+  */
+  const dirty =
+    permission !== aiPermission ||
+    allowedTools.length !== aiAllowedTools.length ||
+    allowedTools.some((name) => !aiAllowedTools.includes(name))
+
+  const save = () => {
+    setAiPermission(permission)
+    setAiAllowedTools(allowedTools)
+    onDone()
+  }
+
+  return (
+    <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+      {/*
+        内容区自己滚：`custom` 档的清单在窄浮窗里会比面板高，
+        而保存栏必须一直贴在底上（与对话区「输入框固定」同一个理由）。
+      */}
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">
+        <SettingsCard title={t('permissionsTitle', 'AI 权限')}>
+          <AiPermissionConfig
+            permission={permission}
+            allowedTools={allowedTools}
+            onPermissionChange={setPermission}
+            onAllowedToolsChange={setAllowedTools}
+          />
+        </SettingsCard>
+      </div>
+
+      <div className="flex shrink-0 items-center gap-2 border-t border-kumo-line bg-kumo-base p-3">
+        {dirty ? (
+          <span className="me-auto text-xs text-kumo-subtle">
+            {t('permissionsUnsaved', '有未保存的更改')}
+          </span>
+        ) : null}
+        <Button
+          variant="primary"
+          size="sm"
+          disabled={!dirty}
+          onClick={save}
+          // Kumo 给按钮补的是 `cursor-default`；可用时要是手型，禁用时保持默认
+          className={cn('not-disabled:cursor-pointer', !dirty && 'ms-auto')}
+        >
+          {t('permissionsSave', '保存')}
+        </Button>
+      </div>
     </div>
   )
 }
