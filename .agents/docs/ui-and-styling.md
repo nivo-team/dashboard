@@ -57,6 +57,8 @@ Kumo 采用语义化颜色系统，通过根节点上的 `data-mode="light|dark"
   }
   ```
 - **客户端链接桥接**：在 `apps/web/src/routes/__root.tsx` 中使用了 `<LinkProvider component={AppLink}>`，使得所有 Kumo 内置的 `<a href>` 均无缝转为 TanStack Router 的单页路由跳转。
+- **移动端抽屉里隐藏宽度拖拽手柄**：`Sidebar.ResizeHandle` 只按视口断点隐藏（`hidden … sm:block`），手机横屏 / 小平板会露出来，而抽屉宽度是固定的、拖它没意义（拖过 `minWidth` 还会让 Kumo `setOpen(false)` 把抽屉关掉）。`styles.css` 用 `[data-sidebar='sidebar'][data-mobile='true'] [data-sidebar='resize-handle'] { display: none }` 收掉。
+- **移动端二级菜单展开不出来 = Provider 少接了 `open`**：Kumo 的 `Sidebar.CollapsibleContent` 用 `isOpen = isCollapsibleOpen && state !== 'collapsed'` 判断可见性，而 `state` **只由桌面 `open` 推导**——桌面折叠过侧边栏后，手机抽屉里每个分组都「箭头转了、内容不出来」（还带 `inert`，子项点不进去）。修法在 `#/components/shell-sidebar-provider`（移动端受控、`open` 跟随抽屉），完整原因见 [store.md](./store.md) §5.4。
 
 ---
 

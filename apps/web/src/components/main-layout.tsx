@@ -11,20 +11,12 @@ import { CommandPaletteDialog } from '#/components/command-palette'
 import { HeaderActions } from '#/components/header-actions'
 import { ShortcutKbd } from '#/components/kbd'
 import { NotFound } from '#/components/not-found'
+import { ShellSidebarProvider } from '#/components/shell-sidebar-provider'
 import {
   MAIN_NAV_ITEMS,
   SETTINGS_NAV_ITEMS,
   type ShellNavItem,
 } from '#/lib/navigation'
-import {
-  persistSidebarOpen,
-  persistSidebarWidth,
-  SIDEBAR_MAX_WIDTH,
-  SIDEBAR_MIN_WIDTH,
-  SHELL_MOBILE_BREAKPOINT,
-  useShellUiStore,
-} from '#/lib/store'
-import { useLocale } from '#/lib/use-locale'
 
 /** 归一化尾斜杠：`/settings` 与 `/settings/` 是同一个 index 路由，不能因此丢掉高亮。 */
 function normalizePath(pathname: string): string {
@@ -286,13 +278,7 @@ function MainHeader({ onOpenCommandPalette }: { onOpenCommandPalette: () => void
 }
 
 export function MainLayout({ children }: { children?: React.ReactNode }) {
-  const { isRtl } = useLocale()
   const [paletteOpen, setPaletteOpen] = useState(false)
-  // 与 AppShell 共用同一份侧边栏 UI 偏好：两个外壳之间切换时展开态与宽度保持一致
-  const [{ sidebarOpen, sidebarWidth }] = useState(() => {
-    const { sidebarOpen: open, sidebarWidth: width } = useShellUiStore.getState()
-    return { sidebarOpen: open, sidebarWidth: width }
-  })
 
   // ⌘K / Ctrl+K 打开命令面板（与 AppShell 保持一致的交互）
   useEffect(() => {
@@ -308,20 +294,11 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
 
   return (
     <>
-      <Sidebar.Provider
-        side={isRtl ? 'right' : 'left'}
-        collapsible="icon"
-        // 展开态与宽度取上次会话的值（移动端不记录，见 #/lib/store/shell-ui-store）
-        defaultOpen={sidebarOpen}
-        onOpenChange={persistSidebarOpen}
-        mobileBreakpoint={SHELL_MOBILE_BREAKPOINT}
-        peekable
-        resizable
-        defaultWidth={sidebarWidth}
-        onWidthChange={persistSidebarWidth}
-        minWidth={SIDEBAR_MIN_WIDTH}
-        maxWidth={SIDEBAR_MAX_WIDTH}
-      >
+      {/*
+        与 AppShell 共用同一个 `ShellSidebarProvider`：侧边栏 UI 偏好（展开态 / 宽度）
+        以及「桌面非受控、移动端受控」的移动端抽屉接法都只有一份真值。
+      */}
+      <ShellSidebarProvider>
         <MainSidebarSwitch onOpenCommandPalette={() => setPaletteOpen(true)} />
         <div className="flex min-w-0 flex-1 flex-col bg-kumo-canvas">
           <MainHeader onOpenCommandPalette={() => setPaletteOpen(true)} />
@@ -332,7 +309,7 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
             {children ?? <Outlet />}
           </main>
         </div>
-      </Sidebar.Provider>
+      </ShellSidebarProvider>
 
       <CommandPaletteDialog open={paletteOpen} onOpenChange={setPaletteOpen} />
     </>

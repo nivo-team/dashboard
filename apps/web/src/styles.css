@@ -88,6 +88,20 @@
 }
 
 /*
+ * 移动端抽屉里不提供宽度拖拽。
+ *
+ * Kumo 的 `Sidebar.ResizeHandle` 只按**视口**断点隐藏（`hidden … sm:block`）：
+ * 手机竖屏看不到，但横屏 / 小平板（宽度 ≥ 640px 的移动视口）会把它露出来。
+ * 而抽屉宽度是固定的 `--sidebar-width`，拖它没有意义；更糟的是拖动越过 `minWidth`
+ * 时 Kumo 内部会 `setOpen(false)`，把整个抽屉关掉。
+ * 这里按「移动端抽屉」这个属性直接隐藏（特异性高于 `sm:block`，且本文件不参与
+ * Tailwind 的 `@layer utilities`，稳定生效）。
+ */
+[data-sidebar='sidebar'][data-mobile='true'] [data-sidebar='resize-handle'] {
+  display: none;
+}
+
+/*
  * 侧边栏「父子高亮互斥」的视觉收敛。
  *
  * 背景：父级分组项（MenuButton）在子项被选中时，其自身路径前缀也被命中而亮起，

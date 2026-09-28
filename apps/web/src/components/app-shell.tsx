@@ -1,4 +1,3 @@
-import { Sidebar } from '@cloudflare/kumo'
 import { Outlet, useNavigate, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { AiActivityGlow } from '#/components/ai-activity-glow'
@@ -7,17 +6,9 @@ import { AppHeader } from '#/components/app-header'
 import { AppSidebar } from '#/components/app-sidebar'
 import { CommandPaletteDialog } from '#/components/command-palette'
 import { DetailPreviewProvider } from '#/components/detail-preview'
+import { ShellSidebarProvider } from '#/components/shell-sidebar-provider'
 import { registerAiShellBridge } from '#/lib/ai'
-import {
-  persistSidebarOpen,
-  persistSidebarWidth,
-  SIDEBAR_MAX_WIDTH,
-  SIDEBAR_MIN_WIDTH,
-  SHELL_MOBILE_BREAKPOINT,
-  usePreferencesStore,
-  useShellUiStore,
-} from '#/lib/store'
-import { useLocale } from '#/lib/use-locale'
+import { usePreferencesStore } from '#/lib/store'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 
 /**
@@ -30,7 +21,6 @@ import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
  * 小屏（< 768px）自动切换为全屏抽屉适配手机端。
  */
 export function AppShell() {
-  const { isRtl } = useLocale()
   const [paletteOpen, setPaletteOpen] = useState(false)
   /**
    * AI 面板的展开状态：由顶栏「Ask AI」按钮**切换**（`onToggleAskAi`，按钮同时拿到
@@ -108,12 +98,6 @@ export function AppShell() {
     })
     return () => registerAiShellBridge(null)
   }, [navigate, router])
-  // 侧边栏 UI 偏好只取一次快照作为初始值：Provider 是非受控的（展开态与宽度由它自己管理），
-  // 之后的变化通过 onOpenChange / onWidthChange 写回 store。
-  const [{ sidebarOpen, sidebarWidth }] = useState(() => {
-    const { sidebarOpen: open, sidebarWidth: width } = useShellUiStore.getState()
-    return { sidebarOpen: open, sidebarWidth: width }
-  })
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -128,22 +112,11 @@ export function AppShell() {
 
   return (
     <>
-      <Sidebar.Provider
-        side={isRtl ? 'right' : 'left'}
-        collapsible="icon"
-        // 展开态与宽度取上次会话的值（移动端不记录，见 #/lib/store/shell-ui-store）
-        defaultOpen={sidebarOpen}
-        onOpenChange={persistSidebarOpen}
-        mobileBreakpoint={SHELL_MOBILE_BREAKPOINT}
-        // 折叠后悬停/聚焦临时展开，方便在收起状态下快速切换页面。
-        peekable
-        // 允许拖拽右侧边缘调整宽度（见 AppSidebar 内的 Sidebar.ResizeHandle）。
-        resizable
-        defaultWidth={sidebarWidth}
-        onWidthChange={persistSidebarWidth}
-        minWidth={SIDEBAR_MIN_WIDTH}
-        maxWidth={SIDEBAR_MAX_WIDTH}
-      >
+      {/*
+        侧边栏 Provider 的接线（含移动端抽屉开合）在 `ShellSidebarProvider` 里统一处理，
+        两个外壳共用一份，避免「桌面非受控 / 移动端受控」这套接法各写一遍而漂移。
+      */}
+      <ShellSidebarProvider>
         <AppSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />
         <div className="flex min-w-0 flex-1 flex-col bg-kumo-canvas">
           <AppHeader
@@ -188,7 +161,7 @@ export function AppShell() {
           collapsed={aiFloatCollapsed}
           onToggleCollapsed={() => setAiFloatCollapsed((collapsed) => !collapsed)}
         />
-      </Sidebar.Provider>
+      </ShellSidebarProvider>
 
       {/*
         AI 进行中的页面级反馈：视口四周的流动光带（`fixed` 浮层，不参与布局）。

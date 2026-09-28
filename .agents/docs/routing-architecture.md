@@ -50,6 +50,10 @@ apps/web/src/routes/
 - 侧边栏折叠状态、拖拽宽度、内部滚动位置**完全保留**；
 - 页面仅在 `<Outlet />` 区域替换组件，避免整页闪烁与重复渲染。
 
+侧边栏的 `Sidebar.Provider` 接线（含**桌面非受控、移动端受控**这套移动端抽屉接法）
+统一在 `#/components/shell-sidebar-provider` 的 `ShellSidebarProvider`，两个外壳共用一份 ——
+原因与踩过的坑见 [store.md](./store.md) §5.4。
+
 ### 局部异步与状态隔离
 在 `apps/web/src/router.tsx` 中配置了全局默认状态组件：
 - `defaultPendingComponent`: 加载骨架屏；

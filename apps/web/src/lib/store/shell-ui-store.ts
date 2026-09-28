@@ -14,10 +14,11 @@ import { enableCrossTabSync } from './cross-tab-sync'
  * 若按 app 分，切应用时侧边栏会跳一下，反而打扰；两个外壳（`_main` 与 `$appId`）
  * 共用一个 store，因此在 `/settings` 收起的侧边栏，回到业务页也保持收起。
  *
- * 与 Kumo 的接线方式：**非受控**（只给 `defaultOpen` / `defaultWidth` 作为初始值），
- * 用 `onOpenChange` / `onWidthChange` 把变化写回这里。这是刻意的：
- * Kumo 的 `setOpen` 在受控与非受控下都会更新内部状态，但**移动端只在受控时回调**，
- * 所以非受控 + 回调恰好等于「桌面记录、移动端忽略」。
+ * 与 Kumo 的接线方式**统一在 `#/components/shell-sidebar-provider`**：桌面**非受控**
+ * （只给 `defaultOpen` / `defaultWidth` 作初始值，用 `onOpenChange` / `onWidthChange`
+ * 把变化写回这里）；移动端**受控**，`open` 跟随抽屉自己的开合 —— 否则桌面折叠态会顺着
+ * Kumo 的 `state` 泄漏进移动端，抽屉里的二级菜单永远展开不出来（见那支组件与
+ * `.agents/docs/store.md` §5.4）。
  */
 
 /** 侧边栏布局常量：两个外壳共用，避免 Provider 参数各写一份而漂移。 */

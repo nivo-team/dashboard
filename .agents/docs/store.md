@@ -128,18 +128,22 @@ useTableUiStore.getState().resetTable('users/user')
 贴角浮窗 `aiFloatWidth` / `aiFloatHeight`，浮窗两个方向都可拖）。两个外壳（`AppShell` 与
 `MainLayout`）共用同一份，所以在 `/settings` 收起的侧边栏，回到业务页仍是收起的。
 
-接线方式刻意选择**非受控 + 回调持久化**：
+接线方式**桌面非受控 + 移动端受控**，代码只有一份：
+`#/components/shell-sidebar-provider` 的 `ShellSidebarProvider`（两个外壳都套它，
+不要再各自写一遍 Provider 参数）。
 
 ```tsx
-// 只取一次初始值：Provider 自己管理展开态与宽度
-const [{ sidebarOpen, sidebarWidth }] = useState(() => {
-  const { sidebarOpen: open, sidebarWidth: width } = useShellUiStore.getState()
-  return { sidebarOpen: open, sidebarWidth: width }
-})
+// ShellSidebarProvider 内部（简化）
+const isMobile = useIsMobileViewport()
+const [mobileOpen, setMobileOpen] = useState(false)
 
 <Sidebar.Provider
-  defaultOpen={sidebarOpen}          {/* ← 不传 open，保持非受控 */}
-  onOpenChange={persistSidebarOpen}
+  defaultOpen={sidebarOpen}                       {/* 桌面初始值 */}
+  open={isMobile ? mobileOpen : undefined}        {/* 桌面 undefined = 非受控 */}
+  onOpenChange={(open) => {
+    if (isMobile) setMobileOpen(open)             {/* 移动端必须回写，否则抽屉按不动 */}
+    persistSidebarOpen(open)                      {/* 内部还有一道视口判断，移动端不落盘 */}
+  }}
   defaultWidth={sidebarWidth}
   onWidthChange={persistSidebarWidth}
   minWidth={SIDEBAR_MIN_WIDTH}
@@ -147,14 +151,37 @@ const [{ sidebarOpen, sidebarWidth }] = useState(() => {
 />
 ```
 
-**为什么不能改成受控 `open`**：Kumo 里 `openMobile = isMobile && openProp !== undefined ? openProp : _openMobile`
-—— 一旦传了 `open`，移动端抽屉会复用同一个值，而 `setOpenMobile` 只在受控时才回调；
-「受控 + 移动端忽略」会直接让手机上的抽屉按不动。非受控时移动端走它自己的内部状态，
-`onOpenChange` 根本不会被移动端触发，正好等于「桌面记录、移动端忽略」。
+**为什么移动端必须受控**：Kumo 有两套开合状态（桌面 `open` / 移动 `openMobile`），
+但它的 `state`（`expanded` / `collapsed` / `peeking`）**只由桌面 `open` 推导**：
+
+```js
+const state = isPeeking ? 'peeking' : open ? 'expanded' : 'collapsed'
+```
+
+而 `Sidebar.CollapsibleContent` 用 `isOpen = isCollapsibleOpen && state !== 'collapsed'`
+决定二级菜单的可见性（并写 `inert` / `aria-hidden`）。于是只要用户在桌面折叠过侧边栏
+（存档 `sidebarOpen: false`），手机抽屉里点开的每个分组都会「箭头转了、内容不出来」，
+`inert` 还会让子项点不进去。让移动端的 `open` 跟随抽屉后，`state` 与抽屉一致，问题消失。
+
+而**桌面**仍保持非受控：展开态与宽度由 Provider 自己管，变化经 `onOpenChange` /
+`onWidthChange` 写回 store，刷新后保持。
+（注意别写成「受控 + 不回写」：`setOpenMobile` 只在受控时回调，那样抽屉会直接按不动。）
+
+**关闭抽屉前必须先移焦点**：Kumo 是把收起的抽屉**藏**起来（`aria-hidden={!openMobile}` +
+`inert`），而手机上点二级菜单是「跳路由 + 关抽屉」同一次点击 —— 焦点还在抽屉里的链接上时
+浏览器会**拒绝应用**这条 `aria-hidden`，控制台出现
+
+> Blocked aria-hidden on an element because its descendant retained focus.
+
+于是已经收起的导航反而还留在无障碍树里。`ShellSidebarProvider` 在 `onOpenChange` 收到
+`false` 时（点菜单项 / 汉堡按钮 / 关闭按钮 / Esc / 遮罩**都**走这里）先把焦点从抽屉里
+`blur()` 出去，再落状态 —— 归宿与 `inert` 生效后一致（焦点落到 `body`），没有额外视觉变化。
 
 宽度写入做了 200ms 节流（`onWidthChange` 在拖拽期间每帧触发，同步写 localStorage 会卡）。
 布局常量（`SIDEBAR_WIDTH` / `SIDEBAR_MIN_WIDTH` / `SIDEBAR_MAX_WIDTH` / `SHELL_MOBILE_BREAKPOINT`）
 统一从这个模块导出，两个外壳共用，避免各写一份而漂移。
+移动端抽屉不提供宽度拖拽（`styles.css` 直接隐藏 `ResizeHandle`，见
+[ui-and-styling.md](./ui-and-styling.md)）。
 
 **分屏宽度（`detailPanelWidth`）与侧边栏宽度同源但写法不同**，这是刻意的：
 
@@ -200,8 +227,9 @@ const [{ sidebarOpen, sidebarWidth }] = useState(() => {
 - **`fallbackToGlobal` 只是读取回落**：它不会把基线数据复制到该应用 ——
   想「把当前偏好固化成所有应用的新基线」，直接写 `admin.preferences:global` 那个键即可
   （例如将来做「设为默认」功能时）。
-- **侧边栏不要改成受控 `open`**：那会连带接管移动端抽屉（原因见 5.4），手机上的抽屉会按不动 ——
-  保持非受控 + `onOpenChange` 写 store。
+- **侧边栏的 Provider 接法不要在两个外壳里各写一遍**：桌面非受控、移动端受控（`open` 跟随抽屉）
+  这套接法有个必须解释清楚的坑（原因见 5.4），统一用 `#/components/shell-sidebar-provider` 的
+  `ShellSidebarProvider`；**移动端的 `open` 一定要在 `onOpenChange` 里回写**，否则抽屉按不动。
 - **移动端状态不落盘**：`persistSidebarOpen` / `persistSidebarWidth` 写入前都做了
   `isDesktopViewport()` 判断。新增外壳类状态时沿用这个约定，不要把抽屉开合写进存档。
 
