@@ -142,28 +142,8 @@ export function AiConversation({ manageHistory = true }: AiConversationProps) {
   const appId = useAuthStore((state) => state.currentApp?.id ?? null)
   // 空态问候语按用户设置的时区判断时段（不是本机时区）
   const { timezoneMeta } = useTimezone()
-  const outputMode = usePreferencesStore((state) => state.aiOutputMode)
   // 「新会话时机」（见下面的 loadHistory）
   const sessionMode = usePreferencesStore((state) => state.aiSessionMode)
-
-  /*
-    「正在思考…」只服务于**还没有任何可见输出**的那一小段。
-
-    以前的条件只有 `status === 'streaming'`，于是流式正文一出现，那句提示还挂在那儿、
-    和内容并排显示 —— 它本该在正文出现的那一刻退场。
-
-    `wait` 模式下正文整轮都不渲染（见 `AiMessageView`），所以它一直算「没有可见输出」，
-    提示会挂到这一轮结束 —— 那正是这个模式想要的观感。
-  */
-  const lastMessage = messages[messages.length - 1]
-  const hasVisibleText =
-    outputMode === 'stream' &&
-    lastMessage?.role === 'assistant' &&
-    lastMessage.parts.some(
-      (part) => part.type === 'text' && part.text.trim().length > 0,
-    )
-
-  const showThinking = status === 'streaming' && !hasVisibleText
 
   /*
     进入面板（以及切换应用）时加载该 app 的会话历史。
@@ -244,22 +224,15 @@ export function AiConversation({ manageHistory = true }: AiConversationProps) {
           streaming={
             status === 'streaming' && message.id === messages[messages.length - 1]?.id
           }
+          pendingApproval={pendingApproval !== null}
         />
       ))}
 
       {/*
-        等待确认时**不显示**「正在思考…」：此刻卡住的不是模型，而是等用户点头，
-        两行同时出现会让人以为 AI 还在忙。
+        等待确认时展示审批卡；不再在下方冗余渲染带有 20px 小头像的「正在思考…」，
+        思考状态已内聚到当前助手消息内部渲染，保持头像单一且连贯。
       */}
-      {pendingApproval ? (
-        <ApprovalCard approval={pendingApproval} />
-      ) : showThinking ? (
-        <div className="flex items-center gap-2 text-xs text-kumo-subtle">
-          {/* 用头像的 working 态（跳跃旋转）代替转圈图标 —— 「AI 在动」最直白的表达 */}
-          <AiBotAvatar size={20} state="working" />
-          {t('thinking', '正在思考…')}
-        </div>
-      ) : null}
+      {pendingApproval ? <ApprovalCard approval={pendingApproval} /> : null}
 
       {error ? (
         <p className="rounded-lg bg-kumo-danger-tint px-3 py-2 text-xs text-kumo-danger">
@@ -273,19 +246,15 @@ export function AiConversation({ manageHistory = true }: AiConversationProps) {
 function AiMessageView({
   message,
   streaming,
+  pendingApproval = false,
 }: {
   message: AiMessage
   streaming: boolean
+  pendingApproval?: boolean
 }) {
   const outputMode = usePreferencesStore((state) => state.aiOutputMode)
+  const showToolCalls = usePreferencesStore((state) => state.aiShowToolCalls)
   const { t } = useTranslation('ai')
-
-  /*
-    「等待」模式下，**正在生成的那条整条不渲染**：内容在 store 里照常累积，只是不往屏幕上画，
-    等这一轮结束（`streaming` 转 false）再一次性出现。
-    刻意不动数据层 —— 这样刷新、切会话、落盘拿到的始终是完整消息。
-  */
-  if (outputMode === 'wait' && streaming) return null
 
   if (message.role === 'user') {
     const text = message.parts
@@ -345,6 +314,37 @@ function AiMessageView({
     )
   }
 
+  /*
+    助手消息渲染逻辑：
+    1. 判断是否有可见的文字输出：
+       - `stream` 模式下，检查是否已有非空的 text part；
+       - `wait` 模式下，流式期间文字一律隐藏（直到流式结束再一次性展示）。
+    2. 判断是否有任何可见内容（文字，或在开启「显示工具调用」时的工具卡片）。
+    3. 「正在思考…」：当处于流式传输中（streaming）、尚未产出可见文字、且没有等待审批卡时，
+       直接在**本条助手消息右侧**呈现 —— 头像在左、思考在右，浑然一体。
+       不再在消息列表底部用单独的 20px 小头像重复渲染第二遍（彻底解决出现两个头像：
+       一个占着空白框、另一个在底下转圈的问题）。
+    4. 若既无可见内容、也不处于思考状态（例如工具被隐藏且正在等审批，或异常中断未输出任何内容），
+       则整条消息不渲染，绝不在屏幕上留下一个占据空白的空头像。
+  */
+  const hasVisibleText =
+    (outputMode === 'stream' || !streaming) &&
+    message.parts.some(
+      (part) => part.type === 'text' && part.text.trim().length > 0,
+    )
+
+  const showThinking = streaming && !hasVisibleText && !pendingApproval
+
+  const hasVisibleParts = message.parts.some((part) => {
+    if (part.type === 'text') {
+      return (outputMode === 'stream' || !streaming) && part.text.trim().length > 0
+    }
+    if (part.type === 'tool-call') return showToolCalls
+    return false
+  })
+
+  if (!hasVisibleParts && !showThinking) return null
+
   return (
     <div className="flex gap-2">
       {/*
@@ -359,14 +359,25 @@ function AiMessageView({
         className="mt-0.5 shrink-0"
       />
       <div className="flex min-w-0 flex-1 flex-col gap-2">
-        {message.parts.map((part, index) => (
-          <AssistantPart
-            key={`${message.id}-${index}`}
-            part={part}
-            // 只有最后一个 part 可能还在增长，也就只有它需要纯文本降级
-            streaming={streaming && index === message.parts.length - 1}
-          />
-        ))}
+        {message.parts.map((part, index) => {
+          if (part.type === 'text' && outputMode === 'wait' && streaming) {
+            return null
+          }
+          return (
+            <AssistantPart
+              key={`${message.id}-${index}`}
+              part={part}
+              // 只有最后一个 part 可能还在增长，也就只有它需要纯文本降级
+              streaming={streaming && index === message.parts.length - 1}
+            />
+          )
+        })}
+
+        {showThinking ? (
+          <div className="flex items-center gap-1.5 py-1 text-xs text-kumo-subtle">
+            {t('thinking', '正在思考…')}
+          </div>
+        ) : null}
       </div>
     </div>
   )
@@ -392,10 +403,11 @@ function AssistantPart({
   const showToolCalls = usePreferencesStore((state) => state.aiShowToolCalls)
 
   if (part.type === 'text') {
+    if (!part.text.trim()) return null
     return <MarkdownContent text={part.text} streaming={streaming} />
   }
 
-  if (!showToolCalls) return null
+  if (part.type !== 'tool-call' || !showToolCalls) return null
 
   const Icon =
     part.state === 'running'
