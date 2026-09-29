@@ -767,7 +767,90 @@
             "schema": {
               "type": "string"
             },
-            "description": "关键词（昵称 / 邮箱 / ID）"
+            "description": "关键词（昵称 / 邮箱 / ID 模糊匹配）"
+          },
+          {
+            "in": "query",
+            "name": "field",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "id",
+                "nickname",
+                "email",
+                "createtime",
+                "logintime"
+              ]
+            },
+            "description": "排序字段名"
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "description": "排序方向"
+          },
+          {
+            "in": "query",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "用户 ID 精确匹配"
+          },
+          {
+            "in": "query",
+            "name": "nickname",
+            "schema": {
+              "type": "string"
+            },
+            "description": "昵称模糊匹配"
+          },
+          {
+            "in": "query",
+            "name": "email",
+            "schema": {
+              "type": "string"
+            },
+            "description": "邮箱模糊匹配"
+          },
+          {
+            "in": "query",
+            "name": "createtime_min",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "注册时间下限（秒级时间戳）"
+          },
+          {
+            "in": "query",
+            "name": "createtime_max",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "注册时间上限（秒级时间戳）"
+          },
+          {
+            "in": "query",
+            "name": "logintime_min",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "最后登录时间下限（秒级时间戳）"
+          },
+          {
+            "in": "query",
+            "name": "logintime_max",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "最后登录时间上限（秒级时间戳）"
           }
         ],
         "responses": {
@@ -782,7 +865,222 @@
             }
           }
         },
-        "description": "用户分页列表"
+        "description": "用户分页列表，支持关键词、多字段精确/范围筛选与服务端排序"
+      },
+      "post": {
+        "tags": [
+          "用户"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "新建的用户详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "新建用户",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nickname": {
+                    "type": "string",
+                    "description": "用户昵称"
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "用户邮箱"
+                  },
+                  "avatar_url": {
+                    "type": "string",
+                    "description": "头像 URL"
+                  }
+                },
+                "required": [
+                  "nickname"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "用户"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "更新后的用户详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "更新用户信息",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "用户 ID"
+                  },
+                  "nickname": {
+                    "type": "string",
+                    "description": "用户昵称"
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "用户邮箱"
+                  },
+                  "avatar_url": {
+                    "type": "string",
+                    "description": "头像 URL"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/{id}": {
+      "delete": {
+        "tags": [
+          "用户"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "用户 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "0 表示成功"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "null",
+                      "description": "成功时为空"
+                    }
+                  },
+                  "required": [
+                    "code"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "根据 ID 删除单个用户"
+      },
+      "get": {
+        "tags": [
+          "用户"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "用户 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "用户详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "根据用户 ID 查询详情"
+      }
+    },
+    "/user/batch-delete": {
+      "post": {
+        "tags": [
+          "用户"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "批量删除结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchDeleteResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "批量删除用户",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "待删除的用户 ID 列表"
+                  }
+                },
+                "required": [
+                  "ids"
+                ]
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -1633,6 +1931,53 @@
             "required": [
               "total",
               "items"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "UserResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/UserItem"
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "BatchDeleteResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "deleted_count": {
+                "type": "integer",
+                "description": "成功删除数量"
+              }
+            },
+            "required": [
+              "deleted_count"
             ]
           }
         },

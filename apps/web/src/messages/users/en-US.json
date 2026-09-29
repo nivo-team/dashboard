@@ -66,7 +66,9 @@
   },
   "messages": {
     "fetchFailed": "Failed to load the user list",
-    "networkFailed": "Network request failed"
+    "networkFailed": "Network request failed",
+    "deleteSuccess": "User deleted successfully",
+    "batchDeleteSuccess": "Successfully deleted {{count}} user(s)"
   },
   "export": {
     "headers": {
@@ -75,5 +77,34 @@
       "id": "ID",
       "email": "Email"
     }
+  },
+  "actions": {
+    "create": "New User",
+    "batchDeleteWithCount": "Batch Delete ({{count}})"
+  },
+  "form": {
+    "createTitle": "New User",
+    "editTitle": "Edit User",
+    "createDesc": "Add basic profile information for a new platform user",
+    "editDesc": "Modify profile details for the selected user",
+    "nickname": "Nickname",
+    "nicknamePlaceholder": "Enter nickname",
+    "nicknameRequired": "Please enter a user nickname",
+    "email": "Email",
+    "emailPlaceholder": "e.g. user@example.com",
+    "avatarUrl": "Avatar URL",
+    "avatarUrlPlaceholder": "Optional image URL",
+    "cancel": "Cancel",
+    "save": "Save",
+    "createSuccess": "User created successfully",
+    "updateSuccess": "User updated successfully"
+  },
+  "dialogs": {
+    "deleteTitle": "Delete User",
+    "deleteConfirm": "Are you sure you want to delete user \"{{name}}\"? This action cannot be undone.",
+    "delete": "Delete",
+    "batchDeleteTitle": "Batch Delete Users",
+    "batchDeleteConfirm": "Are you sure you want to delete the selected {{count}} user(s)? This action cannot be undone.",
+    "batchDelete": "Batch Delete"
   }
 }

@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { deleteDataDictById, deleteDataDictTypeById, deleteSystemMenuById, getApi, getApps, getDataDict, getDataDictOptions, getDataDictTypeTree, getProfile, getSystemMenuTree, getUser, type Options, postDataDict, postDataDictType, postLogin, postLogout, postSystemMenu, putDataDict, putDataDictType, putSystemMenu } from '../sdk.gen';
-import type { DeleteDataDictByIdData, DeleteDataDictByIdResponse, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponse, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponse, GetApiData, GetApiResponse, GetAppsData, GetAppsResponse, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponse, GetDataDictResponse, GetDataDictTypeTreeData, GetDataDictTypeTreeResponse, GetProfileData, GetProfileResponse, GetSystemMenuTreeData, GetSystemMenuTreeResponse, GetUserData, GetUserResponse, PostDataDictData, PostDataDictResponse, PostDataDictTypeData, PostDataDictTypeResponse, PostLoginData, PostLoginResponse, PostLogoutData, PostLogoutResponse, PostSystemMenuData, PostSystemMenuResponse, PutDataDictData, PutDataDictResponse, PutDataDictTypeData, PutDataDictTypeResponse, PutSystemMenuData, PutSystemMenuResponse } from '../types.gen';
+import { deleteDataDictById, deleteDataDictTypeById, deleteSystemMenuById, deleteUserById, getApi, getApps, getDataDict, getDataDictOptions, getDataDictTypeTree, getProfile, getSystemMenuTree, getUser, getUserById, type Options, postDataDict, postDataDictType, postLogin, postLogout, postSystemMenu, postUser, postUserBatchDelete, putDataDict, putDataDictType, putSystemMenu, putUser } from '../sdk.gen';
+import type { DeleteDataDictByIdData, DeleteDataDictByIdResponse, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponse, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponse, DeleteUserByIdData, DeleteUserByIdResponse, GetApiData, GetApiResponse, GetAppsData, GetAppsResponse, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponse, GetDataDictResponse, GetDataDictTypeTreeData, GetDataDictTypeTreeResponse, GetProfileData, GetProfileResponse, GetSystemMenuTreeData, GetSystemMenuTreeResponse, GetUserByIdData, GetUserByIdResponse, GetUserData, GetUserResponse, PostDataDictData, PostDataDictResponse, PostDataDictTypeData, PostDataDictTypeResponse, PostLoginData, PostLoginResponse, PostLogoutData, PostLogoutResponse, PostSystemMenuData, PostSystemMenuResponse, PostUserBatchDeleteData, PostUserBatchDeleteResponse, PostUserData, PostUserResponse, PutDataDictData, PutDataDictResponse, PutDataDictTypeData, PutDataDictTypeResponse, PutSystemMenuData, PutSystemMenuResponse, PutUserData, PutUserResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -414,7 +414,7 @@ export const getSystemMenuTreeQueryOptions = (options?: Options<GetSystemMenuTre
 export const getUserQueryKey = (options?: Options<GetUserData>) => createQueryKey('getUser', options);
 
 /**
- * 用户分页列表
+ * 用户分页列表，支持关键词、多字段精确/范围筛选与服务端排序
  */
 export const getUserQueryOptions = (options?: Options<GetUserData>) => queryOptions<GetUserResponse, DefaultError, GetUserResponse, ReturnType<typeof getUserQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -432,7 +432,7 @@ export const getUserQueryOptions = (options?: Options<GetUserData>) => queryOpti
 export const getUserInfiniteQueryKey = (options?: Options<GetUserData>): QueryKey<Options<GetUserData>> => createQueryKey('getUser', options, true);
 
 /**
- * 用户分页列表
+ * 用户分页列表，支持关键词、多字段精确/范围筛选与服务端排序
  */
 export const getUserInfiniteOptions = (options?: Options<GetUserData>) => {
     const opts = infiniteQueryOptions<GetUserResponse, DefaultError, InfiniteData<GetUserResponse>, QueryKey<Options<GetUserData>>, number | Pick<QueryKey<Options<GetUserData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
@@ -457,4 +457,90 @@ export const getUserInfiniteOptions = (options?: Options<GetUserData>) => {
         queryKey: getUserInfiniteQueryKey(options)
     });
     return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * 新建用户
+ */
+export const postUserMutation = (options?: Partial<Options<PostUserData>>): UseMutationOptions<PostUserResponse, DefaultError, Options<PostUserData>> => {
+    const mutationOptions: UseMutationOptions<PostUserResponse, DefaultError, Options<PostUserData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await postUser({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 更新用户信息
+ */
+export const putUserMutation = (options?: Partial<Options<PutUserData>>): UseMutationOptions<PutUserResponse, DefaultError, Options<PutUserData>> => {
+    const mutationOptions: UseMutationOptions<PutUserResponse, DefaultError, Options<PutUserData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putUser({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 根据 ID 删除单个用户
+ */
+export const deleteUserByIdMutation = (options?: Partial<Options<DeleteUserByIdData>>): UseMutationOptions<DeleteUserByIdResponse, DefaultError, Options<DeleteUserByIdData>> => {
+    const mutationOptions: UseMutationOptions<DeleteUserByIdResponse, DefaultError, Options<DeleteUserByIdData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteUserById({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getUserByIdQueryKey = (options: Options<GetUserByIdData>) => createQueryKey('getUserById', options);
+
+/**
+ * 根据用户 ID 查询详情
+ */
+export const getUserByIdQueryOptions = (options: Options<GetUserByIdData>) => queryOptions<GetUserByIdResponse, DefaultError, GetUserByIdResponse, ReturnType<typeof getUserByIdQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getUserById({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getUserByIdQueryKey(options)
+});
+
+/**
+ * 批量删除用户
+ */
+export const postUserBatchDeleteMutation = (options?: Partial<Options<PostUserBatchDeleteData>>): UseMutationOptions<PostUserBatchDeleteResponse, DefaultError, Options<PostUserBatchDeleteData>> => {
+    const mutationOptions: UseMutationOptions<PostUserBatchDeleteResponse, DefaultError, Options<PostUserBatchDeleteData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await postUserBatchDelete({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
 };

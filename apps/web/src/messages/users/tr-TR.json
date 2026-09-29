@@ -66,7 +66,9 @@
   },
   "messages": {
     "fetchFailed": "Kullanıcı listesi yüklenemedi",
-    "networkFailed": "Ağ isteği başarısız oldu"
+    "networkFailed": "Ağ isteği başarısız oldu",
+    "deleteSuccess": "Kullanıcı başarıyla silindi",
+    "batchDeleteSuccess": "{{count}} kullanıcı başarıyla silindi"
   },
   "export": {
     "headers": {
@@ -75,5 +77,34 @@
       "id": "ID",
       "email": "E-posta"
     }
+  },
+  "actions": {
+    "create": "Yeni Kullanıcı",
+    "batchDeleteWithCount": "Toplu Sil ({{count}})"
+  },
+  "form": {
+    "createTitle": "Yeni Kullanıcı",
+    "editTitle": "Kullanıcıyı Düzenle",
+    "createDesc": "Yeni platform kullanıcısı için temel profil bilgilerini ekleyin",
+    "editDesc": "Seçilen kullanıcının profil ayrıntılarını değiştirin",
+    "nickname": "Takma Ad",
+    "nicknamePlaceholder": "Takma ad girin",
+    "nicknameRequired": "Lütfen bir kullanıcı takma adı girin",
+    "email": "E-posta",
+    "emailPlaceholder": "ör. user@example.com",
+    "avatarUrl": "Avatar URL",
+    "avatarUrlPlaceholder": "İsteğe bağlı resim bağlantısı",
+    "cancel": "İptal",
+    "save": "Kaydet",
+    "createSuccess": "Kullanıcı başarıyla oluşturuldu",
+    "updateSuccess": "Kullanıcı başarıyla güncellendi"
+  },
+  "dialogs": {
+    "deleteTitle": "Kullanıcıyı Sil",
+    "deleteConfirm": "\"{{name}}\" kullanıcısını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+    "delete": "Sil",
+    "batchDeleteTitle": "Kullanıcıları Toplu Sil",
+    "batchDeleteConfirm": "Seçilen {{count}} kullanıcıyı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+    "batchDelete": "Toplu Sil"
   }
 }

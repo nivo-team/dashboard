@@ -66,7 +66,9 @@
   },
   "messages": {
     "fetchFailed": "उपयोगकर्ता सूची लोड करने में विफल",
-    "networkFailed": "नेटवर्क अनुरोध विफल"
+    "networkFailed": "नेटवर्क अनुरोध विफल",
+    "deleteSuccess": "उपयोगकर्ता सफलतापूर्वक हटाया गया",
+    "batchDeleteSuccess": "सफलतापूर्वक {{count}} उपयोगकर्ता हटाए गए"
   },
   "export": {
     "headers": {
@@ -75,5 +77,34 @@
       "id": "आईडी",
       "email": "ईमेल"
     }
+  },
+  "actions": {
+    "create": "नया उपयोगकर्ता",
+    "batchDeleteWithCount": "बैच हटाएं ({{count}})"
+  },
+  "form": {
+    "createTitle": "नया उपयोगकर्ता",
+    "editTitle": "उपयोगकर्ता संपादित करें",
+    "createDesc": "नए प्लेटफ़ॉर्म उपयोगकर्ता के लिए बुनियादी प्रोफ़ाइल जानकारी जोड़ें",
+    "editDesc": "चयनित उपयोगकर्ता की प्रोफ़ाइल विवरण संशोधित करें",
+    "nickname": "उपनाम",
+    "nicknamePlaceholder": "उपनाम दर्ज करें",
+    "nicknameRequired": "कृपया उपयोगकर्ता उपनाम दर्ज करें",
+    "email": "ईमेल",
+    "emailPlaceholder": "जैसे user@example.com",
+    "avatarUrl": "अवतार URL",
+    "avatarUrlPlaceholder": "वैकल्पिक, छवि लिंक",
+    "cancel": "रद्द करें",
+    "save": "सहेजें",
+    "createSuccess": "उपयोगकर्ता सफलतापूर्वक बनाया गया",
+    "updateSuccess": "उपयोगकर्ता सफलतापूर्वक अपडेट किया गया"
+  },
+  "dialogs": {
+    "deleteTitle": "उपयोगकर्ता हटाएं",
+    "deleteConfirm": "क्या आप वाकई उपयोगकर्ता \"{{name}}\" को हटाना चाहते हैं? यह क्रिया पूर्ववत नहीं की जा सकती।",
+    "delete": "हटाएं",
+    "batchDeleteTitle": "उपयोगकर्ताओं को बैच में हटाएं",
+    "batchDeleteConfirm": "क्या आप वाकई चयनित {{count}} उपयोगकर्ताओं को हटाना चाहते हैं? यह क्रिया पूर्ववत नहीं की जा सकती।",
+    "batchDelete": "बैच हटाएं"
   }
 }

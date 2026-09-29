@@ -873,3 +873,52 @@ export const UserListResultSchema = {
         'result'
     ]
 } as const;
+
+export const UserResultSchema = {
+    type: 'object',
+    properties: {
+        code: {
+            type: 'integer',
+            description: '0 表示成功'
+        },
+        message: {
+            type: 'string'
+        },
+        result: {
+            $ref: '#/components/schemas/UserItem'
+        }
+    },
+    required: [
+        'code',
+        'result'
+    ]
+} as const;
+
+export const BatchDeleteResultSchema = {
+    type: 'object',
+    properties: {
+        code: {
+            type: 'integer',
+            description: '0 表示成功'
+        },
+        message: {
+            type: 'string'
+        },
+        result: {
+            type: 'object',
+            properties: {
+                deleted_count: {
+                    type: 'integer',
+                    description: '成功删除数量'
+                }
+            },
+            required: [
+                'deleted_count'
+            ]
+        }
+    },
+    required: [
+        'code',
+        'result'
+    ]
+} as const;

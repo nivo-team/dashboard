@@ -66,7 +66,9 @@
   },
   "messages": {
     "fetchFailed": "获取用户列表失败",
-    "networkFailed": "网络请求失败"
+    "networkFailed": "网络请求失败",
+    "deleteSuccess": "删除用户成功",
+    "batchDeleteSuccess": "成功删除 {{count}} 个用户"
   },
   "export": {
     "headers": {
@@ -75,5 +77,34 @@
       "id": "ID",
       "email": "邮箱"
     }
+  },
+  "actions": {
+    "create": "新建用户",
+    "batchDeleteWithCount": "批量删除 ({{count}})"
+  },
+  "form": {
+    "createTitle": "新建用户",
+    "editTitle": "编辑用户",
+    "createDesc": "添加平台新用户的基础档案信息",
+    "editDesc": "修改指定用户的资料信息",
+    "nickname": "用户昵称",
+    "nicknamePlaceholder": "请输入昵称",
+    "nicknameRequired": "请输入用户昵称",
+    "email": "邮箱地址",
+    "emailPlaceholder": "例如 user@example.com",
+    "avatarUrl": "头像 URL",
+    "avatarUrlPlaceholder": "可选，头像图片链接",
+    "cancel": "取消",
+    "save": "保存",
+    "createSuccess": "创建用户成功",
+    "updateSuccess": "更新用户成功"
+  },
+  "dialogs": {
+    "deleteTitle": "删除用户",
+    "deleteConfirm": "确定要删除用户「{{name}}」吗？该操作不可撤销。",
+    "delete": "删除",
+    "batchDeleteTitle": "批量删除用户",
+    "batchDeleteConfirm": "确定要删除选中的 {{count}} 个用户吗？该操作不可撤销。",
+    "batchDelete": "批量删除"
   }
 }

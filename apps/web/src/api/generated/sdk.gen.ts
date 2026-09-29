@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteDataDictByIdData, DeleteDataDictByIdResponses, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponses, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponses, GetApiData, GetApiResponses, GetAppsData, GetAppsResponses, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponses, GetDataDictResponses, GetDataDictTypeTreeData, GetDataDictTypeTreeResponses, GetProfileData, GetProfileResponses, GetSystemMenuTreeData, GetSystemMenuTreeResponses, GetUserData, GetUserResponses, PostDataDictData, PostDataDictResponses, PostDataDictTypeData, PostDataDictTypeResponses, PostLoginData, PostLoginResponses, PostLogoutData, PostLogoutResponses, PostSystemMenuData, PostSystemMenuResponses, PutDataDictData, PutDataDictResponses, PutDataDictTypeData, PutDataDictTypeResponses, PutSystemMenuData, PutSystemMenuResponses } from './types.gen';
+import type { DeleteDataDictByIdData, DeleteDataDictByIdResponses, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponses, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponses, DeleteUserByIdData, DeleteUserByIdResponses, GetApiData, GetApiResponses, GetAppsData, GetAppsResponses, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponses, GetDataDictResponses, GetDataDictTypeTreeData, GetDataDictTypeTreeResponses, GetProfileData, GetProfileResponses, GetSystemMenuTreeData, GetSystemMenuTreeResponses, GetUserByIdData, GetUserByIdResponses, GetUserData, GetUserResponses, PostDataDictData, PostDataDictResponses, PostDataDictTypeData, PostDataDictTypeResponses, PostLoginData, PostLoginResponses, PostLogoutData, PostLogoutResponses, PostSystemMenuData, PostSystemMenuResponses, PostUserBatchDeleteData, PostUserBatchDeleteResponses, PostUserData, PostUserResponses, PutDataDictData, PutDataDictResponses, PutDataDictTypeData, PutDataDictTypeResponses, PutSystemMenuData, PutSystemMenuResponses, PutUserData, PutUserResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -158,6 +158,52 @@ export const putSystemMenu = <ThrowOnError extends boolean = false>(options: Opt
 export const getSystemMenuTree = <ThrowOnError extends boolean = false>(options?: Options<GetSystemMenuTreeData, ThrowOnError>): RequestResult<GetSystemMenuTreeResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetSystemMenuTreeResponses, unknown, ThrowOnError>({ url: '/system/menu/tree', ...options });
 
 /**
- * 用户分页列表
+ * 用户分页列表，支持关键词、多字段精确/范围筛选与服务端排序
  */
 export const getUser = <ThrowOnError extends boolean = false>(options?: Options<GetUserData, ThrowOnError>): RequestResult<GetUserResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetUserResponses, unknown, ThrowOnError>({ url: '/user', ...options });
+
+/**
+ * 新建用户
+ */
+export const postUser = <ThrowOnError extends boolean = false>(options: Options<PostUserData, ThrowOnError>): RequestResult<PostUserResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostUserResponses, unknown, ThrowOnError>({
+    url: '/user',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 更新用户信息
+ */
+export const putUser = <ThrowOnError extends boolean = false>(options: Options<PutUserData, ThrowOnError>): RequestResult<PutUserResponses, unknown, ThrowOnError> => (options.client ?? client).put<PutUserResponses, unknown, ThrowOnError>({
+    url: '/user',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 根据 ID 删除单个用户
+ */
+export const deleteUserById = <ThrowOnError extends boolean = false>(options: Options<DeleteUserByIdData, ThrowOnError>): RequestResult<DeleteUserByIdResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteUserByIdResponses, unknown, ThrowOnError>({ url: '/user/{id}', ...options });
+
+/**
+ * 根据用户 ID 查询详情
+ */
+export const getUserById = <ThrowOnError extends boolean = false>(options: Options<GetUserByIdData, ThrowOnError>): RequestResult<GetUserByIdResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetUserByIdResponses, unknown, ThrowOnError>({ url: '/user/{id}', ...options });
+
+/**
+ * 批量删除用户
+ */
+export const postUserBatchDelete = <ThrowOnError extends boolean = false>(options: Options<PostUserBatchDeleteData, ThrowOnError>): RequestResult<PostUserBatchDeleteResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostUserBatchDeleteResponses, unknown, ThrowOnError>({
+    url: '/user/batch-delete',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});

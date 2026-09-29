@@ -579,6 +579,29 @@ export type UserListResult = {
     };
 };
 
+export type UserResult = {
+    /**
+     * 0 表示成功
+     */
+    code: number;
+    message?: string;
+    result: UserItem;
+};
+
+export type BatchDeleteResult = {
+    /**
+     * 0 表示成功
+     */
+    code: number;
+    message?: string;
+    result: {
+        /**
+         * 成功删除数量
+         */
+        deleted_count: number;
+    };
+};
+
 export type GetApiData = {
     body?: never;
     path?: never;
@@ -1041,9 +1064,45 @@ export type GetUserData = {
          */
         page_size?: number;
         /**
-         * 关键词（昵称 / 邮箱 / ID）
+         * 关键词（昵称 / 邮箱 / ID 模糊匹配）
          */
         kw?: string;
+        /**
+         * 排序字段名
+         */
+        field?: 'id' | 'nickname' | 'email' | 'createtime' | 'logintime';
+        /**
+         * 排序方向
+         */
+        order?: 'asc' | 'desc';
+        /**
+         * 用户 ID 精确匹配
+         */
+        id?: number;
+        /**
+         * 昵称模糊匹配
+         */
+        nickname?: string;
+        /**
+         * 邮箱模糊匹配
+         */
+        email?: string;
+        /**
+         * 注册时间下限（秒级时间戳）
+         */
+        createtime_min?: number;
+        /**
+         * 注册时间上限（秒级时间戳）
+         */
+        createtime_max?: number;
+        /**
+         * 最后登录时间下限（秒级时间戳）
+         */
+        logintime_min?: number;
+        /**
+         * 最后登录时间上限（秒级时间戳）
+         */
+        logintime_max?: number;
     };
     url: '/user';
 };
@@ -1056,3 +1115,138 @@ export type GetUserResponses = {
 };
 
 export type GetUserResponse = GetUserResponses[keyof GetUserResponses];
+
+export type PostUserData = {
+    body: {
+        /**
+         * 用户昵称
+         */
+        nickname: string;
+        /**
+         * 用户邮箱
+         */
+        email?: string;
+        /**
+         * 头像 URL
+         */
+        avatar_url?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/user';
+};
+
+export type PostUserResponses = {
+    /**
+     * 新建的用户详情
+     */
+    200: UserResult;
+};
+
+export type PostUserResponse = PostUserResponses[keyof PostUserResponses];
+
+export type PutUserData = {
+    body: {
+        /**
+         * 用户 ID
+         */
+        id: number;
+        /**
+         * 用户昵称
+         */
+        nickname?: string;
+        /**
+         * 用户邮箱
+         */
+        email?: string;
+        /**
+         * 头像 URL
+         */
+        avatar_url?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/user';
+};
+
+export type PutUserResponses = {
+    /**
+     * 更新后的用户详情
+     */
+    200: UserResult;
+};
+
+export type PutUserResponse = PutUserResponses[keyof PutUserResponses];
+
+export type DeleteUserByIdData = {
+    body?: never;
+    path: {
+        /**
+         * 用户 ID
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/user/{id}';
+};
+
+export type DeleteUserByIdResponses = {
+    /**
+     * 删除结果
+     */
+    200: {
+        /**
+         * 0 表示成功
+         */
+        code: number;
+        message?: string;
+        /**
+         * 成功时为空
+         */
+        result?: null;
+    };
+};
+
+export type DeleteUserByIdResponse = DeleteUserByIdResponses[keyof DeleteUserByIdResponses];
+
+export type GetUserByIdData = {
+    body?: never;
+    path: {
+        /**
+         * 用户 ID
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/user/{id}';
+};
+
+export type GetUserByIdResponses = {
+    /**
+     * 用户详情
+     */
+    200: UserResult;
+};
+
+export type GetUserByIdResponse = GetUserByIdResponses[keyof GetUserByIdResponses];
+
+export type PostUserBatchDeleteData = {
+    body: {
+        /**
+         * 待删除的用户 ID 列表
+         */
+        ids: Array<number>;
+    };
+    path?: never;
+    query?: never;
+    url: '/user/batch-delete';
+};
+
+export type PostUserBatchDeleteResponses = {
+    /**
+     * 批量删除结果
+     */
+    200: BatchDeleteResult;
+};
+
+export type PostUserBatchDeleteResponse = PostUserBatchDeleteResponses[keyof PostUserBatchDeleteResponses];

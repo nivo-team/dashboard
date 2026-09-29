@@ -7,7 +7,10 @@ import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 const config = defineConfig({
-  resolve: { tsconfigPaths: true },
+  resolve: {
+    tsconfigPaths: true,
+    dedupe: ['@tanstack/react-router', 'react', 'react-dom'],
+  },
   plugins: [
     devtools(),
     tailwindcss(),

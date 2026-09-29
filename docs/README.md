@@ -22,3 +22,7 @@
   - Warp Oz / omp 生态调研在本仓的落地方案：触发层（issue 模板 + label 状态机）、
     执行层（Actions 里的 agent CLI）、门控层（CI + 铁律机器门控）
   - 含首测方案、需要配置的 Secrets/Variables，以及接入时发现的存量问题
+- [URL 状态管理与 TanStack Router 适配调研 (nuqs-url-state-research.md)](./nuqs-url-state-research.md)
+  - nuqs 2.10.1 源码与 TanStack Router 官方适配机制实测
+  - 核心 ~7.1 KB + 适配器 ~1.0 KB 体积、无 SSR 依赖、React 19 完美支持
+  - 基于 OpenAPI Query 类型推导的编译期类型拦截设计方案（过滤 primary 与分页参数）

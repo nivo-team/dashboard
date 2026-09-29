@@ -54,6 +54,7 @@ pnpm guardrails       # 铁律的机器检查（CI 用，scripts/ai/check-guardr
 | **改 Mock 接口 / 加一个接口** | [apps/mock/README.md](./apps/mock/README.md) —— 接口定义即契约 |
 | **换后端 / 改契约来源** | [packages/api-contract/README.md](./packages/api-contract/README.md) |
 | **列表页 / 表格 / 筛选 / 列设置** | skill **`table-development`** ← 先加载它 |
+| **表格 URL 搜索参数 / 增删改查规范** | [table-query-and-crud.md](./.agents/docs/table-query-and-crud.md) |
 | **详情页表单 / 保存浮条 / 状态开关** | skill **`editable-detail`** ← 先加载它 |
 | 列表点行看详情（分屏 / 抽屉） | [detail-preview.md](./.agents/docs/detail-preview.md) |
 | 加仪表盘卡片 / 改栅格 | [dashboard-module.md](./.agents/docs/dashboard-module.md) |

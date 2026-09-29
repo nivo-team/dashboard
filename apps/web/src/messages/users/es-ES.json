@@ -66,7 +66,9 @@
   },
   "messages": {
     "fetchFailed": "No se pudo cargar la lista de usuarios",
-    "networkFailed": "Error en la solicitud de red"
+    "networkFailed": "Error en la solicitud de red",
+    "deleteSuccess": "Usuario eliminado con éxito",
+    "batchDeleteSuccess": "Se eliminaron {{count}} usuarios con éxito"
   },
   "export": {
     "headers": {
@@ -75,5 +77,34 @@
       "id": "ID",
       "email": "Correo"
     }
+  },
+  "actions": {
+    "create": "Nuevo usuario",
+    "batchDeleteWithCount": "Eliminar lote ({{count}})"
+  },
+  "form": {
+    "createTitle": "Nuevo usuario",
+    "editTitle": "Editar usuario",
+    "createDesc": "Añadir información básica del perfil para un nuevo usuario de la plataforma",
+    "editDesc": "Modificar los detalles del perfil del usuario seleccionado",
+    "nickname": "Apodo",
+    "nicknamePlaceholder": "Introduce el apodo",
+    "nicknameRequired": "Por favor introduce el apodo del usuario",
+    "email": "Correo electrónico",
+    "emailPlaceholder": "ej. user@example.com",
+    "avatarUrl": "URL del avatar",
+    "avatarUrlPlaceholder": "Opcional, enlace de imagen",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "createSuccess": "Usuario creado con éxito",
+    "updateSuccess": "Usuario actualizado con éxito"
+  },
+  "dialogs": {
+    "deleteTitle": "Eliminar usuario",
+    "deleteConfirm": "¿Estás seguro de que deseas eliminar al usuario \"{{name}}\"? Esta acción no se puede deshacer.",
+    "delete": "Eliminar",
+    "batchDeleteTitle": "Eliminar usuarios por lote",
+    "batchDeleteConfirm": "¿Estás seguro de que deseas eliminar los {{count}} usuarios seleccionados? Esta acción no se puede deshacer.",
+    "batchDelete": "Eliminar lote"
   }
 }

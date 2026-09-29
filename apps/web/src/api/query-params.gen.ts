@@ -42,4 +42,37 @@ export const PRIMARY_QUERY_PARAMS = [
 ] as const
 
 /** GET /user 的可筛选字段目录 */
-export const USER_FILTER_FIELDS: QueryFilterField[] = []
+export const USER_FILTER_FIELDS: QueryFilterField[] = [
+  {
+    "name": "id",
+    "label": "ID",
+    "param": "id",
+    "control": "number"
+  },
+  {
+    "name": "nickname",
+    "label": "昵称",
+    "param": "nickname",
+    "control": "text"
+  },
+  {
+    "name": "email",
+    "label": "邮箱",
+    "param": "email",
+    "control": "text"
+  },
+  {
+    "name": "createtime",
+    "label": "注册时间",
+    "control": "number-range",
+    "param": "createtime_min",
+    "paramTo": "createtime_max"
+  },
+  {
+    "name": "logintime",
+    "label": "最后登录",
+    "control": "number-range",
+    "param": "logintime_min",
+    "paramTo": "logintime_max"
+  }
+]

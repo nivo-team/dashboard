@@ -191,7 +191,7 @@ export const ENDPOINT_SPECS: Record<string, EndpointSpec> = {
     ]
   },
   "GET /user": {
-    "summary": "用户分页列表",
+    "summary": "用户分页列表，支持关键词、多字段精确/范围筛选与服务端排序",
     "params": [
       {
         "name": "page",
@@ -209,7 +209,113 @@ export const ENDPOINT_SPECS: Record<string, EndpointSpec> = {
         "name": "kw",
         "in": "query",
         "required": false,
-        "description": "关键词（昵称 / 邮箱 / ID）"
+        "description": "关键词（昵称 / 邮箱 / ID 模糊匹配）"
+      },
+      {
+        "name": "field",
+        "in": "query",
+        "required": false,
+        "description": "排序字段名"
+      },
+      {
+        "name": "order",
+        "in": "query",
+        "required": false,
+        "description": "排序方向"
+      },
+      {
+        "name": "id",
+        "in": "query",
+        "required": false,
+        "description": "用户 ID 精确匹配"
+      },
+      {
+        "name": "nickname",
+        "in": "query",
+        "required": false,
+        "description": "昵称模糊匹配"
+      },
+      {
+        "name": "email",
+        "in": "query",
+        "required": false,
+        "description": "邮箱模糊匹配"
+      },
+      {
+        "name": "createtime_min",
+        "in": "query",
+        "required": false,
+        "description": "注册时间下限（秒级时间戳）"
+      },
+      {
+        "name": "createtime_max",
+        "in": "query",
+        "required": false,
+        "description": "注册时间上限（秒级时间戳）"
+      },
+      {
+        "name": "logintime_min",
+        "in": "query",
+        "required": false,
+        "description": "最后登录时间下限（秒级时间戳）"
+      },
+      {
+        "name": "logintime_max",
+        "in": "query",
+        "required": false,
+        "description": "最后登录时间上限（秒级时间戳）"
+      }
+    ]
+  },
+  "POST /user": {
+    "summary": "新建用户",
+    "params": [
+      {
+        "name": "nickname",
+        "in": "body",
+        "required": true
+      }
+    ]
+  },
+  "PUT /user": {
+    "summary": "更新用户信息",
+    "params": [
+      {
+        "name": "id",
+        "in": "body",
+        "required": true
+      }
+    ]
+  },
+  "DELETE /user/{id}": {
+    "summary": "根据 ID 删除单个用户",
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "用户 ID"
+      }
+    ]
+  },
+  "GET /user/{id}": {
+    "summary": "根据用户 ID 查询详情",
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "用户 ID"
+      }
+    ]
+  },
+  "POST /user/batch-delete": {
+    "summary": "批量删除用户",
+    "params": [
+      {
+        "name": "ids",
+        "in": "body",
+        "required": true
       }
     ]
   }

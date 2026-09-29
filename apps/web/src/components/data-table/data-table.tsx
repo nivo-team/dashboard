@@ -310,7 +310,7 @@ export function DataTable({
                 </Button>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="ms-auto flex flex-wrap items-center gap-2">
                 {batchActions ? (
                   batchActions
                 ) : (

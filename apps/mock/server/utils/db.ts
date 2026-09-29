@@ -286,6 +286,7 @@ export const seq = {
   menu: 100,
   dictType: 100,
   dictItem: 2000,
+  user: 20000,
 }
 
 export function nextId(kind: keyof typeof seq): number {

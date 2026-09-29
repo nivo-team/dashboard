@@ -66,7 +66,9 @@
   },
   "messages": {
     "fetchFailed": "ユーザー一覧の取得に失敗しました",
-    "networkFailed": "ネットワークリクエストに失敗しました"
+    "networkFailed": "ネットワークリクエストに失敗しました",
+    "deleteSuccess": "ユーザーを削除しました",
+    "batchDeleteSuccess": "{{count}} 件のユーザーを削除しました"
   },
   "export": {
     "headers": {
@@ -75,5 +77,34 @@
       "id": "ID",
       "email": "メールアドレス"
     }
+  },
+  "actions": {
+    "create": "新規ユーザー",
+    "batchDeleteWithCount": "一括削除 ({{count}})"
+  },
+  "form": {
+    "createTitle": "新規ユーザー",
+    "editTitle": "ユーザー編集",
+    "createDesc": "新規プラットフォームユーザーの基本情報を追加します",
+    "editDesc": "指定したユーザーの情報を変更します",
+    "nickname": "ニックネーム",
+    "nicknamePlaceholder": "ニックネームを入力",
+    "nicknameRequired": "ユーザーニックネームを入力してください",
+    "email": "メールアドレス",
+    "emailPlaceholder": "例: user@example.com",
+    "avatarUrl": "アバター URL",
+    "avatarUrlPlaceholder": "任意、画像 URL",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "createSuccess": "ユーザーを作成しました",
+    "updateSuccess": "ユーザー情報を更新しました"
+  },
+  "dialogs": {
+    "deleteTitle": "ユーザーの削除",
+    "deleteConfirm": "ユーザー「{{name}}」を削除してもよろしいですか？この操作は取り消せません。",
+    "delete": "削除",
+    "batchDeleteTitle": "ユーザーの一括削除",
+    "batchDeleteConfirm": "選択した {{count}} 件のユーザーを削除してもよろしいですか？この操作は取り消せません。",
+    "batchDelete": "一括削除"
   }
 }
