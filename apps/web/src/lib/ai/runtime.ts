@@ -13,6 +13,8 @@ import {
 } from '#/lib/store'
 import { formatPageContext, getPageContext } from './page-context'
 import { expandRouteRefs } from './route-refs'
+import { useAiSessionStore } from './session-store'
+import { getLatestSessionTasks } from './tools/task-tools'
 import type {
   AiAttachment,
   AiMessage,
@@ -61,9 +63,39 @@ function outputLanguageName(locale: LocaleKey): string {
   return SUPPORTED_LOCALES.find((item) => item.key === locale)?.nativeName ?? '简体中文'
 }
 
+/**
+ * 汇总当前会话的历史未完成 Todo 任务清单目录，直接注入模型上下文。
+ */
+function formatActiveTasksPrompt(): string | null {
+  const messages = useAiSessionStore.getState().messages
+  const tasks = getLatestSessionTasks(messages)
+  if (!tasks || tasks.length === 0) return null
+
+  const uncompleted = tasks.filter(
+    (t) => t.status !== 'completed' && t.status !== 'cancelled',
+  )
+  if (uncompleted.length === 0) return null
+
+  const lines = [
+    '# 当前会话进行中/未完成的任务清单（Todo List 目录）',
+    `当前任务共 ${tasks.length} 项，已完成 ${tasks.filter((t) => t.status === 'completed').length} 项，待处理如下：`,
+    ...tasks.map((t) => `  * [${t.status}] ${t.id}. ${t.title}`),
+    '',
+    '【续做与取消守则】',
+    '- 用户输入「继续 / 恢复 / 搞定剩下的」时：必须直接沿用上述任务清单！',
+    '  1. 先调用 manage_tasks 将第一项未完成的任务状态更新为 in_progress；',
+    '  2. 随后执行其对应操作（open_form 唤起表单并填入数据，用户同意后调用 submit_form 提交）；',
+    '  3. 完成后调用 manage_tasks 将该项标记为 completed，并继续推进下一项，直至全部完成。',
+    '- 用户若明确要求「取消 / 不要了 / 停止任务」时：调用 manage_tasks 将尚未完成的任务项标记为 cancelled。',
+    '- 严禁丢弃现有清单或重复从头创建已完成的项！',
+  ]
+  return lines.join('\n')
+}
+
 export function buildSystemPrompt(mode: AiMode, outputLocale: LocaleKey): string {
   const context = getPageContext()
   const appName = context.appName ?? '管理后台'
+  const activeTasksPrompt = formatActiveTasksPrompt()
 
   /*
     只描述**模式**（要不要先问用户），**绝不在提示词里复述权限**。
@@ -85,6 +117,7 @@ export function buildSystemPrompt(mode: AiMode, outputLocale: LocaleKey): string
     '',
     '# 当前页面上下文',
     formatPageContext(context),
+    ...(activeTasksPrompt ? ['', activeTasksPrompt] : []),
     '',
     '# 你可以做的事',
     '**以本轮实际给你的工具清单为准** —— 那就是你此刻的能力边界；清单里没有的能力，你就是没有。',

@@ -116,6 +116,8 @@
   "taskCard": {
     "title": "Görev Yürütme Planı",
     "completedTitle": "Tamamlanan Görevler",
-    "running": "Devam ediyor…"
+    "running": "Devam ediyor…",
+    "paused": "Duraklatıldı",
+    "cancelled": "İptal edildi"
   }
 }

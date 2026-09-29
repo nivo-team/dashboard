@@ -116,6 +116,8 @@
   "taskCard": {
     "title": "任务推进计划",
     "completedTitle": "已完成任务清单",
-    "running": "进行中…"
+    "running": "进行中…",
+    "paused": "已暂停",
+    "cancelled": "已取消"
   }
 }

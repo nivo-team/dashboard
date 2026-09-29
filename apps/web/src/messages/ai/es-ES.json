@@ -116,6 +116,8 @@
   "taskCard": {
     "title": "Plan de ejecución de tareas",
     "completedTitle": "Tareas completadas",
-    "running": "En curso…"
+    "running": "En curso…",
+    "paused": "Pausado",
+    "cancelled": "Cancelado"
   }
 }

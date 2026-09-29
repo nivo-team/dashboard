@@ -2,18 +2,19 @@ import {
   CheckCircleIcon,
   CircleIcon,
   CircleNotchIcon,
+  ClockIcon,
   ListChecksIcon,
   XCircleIcon,
 } from '@phosphor-icons/react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '#/lib/cn'
-import { useAiSessionStore, type AiMessage, type AiMessagePart } from '#/lib/ai'
+import { useAiSessionStore, type AiMessage } from '#/lib/ai'
+import {
+  getLatestSessionTasks,
+  type TaskItem as TaskItemData,
+} from '#/lib/ai/tools/task-tools'
 
-export interface TaskItemData {
-  id: string
-  title: string
-  status: 'pending' | 'in_progress' | 'completed' | 'failed'
-}
+export { getLatestSessionTasks, type TaskItemData }
 
 /**
  * 提取当前活跃（进行中）的任务列表。
@@ -36,11 +37,13 @@ export function getActiveTaskData(
         const tasks = rawOutput?.tasks || rawInput?.tasks || []
         if (tasks.length === 0) return null
 
-        const allCompleted = tasks.every((t) => t.status === 'completed')
+        const allSettled = tasks.every(
+          (t) => t.status === 'completed' || t.status === 'cancelled',
+        )
         const isStreaming = status === 'streaming' && i === messages.length - 1
 
         // 进行中：正在流式执行且尚未全部完成 -> 悬浮在输入框上方
-        if (isStreaming && !allCompleted) {
+        if (isStreaming && !allSettled) {
           return { tasks }
         }
         return null
@@ -84,8 +87,8 @@ export function TaskCardView({
       className={cn(
         'rounded-xl border p-3 transition-all',
         isFloating
-          ? 'border-kumo-line bg-kumo-base shadow-md backdrop-blur'
-          : 'my-2 border-kumo-line bg-kumo-base shadow-sm',
+          ? 'border-kumo-line bg-kumo-base backdrop-blur'
+          : 'my-2 border-kumo-line bg-kumo-base',
         className,
       )}
     >
@@ -121,7 +124,9 @@ export function TaskCardView({
       <div className="mt-3 flex max-h-48 flex-col gap-1.5 overflow-y-auto">
         {tasks.map((task) => {
           const isDone = task.status === 'completed'
-          const isRunning = task.status === 'in_progress'
+          const isCancelled = task.status === 'cancelled'
+          const isRunning = isFloating && task.status === 'in_progress'
+          const isPaused = !isFloating && task.status === 'in_progress'
           const isFailed = task.status === 'failed'
 
           return (
@@ -130,8 +135,10 @@ export function TaskCardView({
               className={cn(
                 'flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-xs transition-colors',
                 isRunning && 'bg-kumo-elevated text-kumo-default font-medium',
+                isPaused && 'bg-amber-500/10 text-kumo-default font-medium',
                 isDone && 'text-kumo-subtle line-through opacity-75',
-                !isDone && !isRunning && 'text-kumo-default',
+                isCancelled && 'text-kumo-subtle line-through opacity-50',
+                !isDone && !isRunning && !isPaused && !isCancelled && 'text-kumo-default',
               )}
             >
               {isDone ? (
@@ -144,6 +151,10 @@ export function TaskCardView({
                   size={14}
                   className="shrink-0 text-kumo-brand motion-safe:animate-spin"
                 />
+              ) : isPaused ? (
+                <ClockIcon size={14} className="shrink-0 text-amber-500" />
+              ) : isCancelled ? (
+                <XCircleIcon size={14} className="shrink-0 text-kumo-subtle" />
               ) : isFailed ? (
                 <XCircleIcon size={14} className="shrink-0 text-kumo-danger" />
               ) : (
@@ -153,6 +164,14 @@ export function TaskCardView({
               {isRunning ? (
                 <span className="shrink-0 text-[10px] text-kumo-brand motion-safe:animate-pulse">
                   {t('taskCard.running', '进行中…')}
+                </span>
+              ) : isPaused ? (
+                <span className="shrink-0 text-[10px] font-medium text-amber-500">
+                  {t('taskCard.paused', '已暂停')}
+                </span>
+              ) : isCancelled ? (
+                <span className="shrink-0 text-[10px] text-kumo-subtle">
+                  {t('taskCard.cancelled', '已取消')}
                 </span>
               ) : null}
             </div>

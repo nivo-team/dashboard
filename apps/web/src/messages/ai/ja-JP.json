@@ -116,6 +116,8 @@
   "taskCard": {
     "title": "タスク実行計画",
     "completedTitle": "完了タスク一覧",
-    "running": "進行中…"
+    "running": "進行中…",
+    "paused": "一時停止",
+    "cancelled": "キャンセル"
   }
 }

@@ -116,6 +116,8 @@
   "taskCard": {
     "title": "خطة تنفيذ المهام",
     "completedTitle": "المهام المكتملة",
-    "running": "قيد التنفيذ…"
+    "running": "قيد التنفيذ…",
+    "paused": "متوقف مؤقتًا",
+    "cancelled": "ملغى"
   }
 }
