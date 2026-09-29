@@ -154,3 +154,47 @@ export function useAiFormSubmit(config: AiFormSubmitConfig | null): void {
     return () => clearAiFormPart(id, ['submit', 'canSubmit'])
   }, [id])
 }
+
+/* -------------------------------------------------------------------------- */
+/*                                表单唤起控制器                                */
+/* -------------------------------------------------------------------------- */
+
+export interface FormOpenOptions {
+  action: 'create' | 'edit'
+  id?: string | number
+  initialValues?: Record<string, unknown>
+}
+
+type FormOpener = (options: FormOpenOptions) => void | Promise<void>
+let currentFormOpener: FormOpener | null = null
+
+export function registerFormOpener(opener: FormOpener): () => void {
+  currentFormOpener = opener
+  return () => {
+    if (currentFormOpener === opener) currentFormOpener = null
+  }
+}
+
+export function openPageForm(options: FormOpenOptions): boolean {
+  if (currentFormOpener) {
+    currentFormOpener(options)
+    return true
+  }
+  return false
+}
+
+/** 检查当前页面是否具备表单能力（表单已挂载，或注册了表单唤起器） */
+export function hasPageFormCapability(): boolean {
+  return listAiForms().length > 0 || currentFormOpener !== null
+}
+
+/** 由页面组件调用：注册当前页面打开表单的回调（供 AI open_form 工具调用） */
+export function useAiFormOpener(opener: FormOpener | null): void {
+  const ref = useRef(opener)
+  ref.current = opener
+
+  useEffect(() => {
+    if (!ref.current) return
+    return registerFormOpener((opts) => ref.current?.(opts))
+  }, [])
+}

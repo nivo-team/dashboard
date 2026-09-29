@@ -2,6 +2,7 @@ import i18n from '#/lib/i18n'
 import { ALL_NAV_TARGETS } from '#/lib/navigation'
 import { describeEndpointParams, findEndpointSpec } from '../endpoint-specs'
 import { getAiShellBridge, getPageContext, resolveNavLabel } from '../page-context'
+import { resolveActivePageCapabilities } from '../page-capabilities'
 import { resolveAiPageContext } from '../page-context-registry'
 import type { AiToolDefinition } from '../types'
 
@@ -100,7 +101,8 @@ export const getPageContextTool: AiToolDefinition = {
   group: 'page',
   execute: async () => {
     const context = getPageContext()
-    const page = resolveAiPageContext(context.routePath)
+    const capabilities = resolveActivePageCapabilities(context.routePath)
+    const page = capabilities || resolveAiPageContext(context.routePath)
     // 页面没声明上下文就只给基础信息 —— 不编造「这个页面大概会用到什么」
     if (!page) return context
 
@@ -109,6 +111,8 @@ export const getPageContextTool: AiToolDefinition = {
       page: {
         description: page.description,
         ...(page.entities?.length ? { entities: page.entities } : {}),
+        ...(page.forms?.length ? { forms: page.forms } : {}),
+        ...(capabilities?.actions?.length ? { actions: capabilities.actions } : {}),
         endpoints: await Promise.all(
           (page.endpoints ?? []).map(async (ref) => {
             const spec = await findEndpointSpec(ref.method, ref.path)

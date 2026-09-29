@@ -14,6 +14,7 @@
  */
 export * from './chat'
 export * from './form-bridge'
+export * from './page-capabilities'
 export * from './page-context'
 export * from './page-context-registry'
 export * from './panel-session'

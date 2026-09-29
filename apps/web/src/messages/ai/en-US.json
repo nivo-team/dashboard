@@ -79,7 +79,9 @@
     "call_write_api": "Modify data API",
     "list_page_forms": "List page forms",
     "fill_form": "Fill form",
-    "submit_form": "Submit form"
+    "submit_form": "Submit form",
+    "open_form": "Open Form",
+    "manage_tasks": "Task Planning"
   },
   "approvalTitle": "This action needs your approval",
   "approve": "Allow once",
@@ -110,5 +112,10 @@
     "input": "Arguments",
     "output": "Result",
     "error": "Error"
+  },
+  "taskCard": {
+    "title": "Task Execution Plan",
+    "completedTitle": "Completed Tasks",
+    "running": "In progress…"
   }
 }

@@ -210,7 +210,15 @@
       "aiOutputLanguageHint": "Yapay zekanın hangi dilde yanıt verdiği; varsayılan olarak arayüzü izler",
       "aiOutputLanguageAuto": "Arayüzü izle",
       "aiEnabled": "AI etkinleştir",
-      "aiEnabledHint": "Kapatıldığında üst çubukta Ask AI girişi görünmez"
+      "aiEnabledHint": "Kapatıldığında üst çubukta Ask AI girişi görünmez",
+      "formOpenMode": "Form açma biçimi",
+      "formOpenModeHint": "Veri oluştururken veya düzenlerken formun açılma biçimi; mobilde formlar her zaman tam sayfada açılır",
+      "formOpenModes": {
+        "dialog": "İletişim kutusu",
+        "split": "Bölünmüş panel",
+        "page": "Ayrı sayfa"
+      },
+      "currentApp": "Geçerli Uygulama:"
     },
     "loadError": "Profil hizmeti kullanılamıyor. Yerel oturum bilgileri gösteriliyor.",
     "sections": {

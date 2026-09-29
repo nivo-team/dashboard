@@ -210,7 +210,15 @@
       "aiOutputLanguageHint": "Which language the AI answers in; follows the interface by default",
       "aiOutputLanguageAuto": "Follow interface",
       "aiEnabled": "Enable AI",
-      "aiEnabledHint": "Turning this off hides the Ask AI entry from the header"
+      "aiEnabledHint": "Turning this off hides the Ask AI entry from the header",
+      "formOpenMode": "Form open mode",
+      "formOpenModeHint": "How forms open when creating or editing data; on mobile forms always open as a full page",
+      "formOpenModes": {
+        "dialog": "Dialog modal",
+        "split": "Split panel",
+        "page": "Full page"
+      },
+      "currentApp": "Current App:"
     },
     "loadError": "Profile service is unavailable. Showing local sign-in information.",
     "sections": {

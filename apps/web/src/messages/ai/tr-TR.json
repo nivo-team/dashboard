@@ -79,7 +79,9 @@
     "call_write_api": "Veri değiştiren API",
     "list_page_forms": "Sayfa formlarını gör",
     "fill_form": "Formu doldur",
-    "submit_form": "Formu gönder"
+    "submit_form": "Formu gönder",
+    "open_form": "Formu Aç",
+    "manage_tasks": "Görev Planlama"
   },
   "approvalTitle": "Bu işlem onayınızı gerektiriyor",
   "approve": "Bir kez izin ver",
@@ -110,5 +112,10 @@
     "input": "Argümanlar",
     "output": "Sonuç",
     "error": "Hata"
+  },
+  "taskCard": {
+    "title": "Görev Yürütme Planı",
+    "completedTitle": "Tamamlanan Görevler",
+    "running": "Devam ediyor…"
   }
 }

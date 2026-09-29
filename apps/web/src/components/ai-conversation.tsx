@@ -2,9 +2,12 @@ import { Button, Collapsible, LinkButton } from '@cloudflare/kumo'
 import {
   CaretDownIcon,
   CheckCircleIcon,
+  CircleIcon,
   CircleNotchIcon,
   FileIcon,
+  ListChecksIcon,
   WarningCircleIcon,
+  XCircleIcon,
 } from '@phosphor-icons/react'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -22,6 +25,7 @@ import {
 } from '#/lib/ai'
 import { useAiConfigStore, usePreferencesStore } from '#/lib/store'
 import { useTimezone } from '#/lib/timezone'
+import { TaskCardView, type TaskItemData } from '#/components/ai-task-card'
 
 /**
  * 会话区：把 store 里的消息渲染出来，并处理三种「还没内容」的状态。
@@ -335,11 +339,37 @@ function AiMessageView({
 
   const showThinking = streaming && !hasVisibleText && !pendingApproval
 
-  const hasVisibleParts = message.parts.some((part) => {
+  // 查找该消息内最后一个 manage_tasks 工具调用的索引
+  let lastManageTasksIndex = -1
+  for (let i = message.parts.length - 1; i >= 0; i--) {
+    const p = message.parts[i]
+    if (p.type === 'tool-call' && p.toolName === 'manage_tasks') {
+      lastManageTasksIndex = i
+      break
+    }
+  }
+
+  // 判定该 manage_tasks 是否正在运行中并在输入框上方悬浮
+  const isTaskFloatingNow = (part: AiMessagePart) => {
+    if (part.type !== 'tool-call' || part.toolName !== 'manage_tasks') return false
+    const rawInput = part.input as { tasks?: TaskItemData[] } | undefined
+    const rawOutput = part.output as { tasks?: TaskItemData[] } | undefined
+    const tasks = rawOutput?.tasks || rawInput?.tasks || []
+    if (tasks.length === 0) return false
+    const allCompleted = tasks.every((t) => t.status === 'completed')
+    return streaming && !allCompleted
+  }
+
+  const hasVisibleParts = message.parts.some((part, index) => {
     if (part.type === 'text') {
       return (outputMode === 'stream' || !streaming) && part.text.trim().length > 0
     }
-    if (part.type === 'tool-call') return showToolCalls
+    if (part.type === 'tool-call') {
+      if (part.toolName === 'manage_tasks') {
+        return index === lastManageTasksIndex && !isTaskFloatingNow(part)
+      }
+      return showToolCalls
+    }
     return false
   })
 
@@ -369,6 +399,8 @@ function AiMessageView({
               part={part}
               // 只有最后一个 part 可能还在增长，也就只有它需要纯文本降级
               streaming={streaming && index === message.parts.length - 1}
+              isLastManageTasks={index === lastManageTasksIndex}
+              isFloatingTask={isTaskFloatingNow(part)}
             />
           )
         })}
@@ -386,9 +418,13 @@ function AiMessageView({
 function AssistantPart({
   part,
   streaming,
+  isLastManageTasks,
+  isFloatingTask,
 }: {
   part: AiMessagePart
   streaming: boolean
+  isLastManageTasks?: boolean
+  isFloatingTask?: boolean
 }) {
   const { t } = useTranslation('ai')
   /*
@@ -397,6 +433,7 @@ function AssistantPart({
 
     两件事刻意**不受它影响**：
     - **审批卡**：写操作的确认是必须的交互（在 `AiConversation` 里独立渲染），不是"输出"；
+    - **任务规划卡（manage_tasks）**：多任务推进的核心进度回显，始终展示；
     - **「正在思考…」**：工具执行期间 `status` 仍是 `streaming`，所以即使看不到工具卡片，
       页面也仍在动，不会显得卡死。
   */
@@ -405,6 +442,20 @@ function AssistantPart({
   if (part.type === 'text') {
     if (!part.text.trim()) return null
     return <MarkdownContent text={part.text} streaming={streaming} />
+  }
+
+  // 任务规划卡（manage_tasks）的处理原则：
+  // 1. 整个任务流只保留一个卡片（同一消息内只保留最后一个 manage_tasks）；
+  // 2. 任务进行中时，由输入框上方的悬浮卡片展示，此处静默；
+  // 3. 任务结束时，在此处留下静态 settled 的 Todo 卡片，展示完成状态。
+  if (part.type === 'tool-call' && part.toolName === 'manage_tasks') {
+    if (!isLastManageTasks || isFloatingTask) return null
+    const rawInput = part.input as { tasks?: TaskItemData[] } | undefined
+    const rawOutput = part.output as { tasks?: TaskItemData[] } | undefined
+    const tasks = rawOutput?.tasks || rawInput?.tasks || []
+    if (!tasks.length) return null
+
+    return <TaskCardView tasks={tasks} variant="settled" />
   }
 
   if (part.type !== 'tool-call' || !showToolCalls) return null

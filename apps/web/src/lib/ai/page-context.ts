@@ -149,6 +149,9 @@ export function matchNavLabel(pathname: string, appId: string | null): string | 
   return label
 }
 
+import { resolveActivePageCapabilities } from './page-capabilities'
+import { resolveAiPageContext } from './page-context-registry'
+
 /**
  * 把页面上下文压成一段给模型看的文本。
  *
@@ -156,6 +159,9 @@ export function matchNavLabel(pathname: string, appId: string | null): string | 
  * 多花一次工具调用（以及一次往返延迟）不划算；工具保留给「导航之后想确认位置」的场景。
  */
 export function formatPageContext(context: AiPageContext): string {
+  const page = resolveAiPageContext(context.routePath)
+  const capabilities = resolveActivePageCapabilities(context.routePath)
+
   const lines = [
     `- 当前地址：${context.url || '未知'}`,
     `- 路径：${context.pathname || '未知'}`,
@@ -164,6 +170,38 @@ export function formatPageContext(context: AiPageContext): string {
     context.navLabel ? `- 所在页面：${context.navLabel}` : null,
     context.routePath ? `- 路由模板：${context.routePath}` : null,
     context.title ? `- 页面标题：${context.title}` : null,
+    (capabilities?.description || page?.description)
+      ? `- 页面功能：${capabilities?.description || page?.description}`
+      : null,
+    (capabilities?.entities?.length || page?.entities?.length)
+      ? `- 关键概念：${(capabilities?.entities || page?.entities || []).join('、')}`
+      : null,
   ]
+
+  const activeForms = capabilities?.forms || page?.forms
+  if (activeForms && activeForms.length > 0) {
+    lines.push('- 本页面支持的表单操作（可调用 open_form 工具直接打开并填表）：')
+    for (const f of activeForms) {
+      const fieldList = f.fields
+        ? f.fields
+            .map(
+              (field) =>
+                `${field.name}${field.required ? '*(必填)' : ''}[${field.label}]`,
+            )
+            .join(', ')
+        : '无特定字段'
+      lines.push(
+        `  * 【${f.title}】action="${f.action}"：${f.description || ''}（字段：${fieldList}）`,
+      )
+    }
+  }
+
+  if (capabilities?.actions && capabilities.actions.length > 0) {
+    lines.push('- 本页面支持的操作与动作（批量处理 / 工具栏）：')
+    for (const a of capabilities.actions) {
+      lines.push(`  * 【${a.title}】(type: ${a.type})：${a.description || ''}`)
+    }
+  }
+
   return lines.filter((line): line is string => line !== null).join('\n')
 }

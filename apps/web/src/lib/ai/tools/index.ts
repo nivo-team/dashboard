@@ -6,7 +6,14 @@ import {
   searchApiTool,
 } from './data-tools'
 import { getPageContextTool, listNavigationTool, navigateToTool } from './page-tools'
-import { fillFormTool, listPageFormsTool, submitFormTool } from './form-tools'
+import {
+  fillFormTool,
+  listPageFormsTool,
+  openFormTool,
+  submitFormTool,
+} from './form-tools'
+import { manageTasksTool } from './task-tools'
+import { requestPermissionTool } from './permission-tools'
 
 /**
  * 工具注册表 —— 「AI 能做什么」的**唯一真值**。
@@ -23,6 +30,9 @@ export const AI_TOOLS: readonly AiToolDefinition[] = [
   listDictOptionsTool,
   callWriteApiTool,
   navigateToTool,
+  manageTasksTool,
+  requestPermissionTool,
+  openFormTool,
   listPageFormsTool,
   fillFormTool,
   submitFormTool,

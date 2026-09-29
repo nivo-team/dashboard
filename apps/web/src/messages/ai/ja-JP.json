@@ -79,7 +79,9 @@
     "call_write_api": "データ変更 API",
     "list_page_forms": "ページのフォームを確認",
     "fill_form": "フォームに入力",
-    "submit_form": "フォームを送信"
+    "submit_form": "フォームを送信",
+    "open_form": "フォームを開く",
+    "manage_tasks": "タスク計画"
   },
   "approvalTitle": "この操作には確認が必要です",
   "approve": "1 回だけ許可",
@@ -110,5 +112,10 @@
     "input": "引数",
     "output": "結果",
     "error": "エラー"
+  },
+  "taskCard": {
+    "title": "タスク実行計画",
+    "completedTitle": "完了タスク一覧",
+    "running": "進行中…"
   }
 }

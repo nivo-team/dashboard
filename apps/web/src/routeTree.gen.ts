@@ -40,7 +40,9 @@ import { Route as AppIdSystemFeaturesFeatureIdRouteImport } from './routes/$appI
 import { Route as AppIdSystemFeaturesNewRouteImport } from './routes/$appId/system/features/new'
 import { Route as AppIdUsersUserIndexRouteImport } from './routes/$appId/users/user/index'
 import { Route as AppIdUsersUserIdRouteImport } from './routes/$appId/users/user/$id'
+import { Route as AppIdUsersUserNewRouteImport } from './routes/$appId/users/user/new'
 import { Route as AppIdSphereChatChatIdRouteImport } from './routes/$appId_.sphere/chat/$chatId'
+import { Route as AppIdUsersUserIdEditRouteImport } from './routes/$appId/users/user/$id.edit'
 
 const AppIdRouteRoute = AppIdRouteRouteImport.update({
   id: '/$appId',
@@ -201,10 +203,20 @@ const AppIdUsersUserIdRoute = AppIdUsersUserIdRouteImport.update({
   path: '/user/$id',
   getParentRoute: () => AppIdUsersRouteRoute,
 } as any)
+const AppIdUsersUserNewRoute = AppIdUsersUserNewRouteImport.update({
+  id: '/user/new',
+  path: '/user/new',
+  getParentRoute: () => AppIdUsersRouteRoute,
+} as any)
 const AppIdSphereChatChatIdRoute = AppIdSphereChatChatIdRouteImport.update({
   id: '/chat/$chatId',
   path: '/chat/$chatId',
   getParentRoute: () => AppIdSphereRouteRoute,
+} as any)
+const AppIdUsersUserIdEditRoute = AppIdUsersUserIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => AppIdUsersUserIdRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -233,11 +245,13 @@ export interface FileRoutesByFullPath {
   '/$appId/system/data-dict/$typeId': typeof AppIdSystemDataDictTypeIdRoute
   '/$appId/system/features/$featureId': typeof AppIdSystemFeaturesFeatureIdRoute
   '/$appId/system/features/new': typeof AppIdSystemFeaturesNewRoute
-  '/$appId/users/user/$id': typeof AppIdUsersUserIdRoute
+  '/$appId/users/user/$id': typeof AppIdUsersUserIdRouteWithChildren
+  '/$appId/users/user/new': typeof AppIdUsersUserNewRoute
   '/$appId/sphere/chat/$chatId': typeof AppIdSphereChatChatIdRoute
   '/$appId/system/data-dict/': typeof AppIdSystemDataDictIndexRoute
   '/$appId/system/features/': typeof AppIdSystemFeaturesIndexRoute
   '/$appId/users/user/': typeof AppIdUsersUserIndexRoute
+  '/$appId/users/user/$id/edit': typeof AppIdUsersUserIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof MainIndexRoute
@@ -258,11 +272,13 @@ export interface FileRoutesByTo {
   '/$appId/system/data-dict/$typeId': typeof AppIdSystemDataDictTypeIdRoute
   '/$appId/system/features/$featureId': typeof AppIdSystemFeaturesFeatureIdRoute
   '/$appId/system/features/new': typeof AppIdSystemFeaturesNewRoute
-  '/$appId/users/user/$id': typeof AppIdUsersUserIdRoute
+  '/$appId/users/user/$id': typeof AppIdUsersUserIdRouteWithChildren
+  '/$appId/users/user/new': typeof AppIdUsersUserNewRoute
   '/$appId/sphere/chat/$chatId': typeof AppIdSphereChatChatIdRoute
   '/$appId/system/data-dict': typeof AppIdSystemDataDictIndexRoute
   '/$appId/system/features': typeof AppIdSystemFeaturesIndexRoute
   '/$appId/users/user': typeof AppIdUsersUserIndexRoute
+  '/$appId/users/user/$id/edit': typeof AppIdUsersUserIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -293,11 +309,13 @@ export interface FileRoutesById {
   '/$appId/system/data-dict/$typeId': typeof AppIdSystemDataDictTypeIdRoute
   '/$appId/system/features/$featureId': typeof AppIdSystemFeaturesFeatureIdRoute
   '/$appId/system/features/new': typeof AppIdSystemFeaturesNewRoute
-  '/$appId/users/user/$id': typeof AppIdUsersUserIdRoute
+  '/$appId/users/user/$id': typeof AppIdUsersUserIdRouteWithChildren
+  '/$appId/users/user/new': typeof AppIdUsersUserNewRoute
   '/$appId_/sphere/chat/$chatId': typeof AppIdSphereChatChatIdRoute
   '/$appId/system/data-dict/': typeof AppIdSystemDataDictIndexRoute
   '/$appId/system/features/': typeof AppIdSystemFeaturesIndexRoute
   '/$appId/users/user/': typeof AppIdUsersUserIndexRoute
+  '/$appId/users/user/$id/edit': typeof AppIdUsersUserIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -328,10 +346,12 @@ export interface FileRouteTypes {
     | '/$appId/system/features/$featureId'
     | '/$appId/system/features/new'
     | '/$appId/users/user/$id'
+    | '/$appId/users/user/new'
     | '/$appId/sphere/chat/$chatId'
     | '/$appId/system/data-dict/'
     | '/$appId/system/features/'
     | '/$appId/users/user/'
+    | '/$appId/users/user/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -353,10 +373,12 @@ export interface FileRouteTypes {
     | '/$appId/system/features/$featureId'
     | '/$appId/system/features/new'
     | '/$appId/users/user/$id'
+    | '/$appId/users/user/new'
     | '/$appId/sphere/chat/$chatId'
     | '/$appId/system/data-dict'
     | '/$appId/system/features'
     | '/$appId/users/user'
+    | '/$appId/users/user/$id/edit'
   id:
     | '__root__'
     | '/$appId'
@@ -387,10 +409,12 @@ export interface FileRouteTypes {
     | '/$appId/system/features/$featureId'
     | '/$appId/system/features/new'
     | '/$appId/users/user/$id'
+    | '/$appId/users/user/new'
     | '/$appId_/sphere/chat/$chatId'
     | '/$appId/system/data-dict/'
     | '/$appId/system/features/'
     | '/$appId/users/user/'
+    | '/$appId/users/user/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -619,12 +643,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIdUsersUserIdRouteImport
       parentRoute: typeof AppIdUsersRouteRoute
     }
+    '/$appId/users/user/new': {
+      id: '/$appId/users/user/new'
+      path: '/user/new'
+      fullPath: '/$appId/users/user/new'
+      preLoaderRoute: typeof AppIdUsersUserNewRouteImport
+      parentRoute: typeof AppIdUsersRouteRoute
+    }
     '/$appId_/sphere/chat/$chatId': {
       id: '/$appId_/sphere/chat/$chatId'
       path: '/chat/$chatId'
       fullPath: '/$appId/sphere/chat/$chatId'
       preLoaderRoute: typeof AppIdSphereChatChatIdRouteImport
       parentRoute: typeof AppIdSphereRouteRoute
+    }
+    '/$appId/users/user/$id/edit': {
+      id: '/$appId/users/user/$id/edit'
+      path: '/edit'
+      fullPath: '/$appId/users/user/$id/edit'
+      preLoaderRoute: typeof AppIdUsersUserIdEditRouteImport
+      parentRoute: typeof AppIdUsersUserIdRoute
     }
   }
 }
@@ -678,15 +716,28 @@ const AppIdSystemRouteRouteChildren: AppIdSystemRouteRouteChildren = {
 const AppIdSystemRouteRouteWithChildren =
   AppIdSystemRouteRoute._addFileChildren(AppIdSystemRouteRouteChildren)
 
+interface AppIdUsersUserIdRouteChildren {
+  AppIdUsersUserIdEditRoute: typeof AppIdUsersUserIdEditRoute
+}
+
+const AppIdUsersUserIdRouteChildren: AppIdUsersUserIdRouteChildren = {
+  AppIdUsersUserIdEditRoute: AppIdUsersUserIdEditRoute,
+}
+
+const AppIdUsersUserIdRouteWithChildren =
+  AppIdUsersUserIdRoute._addFileChildren(AppIdUsersUserIdRouteChildren)
+
 interface AppIdUsersRouteRouteChildren {
   AppIdUsersIndexRoute: typeof AppIdUsersIndexRoute
-  AppIdUsersUserIdRoute: typeof AppIdUsersUserIdRoute
+  AppIdUsersUserIdRoute: typeof AppIdUsersUserIdRouteWithChildren
+  AppIdUsersUserNewRoute: typeof AppIdUsersUserNewRoute
   AppIdUsersUserIndexRoute: typeof AppIdUsersUserIndexRoute
 }
 
 const AppIdUsersRouteRouteChildren: AppIdUsersRouteRouteChildren = {
   AppIdUsersIndexRoute: AppIdUsersIndexRoute,
-  AppIdUsersUserIdRoute: AppIdUsersUserIdRoute,
+  AppIdUsersUserIdRoute: AppIdUsersUserIdRouteWithChildren,
+  AppIdUsersUserNewRoute: AppIdUsersUserNewRoute,
   AppIdUsersUserIndexRoute: AppIdUsersUserIndexRoute,
 }
 

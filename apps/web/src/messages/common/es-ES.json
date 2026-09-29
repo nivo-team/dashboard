@@ -210,7 +210,15 @@
       "aiOutputLanguageHint": "En qué idioma responde la IA; por defecto sigue la interfaz",
       "aiOutputLanguageAuto": "Seguir la interfaz",
       "aiEnabled": "Activar la IA",
-      "aiEnabledHint": "Al desactivarlo, la entrada Ask AI desaparece de la cabecera"
+      "aiEnabledHint": "Al desactivarlo, la entrada Ask AI desaparece de la cabecera",
+      "formOpenMode": "Cómo abrir el formulario",
+      "formOpenModeHint": "Cómo se abre el formulario al crear o editar datos; en móvil siempre se abre en página completa",
+      "formOpenModes": {
+        "dialog": "Modal flotante",
+        "split": "Panel dividido",
+        "page": "Página completa"
+      },
+      "currentApp": "Aplicación actual:"
     },
     "loadError": "El servicio de perfil no está disponible. Se muestra la información de inicio de sesión local.",
     "sections": {

@@ -210,7 +210,15 @@
       "aiOutputLanguageHint": "AI が答える言語。既定ではインターフェースに合わせます",
       "aiOutputLanguageAuto": "インターフェースに合わせる",
       "aiEnabled": "AI を有効にする",
-      "aiEnabledHint": "オフにするとヘッダーの「Ask AI」入口が表示されなくなります"
+      "aiEnabledHint": "オフにするとヘッダーの「Ask AI」入口が表示されなくなります",
+      "formOpenMode": "フォームの開き方",
+      "formOpenModeHint": "データの作成または編集時のフォームの開き方。モバイルでは常に独立ページへ移動します",
+      "formOpenModes": {
+        "dialog": "ダイアログ",
+        "split": "分割パネル",
+        "page": "独立ページ"
+      },
+      "currentApp": "現在のアプリ:"
     },
     "loadError": "プロフィールを取得できないため、ローカルのログイン情報を表示しています",
     "sections": {

@@ -37,6 +37,28 @@ export interface AiPageEndpointRef {
   purpose?: string
 }
 
+export interface AiPageFormFieldSpec {
+  name: string
+  label: string
+  type?: 'text' | 'number' | 'switch' | 'select' | 'tags' | string
+  description?: string
+  required?: boolean
+  options?: Array<{ value: string; label: string }>
+}
+
+export interface AiPageFormSpec {
+  /** 表单标识 */
+  id: string
+  /** 表单名称，如「新建用户」 */
+  title: string
+  /** 触发此表单的操作类型 */
+  action: 'create' | 'edit'
+  /** 说明用途 */
+  description?: string
+  /** 支持填写的字段定义（让 AI 在表单打开前即可得知字段名称与结构） */
+  fields?: AiPageFormFieldSpec[]
+}
+
 export interface AiPageContextSpec {
   /** 这个页面是干什么的（一句话，给模型看） */
   description: string
@@ -44,6 +66,8 @@ export interface AiPageContextSpec {
   endpoints?: AiPageEndpointRef[]
   /** 页面上的关键实体 / 术语，帮模型把用户的话对上这个页面的概念 */
   entities?: string[]
+  /** 当前页面可操作的表单定义清单 */
+  forms?: AiPageFormSpec[]
 }
 
 /**

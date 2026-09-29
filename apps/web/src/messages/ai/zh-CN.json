@@ -79,7 +79,9 @@
     "call_write_api": "修改数据接口",
     "list_page_forms": "查看页面表单",
     "fill_form": "填写表单",
-    "submit_form": "提交表单"
+    "submit_form": "提交表单",
+    "open_form": "唤起表单",
+    "manage_tasks": "任务规划"
   },
   "approvalTitle": "这个操作需要你确认",
   "approve": "允许一次",
@@ -110,5 +112,10 @@
     "input": "参数",
     "output": "结果",
     "error": "错误"
+  },
+  "taskCard": {
+    "title": "任务推进计划",
+    "completedTitle": "已完成任务清单",
+    "running": "进行中…"
   }
 }

@@ -48,6 +48,7 @@ import {
   type AiComposerMode,
   type AiReasoningLevel,
 } from '#/lib/store'
+import { AiFloatingTaskCard } from '#/components/ai-task-card'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 
 export interface AiComposerProps {
@@ -670,19 +671,21 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
   }
 
   return (
-    <div
-      // 两块浮层（「+」动作菜单与 `@` 面板）的锚点 —— 它们都贴在这一层的上沿浮出来
-      ref={composerRef}
-      // 粘贴收图挂在外层：事件从 textarea 冒泡上来，不必给 Kumo 的 Textarea 透传 onPaste
-      onPaste={handlePaste}
-      className={cn(
-        // `relative` 只用于内部绝对定位（附件卡片的删除按钮）；浮层由 Kumo portal 出去、以本层为锚点
-        'relative flex flex-col rounded-2xl bg-kumo-control ring-1 ring-kumo-line transition-all',
-        // 焦点态：整块外框换成品牌色细环（`ring-1` 无变体、`has-[…]` 带变体，后者在后、能覆盖）
-        'has-[textarea:focus]:ring-[1.5px] has-[textarea:focus]:ring-kumo-brand/50',
-        className,
-      )}
-    >
+    <div className="flex w-full flex-col gap-2">
+      <AiFloatingTaskCard />
+      <div
+        // 两块浮层（「+」动作菜单与 `@` 面板）的锚点 —— 它们都贴在这一层的上沿浮出来
+        ref={composerRef}
+        // 粘贴收图挂在外层：事件从 textarea 冒泡上来，不必给 Kumo 的 Textarea 透传 onPaste
+        onPaste={handlePaste}
+        className={cn(
+          // `relative` 只用于内部绝对定位（附件卡片的删除按钮）；浮层由 Kumo portal 出去、以本层为锚点
+          'relative flex flex-col rounded-2xl bg-kumo-control ring-1 ring-kumo-line transition-all',
+          // 焦点态：整块外框换成品牌色细环（`ring-1` 无变体、`has-[…]` 带变体，后者在后、能覆盖）
+          'has-[textarea:focus]:ring-[1.5px] has-[textarea:focus]:ring-kumo-brand/50',
+          className,
+        )}
+      >
       <Textarea
         ref={textareaRef}
         value={value}
@@ -1289,6 +1292,7 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
           </Tooltip>
         )}
       </div>
+    </div>
     </div>
   )
 }

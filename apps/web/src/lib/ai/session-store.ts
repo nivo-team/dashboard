@@ -9,6 +9,7 @@ import {
   setActiveSessionId,
   type AiSessionSummary,
 } from './session-db'
+import { clearSessionGrants } from './session-permissions'
 import type {
   AiApprovalRequest,
   AiAttachment,
@@ -404,6 +405,7 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
 
   removeSession: async (sessionId) => {
     const appId = getAppScope()
+    clearSessionGrants(sessionId)
     await deleteSessionFromDb(sessionId, appId)
     const sessions = await listSessions(appId)
 

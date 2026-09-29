@@ -210,7 +210,15 @@
       "aiOutputLanguageHint": "AI 用什么语言回答；默认跟随界面语言",
       "aiOutputLanguageAuto": "跟随界面语言",
       "aiEnabled": "启用 AI",
-      "aiEnabledHint": "关掉后顶栏不再显示「Ask AI」入口"
+      "aiEnabledHint": "关掉后顶栏不再显示「Ask AI」入口",
+      "formOpenMode": "表单打开方式",
+      "formOpenModeHint": "新建或编辑数据时表单的打开方式；移动端始终跳转独立页面",
+      "formOpenModes": {
+        "dialog": "弹窗录入",
+        "split": "分屏协同",
+        "page": "独立页面"
+      },
+      "currentApp": "当前应用："
     },
     "loadError": "资料接口暂不可用，当前展示本地登录信息",
     "sections": {

@@ -1,7 +1,9 @@
 import { getQueryClient } from '#/lib/query-client'
 import { getActiveModel, usePreferencesStore } from '#/lib/store'
-import { listAiForms } from './form-bridge'
+import { hasPageFormCapability, listAiForms } from './form-bridge'
 import { getAiShellBridge, getPageContext } from './page-context'
+import { resolveAiPageContext } from './page-context-registry'
+import { addSessionGrant, hasSessionGrant } from './session-permissions'
 import { useAiSessionStore } from './session-store'
 import { getAllowedTools } from './tools'
 import type {
@@ -31,14 +33,6 @@ const approvalResolvers = new Map<
   (approved: boolean, remember: boolean) => void
 >()
 
-/**
- * 本会话内已经「不再询问」的工具名。
- *
- * **只存内存、刷新即失效**（对齐 fx.sh 的会话级 grant）：写操作的免确认不该跨会话延续，
- * 否则用户某天点过一次「不再询问」，之后就再也看不到确认了。
- */
-const sessionGrants = new Set<string>()
-
 function createApprovalId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID()
@@ -53,13 +47,18 @@ function createApprovalId(): string {
  * 拿到 `false` 就抛错（让模型知道用户不同意，并在 system 提示里被告知不要重试）。
  */
 function requestApproval(request: AiApprovalRequest): Promise<boolean> {
-  if (sessionGrants.has(request.toolName)) return Promise.resolve(true)
+  const activeSessionId = useAiSessionStore.getState().activeSessionId
+  if (hasSessionGrant(request.toolName, activeSessionId)) {
+    return Promise.resolve(true)
+  }
 
   const id = createApprovalId()
   return new Promise<boolean>((resolve) => {
     approvalResolvers.set(id, (approved, remember) => {
       approvalResolvers.delete(id)
-      if (approved && remember) sessionGrants.add(request.toolName)
+      if (approved) {
+        addSessionGrant(request.toolName, activeSessionId, remember)
+      }
       resolve(approved)
     })
     useAiSessionStore.getState().setPendingApproval({ id, ...request })
@@ -177,12 +176,17 @@ export async function sendAiMessage(
     */
     const outputLocale = aiOutputLanguage === 'auto' ? locale : aiOutputLanguage
 
+    const pageSpec = resolveAiPageContext(getPageContext().routePath)
+    const hasForms =
+      hasPageFormCapability() ||
+      Boolean(pageSpec?.forms && pageSpec.forms.length > 0)
+
     const stream = streamAssistantTurn({
       messages,
       mode,
-      // 页面上没有表单时不必带表单工具的定义（每轮固定开销，见 getAllowedTools）
+      // 页面具备表单能力或已挂载表单时，保留表单工具
       tools: getAllowedTools(aiPermission, aiAllowedTools, {
-        hasForms: listAiForms().length > 0,
+        hasForms,
       }),
       outputLocale,
       toolContext: buildToolContext(mode),

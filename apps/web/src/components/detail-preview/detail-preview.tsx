@@ -73,8 +73,12 @@ export interface DetailPreviewRequest {
   title: ReactNode
   /** 标题下的次要信息（建议用等宽 ID） */
   description?: ReactNode
+  /** 显式覆盖打开方式（如 split / sheet），缺省时使用用户偏好中的 detailOpenMode */
+  mode?: DetailOpenMode
   /** 点击「展开」要去的地方：**由调用方负责导航**，Provider 只管关浮层 */
   onExpand: () => void
+  /** 面板关闭回调（点击关闭按钮或关闭浮层时触发） */
+  onClose?: () => void
   /** 面板主体：复用详情组件 */
   render: (args: DetailPreviewRenderArgs) => ReactNode
 }
@@ -216,43 +220,50 @@ export function DetailPreviewProvider({ children }: { children: ReactNode }) {
     panelRef,
   })
 
-  /** 移动端不支持任何浮层：整体降级为跳转详情页（见文件头注释第 3 条）。 */
-  const mode: DetailOpenMode = isMobile ? 'page' : configuredMode
+  /** 当前生效的模式：请求优先，否则使用偏好配置；移动端强制 page */
+  const effectiveMode: DetailOpenMode = isMobile
+    ? 'page'
+    : (request?.mode ?? configuredMode)
 
-  const close = useCallback(() => setIsOpen(false), [])
+  const close = useCallback(() => {
+    setIsOpen(false)
+    request?.onClose?.()
+  }, [request])
 
   const open = useCallback(
     (next: DetailPreviewRequest) => {
-      if (mode === 'page') {
+      const targetMode = isMobile ? 'page' : (next.mode ?? configuredMode)
+      if (targetMode === 'page') {
         next.onExpand()
         return
       }
       setRequest(next)
       setIsOpen(true)
     },
-    [mode],
+    [isMobile, configuredMode],
   )
 
   /**
-   * 路由一旦变化（点侧边栏、面包屑、浏览器前进后退），浮层里挂的就不再是当前页面的对象，
-   * 直接收掉。用 ref 跳过首次渲染 —— 挂载时本来就没有浮层，不需要「关闭」。
+   * 路由页面路径一旦变化（点侧边栏、面包屑、非同页导航），浮层收起。
+   * 注意只看 pathname，不看 search 参数 —— 否则 URL query 参数变化会误关分屏浮层。
    */
-  const lastHrefRef = useRef<string | null>(null)
+  const lastPathnameRef = useRef<string | null>(null)
   useEffect(() => {
-    if (lastHrefRef.current === null) {
-      lastHrefRef.current = location.href
+    if (lastPathnameRef.current === null) {
+      lastPathnameRef.current = location.pathname
       return
     }
-    if (lastHrefRef.current !== location.href) {
-      lastHrefRef.current = location.href
+    if (lastPathnameRef.current !== location.pathname) {
+      lastPathnameRef.current = location.pathname
       setIsOpen(false)
+      request?.onClose?.()
     }
-  }, [location.href])
+  }, [location.pathname, request])
 
   /** 偏好被改成「跳转详情页」（或在设置页把视口拖窄）时，已打开的浮层要跟着收掉。 */
   useEffect(() => {
-    if (mode === 'page') setIsOpen(false)
-  }, [mode])
+    if (effectiveMode === 'page') setIsOpen(false)
+  }, [effectiveMode])
 
   /** 「展开」：先关浮层再导航，避免路由切换与浮层关闭两个动画叠在一起。 */
   const handleExpand = useCallback(() => {
@@ -262,16 +273,16 @@ export function DetailPreviewProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<DetailPreviewContextValue>(
     () => ({
-      mode,
+      mode: effectiveMode,
       isOpen,
       activeKey: isOpen ? (request?.key ?? null) : null,
       open,
       close,
     }),
-    [mode, isOpen, request, open, close],
+    [effectiveMode, isOpen, request, open, close],
   )
 
-  const variant: DetailPreviewVariant = mode === 'sheet' ? 'sheet' : 'split'
+  const variant: DetailPreviewVariant = effectiveMode === 'sheet' ? 'sheet' : 'split'
   const showSplit = isOpen && variant === 'split'
 
   return (

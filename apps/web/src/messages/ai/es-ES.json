@@ -79,7 +79,9 @@
     "call_write_api": "API de modificación de datos",
     "list_page_forms": "Ver formularios",
     "fill_form": "Rellenar formulario",
-    "submit_form": "Enviar formulario"
+    "submit_form": "Enviar formulario",
+    "open_form": "Abrir formulario",
+    "manage_tasks": "Planificación de tareas"
   },
   "approvalTitle": "Esta acción necesita tu confirmación",
   "approve": "Permitir una vez",
@@ -110,5 +112,10 @@
     "input": "Argumentos",
     "output": "Resultado",
     "error": "Error"
+  },
+  "taskCard": {
+    "title": "Plan de ejecución de tareas",
+    "completedTitle": "Tareas completadas",
+    "running": "En curso…"
   }
 }

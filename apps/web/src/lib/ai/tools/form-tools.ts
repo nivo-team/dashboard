@@ -1,16 +1,124 @@
-import { findAiForm, listAiForms } from '../form-bridge'
+import { findAiForm, listAiForms, openPageForm } from '../form-bridge'
+import { resolveActivePageCapabilities } from '../page-capabilities'
+import { hasSessionGrant } from '../session-permissions'
+import { useAiSessionStore } from '../session-store'
 import type { AiToolDefinition } from '../types'
 
 /**
- * 「表单」类工具：列字段 → 填值 → （审批后）提交。
+ * 「表单」类工具：唤起表单 → 列字段 → 填值 → （审批后）提交。
  *
- * 三者的权限等级不同，正好对应三种语义：
- * - `list_page_forms` / `fill_form` 是 `read` / `act`：看一眼、改改表单内容，不碰服务端；
+ * 权限等级：
+ * - `open_form` / `list_page_forms` / `fill_form` 是 `act` / `read`：打开表单、看一眼、改改表单内容，不碰服务端；
  * - `submit_form` 是 `commit`：**执行前必须过审批**，用户点了才会真正发请求。
  *
  * 填表的边界收在「表单自己声明的字段」里：模型编出来的字段名一律拒绝（`ignored`），
  * 否则它可以把任意键写进业务 state。
  */
+
+export const openFormTool: AiToolDefinition = {
+  name: 'open_form',
+  description:
+    '在当前页面打开新增或编辑表单，并支持同时预填字段内容。当用户要求「新建 XX / 创建 XX / 编辑 XX」时调用此工具，传入 action（create 或 edit）、可选 id、以及可选要直接填入的 values 键值对。',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      action: {
+        type: 'string',
+        enum: ['create', 'edit'],
+        description: '操作类型：create（新建）或 edit（编辑）',
+      },
+      id: {
+        type: 'string',
+        description: '要编辑的对象 ID（仅 action=edit 时提供）',
+      },
+      values: {
+        type: 'object',
+        description:
+          '可选：要在打开表单时直接写入/预填的字段键值对，例如 {"nickname": "张伟", "email": "zhangwei@example.com"}',
+        additionalProperties: true,
+      },
+    },
+    required: ['action'],
+    additionalProperties: false,
+  },
+  access: 'act',
+  group: 'form',
+  execute: async (input, ctx) => {
+    const rawAction = (input as { action?: string }).action
+    const action = rawAction === 'edit' ? 'edit' : 'create'
+    const rawId = (input as { id?: string }).id
+    const id = rawId ? String(rawId).trim() : undefined
+    const rawValues = (input as { values?: Record<string, unknown> }).values
+    const values =
+      rawValues && typeof rawValues === 'object' && !Array.isArray(rawValues)
+        ? rawValues
+        : undefined
+
+    // 权限前置询问：在表单打开前先向用户申请权限。
+    // 得到用户同意后，再打开弹窗/分屏并填入数据，彻底避免弹窗遮罩覆盖会话导致无法点击卡片的问题
+    const activeSessionId = useAiSessionStore.getState().activeSessionId
+    const isGranted =
+      hasSessionGrant('open_form', activeSessionId) ||
+      hasSessionGrant('group:form', activeSessionId)
+
+    if (!isGranted && (ctx.mode === 'ask' || values)) {
+      const pageCtx = ctx.getPageContext()
+      const capabilities = resolveActivePageCapabilities(pageCtx.routePath)
+      const formSpec = capabilities?.forms?.find(
+        (f) => f.action === action || f.id.includes(action),
+      )
+      const formTitle =
+        formSpec?.title || (action === 'create' ? '新建数据' : '编辑数据')
+
+      const approved = await ctx.requestApproval({
+        toolName: 'open_form',
+        input: {
+          action: formTitle,
+          ...(id ? { id } : {}),
+          ...(values ? { values } : {}),
+        },
+        reason: `准备在页面上打开「${formTitle}」${values ? '并自动填入数据' : ''}`,
+      })
+      if (!approved) {
+        throw new Error('用户取消了操作，表单未打开。')
+      }
+    }
+
+    // 尝试调用当前页面注册的唤起器（得到授权后，在界面上弹出表单并填充初始数据）
+    const opened = openPageForm({ action, id, initialValues: values })
+    if (opened) {
+      return {
+        ok: true,
+        action,
+        id,
+        values,
+        note: values
+          ? `已在当前页面唤起${action === 'create' ? '新建' : '编辑'}表单并自动填入初始数据。请向用户核对内容，确认后可调用 submit_form 提交。`
+          : `已在当前页面唤起${action === 'create' ? '新建' : '编辑'}表单。请继续调用 list_page_forms 获取表单字段，并用 fill_form 填写数据。`,
+      }
+    }
+
+    // 3. 兜底方案：通过 URL 导航驱动唤起
+    const pageCtx = ctx.getPageContext()
+    const path = pageCtx.path || ''
+    if (path) {
+      const qs =
+        action === 'create'
+          ? 'form=create'
+          : `form=edit&formId=${encodeURIComponent(id || '')}`
+      const target = path.includes('?') ? `${path}&${qs}` : `${path}?${qs}`
+      ctx.navigate(target)
+      return {
+        ok: true,
+        action,
+        id,
+        note: `已通过 URL 打开${action === 'create' ? '新建' : '编辑'}表单。`,
+      }
+    }
+
+    throw new Error('当前页面不支持唤起表单，请先确认所在页面。')
+  },
+}
 
 export const listPageFormsTool: AiToolDefinition = {
   name: 'list_page_forms',
@@ -156,20 +264,41 @@ export const submitFormTool: AiToolDefinition = {
     }
 
     /*
-      审批策略**只看模式**（权限那一维已经在挑工具集时生效了）：
-
-      - `ask`：一律确认，并把「标题 + 当前表单值」一起展示 —— 用户要能看清这次提交什么；
-      - `auto`：**不问**。上面那道 `canSubmit()` 已经把过关了（表单自己声明"校验通过、
-        而且确实有改动"），那就是「信息足够」最可靠的可判定表达 —— 让模型自述"我信息够了"
-        是不可信的。再弹一次确认，这个模式就等于没做。
-
-      对照 `call_write_api`：通用写接口没有可预览的表单，两个模式都要确认。
+      从页面能力声明中检索该表单的提交规格与审批策略
     */
-    if (ctx.mode === 'ask') {
+    const pageCtx = ctx.getPageContext()
+    const capabilities = resolveActivePageCapabilities(pageCtx.routePath)
+    const formSpec = capabilities?.forms?.find(
+      (f) =>
+        f.id === formId ||
+        formId.startsWith(f.id) ||
+        (formId.includes('create') && f.action === 'create') ||
+        (formId.includes('edit') && f.action === 'edit'),
+    )
+
+    /*
+      审批策略：
+      - 若页面能力规格明确声明了 requireApproval（或当前处于 ask 模式）：向用户弹出询问卡片，
+        卡片内完整回显表单标题、目标接口以及当前填写的完整 values 快照；
+      - 用户点击「允许一次」后，才真正调用 form.submit() 发起网络请求；
+      - 若用户拒绝，明确终止执行并反馈给模型。
+    */
+    const requireApproval =
+      formSpec?.submission?.requireApproval ?? (ctx.mode === 'ask' || true)
+
+    if (requireApproval) {
       const approved = await ctx.requestApproval({
         toolName: 'submit_form',
-        input: { formId, title: form.title ?? formId, values: form.getValues?.() ?? {} },
-        reason: '这会提交表单并把改动写入服务端',
+        input: {
+          formId,
+          title: formSpec?.title || form.title || formId,
+          action: formSpec?.action,
+          endpoint: formSpec?.submission?.endpoint,
+          values: form.getValues?.() ?? {},
+        },
+        reason:
+          formSpec?.submission?.approvalReason ||
+          `将「${formSpec?.title || form.title || formId}」的数据提交并写入服务端`,
       })
       if (!approved) {
         throw new Error(
@@ -180,6 +309,11 @@ export const submitFormTool: AiToolDefinition = {
 
     await form.submit()
 
-    return { ok: true, formId, note: '表单已提交。' }
+    return {
+      ok: true,
+      formId,
+      endpoint: formSpec?.submission?.endpoint,
+      note: '表单已成功提交入库。',
+    }
   },
 }

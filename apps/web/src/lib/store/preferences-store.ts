@@ -53,6 +53,22 @@ export function isDetailOpenMode(value: unknown): value is DetailOpenMode {
 }
 
 /**
+ * 表单打开方式（新建 / 编辑）：
+ * - `dialog`：**弹窗 / 抽屉** —— 居中弹窗或右侧抽屉，适合轻量快速录入；
+ * - `split`：**分屏协同** —— 列表缩到 2/3，右侧 1/3 并列内嵌表单，边看列表边录入；
+ * - `page`：**跳转独立页面** —— 导航到独立路由页面（如 new.tsx）。
+ *
+ * 移动端一律自动降级为 `page`。
+ */
+export type FormOpenMode = 'dialog' | 'split' | 'page'
+
+export const DEFAULT_FORM_OPEN_MODE: FormOpenMode = 'dialog'
+
+export function isFormOpenMode(value: unknown): value is FormOpenMode {
+  return value === 'dialog' || value === 'split' || value === 'page'
+}
+
+/**
  * 内容区的**页面宽度**（见 `#/lib/page-width`）：
  * - `full`：**全宽** —— 内容铺满外壳剩余宽度（`w-full`），宽表格一屏能看到更多列；
  * - `boxed`：**限宽居中** —— 内容收在 `max-w-[1440px]` 内并水平居中，超宽屏上阅读更聚焦。
@@ -356,6 +372,8 @@ interface PreferencesState {
   neutralColor: string
   /** 表格里打开详情的方式（桌面端限定，移动端强制 `page`） */
   detailOpenMode: DetailOpenMode
+  /** 表单打开方式：弹窗 / 分屏 / 跳转独立页面（移动端强制 `page`） */
+  formOpenMode: FormOpenMode
   /** 内容区宽度：全宽 / 限宽居中（只影响两个外壳的 `<main>`） */
   pageWidth: PageWidthMode
   /** 全屏 AI 对话页的内容宽度：跟随外观 / 全宽 / 限宽居中（只影响 `/$appId/sphere`） */
@@ -390,6 +408,7 @@ interface PreferencesState {
   setAccentColor: (accentColor: string) => void
   setNeutralColor: (neutralColor: string) => void
   setDetailOpenMode: (detailOpenMode: DetailOpenMode) => void
+  setFormOpenMode: (formOpenMode: FormOpenMode) => void
   setPageWidth: (pageWidth: PageWidthMode) => void
   setAiPageWidth: (aiPageWidth: AiPageWidthMode) => void
   setAiPanelMode: (aiPanelMode: AiPanelMode) => void
@@ -416,6 +435,7 @@ type PersistedPreferences = Pick<
   | 'accentColor'
   | 'neutralColor'
   | 'detailOpenMode'
+  | 'formOpenMode'
   | 'pageWidth'
   | 'aiPageWidth'
   | 'aiPanelMode'
@@ -448,6 +468,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       accentColor: DEFAULT_ACCENT_COLOR,
       neutralColor: DEFAULT_NEUTRAL_COLOR,
       detailOpenMode: DEFAULT_DETAIL_OPEN_MODE,
+      formOpenMode: DEFAULT_FORM_OPEN_MODE,
       pageWidth: DEFAULT_PAGE_WIDTH_MODE,
       aiPageWidth: DEFAULT_AI_PAGE_WIDTH_MODE,
       aiPanelMode: DEFAULT_AI_PANEL_MODE,
@@ -468,6 +489,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       setAccentColor: (accentColor) => set({ accentColor }),
       setNeutralColor: (neutralColor) => set({ neutralColor }),
       setDetailOpenMode: (detailOpenMode) => set({ detailOpenMode }),
+      setFormOpenMode: (formOpenMode) => set({ formOpenMode }),
       setPageWidth: (pageWidth) => set({ pageWidth }),
       setAiPageWidth: (aiPageWidth) => set({ aiPageWidth }),
       setAiPanelMode: (aiPanelMode) => set({ aiPanelMode }),
@@ -505,6 +527,7 @@ export const usePreferencesStore = create<PreferencesState>()(
         accentColor: state.accentColor,
         neutralColor: state.neutralColor,
         detailOpenMode: state.detailOpenMode,
+        formOpenMode: state.formOpenMode,
         pageWidth: state.pageWidth,
         aiPageWidth: state.aiPageWidth,
         aiPanelMode: state.aiPanelMode,
@@ -544,6 +567,9 @@ export const usePreferencesStore = create<PreferencesState>()(
           detailOpenMode: isDetailOpenMode(saved.detailOpenMode)
             ? saved.detailOpenMode
             : current.detailOpenMode,
+          formOpenMode: isFormOpenMode(saved.formOpenMode)
+            ? saved.formOpenMode
+            : current.formOpenMode,
           pageWidth: isPageWidthMode(saved.pageWidth)
             ? saved.pageWidth
             : current.pageWidth,

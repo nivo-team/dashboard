@@ -8,7 +8,7 @@ import {
   UsersIcon,
 } from '@phosphor-icons/react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { parseAsInteger, parseAsString } from 'nuqs'
+import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -19,7 +19,11 @@ import {
 } from '#/api'
 import type { GetUserData, UserItem } from '#/api'
 import { USER_FILTER_FIELDS } from '#/api/query-params.gen'
-import { useAiPageContext } from '#/lib/ai'
+import {
+  definePageCapabilities,
+  useAiFormOpener,
+  usePageCapabilities,
+} from '#/lib/ai'
 import {
   DataTable,
   createColumnHelper,
@@ -34,7 +38,8 @@ import type {
   SchemaColumnSpec,
   StockFeatures,
 } from '#/components/data-table'
-import { useAppTableState } from '#/lib/store'
+import { useAppTableState, usePreferencesStore } from '#/lib/store'
+import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 import { useDetailPreview } from '#/components/detail-preview'
 import { PageHeader } from '#/components/page-header'
 import {
@@ -52,6 +57,7 @@ import { DEMO_USERS } from './-data/demo-users'
 import { useFormatTimestamp } from './-data/user-display'
 import { UserDetailView } from './-components/user-detail-view'
 import { UserFormDialog } from './-components/user-form-dialog'
+import { getUserFormMetadata, UserFormView } from './-components/user-form-view'
 
 /**
  * 用户运营 / 用户列表（/$appId/users/user）
@@ -106,38 +112,145 @@ const USER_FILTER_PARSERS = defineFilterParsers<GetUserData['query']>()({
   logintime_max: parseAsInteger,
 })
 
+/**
+ * 页面能力声明（标准 JSON 规格）：
+ * 向系统与 AI 声明当前页面的全套能力（查询、表单、批量动作、接口），
+ * 底层统一经过 filterPageCapabilities 集中权限过滤（遵循铁律 4）。
+ */
+const USER_PAGE_CAPABILITIES = definePageCapabilities({
+  routeId: Route.id,
+  title: '用户列表与管理',
+  description:
+    '分页浏览用户，支持关键词搜索、多字段精确/范围筛选、排序、增删改查；点击行可打开详情，支持 AI 自动填表与新建。',
+  entities: ['用户', '昵称', '邮箱', '注册时间'],
+  forms: [
+    {
+      id: 'user-form-create',
+      title: '新建用户',
+      action: 'create',
+      permission: 'user:create',
+      description: '录入新用户的昵称、邮箱与头像',
+      submission: {
+        endpoint: { method: 'POST', path: '/user' },
+        submitLabel: '创建用户',
+        requireApproval: true,
+        approvalReason: '将填好的新用户档案提交至服务端入库',
+      },
+      fields: [
+        {
+          name: 'nickname',
+          label: '用户昵称',
+          type: 'text',
+          required: true,
+          description: '必填，用户昵称',
+        },
+        {
+          name: 'email',
+          label: '邮箱地址',
+          type: 'text',
+          description: '选填，邮箱地址',
+        },
+        {
+          name: 'avatar_url',
+          label: '头像 URL',
+          type: 'text',
+          description: '选填，头像图片链接',
+        },
+      ],
+    },
+    {
+      id: 'user-form-edit',
+      title: '编辑用户',
+      action: 'edit',
+      permission: 'user:edit',
+      description: '修改指定用户的资料信息',
+      submission: {
+        endpoint: { method: 'PUT', path: '/user' },
+        submitLabel: '保存修改',
+        requireApproval: true,
+        approvalReason: '将修改后的用户资料保存至服务端',
+      },
+      fields: [
+        {
+          name: 'nickname',
+          label: '用户昵称',
+          type: 'text',
+          required: true,
+          description: '用户昵称',
+        },
+        {
+          name: 'email',
+          label: '邮箱地址',
+          type: 'text',
+          description: '邮箱地址',
+        },
+        {
+          name: 'avatar_url',
+          label: '头像 URL',
+          type: 'text',
+          description: '头像图片链接',
+        },
+      ],
+    },
+  ],
+  actions: [
+    {
+      id: 'batch-delete',
+      title: '批量删除用户',
+      type: 'batch-delete',
+      permission: 'user:delete',
+      description: '多选勾选若干用户后，调用批量删除接口移除',
+    },
+    {
+      id: 'single-delete',
+      title: '单项删除用户',
+      type: 'delete',
+      permission: 'user:delete',
+      description: '在行操作菜单中删除单个用户',
+    },
+    {
+      id: 'export-csv',
+      title: '导出用户数据',
+      type: 'export',
+      permission: 'user:export',
+      description: '将勾选的或当前可见的用户列表导出为 CSV 文件',
+    },
+  ],
+  endpoints: [
+    {
+      method: 'GET',
+      path: '/user',
+      purpose: '分页查询用户列表；支持 kw、多字段 filter 与排序',
+    },
+    {
+      method: 'POST',
+      path: '/user',
+      permission: 'user:create',
+      purpose: '新建用户',
+    },
+    {
+      method: 'PUT',
+      path: '/user',
+      permission: 'user:edit',
+      purpose: '编辑更新用户',
+    },
+    {
+      method: 'DELETE',
+      path: '/user/{id}',
+      permission: 'user:delete',
+      purpose: '单项删除用户',
+    },
+    {
+      method: 'POST',
+      path: '/user/batch-delete',
+      permission: 'user:delete',
+      purpose: '批量删除用户',
+    },
+  ],
+})
+
 function UserListPage() {
-  useAiPageContext(Route.id, {
-    description: '用户列表：分页浏览用户，支持关键词搜索、多字段精确/范围筛选、排序、增删改查；点击行可打开详情。',
-    entities: ['用户', '昵称', '邮箱', '注册时间'],
-    endpoints: [
-      {
-        method: 'GET',
-        path: '/user',
-        purpose: '分页查询用户列表；支持 kw、多字段 filter 与排序',
-      },
-      {
-        method: 'POST',
-        path: '/user',
-        purpose: '新建用户',
-      },
-      {
-        method: 'PUT',
-        path: '/user',
-        purpose: '编辑更新用户',
-      },
-      {
-        method: 'DELETE',
-        path: '/user/{id}',
-        purpose: '单项删除用户',
-      },
-      {
-        method: 'POST',
-        path: '/user/batch-delete',
-        purpose: '批量删除用户',
-      },
-    ],
-  })
+  usePageCapabilities(USER_PAGE_CAPABILITIES)
 
   const { t } = useTranslation('users')
   const navigate = useNavigate()
@@ -145,6 +258,9 @@ function UserListPage() {
   const { currentApp } = useAuth()
   const appId = currentApp?.id || DEFAULT_APP_ID
   const formatTimestamp = useFormatTimestamp()
+
+  const formOpenMode = usePreferencesStore((s) => s.formOpenMode)
+  const isMobile = useIsMobileViewport()
 
   // 1. 使用通用 useTableQuery 托管查询驱动状态（URL State，nuqs 驱动 + 类型严格推导）
   const {
@@ -162,12 +278,28 @@ function UserListPage() {
     defaultSortOrder: 'desc',
   })
 
+  // 2. 表单打开状态同步存储到 URL（支持分享、刷新复现，以及由 AI 直接唤起）
+  const [formState, setFormState] = useQueryStates(
+    {
+      form: parseAsStringLiteral(['create', 'edit'] as const),
+      formId: parseAsInteger,
+    },
+    {
+      history: 'replace',
+      shallow: false,
+      clearOnDefault: true,
+    },
+  )
+
+  // 表单预填数据（供 AI open_form 传入初始值时预填到表单）
+  const [formInitialData, setFormInitialData] = useState<UserItem | null>(null)
+
   // 筛选弹窗草稿状态
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [filterDraft, setFilterDraft] = useState<FilterCondition[]>([])
   const [focusConditionId, setFocusConditionId] = useState<string | null>(null)
 
-  // 2. 本机视觉偏好留在 Zustand 持久化（按应用隔离）
+  // 3. 本机视觉偏好留在 Zustand 持久化（按应用隔离）
   const [columnVisibility, setColumnVisibility] = useAppTableState<ColumnVisibilityState>(
     'users/user',
     'columnVisibility',
@@ -183,11 +315,7 @@ function UserListPage() {
   const [isDemoMode, setIsDemoMode] = useState(false)
   const hasDataRef = useRef(false)
 
-  // CRUD 弹窗状态
-  const [formDialogOpen, setFormDialogOpen] = useState(false)
-  const [formDialogMode, setFormDialogMode] = useState<'create' | 'edit'>('create')
-  const [editingUser, setEditingUser] = useState<UserItem | null>(null)
-
+  // 删除弹窗状态
   const [singleDeleteOpen, setSingleDeleteOpen] = useState(false)
   const [deletingUser, setDeletingUser] = useState<UserItem | null>(null)
   const [singleDeleteLoading, setSingleDeleteLoading] = useState(false)
@@ -285,6 +413,121 @@ function UserListPage() {
     void fetchUsers()
   }, [fetchUsers])
 
+  const openFormSplit = useCallback(
+    (
+      mode: 'create' | 'edit',
+      id?: number | null,
+      initialData?: UserItem | null,
+    ) => {
+      const isEdit = mode === 'edit'
+      const meta = getUserFormMetadata(mode, t)
+      openPreview({
+        key: isEdit ? `form-edit-${id}` : 'form-create',
+        title: meta.title,
+        description:
+          isEdit && id ? `${meta.description} (ID ${id})` : meta.description,
+        mode: 'split',
+        onExpand: () => {
+          navigate({
+            to: isEdit
+              ? '/$appId/users/user/$id/edit'
+              : '/$appId/users/user/new',
+            params: isEdit
+              ? { appId, id: String(id) }
+              : { appId },
+          })
+        },
+        onClose: () => {
+          void setFormState({ form: null, formId: null })
+          setFormInitialData(null)
+        },
+        render: ({ close }) => (
+          <UserFormView
+            variant="split"
+            mode={mode}
+            userId={id}
+            initialData={initialData ?? formInitialData}
+            onSuccess={() => {
+              close()
+              void setFormState({ form: null, formId: null })
+              setFormInitialData(null)
+              void fetchUsers()
+            }}
+            onClose={() => {
+              close()
+              void setFormState({ form: null, formId: null })
+              setFormInitialData(null)
+            }}
+          />
+        ),
+      })
+    },
+    [appId, navigate, openPreview, fetchUsers, setFormState, formInitialData, t],
+  )
+
+  // 打开新建表单（根据 formOpenMode 偏好自动分流到独立路由、分屏或弹窗）
+  const handleOpenCreateForm = useCallback(
+    (initialValues?: Partial<UserItem> | null) => {
+      const initData = initialValues
+        ? ({ id: 0, nickname: '', ...initialValues } as UserItem)
+        : null
+      setFormInitialData(initData)
+      if (formOpenMode === 'page' || isMobile) {
+        navigate({ to: '/$appId/users/user/new', params: { appId } })
+      } else {
+        void setFormState({ form: 'create', formId: null })
+        if (formOpenMode === 'split') {
+          openFormSplit('create', null, initData)
+        }
+      }
+    },
+    [formOpenMode, isMobile, navigate, appId, setFormState, openFormSplit],
+  )
+
+  // 打开编辑表单（根据 formOpenMode 偏好自动分流）
+  const handleOpenEditForm = useCallback(
+    (user: UserItem, initialValues?: Partial<UserItem> | null) => {
+      const mergedUser = initialValues ? { ...user, ...initialValues } : user
+      setFormInitialData(mergedUser)
+      if (formOpenMode === 'page' || isMobile) {
+        navigate({
+          to: '/$appId/users/user/$id/edit',
+          params: { appId, id: String(user.id) },
+        })
+      } else {
+        void setFormState({ form: 'edit', formId: user.id })
+        if (formOpenMode === 'split') {
+          openFormSplit('edit', user.id, mergedUser)
+        }
+      }
+    },
+    [formOpenMode, isMobile, navigate, appId, setFormState, openFormSplit],
+  )
+
+  // 注册让 AI 能够直接打开当前页面的新建或编辑表单（并支持携带预填字段）
+  useAiFormOpener(
+    useCallback(
+      ({ action, id, initialValues }) => {
+        if (action === 'create') {
+          handleOpenCreateForm(initialValues as Partial<UserItem>)
+        } else if (action === 'edit' && id) {
+          handleOpenEditForm(
+            { id: Number(id), nickname: '' },
+            initialValues as Partial<UserItem>,
+          )
+        }
+      },
+      [handleOpenCreateForm, handleOpenEditForm],
+    ),
+  )
+
+  // 当处于 split 偏好且 URL 带有 form 状态时，在右侧分屏内展开 UserFormView
+  useEffect(() => {
+    if (formOpenMode === 'split' && formState.form) {
+      openFormSplit(formState.form, formState.formId)
+    }
+  }, [formState.form, formState.formId, formOpenMode, openFormSplit])
+
   const handleFiltersOpenChange = (open: boolean) => {
     setFiltersOpen(open)
     if (open) {
@@ -360,6 +603,11 @@ function UserListPage() {
       if (user.id === undefined || user.id === null) return
       const id = String(user.id)
 
+      // 查看详情时，若此前处于表单打开状态，清理表单 URL 状态，解除两者的面板互斥
+      if (formState.form) {
+        void setFormState({ form: null, formId: null })
+      }
+
       openPreview({
         key: id,
         title: user.nickname || t('cell.unnamed', '未设置昵称'),
@@ -373,7 +621,7 @@ function UserListPage() {
         render: () => <UserDetailView id={id} variant="preview" />,
       })
     },
-    [appId, navigate, openPreview, t],
+    [appId, formState.form, navigate, openPreview, setFormState, t],
   )
 
   const columnRenderers = useMemo<Record<string, ColumnRenderer<UserItem>>>(
@@ -497,11 +745,7 @@ function UserListPage() {
                   </DropdownMenu.Item>
                   <DropdownMenu.Item
                     icon={PencilSimple}
-                    onClick={() => {
-                      setFormDialogMode('edit')
-                      setEditingUser(user)
-                      setFormDialogOpen(true)
-                    }}
+                    onClick={() => handleOpenEditForm(user)}
                   >
                     {t('rowActions.edit', '编辑')}
                   </DropdownMenu.Item>
@@ -522,7 +766,7 @@ function UserListPage() {
           },
         }),
       ]),
-    [openUserDetail, schemaColumns, t],
+    [openUserDetail, schemaColumns, handleOpenEditForm, t],
   )
 
   const table = useTable({
@@ -621,11 +865,7 @@ function UserListPage() {
         }}
         table={table}
         actions={{
-          onAddRecord: () => {
-            setFormDialogMode('create')
-            setEditingUser(null)
-            setFormDialogOpen(true)
-          },
+          onAddRecord: handleOpenCreateForm,
           addRecordLabel: t('actions.create', '新建用户'),
           onExport: handleExportCSV,
           onRefresh: () => {
@@ -665,13 +905,23 @@ function UserListPage() {
         }}
       />
 
-      {/* 新增 / 编辑用户弹窗 */}
+      {/* 弹窗形态打开的统一表单（由 formOpenMode === 'dialog' 激活） */}
       <UserFormDialog
-        open={formDialogOpen}
-        onOpenChange={setFormDialogOpen}
-        mode={formDialogMode}
-        initialData={editingUser}
-        onSuccess={() => void fetchUsers()}
+        open={formOpenMode === 'dialog' && !!formState.form}
+        onOpenChange={(open) => {
+          if (!open) {
+            void setFormState({ form: null, formId: null })
+            setFormInitialData(null)
+          }
+        }}
+        mode={formState.form === 'edit' ? 'edit' : 'create'}
+        userId={formState.formId}
+        initialData={formInitialData}
+        onSuccess={() => {
+          void setFormState({ form: null, formId: null })
+          setFormInitialData(null)
+          void fetchUsers()
+        }}
       />
 
       {/* 单项删除二次确认 */}

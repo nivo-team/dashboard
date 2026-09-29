@@ -22,6 +22,7 @@ import {
   usePreviewAnimation,
 } from '#/components/settings-choice-preview'
 import { SettingsCard, SettingRow } from '#/components/settings-card'
+import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
 import { cn } from '#/lib/cn'
 import {
   ACCENT_COLOR_OPTIONS,
@@ -30,6 +31,7 @@ import {
   usePreferencesStore,
   useShellUiStore,
   type DetailOpenMode,
+  type FormOpenMode,
   type PageWidthMode,
   type ThemeColorOption,
 } from '#/lib/store'
@@ -122,6 +124,40 @@ const DETAIL_OPEN_MODE_OPTIONS: SettingsChoiceOption<DetailOpenMode>[] = [
 ]
 
 /**
+ * 表单打开方式（新建 / 编辑）：
+ * - `dialog`：弹窗录入（默认，轻量快捷）；
+ * - `split`：分屏协同（与列表并列）；
+ * - `page`：跳转独立页面（独立全屏路由）。
+ * 移动端始终跳转独立页面。
+ */
+const FORM_OPEN_MODE_OPTIONS: SettingsChoiceOption<FormOpenMode>[] = [
+  {
+    key: 'dialog',
+    labelKey: 'profile.settings.formOpenModes.dialog',
+    defaultLabel: '弹窗录入',
+    icon: SidebarSimpleIcon,
+  },
+  {
+    key: 'split',
+    labelKey: 'profile.settings.formOpenModes.split',
+    defaultLabel: '分屏协同',
+    icon: ColumnsIcon,
+  },
+  {
+    key: 'page',
+    labelKey: 'profile.settings.formOpenModes.page',
+    defaultLabel: '独立页面',
+    icon: ArrowSquareOutIcon,
+  },
+]
+
+const FORM_MODE_PREVIEW_LAYOUTS: Record<FormOpenMode, AppShellPreviewLayout> = {
+  dialog: { content: 'list', panel: 'cover' },
+  split: { content: 'list', panel: 'push' },
+  page: { content: 'detail', panel: 'none' },
+}
+
+/**
  * 页面宽度：两项短枚举，同样走分段控件 + 悬浮预览。
  *
  * 默认**全宽**（见 `DEFAULT_PAGE_WIDTH_MODE`）：后台页面大多是表格，列看得越多越好。
@@ -210,6 +246,43 @@ function DetailOpenModePopover({
   )
 }
 
+function FormOpenModePreview({
+  mode,
+  accentColor,
+}: {
+  mode: FormOpenMode
+  accentColor: string
+}) {
+  const layout = usePreviewAnimation(
+    APP_SHELL_PREVIEW_LIST_LAYOUT,
+    FORM_MODE_PREVIEW_LAYOUTS[mode],
+  )
+
+  return (
+    <div className="w-72">
+      <AppShellPreview layout={layout} accentColor={accentColor} />
+    </div>
+  )
+}
+
+function FormOpenModePopover({
+  mode,
+  label,
+  accentColor,
+  triggerId,
+}: {
+  mode: FormOpenMode
+  label: string
+  accentColor: string
+  triggerId: string
+}) {
+  return (
+    <SettingChoicePreview label={label} triggerId={triggerId}>
+      <FormOpenModePreview mode={mode} accentColor={accentColor} />
+    </SettingChoicePreview>
+  )
+}
+
 /**
  * 页面宽度 → 缩略图布局。
  *
@@ -284,12 +357,15 @@ function AppearanceSettingsPage() {
   const setNeutralColor = usePreferencesStore((state) => state.setNeutralColor)
   const detailOpenMode = usePreferencesStore((state) => state.detailOpenMode)
   const setDetailOpenMode = usePreferencesStore((state) => state.setDetailOpenMode)
+  const formOpenMode = usePreferencesStore((state) => state.formOpenMode)
+  const setFormOpenMode = usePreferencesStore((state) => state.setFormOpenMode)
   const pageWidth = usePreferencesStore((state) => state.pageWidth)
   const setPageWidth = usePreferencesStore((state) => state.setPageWidth)
   // 界面动效是**全局**偏好（不按应用隔离），所以在另一个 store 里
   const motionEnabled = useShellUiStore((state) => state.motionEnabled)
   const setMotionEnabled = useShellUiStore((state) => state.setMotionEnabled)
   const { locale, setLocale, supportedLocales } = useLocale()
+  const { currentApp, availableApps, selectAppAndComplete } = useAuth()
   const {
     timezone,
     setTimezone,
@@ -299,7 +375,30 @@ function AppearanceSettingsPage() {
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <PageHeader title={t('profileNav.settings', '设置')} />
+      <PageHeader
+        title={t('profileNav.settings', '设置')}
+        actions={
+          availableApps.length > 0 ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-kumo-subtle">
+                {t('profile.settings.currentApp', '当前应用：')}
+              </span>
+              <Select<string>
+                aria-label={t('profile.settings.currentApp', '当前应用')}
+                className="w-44"
+                value={currentApp?.id || availableApps[0]?.id || DEFAULT_APP_ID}
+                onValueChange={(next) => {
+                  if (next) selectAppAndComplete(next)
+                }}
+                items={availableApps.map((app) => ({
+                  value: app.id,
+                  label: app.name,
+                }))}
+              />
+            </div>
+          ) : undefined
+        }
+      />
 
       {/* 这几项本机偏好同属「通用设置」：都是即时生效、按应用隔离持久化的偏好项 */}
       <SettingsCard title={t('profile.settings.general', '通用设置')}>
@@ -426,6 +525,44 @@ function AppearanceSettingsPage() {
                           accentColor={accentColor}
                           // id 既做 trigger 的 id、也做 Root 的 triggerId，页面内唯一即可
                           triggerId={`detail-open-mode-preview-${item.key}`}
+                        />
+                      </span>
+                    ),
+                  }
+                })}
+              />
+            </div>
+          </SettingRow>
+
+          <SettingRow
+            label={t('profile.settings.formOpenMode', '表单打开方式')}
+            hint={t(
+              'profile.settings.formOpenModeHint',
+              '新建或编辑数据时表单的打开方式；移动端始终跳转独立页面',
+            )}
+          >
+            <div
+              role="group"
+              aria-label={t('profile.settings.formOpenMode', '表单打开方式')}
+            >
+              <Tabs
+                value={formOpenMode}
+                onValueChange={(next) => setFormOpenMode(next as FormOpenMode)}
+                activateOnFocus
+                tabs={FORM_OPEN_MODE_OPTIONS.map((item) => {
+                  const ItemIcon = item.icon
+                  const label = t(item.labelKey, item.defaultLabel)
+                  return {
+                    value: item.key,
+                    label: (
+                      <span className="flex items-center gap-2">
+                        <ItemIcon size={16} className="text-kumo-subtle" />
+                        <span>{label}</span>
+                        <FormOpenModePopover
+                          mode={item.key}
+                          label={label}
+                          accentColor={accentColor}
+                          triggerId={`form-open-mode-preview-${item.key}`}
                         />
                       </span>
                     ),
