@@ -1,8 +1,12 @@
-import { Checkbox, LayerCard, Tabs } from '@cloudflare/kumo'
+import { Checkbox, LayerCard, Tabs, Tooltip } from '@cloudflare/kumo'
 import {
+  BrowserIcon,
+  DatabaseIcon,
   EyeIcon,
+  InfoIcon,
   ShieldCheckIcon,
   SlidersHorizontalIcon,
+  TextboxIcon,
   type Icon,
 } from '@phosphor-icons/react'
 import { useTranslation } from 'react-i18next'
@@ -46,9 +50,24 @@ const AI_PERMISSION_OPTIONS: AiPermissionOption[] = [
  * 这里不另抄名单（加工具时只改工具文件，界面自动跟上）。
  */
 const TOOL_GROUPS = [
-  { key: 'page', fallback: '页面', hintFallback: '读取当前页面、列出导航、跳转' },
-  { key: 'data', fallback: '数据', hintFallback: '查接口、读数据；写接口每次都会请你确认' },
-  { key: 'form', fallback: '表单', hintFallback: '读取页面表单、填写、提交' },
+  {
+    key: 'page',
+    fallback: '页面',
+    hintFallback: '读取当前页面、列出导航、跳转',
+    icon: BrowserIcon,
+  },
+  {
+    key: 'data',
+    fallback: '数据',
+    hintFallback: '查接口、读数据；写接口每次都会请你确认',
+    icon: DatabaseIcon,
+  },
+  {
+    key: 'form',
+    fallback: '表单',
+    hintFallback: '读取页面表单、填写、提交',
+    icon: TextboxIcon,
+  },
 ].map((group) => ({
   ...group,
   tools: AI_TOOLS.filter((tool) => tool.group === group.key),
@@ -74,7 +93,7 @@ export interface AiPermissionConfigProps {
  *
  * 两处共用同一份状态联动逻辑（预设切换继承、工具分组与勾选计算），但视觉上做出区分：
  * - 设置页（`variant="settings"`）：标准的设置卡片行布局；
- * - AI 面板（`variant="panel"`）：Tabs 居中凸显、页面/数据/表单三组工具各自独立包裹 LayerCard。
+ * - AI 面板（`variant="panel"`）：Tabs 居中凸显、页面/数据/表单三组工具各自独立包裹 LayerCard（标题与说明写在卡内）。
  */
 export function AiPermissionConfig({
   permission,
@@ -131,16 +150,10 @@ export function AiPermissionConfig({
     />
   )
 
-  const renderToolGroup = (group: (typeof TOOL_GROUPS)[number]) => {
+  const renderToolCheckboxes = (group: (typeof TOOL_GROUPS)[number]) => {
     const names = group.tools.map((tool) => tool.name)
     return (
       <Checkbox.Group
-        key={group.key}
-        legend={t(`profile.settings.aiToolGroups.${group.key}`, group.fallback)}
-        description={t(
-          `profile.settings.aiToolGroupHints.${group.key}`,
-          group.hintFallback,
-        )}
         value={checkedTools}
         disabled={locked}
         onValueChange={(next) =>
@@ -173,20 +186,42 @@ export function AiPermissionConfig({
           {renderTabs()}
         </div>
 
-        <p className="px-1 text-xs leading-snug text-kumo-subtle">
+        <p className="px-1 text-center text-xs leading-snug text-kumo-subtle">
           {t(
             'profile.settings.aiToolListHint',
             '只读与完全访问由上方档位决定；想逐项调整就切到「自定义」',
           )}
         </p>
 
-        {/* 页面、数据、表单 三组工具单独用 LayerCard 包裹 */}
+        {/* 页面、数据、表单 三组工具单独用 LayerCard 包裹：标题后附带 Info 图标，悬停 Tooltip 查看说明 */}
         <div className="flex flex-col gap-3">
-          {TOOL_GROUPS.map((group) => (
-            <LayerCard key={group.key} className="p-3">
-              {renderToolGroup(group)}
-            </LayerCard>
-          ))}
+          {TOOL_GROUPS.map((group) => {
+            const GroupIcon = group.icon
+            const hint = t(
+              `profile.settings.aiToolGroupHints.${group.key}`,
+              group.hintFallback,
+            )
+            return (
+              <LayerCard key={group.key} className="p-0">
+                <LayerCard.Secondary className="my-0 items-center gap-2 px-3.5 py-2">
+                  <GroupIcon size={16} className="text-kumo-subtle" />
+                  <span className="text-sm font-semibold text-kumo-default">
+                    {t(`profile.settings.aiToolGroups.${group.key}`, group.fallback)}
+                  </span>
+                  <Tooltip content={hint} delay={120}>
+                    <span className="flex cursor-pointer text-kumo-subtle transition-colors hover:text-kumo-default">
+                      <InfoIcon size={14} />
+                      <span className="sr-only">{hint}</span>
+                    </span>
+                  </Tooltip>
+                </LayerCard.Secondary>
+
+                <LayerCard.Primary className="gap-2.5 p-3">
+                  {renderToolCheckboxes(group)}
+                </LayerCard.Primary>
+              </LayerCard>
+            )
+          })}
         </div>
       </div>
     )
@@ -223,7 +258,35 @@ export function AiPermissionConfig({
           )}
         </p>
 
-        {TOOL_GROUPS.map(renderToolGroup)}
+        {TOOL_GROUPS.map((group) => {
+          const names = group.tools.map((tool) => tool.name)
+          return (
+            <Checkbox.Group
+              key={group.key}
+              legend={t(`profile.settings.aiToolGroups.${group.key}`, group.fallback)}
+              description={t(
+                `profile.settings.aiToolGroupHints.${group.key}`,
+                group.hintFallback,
+              )}
+              value={checkedTools}
+              disabled={locked}
+              onValueChange={(next) =>
+                onAllowedToolsChange([
+                  ...allowedTools.filter((name) => !names.includes(name)),
+                  ...next,
+                ])
+              }
+            >
+              {group.tools.map((tool) => (
+                <Checkbox.Item
+                  key={tool.name}
+                  value={tool.name}
+                  label={t(`profile.settings.aiToolNames.${tool.name}`, tool.name)}
+                />
+              ))}
+            </Checkbox.Group>
+          )
+        })}
       </div>
     </>
   )

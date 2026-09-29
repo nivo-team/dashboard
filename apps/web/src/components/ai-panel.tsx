@@ -700,6 +700,7 @@ function AiPanelSurface({
   const panelRootRef = useRef<HTMLDivElement | null>(null)
   const pointerFrame = useRef<number | null>(null)
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (view !== 'chat') return
     const { clientX, clientY } = event
     if (pointerFrame.current !== null) return
     pointerFrame.current = requestAnimationFrame(() => {
@@ -733,6 +734,21 @@ function AiPanelSurface({
     el.style.removeProperty('--ai-pointer-y')
   }
 
+  // 切到权限配置视图时清理高亮坐标与未执行的帧，避免切回对话时出现残留亮斑
+  useEffect(() => {
+    if (view !== 'chat') {
+      if (pointerFrame.current !== null) {
+        cancelAnimationFrame(pointerFrame.current)
+        pointerFrame.current = null
+      }
+      const el = panelRootRef.current
+      if (el) {
+        el.style.removeProperty('--ai-pointer-x')
+        el.style.removeProperty('--ai-pointer-y')
+      }
+    }
+  }, [view])
+
   // 卸载时把没跑完的那帧取消，别让回调去碰已经不在的元素
   useEffect(
     () => () => {
@@ -749,13 +765,15 @@ function AiPanelSurface({
       className="relative flex min-h-0 flex-1 flex-col"
     >
       {/*
-        点阵背景 + 指针高亮：**铺满整个面板**（含头行与输入区），所以它是一层独立的
-        装饰层压在内容之下 —— 下面各段因此都要 `relative`，否则会被这层盖住。
+        点阵背景 + 指针高亮：**只在对话视图下渲染**（含头行与输入区）。
+        权限配置等视图保持干净纯色背景，避免点阵干扰阅读与表单勾选。
         `pointer-events-none` 保证它不吃任何交互。
       */}
-      <div aria-hidden className="ai-dot-grid pointer-events-none absolute inset-0">
-        <div className="ai-dot-spotlight absolute inset-0" />
-      </div>
+      {view === 'chat' ? (
+        <div aria-hidden className="ai-dot-grid pointer-events-none absolute inset-0">
+          <div className="ai-dot-spotlight absolute inset-0" />
+        </div>
+      ) : null}
       {/*
         头行左侧是**会话选择器**（替换掉原来的静态标题「Ask AI」）：点开可搜索历史会话、
         切换、开新对话。`px-2` 而不是 `px-4` —— 选择器按钮自带 `px-2`，

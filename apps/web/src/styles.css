@@ -528,14 +528,15 @@ main[data-shell-content]:has([data-notfound]) [data-detail-preview-main] {
  */
 :root {
   --ai-dot-color: rgb(0 0 0 / 0.08);
-  --ai-dot-active-color: rgb(0 0 0 / 0.32);
+  /* 悬浮聚光高亮色：保持克制透明度，避免指针扫过文字时干扰阅读 */
+  --ai-dot-active-color: rgb(0 0 0 / 0.16);
   --ai-dot-size: 16px;
   --ai-spotlight-size: 150px;
 }
 
 [data-mode='dark'] {
   --ai-dot-color: rgb(255 255 255 / 0.07);
-  --ai-dot-active-color: rgb(255 255 255 / 0.38);
+  --ai-dot-active-color: rgb(255 255 255 / 0.18);
 }
 
 .ai-dot-grid {
@@ -548,8 +549,8 @@ main[data-shell-content]:has([data-notfound]) [data-detail-preview-main] {
 .ai-dot-spotlight {
   background-image: radial-gradient(
     circle,
-    var(--ai-dot-active-color) 1.5px,
-    transparent 1.5px
+    var(--ai-dot-active-color) 1.2px,
+    transparent 1.2px
   );
   background-size: var(--ai-dot-size) var(--ai-dot-size);
   background-attachment: scroll;
