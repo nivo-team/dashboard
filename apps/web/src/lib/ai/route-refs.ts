@@ -273,7 +273,7 @@ export function expandRouteRefs(text: string): string {
     text,
     '',
     '# 用户 @ 引用的位置',
-    '（用户手动指定的位置，用来说明这一轮在讲哪一块；路径可直接用于 navigate_to。）',
+    '（用户手动指定了具体页面位置。对于针对该位置的查询或查看需求，必须优先通过 navigate_to 前往该路径，并配合 update_search_params 在界面上直接呈现检索结果，切勿直接调用只读接口。）',
     ...lines,
   ].join('\n')
 }

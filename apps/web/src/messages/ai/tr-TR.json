@@ -81,7 +81,8 @@
     "fill_form": "Formu doldur",
     "submit_form": "Formu gönder",
     "open_form": "Formu Aç",
-    "manage_tasks": "Görev Planlama"
+    "manage_tasks": "Görev Planlama",
+    "update_search_params": "Arama Parametrelerini Güncelle"
   },
   "approvalTitle": "Bu işlem onayınızı gerektiriyor",
   "approve": "Bir kez izin ver",

@@ -4,6 +4,7 @@ import type { Updater } from '@tanstack/react-table'
 import type { SortingState } from '#/components/data-table'
 import type { QueryFilterField } from '#/api/query-params.gen'
 import type { FilterCondition } from '#/components/table-controls'
+import { useAiSearchParamsUpdater } from '#/lib/ai/search-params-bridge'
 import { filterConditionsToQueryPatch, queryToFilterConditions } from './filter-sync'
 import type { FilterParserConstraint } from './types'
 
@@ -56,6 +57,16 @@ export function useTableQuery<
     shallow: false,
     clearOnDefault: true,
   })
+
+  // 注册让 AI 能够直接更新当前表格的搜索与筛选参数
+  useAiSearchParamsUpdater(
+    useCallback(
+      (patch) => {
+        void setRawQuery(patch)
+      },
+      [setRawQuery],
+    ),
+  )
 
   // 2. 构造干净的 API queryParams（剔除 null、undefined 与空字符串）
   const queryParams = useMemo(() => {

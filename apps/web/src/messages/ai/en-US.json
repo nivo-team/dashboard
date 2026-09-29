@@ -81,7 +81,8 @@
     "fill_form": "Fill form",
     "submit_form": "Submit form",
     "open_form": "Open Form",
-    "manage_tasks": "Task Planning"
+    "manage_tasks": "Task Planning",
+    "update_search_params": "Update Search Params"
   },
   "approvalTitle": "This action needs your approval",
   "approve": "Allow once",

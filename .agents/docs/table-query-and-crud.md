@@ -140,6 +140,13 @@ export function useTableQuery<
 }
 ```
 
+### 3.1 AI 搜索参数桥与自动化过滤 (`update_search_params`)
+
+- `useTableQuery` 在组件挂载时，会自动调用 `useAiSearchParamsUpdater(setRawQuery)` 将自身的参数调度器注册至搜索参数桥；
+- 页面通过 `definePageCapabilities` 声明 `searchParams`（含 `keywordParam`, `sortableFields`, `paginationParams`, `filterFields`）；
+- AI 可调用 `update_search_params` 工具直接更新 URL 中的搜索词、高级过滤项、排序与分页，前端表格与控制栏实时无缝联动；
+- 该工具归入 `read` 权限等级，用户提问时无需弹窗审批，即时执行生效。
+
 ---
 
 ## 4. Mock 服务扩展规范（用户 CRUD）

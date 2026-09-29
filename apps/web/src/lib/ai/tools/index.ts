@@ -14,6 +14,7 @@ import {
 } from './form-tools'
 import { manageTasksTool } from './task-tools'
 import { requestPermissionTool } from './permission-tools'
+import { updateSearchParamsTool } from './search-tools'
 
 /**
  * 工具注册表 —— 「AI 能做什么」的**唯一真值**。
@@ -30,6 +31,7 @@ export const AI_TOOLS: readonly AiToolDefinition[] = [
   listDictOptionsTool,
   callWriteApiTool,
   navigateToTool,
+  updateSearchParamsTool,
   manageTasksTool,
   requestPermissionTool,
   openFormTool,

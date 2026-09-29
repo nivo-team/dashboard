@@ -81,7 +81,8 @@
     "fill_form": "تعبئة النموذج",
     "submit_form": "إرسال النموذج",
     "open_form": "فتح النموذج",
-    "manage_tasks": "تخطيط المهام"
+    "manage_tasks": "تخطيط المهام",
+    "update_search_params": "تحديث معلمات البحث"
   },
   "approvalTitle": "هذا الإجراء يحتاج إلى موافقتك",
   "approve": "السماح مرة واحدة",

@@ -203,5 +203,27 @@ export function formatPageContext(context: AiPageContext): string {
     }
   }
 
+  if (capabilities?.searchParams) {
+    const sp = capabilities.searchParams
+    lines.push('- 本页面支持的搜索与过滤参数（可调用 update_search_params 工具直接检索过滤）：')
+    if (sp.keywordParam) {
+      lines.push(`  * 关键词搜索：param="${sp.keywordParam}"（模糊匹配）`)
+    }
+    if (sp.sortableFields && sp.sortableFields.length > 0) {
+      lines.push(
+        `  * 排序参数：field=[${sp.sortableFields.map((f) => `"${f}"`).join(', ')}], order=["asc", "desc"]`,
+      )
+    }
+    if (sp.paginationParams && sp.paginationParams.length > 0) {
+      lines.push(`  * 分页参数：${sp.paginationParams.join(', ')}`)
+    }
+    if (sp.filterFields && sp.filterFields.length > 0) {
+      const filters = sp.filterFields
+        .map((f) => `${f.param}${f.paramTo ? `~${f.paramTo}` : ''}[${f.label}]`)
+        .join(', ')
+      lines.push(`  * 筛选过滤字段：${filters}`)
+    }
+  }
+
   return lines.filter((line): line is string => line !== null).join('\n')
 }

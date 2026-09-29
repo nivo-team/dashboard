@@ -113,6 +113,7 @@ export const getPageContextTool: AiToolDefinition = {
         ...(page.entities?.length ? { entities: page.entities } : {}),
         ...(page.forms?.length ? { forms: page.forms } : {}),
         ...(capabilities?.actions?.length ? { actions: capabilities.actions } : {}),
+        ...(capabilities?.searchParams ? { searchParams: capabilities.searchParams } : {}),
         endpoints: await Promise.all(
           (page.endpoints ?? []).map(async (ref) => {
             const spec = await findEndpointSpec(ref.method, ref.path)
@@ -169,7 +170,7 @@ export const listNavigationTool: AiToolDefinition = {
 export const navigateToTool: AiToolDefinition = {
   name: 'navigate_to',
   description:
-    '把用户带到后台的另一个页面（前端路由跳转，不刷新整页）。path 必须来自 list_navigation 的结果，或是在其基础之上的详情页路径。',
+    '把用户带到后台的特定页面（前端路由跳转）。优先级极高：当用户询问或搜索某个单模块的数据列表（如 @引用、用户列表、功能列表等），必须优先调用此工具带用户前往对应页面，并配合 update_search_params 应用搜索条件，直接在页面表格上为用户呈现！',
   inputSchema: {
     type: 'object',
     properties: {

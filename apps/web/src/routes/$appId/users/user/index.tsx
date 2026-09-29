@@ -247,6 +247,13 @@ const USER_PAGE_CAPABILITIES = definePageCapabilities({
       purpose: '批量删除用户',
     },
   ],
+  searchParams: {
+    description: '支持关键词模糊搜索、多字段精确/范围筛选、服务端排序与分页',
+    keywordParam: 'kw',
+    paginationParams: ['page', 'page_size'],
+    sortableFields: SORTABLE_FIELDS,
+    filterFields: USER_FILTER_FIELDS,
+  },
 })
 
 function UserListPage() {

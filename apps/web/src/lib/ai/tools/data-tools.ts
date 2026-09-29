@@ -54,7 +54,7 @@ function truncatePayload(value: unknown): unknown {
 export const searchApiTool: AiToolDefinition = {
   name: 'search_api',
   description:
-    '在系统的接口清单里检索接口（按关键词匹配方法与路径）。需要查数据、做统计时先用它找到接口，再用 call_read_api 取数。',
+    '在系统的接口清单里检索接口（按关键词匹配方法与路径）。仅在「跨多个模块的综合统计或多源数据汇总」（单页面无法呈现）时使用。对于单一管理页面的查询需求，优先 navigate_to 前往对应页面并在界面呈现。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -103,7 +103,7 @@ export const searchApiTool: AiToolDefinition = {
 export const callReadApiTool: AiToolDefinition = {
   name: 'call_read_api',
   description:
-    '调用一个只读（GET）业务接口取回真实数据，用于统计、核对与列举。path 必须是 search_api 返回过的接口路径。只允许 GET，写操作不可用。',
+    '调用只读（GET）业务接口取回真实数据。注意：仅在「跨多个模块的组合统计、数据对比或综合分析」（单一管理页面无法呈现）时才调用此接口在聊天框中输出表格。若是单模块单页面上的列表浏览或搜索过滤（如 @user:list、查看用户等），严禁直接调用本工具，必须优先使用 navigate_to 带用户前往该页面并使用 update_search_params 在界面上直观呈现！',
   inputSchema: {
     type: 'object',
     properties: {

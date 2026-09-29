@@ -82,6 +82,33 @@ export interface CapabilityEndpoint {
   permission?: string
 }
 
+export interface CapabilitySearchParamField {
+  param: string
+  label: string
+  type?: 'text' | 'number' | 'number-range' | 'boolean' | 'enum' | 'array' | string
+  description?: string
+  options?: readonly string[]
+  paramTo?: string
+  /** 权限标识 */
+  permission?: string
+}
+
+/**
+ * 页面搜索、筛选、排序与分页参数规格声明
+ */
+export interface CapabilitySearchParams {
+  /** 能力说明，如「支持按关键词模糊匹配、多字段精确/范围筛选、排序与分页」 */
+  description?: string
+  /** 主搜索词对应参数名，默认 'kw' */
+  keywordParam?: string
+  /** 分页参数名，默认 ['page', 'page_size'] */
+  paginationParams?: readonly string[]
+  /** 允许排序的字段名清单 */
+  sortableFields?: readonly string[]
+  /** 允许筛选的高级过滤字段清单 */
+  filterFields?: readonly CapabilitySearchParamField[]
+}
+
 /**
  * 统一页面能力规格声明（标准 JSON 结构）
  */
@@ -100,6 +127,8 @@ export interface PageCapabilitiesSpec {
   forms?: CapabilityForm[]
   /** 页面可触发的交互动作（含批量删除、导出等） */
   actions?: CapabilityAction[]
+  /** 页面支持的搜索、筛选、排序与分页参数规格 */
+  searchParams?: CapabilitySearchParams
 }
 
 export type FilteredPageCapabilities = PageCapabilitiesSpec
@@ -149,6 +178,14 @@ export function filterPageCapabilities(
     endpoints: (spec.endpoints ?? []).filter((e) => hasPerm(e.permission)),
     forms: (spec.forms ?? []).filter((f) => hasPerm(f.permission)),
     actions: (spec.actions ?? []).filter((a) => hasPerm(a.permission)),
+    searchParams: spec.searchParams
+      ? {
+          ...spec.searchParams,
+          filterFields: (spec.searchParams.filterFields ?? []).filter((f) =>
+            hasPerm(f.permission),
+          ),
+        }
+      : undefined,
   }
 }
 
