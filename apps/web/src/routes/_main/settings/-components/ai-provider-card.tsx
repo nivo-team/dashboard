@@ -1,5 +1,11 @@
 import { Badge, Button, Input, LayerDialog, Select } from '@cloudflare/kumo'
-import { PencilSimpleIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react'
+import {
+  ExportIcon,
+  PencilSimpleIcon,
+  PlusIcon,
+  TrashIcon,
+  UploadSimpleIcon,
+} from '@phosphor-icons/react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -12,6 +18,8 @@ import {
   type AiProviderConfig,
   type AiProviderKind,
 } from '#/lib/store'
+import { AiProviderExportDialog } from './ai-provider-export-dialog'
+import { AiProviderImportDialog } from './ai-provider-import-dialog'
 
 /**
  * 设置 → AI 的「模型服务」卡片：**厂商**配置（类型 / 名称 / 接口地址 / API Key）。
@@ -34,6 +42,8 @@ export function AiProviderCard() {
   /** 每次打开弹窗都换一个 key，强制重建表单 —— 避免「编辑 A 之后新增，框里还留着 A 的值」 */
   const [formSeq, setFormSeq] = useState(0)
   const [pendingDelete, setPendingDelete] = useState<AiProviderConfig | null>(null)
+  const [exportingProvider, setExportingProvider] = useState<AiProviderConfig | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
 
   const openCreate = () => {
     setEditing(null)
@@ -84,6 +94,14 @@ export function AiProviderCard() {
               <Button
                 variant="ghost"
                 size="sm"
+                icon={<ExportIcon size={14} />}
+                onClick={() => setExportingProvider(provider)}
+              >
+                {t('profile.settings.aiExportProvider', '导出')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 icon={<PencilSimpleIcon size={14} />}
                 onClick={() => openEdit(provider)}
               >
@@ -103,14 +121,24 @@ export function AiProviderCard() {
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3.5">
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={<PlusIcon size={14} />}
-          onClick={openCreate}
-        >
-          {t('profile.settings.aiAddProvider', '添加厂商')}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<PlusIcon size={14} />}
+            onClick={openCreate}
+          >
+            {t('profile.settings.aiAddProvider', '添加厂商')}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<UploadSimpleIcon size={14} />}
+            onClick={() => setImportOpen(true)}
+          >
+            {t('profile.settings.aiImportProvider', '导入配置')}
+          </Button>
+        </div>
         <p className="max-w-md text-xs text-kumo-subtle">
           {t(
             'profile.settings.aiApiKeyHint',
@@ -118,6 +146,19 @@ export function AiProviderCard() {
           )}
         </p>
       </div>
+
+      <AiProviderExportDialog
+        open={exportingProvider !== null}
+        onOpenChange={(open) => {
+          if (!open) setExportingProvider(null)
+        }}
+        provider={exportingProvider}
+      />
+
+      <AiProviderImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+      />
 
       <AiProviderDialog
         key={formSeq}
