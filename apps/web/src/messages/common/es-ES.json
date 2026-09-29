@@ -250,7 +250,8 @@
     "langPack": "Paquete de idiomas",
     "home": "Panel",
     "userOps": "Operación de usuarios",
-    "userList": "Lista de usuarios"
+    "userList": "Lista de usuarios",
+    "userDetail": "Detalle del usuario"
   },
   "notFound": {
     "backHome": "Volver al inicio",

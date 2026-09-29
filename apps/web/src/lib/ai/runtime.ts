@@ -12,6 +12,7 @@ import {
   type AiReasoningLevel,
 } from '#/lib/store'
 import { formatPageContext, getPageContext } from './page-context'
+import { expandRouteRefs } from './route-refs'
 import type {
   AiAttachment,
   AiMessage,
@@ -343,13 +344,20 @@ export function toModelMessages(messages: readonly AiMessage[]): ModelMessage[] 
   }
 
   for (const [index, message] of messages.entries()) {
-    const text = message.parts
+    /*
+      用户消息里的 `@` 引用（`@user:1234`）在这里**追加**一段「模块 / 页面 / 路径」的说明，
+      见 `#/lib/ai/route-refs`。**只对 user 消息做**：`@` 是用户打出来的约定，
+      助手自己复述一句「你可以用 @user」不该被当成引用；而且展开要用当前页面的 appId，
+      套到别的应用的历史消息上只会给出一段错的路径。
+    */
+    const rawText = message.parts
       .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
       .map((part) => part.text)
       .join('')
       .trim()
 
     if (message.role === 'user') {
+      const text = expandRouteRefs(rawText)
       /*
         附件（见 `AiAttachment`）+ 旧存档里可能残留的 `image` part，分两类走：
         - **图片** → AI SDK v7 的 `FilePart`（`{ type: 'file', mediaType, data }`；旧的 `ImagePart`
@@ -416,7 +424,7 @@ export function toModelMessages(messages: readonly AiMessage[]): ModelMessage[] 
       文本与工具调用的字段也逐个对齐了 API 契约。
     */
     const assistantContent: Array<Record<string, unknown>> = []
-    if (text) assistantContent.push({ type: 'text', text })
+    if (rawText) assistantContent.push({ type: 'text', text: rawText })
     for (const call of calls) {
       assistantContent.push({
         type: 'tool-call',

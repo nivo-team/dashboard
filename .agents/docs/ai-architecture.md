@@ -151,6 +151,14 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
 | 导航清单（能去哪） | `collectNavigation(appId)` → `list_navigation` | 模型调用工具时 |
 | 表单清单 | `listAiForms()` → `list_page_forms` | 模型调用工具时 |
 | **页面用到的接口 + 参数明细** | `resolveAiPageContext(routePath)` + `findEndpointSpec()` → `get_page_context` | 模型调用工具时 |
+| **用户 `@` 指定的位置** | `expandRouteRefs(text)`（`#/lib/ai/route-refs`），在 `toModelMessages` 里追加到 user 消息末尾 | 每轮请求 |
+
+**`@` 引用**（`@user` / `@user:list` / `@user:1234`）的展开只做一件事：把用户打的那串
+**追加**一段「模块 / 页面 / 路径」的说明（不替换原文，模型两边都能看到）。认不出来的 `@foo`
+原样留着 —— 那可能是邮箱或别的工具的约定。模块键、详情路由登记在 `AI_ROUTE_REF_SPECS`，
+名字 / 图标 / 关键词一律取自导航清单：**加模块看第 6 节**。
+**只对 user 消息展开**（助手复述一句「你可以用 `@user`」不算引用；展开还要用当前 appId，
+套到别的应用的历史消息上只会给出错的路径）。
 
 **页面级 AI 上下文**是这套设计的核心：每个页面用 `useAiPageContext(Route.id, { description,
 endpoints })` 声明「我是干什么的、我用了哪些接口」。动机是真实踩坑 —— 全局接口清单有
@@ -204,6 +212,16 @@ useAiPageContext(Route.id, {
 - **键必须用 `Route.id`**，不要手写路由字符串（重命名后会**静默失配**）；
 - **`path` 写 openapi 里的原始路径**，带不带 `/api` 都查得到；
 - **参数明细不要写**，由索引自动补。
+
+**加一个可被 `@` 引用的模块**
+
+在 `#/lib/ai/route-refs` 的 `AI_ROUTE_REF_SPECS` 里加一项：模块键（英文小写，用户要打的那个）、
+模块目录页在**导航里的相对路径**、以及它下面可引用的页面（键 + 导航路径）；
+有详情页的话再补 `record`（`param` / `template` / 名字）。**名字、图标、匹配关键词都从导航清单取**，
+这里只登记键 —— 所以不要在这里抄一遍模块名，也不要在渲染处另拼一份菜单。
+
+**别做**：把 `@` 的模块名单写进组件里；在导航之外再维护一份"有哪些模块"的清单
+（导航里没有的模块，`listRouteRefItems` 会整块跳过，这是刻意的）。
 
 **加一个偏好设置**
 
@@ -338,16 +356,28 @@ useAiPageContext(Route.id, {
   （`px-4 pt-4 pb-0`）而不是 `p-4`，免得与 Kumo 的 `py-2` 拼出多余的上下留白。
   键盘约定：`Enter` 发送、`Shift + Enter` 换行、**输入法组字中的回车要让开**
   （`event.nativeEvent.isComposing`）；发送后清空、运行中禁用提交（见第 10 节）。
-  工具行分两段：**行首的「+」菜单** + **行尾的设置按钮与提交位**。
+  工具行分两段：**行首的「+」（简单 AI 动作菜单）** + **行尾的设置按钮与提交位**。
   **面板与全屏对话页共用这一个 `AiComposer`**，只靠 `onConfigurePermissions` 区分。
-  - **「+」菜单**（`PlusIcon`，行首、模式 pill 左边；两处都给，按钮样式 `secondary`）：
-    一个 `DropdownMenu`，**目前只有一项「添加照片和文件」**，菜单项**只有标题**（一行一条，
-    与后续要加的其它能力保持一致）。**只收两类**：
+  两块浮层都**贴着整块输入区上沿**浮出来（`anchor={composerRef}` + `w-[var(--anchor-width)]`）：
+  - **行首的「+」菜单**（`PlusIcon`，模式 pill 左边；两处都给，按钮样式 `secondary`）：
+    包含三项跟本轮对话直接相关的小动作 —— **添加照片和文件**、**引用位置**（打一个 `@` 唤起命令面板）、
+    **新对话**（`startNewSession()`，流式中禁用）。
+    长度刻意压住：真正会长的那份清单（模块 / 页面 / 记录）走输入框里的 `@`，
+    模块再多也不会把这里撑爆。
+    **只收两类附件**：
     **图片**以 data URL 存进会话的 `attachment` part（`kind: 'image'`），发送时转成 v7 的 `FilePart`；
     **文本文件**（md / txt）**在客户端就解析**（`File.text()`）成 `kind: 'text'` 的 part，发送时用
     `<file name="…">` 包成文本块拼进 user 消息 —— 这样任何厂商都能读，不依赖它对文档格式的支持。
     其余类型**直接说明支持哪些**，而不是收下再让厂商报错。上限：图片 4 MB、文本 256 KB
-    （文本要吃上下文，所以严格得多），一次最多 4 个；被拦下的原因贴在输入框上（不静默丢）。
+    （文本要吃上下文，所以严格得多），**一次最多 4 个 —— 图片与文本文件共用这一个额度**
+    （`AI_MAX_ATTACHMENTS` 数的是附件总数，不给图片另开一份）。提醒**一律走 toast**
+    （`useKumoToastManager` + `notifyAttachment`，输入区里**不再常驻提示文字**），
+    且**只在真被拦下时弹**：「收不下」（太大 / 类型不支持 / **超过 4 个被截掉**）`warning`、
+    读不出来 `error`；一次手势只弹一条（`warning` 优先）。**「刚好加到满」不弹** ——
+    什么都没丢，不要拿一条提醒去打扰一次成功的操作。
+    **⚠️ 数量闸必须在 `setAttachments` 之外算**：曾把 `setAttachmentError(limit)` 写在
+    updater 里，紧接着被末尾那句「没有拦截原因」覆盖，于是那条提示从来没出现过，
+    用户只觉得多选的文件凭空少了几个 —— 有副作用的 updater 别再写第二个。
     选完或直接粘贴（`onPaste` 挂在外层框上、事件从 textarea 冒泡上来）都会进**附件预览区**：
     图片是缩略图、文本文件是卡片（文件名 + 体积），**每个附件右上角都有删除按钮** ——
     发出去之前随时能撤。模型没声明 `supportsVision` 时该项**禁用**（粘贴进来的图片也不收，
@@ -356,8 +386,22 @@ useAiPageContext(Route.id, {
     **⚠️ 文件选择器 `<input>` 必须挂在菜单外面**（根节点下常驻）：放进 `DropdownMenu.Content`
     会随菜单关闭一起卸载，而点菜单项正是「先关菜单、再开系统文件选择器」—— 元素没了，选完文件
     回来的 `change` 就没人接，表现是「选了一张图但附件区什么都没出现」（踩过这个坑）。
-    **后续的新能力也往这个菜单里加**（加一项就是一个 `DropdownMenu.Item`），所以它从一开始
-    就是菜单组件，而不是为单项写一个开关式按钮；
+  - **`@` 引用面板**（命令面板形态，用 Kumo `DropdownMenu` 拼，浮动在输入框上方）：在输入框里打 `@`
+    或点「+」里的「引用位置」都会浮出这块面板，可以引用「哪个模块 / 哪个页面 / 哪一条记录」：
+    `@user` / `@user:list` / `@user:1234`。面板按 `kind` 分段展示（添加 → 模块 → 页面 → 记录），
+    行内排版是「名字 + 灰色语法 + 右侧说明 + 选中项 Tab 提示」，找东西看名字比看语法快。
+    行的内容来自 `#/lib/ai/route-refs`（见下），**渲染处不另加名单**。键盘：`↑↓` 换行、`Enter` / `Tab` 选中、`Esc` 收起 ——
+    **必须排在「Enter 发送」之前**，否则选中那一下会顺手把消息发出去。
+    **⚠️ 这块面板的难点全在「焦点必须一直留在输入框里」**（它是输入框文字驱动的：打 `@` 出、
+    继续打字过滤），所以下面三个参数**缺一不可**：
+    `modal={false}`（菜单默认是模态的，会铺一层遮罩 + 锁页面滚动，输入框就被挡在外面了）、
+    `highlightItemOnHover={false}`（Base UI 菜单在鼠标扫过时会 focus 那一项，焦点一走输入框
+    就收不到按键了）、`DropdownMenu.Content` 上的 `onFocus` 把 Base UI 送进菜单的焦点按回来
+    （那次聚焦排在**下一帧**，只在 `useLayoutEffect` 里抢一次兜不住）。行高亮因此由我们自己的
+    `mentionActive` 画（`bg-kumo-tint`，与 Kumo 给 `data-highlighted` 的 `bg-kumo-overlay` 同色阶）。
+    **⚠️ 记录模板那一行（`@user:`）插完要压住面板**（`recordTypingRef`）：文本里还留着 `@user:`，
+    不压住的话每敲一个数字菜单都会弹回来；反过来，手打 `@user:1234` 时按普通文案匹配一条都命不中，
+    所以过滤器对「带冒号但一条都没匹配上」的情况特意保留了该模块的**记录行**；
   - **行尾设置按钮**（滑杆 `SlidersHorizontalIcon`，`size="sm"` = `compactSize.sm` 26px，
     与提交位同档才齐平；`models.length > 0 || onConfigurePermissions` 时才渲染）：
     **选择模型**（子菜单 `DropdownMenu.Sub` / `.SubTrigger` / `.SubContent`，列表来自
@@ -431,11 +475,15 @@ useAiPageContext(Route.id, {
 - 文案：面板 / 输入区 / 会话区都用 `ai` 命名空间（面板 `title` / `close` / `resize`（分屏拖柄）/
   `resizeFloat` / `resizeFloatWidth` / `resizeFloatHeight`（浮窗三个拖柄）；输入区
   `inputLabel` / `inputPlaceholder` / `send` / `mode*` / `aiSettings`（行尾设置按钮）/
-  `compose` / `addPhotoAndFiles` / `visionUnsupported`（「+」菜单与它的禁用说明）/
+  `compose` / `addPhotoAndFiles` / `aiActions` / `actionMention*` / `actionNewChatDesc` /
+  `visionUnsupported`（行首「+」动作菜单）/
   `selectModel` / `modelNone` / `modelEmpty`（模型子菜单与未配置引导）/
   `reasoning`（思考程度）+ `attachmentPreview` / `attachmentRemove` / `attachmentTooLarge`
   （带 `{{size}}` 插值）/ `attachmentReadFailed` / `attachmentLimit` / `attachmentUnsupported`
-  （附件预览与拦截提示）/
+  （附件预览卡片与 toast 提醒）/ `promptMentionAttachDesc` / `promptMentionHint` / `promptMentionNoMatch`
+  （带 `{{query}}` 插值，`@` 引用面板）/ `mentionSection*`（添加 / 模块 / 页面 / 记录 四段标题）/
+  `routeRefModuleDesc` / `routeRefRecordDesc`（模块与记录的右侧说明；模块与页面的名字复用 `common:nav.*`，
+  详情页面的名字是 `common:nav.userDetail`）/
   `configurePermissions*`（配置权限那一项）/ `permissions*`（面板权限视图：标题 / 返回 / 保存 / 未保存提示；
   配置体自身的档位与工具名复用 `common:profile.settings.aiPermission*`）；会话区 `greetings.*` / `greetingPrompt` /
   `thinking` / `tool*` / `tools.*`），7 语言齐。设置项在 `common:profile.settings` 下（卡片标题复用 `general`）：

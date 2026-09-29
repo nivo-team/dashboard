@@ -250,7 +250,8 @@
     "langPack": "Language pack",
     "home": "Dashboard",
     "userOps": "User operations",
-    "userList": "User list"
+    "userList": "User list",
+    "userDetail": "User detail"
   },
   "notFound": {
     "backHome": "Back to Home",

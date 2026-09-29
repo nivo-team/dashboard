@@ -250,7 +250,8 @@
     "langPack": "语言包",
     "home": "仪表盘",
     "userOps": "用户运营",
-    "userList": "用户列表"
+    "userList": "用户列表",
+    "userDetail": "用户详情"
   },
   "notFound": {
     "backHome": "返回首页",

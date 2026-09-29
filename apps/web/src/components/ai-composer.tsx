@@ -1,8 +1,16 @@
-import { Button, DropdownMenu, Textarea, Tooltip } from '@cloudflare/kumo'
+import {
+  Button,
+  DropdownMenu,
+  Textarea,
+  Tooltip,
+  useKumoToastManager,
+} from '@cloudflare/kumo'
 import {
   ArrowUpIcon,
+  AtIcon,
   BrainIcon,
   CaretDoubleRightIcon,
+  ChatCircleDotsIcon,
   CheckIcon,
   CpuIcon,
   FileIcon,
@@ -16,11 +24,22 @@ import {
   type Icon,
 } from '@phosphor-icons/react'
 import { useRouter } from '@tanstack/react-router'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ClipboardEvent, KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { sendAiMessage, stopAiMessage, useAiSessionStore } from '#/lib/ai'
-import type { AiAttachment, AiImageFile, AiTextFile } from '#/lib/ai'
+import {
+  listRouteRefItems,
+  sendAiMessage,
+  stopAiMessage,
+  useAiSessionStore,
+} from '#/lib/ai'
+import type {
+  AiAttachment,
+  AiImageFile,
+  AiRouteRefItem,
+  AiRouteRefKind,
+  AiTextFile,
+} from '#/lib/ai'
 import { cn } from '#/lib/cn'
 import {
   isAiComposerMode,
@@ -154,6 +173,19 @@ function formatFileSize(bytes: number): string {
 }
 
 /**
+ * 输入里**正在打的**那个 `@…`（`@` 必须是行首或空白之后的第一个字符 —— 否则
+ * `zhang@example.com` 里的 `@example` 也会被当成引用）。
+ *
+ * 返回的 `start` 指向 `@` 本身：选中菜单项时用它把这段替换掉。
+ * `query` 允许中文与 `:`（`@用户` / `@user:li` 都能搜）。
+ */
+function parseMentionQuery(draft: string): { query: string; start: number } | null {
+  const match = /(^|\s)@([^\s@]*)$/.exec(draft)
+  if (!match) return null
+  return { query: match[2], start: match.index + match[1].length }
+}
+
+/**
  * AI 面板的输入区：一块圆角输入框 + 左下角的**输入模式切换** + 行尾的圆形提交按钮。
  *
  * 外观对齐 Cloudflare 控制台的输入区（`ring` 画在整块外框上、聚焦时整块换成品牌色细环），
@@ -166,10 +198,25 @@ function formatFileSize(bytes: number): string {
  * 尺寸随容器走：`Textarea` 的 `autoResize` 从 2 行起、最多 8 行（再多就在框内滚动），
  * 面板被拖窄 / 拉宽时 `ResizeObserver` 会重算换行后的高度，不需要外部传宽度。
  *
- * 工具行分两段：行首是**「+」菜单**（`DropdownMenu`，目前只有「添加照片和文件」，
- * 后续的新能力也往这里放），行尾是**设置按钮**（滑杆：选择模型 + 思考程度 + 只有面板才有的
- * 配置权限，见 `#/components/ai-panel` 的权限视图）与发送按钮。
- * 面板与全屏对话页共用这一个组件，差别只在传不传 `onConfigurePermissions`。
+ * 工具行分两段：行首是**「+」= 一小组 AI 动作**（添加附件 / 引用位置 / 新对话），行尾是**设置按钮**
+ * （滑杆：选择模型 + 思考程度 + 只有面板才有的配置权限，见 `#/components/ai-panel` 的权限视图）
+ * 与发送按钮。面板与全屏对话页共用这一个组件，差别只在传不传 `onConfigurePermissions`。
+ *
+ * 两块浮层都**贴着整块输入区的上沿**浮出来（`anchor={composerRef}` + `w-[var(--anchor-width)]`）：
+ * 触发按钮只是触发点，不是锚点（挂在颗小圆钮下面的浮层看着像另一个东西的附属品）。
+ *
+ * 其一：**`@` 引用面板**（命令面板的形态）—— 打 `@`、或点「+ → 引用位置」就浮出来，可以引用
+ * 「哪个模块 / 哪个页面 / 哪一条记录」（`@user` / `@user:list` / `@user:1234`），
+ * 另有一段「添加」放附件入口。行按 `kind` 分段，行内是「名字 + 灰色语法 + 右侧说明」。
+ * 行的内容来自 `#/lib/ai/route-refs` —— 名字、图标、匹配词都取自导航清单，**这里不另加名单**；
+ * 展开成路径那一步在发给模型时（`runtime.toModelMessages`）做，所以用户看到的还是自己打的那串字。
+ *
+ * 这块面板用 Kumo `DropdownMenu` 拼（弹出层、进出场、点外关闭都白拿），但**焦点全程留在输入框里**：
+ * 面板是「输入框里的文字驱动」的，所以内容上挂了 `onFocus` 把 Base UI 送进菜单的焦点按回来。
+ * 改这里的交互时先看那段注释 —— 三个参数（`modal` / `highlightItemOnHover` / `onFocus`）缺一不可。
+ *
+ * 其二：**「+」动作菜单** —— 刻意只有三行。会长的那份清单（模块 / 页面 / 记录）走 `@`，
+ * 模块再多也不会把这个菜单撑爆。
  */
 export function AiComposer({ className, onConfigurePermissions }: AiComposerProps) {
   const { t } = useTranslation('ai')
@@ -178,7 +225,16 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const isMobile = useIsMobileViewport()
 
+  /**
+   * 两块浮层的**定位基准**：整块输入区。
+   *
+   * 都锚在这里、都用 `side="top"` + 宽 `var(--anchor-width)` —— 于是它们看起来是「贴着输入框
+   * 上沿浮出来的一整块」，而不是挂在那颗小小的「+」按钮下面。按钮只是**触发点**，不是锚点。
+   */
+  const composerRef = useRef<HTMLDivElement | null>(null)
+
   const isStreaming = useAiSessionStore((state) => state.status === 'streaming')
+  const startNewSession = useAiSessionStore((state) => state.startNewSession)
   const composerMode = usePreferencesStore((state) => state.aiComposerMode)
   const setComposerMode = usePreferencesStore((state) => state.setAiComposerMode)
 
@@ -198,8 +254,128 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
     （发出去了才清，否则等于把用户选好的东西丢掉）。
   */
   const [attachments, setAttachments] = useState<AiAttachment[]>([])
-  const [attachmentError, setAttachmentError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const toast = useKumoToastManager()
+
+  /*
+    附件提醒**统一走 toast** —— 输入区上方不再常驻一行提示文字（那行旧提示还占着附件区
+    与工具行之间的位置）。**只在真被拦下时弹**：读不出来是 `error`，
+    「收不下」（太大 / 类型不支持 / 超过 4 个被截掉）是 `warning`；
+    刚好加到满、什么都没丢，就不弹 —— 别拿一条提醒去打扰一次成功的操作。
+  */
+  const notifyAttachment = (title: string, variant: 'warning' | 'error') => {
+    toast.add({ title, variant })
+  }
+
+  /*
+    `@` 引用面板（命令面板形态）：在输入框里打 `@` 或在「+」菜单中点「引用位置」打开。
+    内容按「添加 → 模块 → 页面 → 记录」分段展示。
+
+    `open` 受控：打 `@` / 点「引用位置」打开，点面板外（Base UI 的 outside press）与
+    `Esc`（焦点在输入框里，所以由 `handleKeyDown` 接）最后都落到 `mentionOpen` 上。
+  */
+  const [mentionOpen, setMentionOpen] = useState(false)
+  /** 键盘与鼠标**共用**的那一份「当前行」（焦点留在输入框里，所以高亮得自己记，见 `handleKeyDown`） */
+  const [mentionActive, setMentionActive] = useState(0)
+
+  /*
+    刚点了「记录」那一行（插入 `@user:`）：接下来用户是**在补 ID**，这期间不能再弹菜单 ——
+    否则每敲一个数字，同一块面板就会弹回来一次。补到打了空格（或把冒号删了）就恢复正常。
+  */
+  const recordTypingRef = useRef(false)
+
+  /** 输入里正在打的 `@…`；`null` = 当前不在打引用 */
+  const mentionToken = parseMentionQuery(value)
+
+  /**
+   * `@` 面板的行：**附件入口**（沿用原来的能力，只是多了 `@` 这个入口）+ `route-refs` 里的模块。
+   *
+   * 每次都现算：菜单只在打 `@` 时打开，这点开销可以忽略；换成缓存反而要处理
+   * 「切了应用 / 换了语言之后菜单没跟着变」的问题。
+   */
+  const buildMentionRows = (): AiRouteRefItem[] => {
+    const attach: AiRouteRefItem = {
+      id: 'attach',
+      kind: 'add',
+      token: '',
+      syntax: '',
+      name: t('addPhotoAndFiles', '添加照片和文件'),
+      description: t('promptMentionAttachDesc', '从本机添加图片或 Markdown / 文本文件'),
+      icon: ImageIcon,
+      keywords: ['file', 'files', 'image', 'attachment', '附件', '文件', '图片'],
+    }
+    return [attach, ...listRouteRefItems()]
+  }
+
+  /**
+   * 面板按 `kind` 分段的顺序 —— 与命令面板一样「名字在左、灰键在中、说明在右」，
+   * 段标题把「添加到对话」和「引用某个位置」分开。**顺序只在这一个数组里**，
+   * 段名走 `ai` 命名空间（7 语言）。
+   */
+  const MENTION_SECTIONS: ReadonlyArray<{ kind: AiRouteRefKind; labelKey: string; fallback: string }> = [
+    { kind: 'add', labelKey: 'mentionSectionAdd', fallback: '添加' },
+    { kind: 'module', labelKey: 'mentionSectionModule', fallback: '模块' },
+    { kind: 'page', labelKey: 'mentionSectionPage', fallback: '页面' },
+    { kind: 'record', labelKey: 'mentionSectionRecord', fallback: '记录' },
+  ]
+
+  /** 「添加照片和文件」这一行是否可用：模型没声明视觉就置灰（与「+」菜单同一条规矩） */
+  const mentionRowDisabled = (row: AiRouteRefItem) =>
+    row.kind === 'add' && !supportsVision
+
+  /** 一行的匹配规则：名字 / 语法 / 说明 / 导航关键词四处都能命中（所以 `@用户` 与 `@user` 一样好使） */
+  const mentionRowMatches = (row: AiRouteRefItem) => {
+    const query = mentionToken?.query.trim().toLowerCase()
+    if (!query) return true
+    return (
+      row.name.toLowerCase().includes(query) ||
+      row.syntax.toLowerCase().includes(query) ||
+      row.description.toLowerCase().includes(query) ||
+      row.keywords.some((keyword) => keyword.toLowerCase().includes(query))
+    )
+  }
+
+  /**
+   * 面板的行。一处特别的兜底：`@user:1234` 是**合法的记录引用**，但没有任何一行的文案里
+   * 含 `1234` —— 照普通规则它只会落到「没有匹配」。所以一条都没匹配上、而查询里又带着冒号时，
+   * 把该模块的**记录行**留着（用户看到的是「用户详情」那一行），面板不闪、也不误报「没匹配上」。
+   */
+  const mentionRows = (() => {
+    if (!mentionOpen) return []
+    const rows = buildMentionRows()
+    const matched = rows.filter(mentionRowMatches)
+    if (matched.length > 0) return matched
+    const query = mentionToken?.query.trim().toLowerCase() ?? ''
+    if (query.indexOf(':') <= 0) return matched
+    return rows.filter((row) => row.record && query.startsWith(row.token.toLowerCase()))
+  })()
+
+  /*
+    面板按段渲染（段标题 + 行），但**键盘游标只有一个**：↑↓ / Enter / Tab 走的是
+    `mentionRows` 的扁平序号，段标题不是可选项。所以给每行算一个扁平下标。
+  */
+  const mentionRowIndex = new Map(mentionRows.map((row, index) => [row.id, index]))
+  const mentionSections = MENTION_SECTIONS.map((section) => ({
+    ...section,
+    rows: mentionRows.filter((row) => row.kind === section.kind),
+  })).filter((section) => section.rows.length > 0)
+
+  /*
+    面板一打开就把焦点**按回输入框**。
+
+    为什么：Base UI 的菜单遵循 ARIA 惯例，打开时会把焦点送进第一项 —— 而这块面板是
+    「输入框里的文字驱动」的，焦点一走用户就没法接着打字过滤了（`@use` 里的 `use` 会打到菜单项上）。
+    按回来之后键盘交互（↑↓ / Enter / Tab / Esc）统一由 `handleKeyDown` 处理，两种入口
+    （点 `+` / 打 `@`）的行为因此完全一致。
+
+    用 `useLayoutEffect` 先按住第一下：Base UI 那次聚焦是排到**下一帧**的（`enqueueFocus` 走 rAF），
+    所以真正兜住它的是 `DropdownMenu.Content` 上的 `onFocus`（见那一段）；这里这一下是为了
+    让焦点在**绘制之前**就回到输入框，不至于看到面板里的焦点环闪一下。
+  */
+  useLayoutEffect(() => {
+    if (mentionOpen) textareaRef.current?.focus({ preventScroll: true })
+  }, [mentionOpen])
 
   /*
     打开面板就能直接打字：输入区**每次挂载**都聚焦一次 —— 而面板打开、浮窗从折叠态
@@ -258,11 +434,110 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
     const outgoing = attachments
     setValue('')
     setAttachments([])
-    setAttachmentError(null)
+    setMentionOpen(false)
     void sendAiMessage(next, composerMode, outgoing)
   }
 
+  /**
+   * 输入变化：顺手看一眼尾巴上是不是在打 `@…`，是就把引用面板打开、并按新内容过滤。
+   *
+   * 面板的两个入口都收敛到 `mentionOpen` 上：**点「+」**（Base UI 自己 toggle）与
+   * **打 `@`**（这里）—— 所以「什么时候弹」这件事不需要第三份状态。
+   */
+  const handleValueChange = (next: string) => {
+    setValue(next)
+
+    const token = parseMentionQuery(next)
+    if (recordTypingRef.current) {
+      // 还在补记录 ID（`@user:1234`）：继续压着菜单；冒号被删掉或整段没了就解除
+      if (!token || !token.query.includes(':')) {
+        recordTypingRef.current = false
+      } else {
+        setMentionOpen(false)
+        return
+      }
+    }
+
+    if (!token) {
+      setMentionOpen(false)
+      return
+    }
+    setMentionOpen(true)
+    setMentionActive(0)
+  }
+
+  /** 选中一行：附件行去开系统文件框，其余把 `@…` 写进输入框 */
+  const pickMentionRow = (row: AiRouteRefItem) => {
+    if (mentionRowDisabled(row)) return
+    // 把打了一半的那段（`@use`）整段换掉，而不是接在后面
+    const head = mentionToken ? value.slice(0, mentionToken.start) : value
+
+    if (row.kind === 'add') {
+      setMentionOpen(false)
+      setValue(head)
+      /*
+        文件选择器挂在**菜单外面**（根节点下常驻），所以这里关掉面板不会把 `<input>` 一起卸载 ——
+        点菜单项的这一刻正是「先关菜单、再打开系统文件选择器」（踩过这个坑，见组件头注释）。
+      */
+      fileInputRef.current?.click()
+      return
+    }
+
+    // 记录模板（`@user:`）**不留尾空格**：光标停在冒号后面，等用户补上 ID
+    setValue(`${head}@${row.token}${row.record ? '' : ' '}`)
+    recordTypingRef.current = row.record === true
+    setMentionOpen(false)
+    setMentionActive(0)
+    textareaRef.current?.focus({ preventScroll: true })
+  }
+
+  /**
+   * 「引用位置」这个动作 = **替用户打一个 `@`**：插进输入框、把面板打开、焦点留在输入框。
+   *
+   * 焦点用 `requestAnimationFrame` 抢：Base UI 关菜单时会把焦点还给那颗「+」（是一次 microtask），
+   * rAF 一定晚于它、又早于下一次绘制 —— 所以看不到焦点在中途闪一下。
+   */
+  const startMention = () => {
+    recordTypingRef.current = false
+    // 前一个字符不是空白就补一个空格，别把 `@` 粘在词尾上（`看看@user` 解析不出来）
+    setValue((prev) => (prev === '' || /\s$/.test(prev) ? `${prev}@` : `${prev} @`))
+    setMentionOpen(true)
+    setMentionActive(0)
+    requestAnimationFrame(() => textareaRef.current?.focus({ preventScroll: true }))
+  }
+
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    /*
+      引用面板开着时，键盘先让给它：↑↓ 换行、Enter / Tab 选中、Esc 收起。
+      **必须排在「Enter 发送」前面** —— 否则选中的那一下会顺手把消息发出去。
+    */
+    if (mentionOpen && mentionRows.length > 0) {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault()
+        setMentionActive(
+          (current) =>
+            (current + (event.key === 'ArrowDown' ? 1 : mentionRows.length - 1)) %
+            mentionRows.length,
+        )
+        return
+      }
+      if (
+        event.key === 'Tab' ||
+        (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing)
+      ) {
+        event.preventDefault()
+        pickMentionRow(mentionRows[Math.min(mentionActive, mentionRows.length - 1)])
+        return
+      }
+    }
+
+    if (event.key === 'Escape' && mentionOpen) {
+      // 先收面板：Esc 的语义是「把浮出来的东西按回去」，不是清空输入框
+      event.preventDefault()
+      setMentionOpen(false)
+      return
+    }
+
     // 两个键盘约定：Enter 提交、Shift + Enter 换行（不拦截，交给 textarea 默认行为）
     if (event.key !== 'Enter' || event.shiftKey) return
     if (event.nativeEvent.isComposing) return
@@ -277,16 +552,38 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
    * 随消息拼进去）。其余类型**直接说清楚支持哪些**，而不是收下再让厂商报错。
    *
    * 三道闸：单个超上限（图片 4 MB / 文本 256 KB）、总数超过 `AI_MAX_ATTACHMENTS`、读不出来；
-   * 被拦下的原因写进 `attachmentError` 贴着输入框显示，不静默丢掉。
+   * 被拦下的原因**弹 toast**（不静默丢掉，也不在输入区里占一行文字）。
+   *
+   * **数量额度是图片与文本文件共用的**（`AI_MAX_ATTACHMENTS` 数的是「附件」这个总数，
+   * 不给图片另开一份）—— 所以先看还有几个空位，只收得下的那几个。
    */
   const addAttachments = async (files: readonly File[]) => {
+    if (files.length === 0) return
+
+    /*
+      已经满了：连文件都不用读，直接说「放不下了」。
+      这条提示曾经是静默丢掉的（旧写法把它写在 `setAttachments` 的 updater 里，
+      紧接着被外层那句「没有拦截原因」覆盖，于是用户只觉得多选的文件凭空少了几个）。
+    */
+    if (attachments.length >= AI_MAX_ATTACHMENTS) {
+      notifyAttachment(t('attachmentLimit', '一次最多带 4 个附件'), 'warning')
+      return
+    }
+
     const accepted: AiAttachment[] = []
-    let error: string | null = null
+    /*
+      被拦下的原因分两档，**一次手势只弹一条**：
+      - `warning`「收不下」（太大 / 类型不支持 / 超额度）优先 —— 它通常意味着「这次选多了或
+        选错了」，用户当场就能改；
+      - `failure`「读不出来」只影响个别文件，换一个再选即可，所以让给上面那条。
+    */
+    let warning: string | null = null
+    let failure: string | null = null
 
     for (const file of files) {
       if (file.type.startsWith('image/')) {
         if (file.size > AI_MAX_IMAGE_BYTES) {
-          error = t('attachmentTooLarge', {
+          warning = t('attachmentTooLarge', {
             size: '4 MB',
             defaultValue: '文件太大了（单个上限 {{size}}）',
           })
@@ -295,14 +592,14 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
         try {
           accepted.push(await fileToImageFile(file))
         } catch {
-          error = t('attachmentReadFailed', '这个文件读不出来，换一个试试')
+          failure = t('attachmentReadFailed', '这个文件读不出来，换一个试试')
         }
         continue
       }
 
       if (isTextFile(file)) {
         if (file.size > AI_MAX_TEXT_FILE_BYTES) {
-          error = t('attachmentTooLarge', {
+          warning = t('attachmentTooLarge', {
             size: '256 KB',
             defaultValue: '文件太大了（单个上限 {{size}}）',
           })
@@ -311,30 +608,39 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
         try {
           accepted.push(await fileToTextFile(file))
         } catch {
-          error = t('attachmentReadFailed', '这个文件读不出来，换一个试试')
+          failure = t('attachmentReadFailed', '这个文件读不出来，换一个试试')
         }
         continue
       }
 
-      error = t(
+      warning = t(
         'attachmentUnsupported',
         '只支持图片、Markdown（.md）和文本（.txt）文件',
       )
     }
 
-    if (accepted.length === 0) {
-      if (error) setAttachmentError(error)
-      return
+    /*
+      数量闸：**在 setAttachments 之外**算出「收得下几个」——写在 updater 里会变成
+      有副作用的 updater（StrictMode 下还会跑两遍），提示也就跟着不可靠了。
+      数量超了时压过单文件那类原因：此刻用户最该先知道的是「放不下了」。
+    */
+    const room = Math.max(AI_MAX_ATTACHMENTS - attachments.length, 0)
+    const kept = accepted.slice(0, room)
+    if (accepted.length > kept.length) {
+      warning = t('attachmentLimit', '一次最多带 4 个附件')
     }
-    setAttachments((prev) => {
-      const merged = [...prev, ...accepted]
-      if (merged.length > AI_MAX_ATTACHMENTS) {
-        setAttachmentError(t('attachmentLimit', '一次最多带 4 个附件'))
-        return merged.slice(0, AI_MAX_ATTACHMENTS)
-      }
-      return merged
-    })
-    setAttachmentError(error)
+
+    if (kept.length > 0) {
+      // 双保险：并发/连点下也不越界（正常路径上 `room` 已经算好了）
+      setAttachments((prev) => [...prev, ...kept].slice(0, AI_MAX_ATTACHMENTS))
+    }
+
+    /*
+      提醒**只在真的被拦下时**弹（数量超了 / 太大 / 类型不支持 / 读不出来）——
+      「刚好加到满」不弹：什么都没丢，弹一条只是打扰。
+    */
+    if (warning) notifyAttachment(warning, 'warning')
+    else if (failure) notifyAttachment(failure, 'error')
   }
 
   /** 粘贴收附件：管理后台里截图后 ⌘/Ctrl+V 直接问，是最顺手的路径 */
@@ -355,7 +661,6 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
 
   const removeAttachment = (index: number) => {
     setAttachments((prev) => prev.filter((_, i) => i !== index))
-    setAttachmentError(null)
   }
 
   /** 切思考程度：写回**该模型**的配置（按模型记住），与设置页声明的是同一份数据 */
@@ -366,10 +671,12 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
 
   return (
     <div
+      // 两块浮层（「+」动作菜单与 `@` 面板）的锚点 —— 它们都贴在这一层的上沿浮出来
+      ref={composerRef}
       // 粘贴收图挂在外层：事件从 textarea 冒泡上来，不必给 Kumo 的 Textarea 透传 onPaste
       onPaste={handlePaste}
       className={cn(
-        // `relative` 是「+」命令面板的定位基准（面板贴在输入框上沿浮出来）
+        // `relative` 只用于内部绝对定位（附件卡片的删除按钮）；浮层由 Kumo portal 出去、以本层为锚点
         'relative flex flex-col rounded-2xl bg-kumo-control ring-1 ring-kumo-line transition-all',
         // 焦点态：整块外框换成品牌色细环（`ring-1` 无变体、`has-[…]` 带变体，后者在后、能覆盖）
         'has-[textarea:focus]:ring-[1.5px] has-[textarea:focus]:ring-kumo-brand/50',
@@ -379,7 +686,7 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
       <Textarea
         ref={textareaRef}
         value={value}
-        onValueChange={setValue}
+        onValueChange={handleValueChange}
         onKeyDown={handleKeyDown}
         autoResize
         minRows={2}
@@ -397,7 +704,7 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
         每个附件右上角都有删除按钮，发出去之前随时能撤掉。
       */}
       {attachments.length > 0 ? (
-        <ul className="flex flex-wrap gap-2 px-4 pt-3">
+        <ul className="flex flex-wrap gap-2 px-4 py-3">
           {attachments.map((attachment, index) => (
             <li
               key={`${attachment.name ?? attachment.kind}-${index}`}
@@ -439,10 +746,10 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
         </ul>
       ) : null}
 
-      {/* 被拦下的附件（太大 / 超数量 / 读不出来）在这里说明，而不是静默丢掉 */}
-      {attachmentError ? (
-        <p className="px-4 pt-2 text-xs text-kumo-danger">{attachmentError}</p>
-      ) : null}
+      {/*
+        这里**没有**「被拦下的原因」那一行：附件提醒（太大 / 类型不支持 / 读不出来 / 到上限）
+        统一走 toast —— 见 `notifyAttachment`。输入区只留附件本身，不再被提示文字占一行。
+      */}
 
       <div className="flex items-center gap-2 p-3 pt-0">
         {/*
@@ -474,9 +781,18 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
           }}
         />
 
-        <DropdownMenu>
+        {/*
+          **行首的「+」= 三件「跟这一轮对话直接有关」的小动作**（添加附件 / 引用位置 / 新对话）。
+
+          长度刻意压住：真正会长的那份清单是「引用哪个模块 / 哪个页面 / 哪一条记录」，
+          它走输入框里的 `@`（见下面那块面板）—— 模块一多，这里也不该被撑爆。
+
+          菜单**锚在整块输入区上**（`anchor={composerRef}` + 宽 `var(--anchor-width)`）：
+          看起来是贴着输入框上沿浮出来的一块，而不是挂在颗小圆钮下面。
+        */}
+        <DropdownMenu modal={false}>
           <Tooltip
-            content={t('compose', '添加内容')}
+            content={t('aiActions', 'AI 动作')}
             className="cursor-pointer"
             render={
               <DropdownMenu.Trigger
@@ -486,7 +802,7 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
                     variant="secondary"
                     shape="circle"
                     size="sm"
-                    aria-label={t('compose', '添加内容')}
+                    aria-label={t('aiActions', 'AI 动作')}
                     className="!text-kumo-subtle not-disabled:hover:!text-kumo-default"
                   />
                 }
@@ -496,28 +812,178 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
             <PlusIcon size={14} />
           </Tooltip>
 
-          <DropdownMenu.Content side="top" align="start" className="w-64">
-
-            {/*
-              菜单项**只有标题**（一行一条，与后续要加的其它能力一致）；
-              模型没声明视觉时这条**禁用**，原因走原生 `title` —— 鼠标停一下能看到，
-              不占版面。入口本身不藏：突然消失比灰着更让人困惑。
-            */}
+          <DropdownMenu.Content
+            side="top"
+            align="start"
+            anchor={composerRef}
+            className="w-[var(--anchor-width)]"
+          >
             <DropdownMenu.Item
-              disabled={!supportsVision}
+              className="items-center gap-2.5 py-2"
               onClick={() => fileInputRef.current?.click()}
-              title={
-                supportsVision
-                  ? undefined
-                  : t('visionUnsupported', '当前模型未声明支持图像识别')
-              }
-              className="items-center gap-2.5 text-sm"
             >
-              <ImageIcon size={16} className="shrink-0 text-kumo-subtle" />
-              <span className="min-w-0 flex-1 truncate">
-                {t('addPhotoAndFiles', '添加照片和文件')}
+              <ImageIcon size={15} className="shrink-0 text-kumo-subtle" />
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="truncate text-sm text-kumo-default">
+                  {t('addPhotoAndFiles', '添加照片和文件')}
+                </span>
+                <span className="truncate text-xs text-kumo-subtle">
+                  {t('promptMentionAttachDesc', '从本机添加图片或 Markdown / 文本文件')}
+                </span>
               </span>
             </DropdownMenu.Item>
+
+            <DropdownMenu.Item
+              className="items-center gap-2.5 py-2"
+              onClick={startMention}
+            >
+              <AtIcon size={15} className="shrink-0 text-kumo-subtle" />
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="truncate text-sm text-kumo-default">
+                  {t('actionMention', '引用位置')}
+                </span>
+                <span className="truncate text-xs text-kumo-subtle">
+                  {t('actionMentionDesc', '打一个 @ 引用模块、页面或某一条记录')}
+                </span>
+              </span>
+            </DropdownMenu.Item>
+
+            <DropdownMenu.Item
+              className="items-center gap-2.5 py-2"
+              disabled={isStreaming}
+              onClick={startNewSession}
+            >
+              <ChatCircleDotsIcon size={15} className="shrink-0 text-kumo-subtle" />
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="truncate text-sm text-kumo-default">
+                  {t('sessionNew', '新对话')}
+                </span>
+                <span className="truncate text-xs text-kumo-subtle">
+                  {t('actionNewChatDesc', '从一段空白对话重新开始')}
+                </span>
+              </span>
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu>
+
+        {/*
+          **`@` 引用面板**：在输入框里打 `@`（或点「+」里的「引用位置」）就浮出来，
+          可以引用「哪个模块 / 哪个页面 / 哪一条记录」。样式照命令面板来：**段标题 + 行**，
+          行里是「名字 + 灰色语法 + 右侧说明」—— 名字是主行，找东西比看语法快。
+
+          弹出层用 Kumo `DropdownMenu`（底层 Base UI 的 Menu）：底色 / 圆角 / 阴影 / 进出场、
+          点外面关闭、行的 hover / disabled 都白拿。
+
+          **它没有 Trigger**：这块面板是「输入框里的文字驱动」的，没有哪颗按钮「属于」它；
+          锚点显式给成整块输入区（`anchor={composerRef}`），所以不需要 Base UI 的触发元素。
+
+          三处刻意的参数，都是为了把它从「菜单抢焦点」掰回「输入框驱动」：
+
+          - `modal={false}`：菜单默认是模态的（铺一层遮罩、锁页面滚动），而这块面板必须一边开着
+            一边让人在**输入框里继续打字过滤**，遮罩会把输入框挡在外面。
+          - `highlightItemOnHover={false}`：Base UI 的菜单在鼠标扫过时会 focus 那一项，
+            焦点一走输入框就收不到按键了；高亮改由我们自己的 `mentionActive` 标（见 Item 的 className）。
+          - Content 上的 `onFocus`：见下面「焦点守卫」那一段。
+        */}
+        <DropdownMenu
+          open={mentionOpen}
+          onOpenChange={(next) => setMentionOpen(next)}
+          modal={false}
+          highlightItemOnHover={false}
+        >
+          <DropdownMenu.Content
+            side="top"
+            align="start"
+            anchor={composerRef}
+            /*
+              宽度跟输入框一致；高度按住 Base UI 给的可用高度 —— 输入区贴在面板底部，
+              万一上方放不下，Base UI 自己会翻到下面去（`--available-height` 保证它不溢出）。
+            */
+            className="w-[var(--anchor-width)] max-h-[min(24rem,var(--available-height))]"
+            /*
+              **焦点守卫**：Base UI 开菜单时会把焦点送进第一项（而且那一跳排在下一帧，
+              所以只在 `useLayoutEffect` 里抢一次是不够的）。焦点一进面板就立刻还给输入框 ——
+              它是「输入框里的文字驱动」的，焦点走了用户就没法接着打字过滤了，
+              键盘交互（↑↓ / Enter / Tab / Esc）统一由 `handleKeyDown` 处理。
+            */
+            onFocus={() => textareaRef.current?.focus({ preventScroll: true })}
+          >
+            {mentionSections.map((section) => (
+              <DropdownMenu.Group key={section.kind}>
+                <DropdownMenu.Label className="px-2 pt-2 pb-1 text-xs font-medium text-kumo-subtle">
+                  {t(section.labelKey, section.fallback)}
+                </DropdownMenu.Label>
+                {section.rows.map((row) => {
+                  const RowIcon = row.icon
+                  const disabled = mentionRowDisabled(row)
+                  const index = mentionRowIndex.get(row.id) ?? 0
+                  const active = index === mentionActive
+                  return (
+                    <DropdownMenu.Item
+                      key={row.id}
+                      disabled={disabled}
+                      /*
+                        键盘选中的那一行由**我们自己**标（焦点始终留在输入框里，Base UI 内部那份高亮
+                        跟不到我们的键盘游标），所以用 `bg-kumo-tint` 显式画出来 ——
+                        与 Kumo 给 `data-highlighted` 用的 `bg-kumo-overlay` 是同色阶的近邻，
+                        鼠标扫过与 ↑↓ 移动看起来没有差别。
+                      */
+                      className={cn(
+                        'items-center gap-2 py-1.5',
+                        active && 'bg-kumo-tint',
+                      )}
+                      // 选一行：附件行去开文件框，其余的 `@…` 写进输入框（见 `pickMentionRow`）
+                      onClick={() => pickMentionRow(row)}
+                      // 鼠标扫过也同步给键盘用的那份「当前行」，两种输入方式不会各记一份
+                      onMouseMove={() => setMentionActive(index)}
+                      title={
+                        disabled
+                          ? t('visionUnsupported', '当前模型未声明支持图像识别')
+                          : undefined
+                      }
+                    >
+                      <RowIcon size={15} className="shrink-0 text-kumo-subtle" />
+                      {/* 主行是**名字**（用户列表）——语法在右边，灰一点、小一号 */}
+                      <span className="shrink-0 truncate text-sm text-kumo-default">
+                        {row.name}
+                      </span>
+                      {row.syntax ? (
+                        <span className="shrink-0 font-mono text-xs text-kumo-subtle">
+                          {row.syntax}
+                        </span>
+                      ) : null}
+                      {/* 右侧说明：空间不够时先牺牲它（`min-w-0` + truncate） */}
+                      <span className="ms-auto min-w-0 truncate text-xs text-kumo-subtle">
+                        {row.description}
+                      </span>
+                      {/*
+                        当前行给出「按 Tab 就能选中」的提示（命令面板里也是这个写法）。
+                        只在当前行出现，所以面板整体不吵；`shrink-0` 保证它不被挤掉。
+                      */}
+                      {active ? (
+                        <span className="ms-1 shrink-0 rounded border border-kumo-line px-1 text-[10px] text-kumo-subtle">
+                          Tab
+                        </span>
+                      ) : null}
+                    </DropdownMenu.Item>
+                  )
+                })}
+              </DropdownMenu.Group>
+            ))}
+
+            {/* 认不出来的引用不静默：说清「没匹配上」，而不是把面板收掉让人以为坏了 */}
+            {mentionRows.length === 0 ? (
+              <p className="flex h-8 items-center px-2 text-xs text-kumo-subtle">
+                {t('promptMentionNoMatch', {
+                  query: mentionToken?.query ?? '',
+                  defaultValue: '没有匹配“{{query}}”的引用',
+                })}
+              </p>
+            ) : null}
+
+            <p className="mt-1 border-t border-kumo-line px-2 pt-1.5 pb-1 text-[11px] text-kumo-subtle">
+              {t('promptMentionHint', '输入以筛选；@模块:ID 可引用某一条记录')}
+            </p>
           </DropdownMenu.Content>
         </DropdownMenu>
 
@@ -613,7 +1079,7 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
               })}
             </DropdownMenu.RadioGroup>
           </DropdownMenu.Content>
-      </DropdownMenu>
+        </DropdownMenu>
 
         {/*
           **行尾的设置按钮**：面板与全屏对话页共用这一个输入区，只靠参数区分 ——

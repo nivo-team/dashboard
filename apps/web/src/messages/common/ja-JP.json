@@ -250,7 +250,8 @@
     "langPack": "言語パック",
     "home": "ダッシュボード",
     "userOps": "ユーザー運用",
-    "userList": "ユーザー一覧"
+    "userList": "ユーザー一覧",
+    "userDetail": "ユーザー詳細"
   },
   "notFound": {
     "backHome": "ホームに戻る",

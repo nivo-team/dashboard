@@ -250,7 +250,8 @@
     "langPack": "Dil paketi",
     "home": "Gösterge paneli",
     "userOps": "Kullanıcı operasyonları",
-    "userList": "Kullanıcı listesi"
+    "userList": "Kullanıcı listesi",
+    "userDetail": "Kullanıcı ayrıntısı"
   },
   "notFound": {
     "backHome": "Ana sayfaya dön",
