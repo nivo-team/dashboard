@@ -1,4 +1,4 @@
-import { Checkbox, Tabs } from '@cloudflare/kumo'
+import { Checkbox, LayerCard, Tabs } from '@cloudflare/kumo'
 import {
   EyeIcon,
   ShieldCheckIcon,
@@ -61,25 +61,27 @@ export interface AiPermissionConfigProps {
   allowedTools: string[]
   onPermissionChange: (permission: AiPermissionMode) => void
   onAllowedToolsChange: (allowedTools: string[]) => void
+  /**
+   * 布局形态：
+   * - `settings`（默认）：设置页使用，嵌在 SettingsCard 内，左 label 右 Tabs，工具列表连通；
+   * - `panel`：AI 面板专属形态，Tabs 直接居中在容器内（不包外层卡片），三个工具分组分别用独立的 LayerCard 包裹。
+   */
+  variant?: 'settings' | 'panel'
 }
 
 /**
- * 「AI 权限」的配置体 —— **设置页与 AI 面板共用同一份**。
+ * 「AI 权限」的配置体 —— 支持设置页与 AI 面板两种布局形态。
  *
- * 它只产出配置内容（一行「权限范围」+ 三组**始终列出**的工具清单，preset 档的勾选由档位
- * 派生、勾选框整组禁用），不含卡片外壳：
- * 两处的容器不同（设置页是整页卡片、AI 面板里嵌在面板内容区），但**控件与判定逻辑必须一致**，
- * 所以状态也不在这里持有 —— 谁用谁决定「即时生效」还是「草稿 + 保存」：
- * - 设置页直接写偏好 store（改动即时生效）；
- * - AI 面板先存在本地草稿里，点「保存」才写回（见 `#/components/ai-panel` 的权限视图）。
- *
- * 返回的是 fragment：`SettingsCard` 主体靠 `divide-y` 画行间分隔线，中间不能多一层 DOM。
+ * 两处共用同一份状态联动逻辑（预设切换继承、工具分组与勾选计算），但视觉上做出区分：
+ * - 设置页（`variant="settings"`）：标准的设置卡片行布局；
+ * - AI 面板（`variant="panel"`）：Tabs 居中凸显、页面/数据/表单三组工具各自独立包裹 LayerCard。
  */
 export function AiPermissionConfig({
   permission,
   allowedTools,
   onPermissionChange,
   onAllowedToolsChange,
+  variant = 'settings',
 }: AiPermissionConfigProps) {
   const { t } = useTranslation('common')
 
@@ -98,6 +100,98 @@ export function AiPermissionConfig({
   /** 只有「自定义」能勾：preset 档的勾选由档位决定，点它没有意义 */
   const locked = permission !== 'custom'
 
+  const renderTabs = () => (
+    <Tabs
+      value={permission}
+      onValueChange={(next) => {
+        const mode = next as AiPermissionMode
+        /*
+          从预设档（只读 / 完全访问）切到「自定义」时**继承当前档实际勾选的工具**，
+          而不是从空开始 —— 三档本来就是对同一份勾选清单的预设，
+          用户在只读下看到的那几项，切过去应当还勾着，否则他得从零再点一遍。
+        */
+        if (mode === 'custom' && permission !== 'custom') {
+          onAllowedToolsChange(resolveAllowedToolNames(permission, allowedTools))
+        }
+        onPermissionChange(mode)
+      }}
+      activateOnFocus
+      tabs={AI_PERMISSION_OPTIONS.map((item) => {
+        const ItemIcon = item.icon
+        return {
+          value: item.key,
+          label: (
+            <span className="flex items-center gap-2">
+              <ItemIcon size={16} className="text-kumo-subtle" />
+              <span>{t(item.labelKey, item.fallback)}</span>
+            </span>
+          ),
+        }
+      })}
+    />
+  )
+
+  const renderToolGroup = (group: (typeof TOOL_GROUPS)[number]) => {
+    const names = group.tools.map((tool) => tool.name)
+    return (
+      <Checkbox.Group
+        key={group.key}
+        legend={t(`profile.settings.aiToolGroups.${group.key}`, group.fallback)}
+        description={t(
+          `profile.settings.aiToolGroupHints.${group.key}`,
+          group.hintFallback,
+        )}
+        value={checkedTools}
+        disabled={locked}
+        onValueChange={(next) =>
+          onAllowedToolsChange([
+            ...allowedTools.filter((name) => !names.includes(name)),
+            ...next,
+          ])
+        }
+      >
+        {group.tools.map((tool) => (
+          <Checkbox.Item
+            key={tool.name}
+            value={tool.name}
+            label={t(`profile.settings.aiToolNames.${tool.name}`, tool.name)}
+          />
+        ))}
+      </Checkbox.Group>
+    )
+  }
+
+  if (variant === 'panel') {
+    return (
+      <div className="flex flex-col gap-3">
+        {/* Tabs 直接居中放在容器中，不需要任何卡片包裹 */}
+        <div
+          role="group"
+          aria-label={t('profile.settings.aiPermissionMode', '权限范围')}
+          className="flex justify-center"
+        >
+          {renderTabs()}
+        </div>
+
+        <p className="px-1 text-xs leading-snug text-kumo-subtle">
+          {t(
+            'profile.settings.aiToolListHint',
+            '只读与完全访问由上方档位决定；想逐项调整就切到「自定义」',
+          )}
+        </p>
+
+        {/* 页面、数据、表单 三组工具单独用 LayerCard 包裹 */}
+        <div className="flex flex-col gap-3">
+          {TOOL_GROUPS.map((group) => (
+            <LayerCard key={group.key} className="p-3">
+              {renderToolGroup(group)}
+            </LayerCard>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
       <SettingRow
@@ -108,34 +202,7 @@ export function AiPermissionConfig({
         )}
       >
         <div role="group" aria-label={t('profile.settings.aiPermissionMode', '权限范围')}>
-          <Tabs
-            value={permission}
-            onValueChange={(next) => {
-              const mode = next as AiPermissionMode
-              /*
-                从预设档（只读 / 完全访问）切到「自定义」时**继承当前档实际勾选的工具**，
-                而不是从空开始 —— 三档本来就是对同一份勾选清单的预设，
-                用户在只读下看到的那几项，切过去应当还勾着，否则他得从零再点一遍。
-              */
-              if (mode === 'custom' && permission !== 'custom') {
-                onAllowedToolsChange(resolveAllowedToolNames(permission, allowedTools))
-              }
-              onPermissionChange(mode)
-            }}
-            activateOnFocus
-            tabs={AI_PERMISSION_OPTIONS.map((item) => {
-              const ItemIcon = item.icon
-              return {
-                value: item.key,
-                label: (
-                  <span className="flex items-center gap-2">
-                    <ItemIcon size={16} className="text-kumo-subtle" />
-                    <span>{t(item.labelKey, item.fallback)}</span>
-                  </span>
-                ),
-              }
-            })}
-          />
+          {renderTabs()}
         </div>
       </SettingRow>
 
@@ -156,35 +223,7 @@ export function AiPermissionConfig({
           )}
         </p>
 
-        {TOOL_GROUPS.map((group) => {
-          const names = group.tools.map((tool) => tool.name)
-          return (
-            <Checkbox.Group
-              key={group.key}
-              legend={t(`profile.settings.aiToolGroups.${group.key}`, group.fallback)}
-              description={t(
-                `profile.settings.aiToolGroupHints.${group.key}`,
-                group.hintFallback,
-              )}
-              value={checkedTools}
-              disabled={locked}
-              onValueChange={(next) =>
-                onAllowedToolsChange([
-                  ...allowedTools.filter((name) => !names.includes(name)),
-                  ...next,
-                ])
-              }
-            >
-              {group.tools.map((tool) => (
-                <Checkbox.Item
-                  key={tool.name}
-                  value={tool.name}
-                  label={t(`profile.settings.aiToolNames.${tool.name}`, tool.name)}
-                />
-              ))}
-            </Checkbox.Group>
-          )
-        })}
+        {TOOL_GROUPS.map(renderToolGroup)}
       </div>
     </>
   )

@@ -24,7 +24,6 @@ import {
   SHELL_PANEL_FRAME,
   SidePanelResizeHandle,
 } from '#/components/side-panel'
-import { SettingsCard } from '#/components/settings-card'
 import { useAiSessionStore, type AiPermissionMode } from '#/lib/ai'
 import { cn } from '#/lib/cn'
 import {
@@ -1001,31 +1000,25 @@ function AiPermissionView({ onDone }: { onDone: () => void }) {
       {/*
         内容区自己滚：`custom` 档的清单在窄浮窗里会比面板高，
         而保存栏必须一直贴在底上（与对话区「输入框固定」同一个理由）。
+        形态与设置页区分开（variant="panel"）：Tabs 居中、三组工具各包独立 LayerCard。
       */}
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
-        <SettingsCard title={t('permissionsTitle', 'AI 权限')}>
-          <AiPermissionConfig
-            permission={permission}
-            allowedTools={allowedTools}
-            onPermissionChange={setPermission}
-            onAllowedToolsChange={setAllowedTools}
-          />
-        </SettingsCard>
+        <AiPermissionConfig
+          permission={permission}
+          allowedTools={allowedTools}
+          onPermissionChange={setPermission}
+          onAllowedToolsChange={setAllowedTools}
+          variant="panel"
+        />
       </div>
 
-      <div className="flex shrink-0 items-center gap-2 border-t border-kumo-line bg-kumo-base p-3">
-        {dirty ? (
-          <span className="me-auto text-xs text-kumo-subtle">
-            {t('permissionsUnsaved', '有未保存的更改')}
-          </span>
-        ) : null}
+      <div className="shrink-0 p-3 pt-0">
         <Button
           variant="primary"
-          size="sm"
           disabled={!dirty}
           onClick={save}
-          // Kumo 给按钮补的是 `cursor-default`；可用时要是手型，禁用时保持默认
-          className={cn('not-disabled:cursor-pointer', !dirty && 'ms-auto')}
+          // 按钮 100% 宽度充满底部操作栏；未修改时保持禁用，有修改才允许保存
+          className="w-full justify-center not-disabled:cursor-pointer"
         >
           {t('permissionsSave', '保存')}
         </Button>
