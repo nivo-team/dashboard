@@ -685,7 +685,7 @@ useAiPageContext(Route.id, {
 - **配置在 `admin.ai`（全局一份、不按应用隔离）**：厂商与模型是两张表，删厂商要**连带删它的模型**
   并清理 `activeModelId`。**API Key 明文存 localStorage**：输入框 `type="password"`、**编辑不回显**、
   **任何日志 / toast / 错误都不许回显它**。
-- **厂商协议收敛为 OpenAI 规范与 Anthropic 规范两大通用体系**：允许接入任意遵循对应规范的厂商（如 DeepSeek、月之暗面、Ollama、SiliconFlow 等）；OpenAI 规范下支持「通用兼容 (Chat Completions，原生解析 reasoning_content)」与「官方原生 (Responses / o-系列)」两种请求格式。
+- **厂商协议收敛为 OpenAI 规范与 Anthropic 规范两大通用体系**：允许接入任意遵循对应规范的厂商（如 DeepSeek、月之暗面、Ollama、SiliconFlow 等）；OpenAI 规范下支持「Chat Completions 通用兼容格式（原生解析 reasoning_content）」与「Responses 官方标准格式」两种请求格式。
 - **`#/lib/ai/runtime.ts` 是全仓唯一 import `ai`（Vercel AI SDK v7）的地方，不要静态导出它**
   （SDK + 三个 provider 几百 KB 会进主 bundle）；`chat.ts` 用 `await import('./runtime')` 首次发送才加载。
 - **v7 的 API 名与 v5 不同，别凭记忆写**：`stopWhen: isStepCount(n)`（不是 `maxSteps`）、

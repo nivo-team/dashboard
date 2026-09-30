@@ -33,8 +33,8 @@ export interface AiProviderConfig {
   apiKey: string
   /**
    * OpenAI 规范下的请求格式：
-   * - `compatible`：通用兼容格式（Chat Completions，支持 reasoning_content，默认推荐，适用于 DeepSeek/Qwen/Ollama 等第三方与开源模型）
-   * - `official`：OpenAI 官方原生格式（Responses / 原生 o-系列）
+   * - `compatible`：Chat Completions 格式（原生支持 reasoning_content，默认推荐，适用于 DeepSeek、Qwen、Ollama、SiliconFlow 等绝大多数第三方与开源模型）
+   * - `official`：Responses 格式（遵循 OpenAI 官方 Responses API 规范）
    */
   openAiFormat?: AiOpenAiFormat
 }

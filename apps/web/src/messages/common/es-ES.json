@@ -130,10 +130,10 @@
         "anthropic": "Estándar Anthropic"
       },
       "aiOpenAiFormat": "Formato de solicitud",
-      "aiOpenAiFormatHint": "El formato compatible funciona con DeepSeek, Moonshot, Ollama y SiliconFlow; el oficial funciona con OpenAI nativo y serie o.",
+      "aiOpenAiFormatHint": "El formato Chat Completions funciona con la mayoría de proveedores compatibles (con soporte para reasoning_content); Responses sigue el estándar oficial de Responses API.",
       "aiOpenAiFormats": {
-        "compatible": "Compatible general (Chat Completions)",
-        "official": "Oficial nativo (Responses / serie o)"
+        "compatible": "Chat Completions (Compatible)",
+        "official": "Responses (Oficial)"
       },
       "aiProviderDeleteTitle": "Eliminar proveedor",
       "aiProviderDeleteDesc": "Al eliminarlo también se borrarán los modelos configurados en este proveedor.",

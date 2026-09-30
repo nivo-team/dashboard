@@ -130,10 +130,10 @@
         "anthropic": "معيار Anthropic"
       },
       "aiOpenAiFormat": "صيغة الطلب",
-      "aiOpenAiFormatHint": "التنسيق المتوافق مناسب لـ DeepSeek وMoonshot وOllama وSiliconFlow؛ والتنسيق الرسمي مناسب لـ OpenAI الرسمي وسلسلة o.",
+      "aiOpenAiFormatHint": "تنسيق Chat Completions متوافق مع معظم المزوّدين (مع دعم reasoning_content)؛ وتنسيق Responses يتبع معيار Responses API الرسمي.",
       "aiOpenAiFormats": {
-        "compatible": "متوافق عام (Chat Completions)",
-        "official": "رسمي أصلي (Responses / سلسلة o)"
+        "compatible": "Chat Completions (متوافق عام)",
+        "official": "Responses (رسمي)"
       },
       "aiProviderDeleteTitle": "حذف المزوّد",
       "aiProviderDeleteDesc": "عند الحذف ستُحذف أيضًا إعدادات النماذج التابعة لهذا المزوّد.",

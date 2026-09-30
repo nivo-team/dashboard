@@ -130,10 +130,10 @@
         "anthropic": "Anthropic standard"
       },
       "aiOpenAiFormat": "Request format",
-      "aiOpenAiFormatHint": "Compatible format works with DeepSeek, Moonshot, Ollama, SiliconFlow, and other third parties; Official format works with OpenAI Responses and o-series.",
+      "aiOpenAiFormatHint": "Chat Completions works with most compatible providers and gateways (with reasoning_content support); Responses follows the OpenAI Responses API standard.",
       "aiOpenAiFormats": {
-        "compatible": "Compatible (Chat Completions)",
-        "official": "Official (Responses / o-series)"
+        "compatible": "Chat Completions (Compatible)",
+        "official": "Responses (Official)"
       },
       "aiProviderDeleteTitle": "Delete provider",
       "aiProviderDeleteDesc": "Models configured under this provider will be deleted too.",

@@ -182,8 +182,8 @@ function createLanguageModel(
     case 'openai': {
       /*
         OpenAI 规范支持两种请求格式：
-        - official：使用 OpenAI 官方原生通道（@ai-sdk/openai，适合官方 Responses/o-系列原生）；
-        - compatible（默认推荐）：通用兼容通道（@ai-sdk/openai-compatible，原生支持 reasoning_content，
+        - official：使用 OpenAI 官方 Responses 通道（@ai-sdk/openai，适合遵循 Responses API 规范的场景）；
+        - compatible（默认推荐）：通用 Chat Completions 通道（@ai-sdk/openai-compatible，原生支持 reasoning_content，
           适用于 DeepSeek、月之暗面、通义千问、Ollama、SiliconFlow 等任意遵循 OpenAI 规范的第三方厂商）。
       */
       const format = provider.openAiFormat ?? 'compatible'

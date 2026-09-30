@@ -83,7 +83,7 @@ export function AiProviderCard() {
                   <Badge variant="secondary">
                     {t(
                       `profile.settings.aiOpenAiFormats.${provider.openAiFormat ?? 'compatible'}`,
-                      provider.openAiFormat === 'official' ? '官方原生' : '通用兼容',
+                      provider.openAiFormat === 'official' ? 'Responses' : 'Chat Completions',
                     )}
                   </Badge>
                 ) : null}
@@ -305,7 +305,7 @@ function AiProviderDialog({
                 label={t('profile.settings.aiOpenAiFormat', '请求格式')}
                 labelTooltip={t(
                   'profile.settings.aiOpenAiFormatHint',
-                  '通用兼容格式适用于 DeepSeek、月之暗面、Ollama、SiliconFlow 等第三方厂商；官方原生适用于 OpenAI 官方 Responses 与 o 系列。',
+                  'Chat Completions 格式适用于绝大多数兼容服务商与自建网关（原生支持 reasoning_content）；Responses 格式遵循 OpenAI 官方 Responses API 规范。',
                 )}
                 value={openAiFormat}
                 onValueChange={(next) => {
@@ -316,14 +316,14 @@ function AiProviderDialog({
                     value: 'compatible',
                     label: t(
                       'profile.settings.aiOpenAiFormats.compatible',
-                      '通用兼容 (Chat Completions，支持 reasoning_content)',
+                      'Chat Completions (通用兼容)',
                     ),
                   },
                   {
                     value: 'official',
                     label: t(
                       'profile.settings.aiOpenAiFormats.official',
-                      '官方原生 (Responses / o-系列)',
+                      'Responses (官方标准)',
                     ),
                   },
                 ]}

@@ -130,10 +130,10 @@
         "anthropic": "Anthropic standardı"
       },
       "aiOpenAiFormat": "İstek biçimi",
-      "aiOpenAiFormatHint": "Uyumlu biçim DeepSeek, Moonshot, Ollama ve SiliconFlow içindir; resmi biçim OpenAI resmi Responses ve o-serisi içindir.",
+      "aiOpenAiFormatHint": "Chat Completions biçimi çoğu uyumlu sağlayıcıyla çalışır (reasoning_content desteğiyle); Responses biçimi resmi Responses API standardını izler.",
       "aiOpenAiFormats": {
-        "compatible": "Genel uyumlu (Chat Completions)",
-        "official": "Resmi yerel (Responses / o-serisi)"
+        "compatible": "Chat Completions (Uyumlu)",
+        "official": "Responses (Resmi)"
       },
       "aiProviderDeleteTitle": "Sağlayıcıyı sil",
       "aiProviderDeleteDesc": "Silindiğinde bu sağlayıcıya bağlı model ayarları da silinir.",

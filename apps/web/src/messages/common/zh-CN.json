@@ -130,10 +130,10 @@
         "anthropic": "Anthropic 规范"
       },
       "aiOpenAiFormat": "请求格式",
-      "aiOpenAiFormatHint": "通用兼容适用于 DeepSeek、月之暗面、Ollama、SiliconFlow 等第三方厂商；官方原生适用于 OpenAI 官方 Responses 与 o 系列。",
+      "aiOpenAiFormatHint": "Chat Completions 格式适用于绝大多数兼容服务商与自建网关（原生支持 reasoning_content）；Responses 格式遵循 OpenAI 官方 Responses API 规范。",
       "aiOpenAiFormats": {
-        "compatible": "通用兼容 (Chat Completions)",
-        "official": "官方原生 (Responses / o-系列)"
+        "compatible": "Chat Completions (通用兼容)",
+        "official": "Responses (官方标准)"
       },
       "aiProviderDeleteTitle": "删除厂商",
       "aiProviderDeleteDesc": "删除后，挂在这个厂商下的模型配置也会一并删除。",

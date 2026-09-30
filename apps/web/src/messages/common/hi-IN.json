@@ -130,10 +130,10 @@
         "anthropic": "Anthropic मानक"
       },
       "aiOpenAiFormat": "अनुरोध प्रारूप",
-      "aiOpenAiFormatHint": "संगत प्रारूप DeepSeek, Moonshot, Ollama और SiliconFlow के लिए है; आधिकारिक प्रारूप OpenAI आधिकारिक Responses और o-श्रृंखला के लिए है।",
+      "aiOpenAiFormatHint": "Chat Completions प्रारूप अधिकांश संगत प्रदाताओं के साथ काम करता है (reasoning_content समर्थन के साथ); Responses आधिकारिक Responses API मानक का पालन करता है।",
       "aiOpenAiFormats": {
-        "compatible": "सामान्य संगत (Chat Completions)",
-        "official": "आधिकारिक मूल (Responses / o-श्रृंखला)"
+        "compatible": "Chat Completions (सामान्य संगत)",
+        "official": "Responses (आधिकारिक)"
       },
       "aiProviderDeleteTitle": "प्रदाता हटाएँ",
       "aiProviderDeleteDesc": "हटाने पर इस प्रदाता के मॉडल कॉन्फ़िगरेशन भी हट जाएँगे।",
