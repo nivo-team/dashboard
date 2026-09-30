@@ -1,0 +1,49 @@
+# AI 中间层（Hono on Cloudflare Workers）
+#
+# 职责：拼系统提示词（规则真值在 packages/ai-prompt）+ 作为 **OpenAI 兼容管道**把请求透传到
+# AI Gateway 并**原样回传 SSE**。provider / 模型路由配置在 AI Gateway；凭证只在本 Worker。
+# 前端切换步骤与完整取舍见 `.agents/docs/ai-server-layer.md`。
+#
+# 部署：pnpm -C apps/ai deploy
+# 本地：pnpm -C apps/ai dev   （http://localhost:3002）
+
+name = "nivo-ai"
+main = "src/index.ts"
+compatibility_date = "2026-09-30"
+
+# 非敏感配置走 vars；密钥一律走 `wrangler secret put`（本地放 apps/ai/.dev.vars，不要提交）
+[vars]
+# 允许调用的前端来源（逗号分隔）。**上线前务必改成真实域名**；
+# 留空则只放行本地开发来源（见 src/cors.ts）。
+ALLOWED_ORIGINS = "http://localhost:3000"
+
+# 上游鉴权形态（三选一，见 src/model-config.ts）：
+#   · provider-native（默认）：gateway.ai.cloudflare.com → 用 cf-aig-authorization
+#   · rest-api             ：api.cloudflare.com/.../ai/v1 → 用 Authorization: Bearer
+#   · direct               ：直连厂商 → 用 Authorization: Bearer <厂商 key>
+AI_GATEWAY_AUTH_MODE = "provider-native"
+
+# 要路由到的 AI Gateway id（对应 cf-aig-gateway-id 头）。**留空 = 走账户的 default gateway**：
+# REST API 的路径里没有 gateway 标识，不带头就落到 default；想明确指定才填。
+# 调用 Workers AI 的 `@cf/` 模型时官方要求必须带这个头。
+AI_GATEWAY_ID = ""
+
+# 服务端固定模型。**必须用网关的 model 命名**（这是填错就 400/404 的地方）：
+#   · 第三方模型：`author/model`，例如 openai/gpt-4.1、anthropic/claude-sonnet-4、deepseek/deepseek-chat
+#   · Workers AI：`@cf/author/model`，例如 @cf/moonshotai/kimi-k2.6
+# 留空则透传客户端传来的 model（模型路由完全交给网关）。
+# ⚠️ 不要写裸模型名（如 `gpt-4o-mini`）——REST API 认不出它属于哪家。
+AI_MODEL_ID = ""
+
+# 仅用于自称与记录（当前不参与上游选择）
+AI_PROVIDER_KIND = "openai"
+
+# 上游端点。两种官方形态二选一（两种填法都收：填到 /ai/v1 为止，或直接粘贴完整端点）：
+#   · Provider Native：https://gateway.ai.cloudflare.com/v1/<account_id>/<gateway_id>/<provider>
+#        —— 鉴权头 cf-aig-authorization；厂商 key 走 Authorization 或由 BYOK 存在网关里
+#   · REST API（新集成官方推荐）：https://api.cloudflare.com/client/v4/accounts/<account_id>/ai/v1
+#        —— Authorization: Bearer <CLOUDFLARE_API_TOKEN>，需要 Account > Workers AI > Read 权限
+#           （只给 AI Gateway 权限会 401 + error code 10000）
+# 注意：OpenAI 兼容的 Unified API `/compat` 官方已标注 Deprecated（单模型调用别再用它）。
+# DLP 的边界（**只能阻断/标记，不能脱敏**）与鉴权分层见 .agents/docs/ai-server-layer.md
+AI_GATEWAY_BASE_URL = ""

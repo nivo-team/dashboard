@@ -1,14 +1,11 @@
-import { ALL_SHELL_NAV_TARGETS } from '#/lib/navigation'
-import { resolveNavLabel } from '../page-context'
-import { collectNavigation } from '../tools/page-tools'
-import type { PromptLayerInput } from './index'
+import type { PromptFacts, PromptNavEntry } from '../types.ts'
 
 /**
  * L2 范围闸：**收到任何请求先分诊，业务外的一律拒绝**。
  *
- * 这一层是整份提示词里唯一"说不"的地方，也是本次架构调整的核心。它解决的是一个真实问题：
- * 内置助手没有范围时，模型会把自己当成通用助手 —— 闲聊、通识、写代码、数学题都顺手答掉，
- * 既让用户以为"这个后台的 AI 什么都能干"，也把上下文和注意力从业务上挪开。
+ * 这一层是整份提示词里唯一"说不"的地方。它解决的是一个真实问题：内置助手没有范围时，
+ * 模型会把自己当成通用助手 —— 闲聊、通识、写代码、数学题都顺手答掉，既让用户以为
+ * "这个后台的 AI 什么都能干"，也把上下文和注意力从业务上挪开。
  *
  * 四件刻意的事：
  *
@@ -16,9 +13,10 @@ import type { PromptLayerInput } from './index'
  *    是"先回答、后补救"，只有把判定写成**先于任何工具调用**的显式步骤，拒绝才会稳定发生。
  * 2. **分诊过程不输出给用户**（用户明确要求）：回答里不出现"判定：越界"这类标签 ——
  *    用户要的是结论，不是分类器日志。
- * 3. **范围的唯一真值来自导航清单**（`collectNavigation`，与 `list_navigation` 同一个出口、
- *    同一个过滤点）：这里**只登记"要注入清单"这件事，不抄一份模块名单**。将来按权限收窄
- *    可见模块时，收窄条件加在 `collectNavigation` 一处，范围闸跟着自动收窄。
+ * 3. **范围的唯一真值来自导航清单**：这里**只登记"要注入清单"这件事，不抄一份模块名单**。
+ *    导航由调用方采集后以 `PromptFacts.navEntries` 传入（源头是 `collectNavigation`，
+ *    与 `list_navigation` 同一个过滤点）。将来按权限收窄可见模块时，收窄条件加在那一处，
+ *    范围闸跟着自动收窄。
  * 4. **"业务之外"要写成清单**：模型对"业务相关"的想象范围比人宽得多（"写代码统计用户数"
  *    在它看来也叫业务相关）。逐个点名比一句"只回答业务问题"有效得多。
  */
@@ -34,22 +32,23 @@ const MAX_MODULE_LINES = 30
  * 逐条列路径既占上下文又没有额外信息（要路径时模型会调 `list_navigation`）。
  *
  * 没有 appId 时（外壳页面：应用选择 / 个人资料 / 外观 / AI 设置 / 关于）
- * 业务导航为空（见 `collectNavigation` 的注释），此时**如实说明"不在任何应用里"**，
- * 而不是让模型对着空清单猜"这个后台大概有什么"。
+ * 业务导航为空，此时**如实说明"不在任何应用里"**，而不是让模型对着空清单猜
+ * "这个后台大概有什么"。
  */
-function formatScopeTargets(appId: string | null): string[] {
+function formatScopeTargets({
+  appId,
+  navEntries,
+  shellNavNames,
+}: Pick<PromptFacts, 'appId' | 'navEntries' | 'shellNavNames'>): string[] {
   if (!appId) {
-    const shellNames = ALL_SHELL_NAV_TARGETS.map((item) =>
-      resolveNavLabel(item.labelKey, item.label),
-    )
     return [
-      `- 用户此刻**不在任何应用里**，位于外壳页面（${shellNames.join(' / ')}）。`,
+      `- 用户此刻**不在任何应用里**，位于外壳页面（${shellNavNames.join(' / ')}）。`,
       '- 此时只有关于本系统自身的问题算业务内：应用与账号、界面外观与语言时区、AI 设置，以及「这个后台怎么用」。',
       '- 业务模块要等用户进入某个应用之后才谈得上 —— **不要凭空假设某个应用里有哪些模块**。',
     ]
   }
 
-  const entries = collectNavigation(appId)
+  const entries: readonly PromptNavEntry[] = navEntries
   if (entries.length === 0) {
     return ['- （当前应用的导航清单为空，无法定位业务模块；请如实说明并建议用户从导航进入目标模块。）']
   }
@@ -73,7 +72,7 @@ function formatScopeTargets(appId: string | null): string[] {
   return lines
 }
 
-export function buildScopeLayer({ context }: PromptLayerInput): string {
+export function buildScopeLayer(facts: PromptFacts): string {
   return [
     '# 第 0 步：请求分诊与范围闸',
     '**每收到一条用户消息，先在内部完成一次分诊，再决定做什么 —— 包括决定要不要调用工具。**',
@@ -106,7 +105,7 @@ export function buildScopeLayer({ context }: PromptLayerInput): string {
     '',
     '## 业务范围从哪里来（唯一真值：导航清单）',
     '**判断「是不是业务内」就以下面这份清单为准**，不要自己想象还有别的模块：',
-    ...formatScopeTargets(context.appId),
+    ...formatScopeTargets(facts),
     '- **清单之外的模块 / 页面 = 越界**；用户提到的功能如果本后台确实没有，如实说「这个后台没有这个功能」，**不要编**一个出来（也不要为了显得有帮助就去调接口试试）。',
     '- 外壳页面（应用与账号、界面外观与语言时区、AI 设置）永远算业务内 —— 这些是本系统自己的设置。',
     '',

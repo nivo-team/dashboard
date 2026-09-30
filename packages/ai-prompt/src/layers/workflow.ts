@@ -1,13 +1,31 @@
-import { useAiSessionStore } from '../session-store'
-import { getLatestSessionTasks } from '../tools/task-tools'
-import type { PromptLayerInput } from './index'
+import type { PromptFacts } from '../types.ts'
 
 /**
- * L4 工作方式层：**分诊判为「业务内」之后**该怎么做 —— 决策优先级 + 操作规约 + 任务续做。
+ * L4-A 工作方式（**稳定**）：**分诊判为「业务内」之后**该怎么做。
  *
  * 这一层刻意与范围闸分开：范围闸回答「该不该做」，这里回答「怎么做」。混在一起的坏处是
  * 每加一条操作细则都会稀释边界（30 行细则里那句"业务外要拒"会被平均掉），所以边界在前、
  * 流程在后，各占一段。
+ *
+ * 这里**只放不随 mode / surface 变的通用规约** —— 随容器变的那部分是 `buildPlaybookLayer`
+ * （落在对话末尾），于是「切换容器」不会打断 system 前缀与历史缓存。
+ */
+export function buildWorkflowLayer(): string {
+  return [
+    '# 工作方式',
+    '- 需要事实（数量、名称、状态、路径）时**先调用工具**，不要凭印象回答；拿不到就直说拿不到。',
+    '- 用户说「带我去 / 打开某某页面」时：先 list_navigation 找到路径，再 navigate_to。',
+    '- **改数据（含删除）要用清单里声明过的接口**：路径与参数以 `get_page_context` / `search_api` 返回的为准，**不要凭印象拼路径**。路径带 `{id}` 这类占位符时用 `pathParams` 填值（例如 `path: "/user/{id}", pathParams: { id: 10001 }`），也可以直接给替换好的真实路径。写操作（尤其删除）系统**一定会先弹审批卡**，用户拒绝就停下、不要重试；写成功后页面数据会自动刷新。',
+    '- **处理多个对象或复合任务时（如批量录入/创建多个用户）**：先调用 `manage_tasks` 创建结构化任务规划清单（Todo List），让用户实时看到推进步骤；随后按清单顺序执行（执行前更新该项为 in_progress，完成后更新为 completed），连续推进至全部任务完成。',
+    '- **刷新页面或回到历史会话继续任务时**：若用户要求「继续 / 继续任务 / 接下来」，检查历史消息中既有的任务清单（Todo List），已完成的项（completed）绝不重复执行；从第一项尚未完成的项（pending 或 in_progress）开始继续顺序推进。若需要权限确认，系统会自动弹出授权卡（或调用 `request_permission` 明确申请），获得授权后继续执行。',
+    '- **写操作被用户拒绝后不要重试同一个请求**，也不要假装它成功了 —— 如实说明被拒绝并询问下一步。',
+    '- 结果里出现 `truncated: true` 说明数据被截断了，改用更精确的查询参数或分页，**不要**基于截断数据下结论。',
+    '- 一次只做一件明确的事；需求不清楚时先问清楚，不要连着调一堆工具乱试。',
+  ].join('\n')
+}
+
+/**
+ * L4-B 决策优先级与容器化操作规约（**随本轮环境变**）。
  *
  * ## 为什么这一层要看容器（`surface`）
  *
@@ -19,22 +37,14 @@ import type { PromptLayerInput } from './index'
  *
  * 这层只写策略；**能发哪些工具**由 `getAllowedTools(..., { surface })` 单独收口
  * （全屏不发给模型 `update_search_params`，因为那边的"当前页面"就是对话本身）。
+ *
+ * 它落在对话末尾：切换容器时只有这一段变，稳定前缀与历史缓存不受影响。
  */
-export function buildWorkflowLayer({ surface }: PromptLayerInput): string {
+export function buildPlaybookLayer({ surface }: PromptFacts): string {
   const isSphere = surface === 'sphere'
   return [
     ...(isSphere ? spherePlaybook() : panelPlaybook()),
-    '',
-    '# 工作方式',
-    '- 需要事实（数量、名称、状态、路径）时**先调用工具**，不要凭印象回答；拿不到就直说拿不到。',
-    '- 用户说「带我去 / 打开某某页面」时：先 list_navigation 找到路径，再 navigate_to。',
     ...(isSphere ? sphereWorkingRules() : panelWorkingRules()),
-    '- **改数据（含删除）要用清单里声明过的接口**：路径与参数以 `get_page_context` / `search_api` 返回的为准，**不要凭印象拼路径**。路径带 `{id}` 这类占位符时用 `pathParams` 填值（例如 `path: "/user/{id}", pathParams: { id: 10001 }`），也可以直接给替换好的真实路径。写操作（尤其删除）系统**一定会先弹审批卡**，用户拒绝就停下、不要重试；写成功后页面数据会自动刷新。',
-    '- **处理多个对象或复合任务时（如批量录入/创建多个用户）**：先调用 `manage_tasks` 创建结构化任务规划清单（Todo List），让用户实时看到推进步骤；随后按清单顺序执行（执行前更新该项为 in_progress，完成后更新为 completed），连续推进至全部任务完成。',
-    '- **刷新页面或回到历史会话继续任务时**：若用户要求「继续 / 继续任务 / 接下来」，检查历史消息中既有的任务清单（Todo List），已完成的项（completed）绝不重复执行；从第一项尚未完成的项（pending 或 in_progress）开始继续顺序推进。若需要权限确认，系统会自动弹出授权卡（或调用 `request_permission` 明确申请），获得授权后继续执行。',
-    '- **写操作被用户拒绝后不要重试同一个请求**，也不要假装它成功了 —— 如实说明被拒绝并询问下一步。',
-    '- 结果里出现 `truncated: true` 说明数据被截断了，改用更精确的查询参数或分页，**不要**基于截断数据下结论。',
-    '- 一次只做一件明确的事；需求不清楚时先问清楚，不要连着调一堆工具乱试。',
   ].join('\n')
 }
 
@@ -96,18 +106,20 @@ function sphereWorkingRules(): string[] {
 }
 
 /**
- * L7 进行中的任务清单：把当前会话最后一份 Todo 目录注进上下文。
+ * L7 进行中的任务清单（**随本轮环境变**）：把当前会话最后一份 Todo 目录注进上下文。
  *
  * 为什么直接注入而不是让模型自己去翻历史：**历史里的工具结果会衰减**
  * （`toModelMessages` 只保留最近 3 轮完整结果），刷新页面后的续做场景里，
  * `manage_tasks` 那次调用的**返回**很可能已经只剩占位符了 —— 模型于是"看不见"清单，
  * 要么重复创建一份、要么从头再来。这里把清单作为**每轮重算的上下文**注入，绕开衰减。
  *
+ * 事实由调用方传入（`PromptFacts.activeTasks`，前端从会话消息里提取）：
+ * 本包读不到 store，那正是它能同时在 Worker 里跑的原因。
+ *
  * 没有清单（或全部完成 / 取消）时返回 `null`：整层不出现，不占上下文。
  */
-export function buildActiveTasksLayer(): string | null {
-  const messages = useAiSessionStore.getState().messages
-  const tasks = getLatestSessionTasks(messages)
+export function buildActiveTasksLayer({ activeTasks }: PromptFacts): string | null {
+  const tasks = activeTasks
   if (!tasks || tasks.length === 0) return null
 
   const uncompleted = tasks.filter(

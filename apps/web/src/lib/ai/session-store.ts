@@ -312,7 +312,12 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
             status: 'idle',
             messages: state.messages.map((item) =>
               item.id === assistantId
-                ? { ...item, parts: finishPendingReasoning(item.parts) }
+                ? {
+                    ...item,
+                    parts: finishPendingReasoning(item.parts),
+                    // 只在真有用量时写，别给消息塞一个 `undefined`
+                    ...(event.usage ? { usage: event.usage } : {}),
+                  }
                 : item,
             ),
           }

@@ -47,7 +47,7 @@ export type AiMode = 'ask' | 'auto'
  * （左边表格、右边 AI）；而全屏页**本身就是一个页面**，跳走等于把用户从对话里拽出去。
  *
  * 因此容器决定两件事，且**只在两处收口**（别在工具或渲染处各判一次）：
- * - 提示词的「工作方式」层（`#/lib/ai/prompt`）：面板鼓励带路、全屏默认不跳；
+ * - 提示词的「工作方式」层（服务端 `packages/ai-prompt`）：面板鼓励带路、全屏默认不跳；
  * - 工具清单（`getAllowedTools(..., { surface })`）：全屏没有挂载的页面，
  *   `update_search_params` 这类"只对当前页面成立"的工具不发给模型。
  *
@@ -207,6 +207,13 @@ export interface AiMessage {
   id: string
   role: 'user' | 'assistant'
   parts: AiMessagePart[]
+  /**
+   * 这一轮的 token 用量（只有 assistant 消息有）。
+   *
+   * 存下来是为了**能看见缓存有没有命中** —— 它是判断「提示词拼接是否对齐」的唯一客观依据，
+   * 也是「做过的缓存优化到底有没有效果」的唯一验证手段。随会话落盘（IDB）。
+   */
+  usage?: AiTurnUsage
 }
 
 export type AiMessagePart =
@@ -289,6 +296,26 @@ export interface AiImageAttachment {
 }
 
 /**
+ * 一轮的 token 用量 —— 只留我们真正会看的几项。
+ *
+ * `cacheReadTokens` 是**前缀缓存是否对齐的唯一客观指标**：提示词里任何一处「不该变却变了」
+ * 都会让它掉下来（详见 `.agents/docs/ai-server-layer.md` §7.5 / §7.6）。
+ *
+ * 字段取自 AI SDK 归一化后的 `LanguageModelUsage.inputTokenDetails` —— 各厂商原始字段名
+ * 完全不同（DeepSeek `prompt_cache_hit_tokens`、Anthropic `cache_read_input_tokens`、
+ * OpenAI `input_tokens_details.cached_tokens`），**SDK 已经把它们映射到同一个形状**，
+ * 所以上层不必按厂商分支。
+ */
+export interface AiTurnUsage {
+  inputTokens?: number
+  outputTokens?: number
+  /** 命中前缀缓存的输入 token —— 越大越好（命中价约为未命中的 1/10 ~ 1/50） */
+  cacheReadTokens?: number
+  /** 未命中缓存的输入 token */
+  noCacheTokens?: number
+}
+
+/**
  * 运行时向外抛的事件流。
  *
  * UI 只认这个联合类型，不碰 AI SDK 的 `fullStream` part —— 将来换运行时
@@ -309,4 +336,5 @@ export type AiStreamEvent =
    */
   | { type: 'nav-proposal'; path: string; label: string; reason?: string }
   | { type: 'error'; error: unknown }
-  | { type: 'finish' }
+  /** 一轮结束 —— 带上 token 用量（含前缀缓存命中），供 UI / 调试观察拼接线是否对齐 */
+  | { type: 'finish'; usage?: AiTurnUsage }

@@ -1,4 +1,4 @@
-import type { PromptLayerInput } from './index'
+import type { PromptFacts } from '../types.ts'
 
 /**
  * L1 身份层：只回答「你是谁、你为谁服务」。
@@ -9,8 +9,13 @@ import type { PromptLayerInput } from './index'
  *
  * 应用名走参数而不是写死：用户切换应用后，同一个助手要自称「以那个应用为主语的助手」，
  * 否则它对当前业务的自我认知会停留在上一次打开的应用上。
+ *
+ * ⚠️ **迁移注意**：末句「运行在用户自己的浏览器里」描述的是**当前**前端直连厂商的形态。
+ * 将来若模型流量改为经 `apps/ai` 出站，这句措辞需要一并复审（见 `.agents/docs/ai-server-layer.md`）。
+ * 本轮为了让服务端与前端的规则文本**逐字一致**（`scripts/ai/check-prompt-drift.mjs` 门控），
+ * 刻意保持原样。
  */
-export function buildIdentityLayer({ appName }: PromptLayerInput): string {
+export function buildIdentityLayer({ appName }: PromptFacts): string {
   return [
     '# 身份与定位',
     `你是「${appName}」管理后台里内置的 AI 助手，运行在用户自己的浏览器里。`,

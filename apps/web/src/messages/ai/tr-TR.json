@@ -134,5 +134,6 @@
     "running": "Devam ediyor…",
     "paused": "Duraklatıldı",
     "cancelled": "İptal edildi"
-  }
+  },
+  "usageStats": "Önbellek isabeti {{cache}} · giriş {{input}} · çıkış {{output}}"
 }

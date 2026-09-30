@@ -1,44 +1,34 @@
-import { createAnthropic } from '@ai-sdk/anthropic'
-import { createOpenAI } from '@ai-sdk/openai'
+import type { PromptFacts } from '@admin/ai-prompt'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { isStepCount, jsonSchema, streamText, tool } from 'ai'
 import type { ModelMessage, ToolSet } from 'ai'
-import type { LocaleKey } from '#/lib/locale'
-import {
-  getActiveModel,
-  resolveProviderBaseUrl,
-  type AiModelConfig,
-  type AiProviderConfig,
-  type AiReasoningLevel,
-} from '#/lib/store'
-import { buildSystemPrompt } from './prompt'
+import { getActiveModel, type AiModelConfig, type AiReasoningLevel } from '#/lib/store'
 import { expandRouteRefs } from './route-refs'
+import { resolveRecentBoundary } from './history-boundary'
 import type {
   AiAttachment,
   AiMessage,
   AiMessagePart,
-  AiMode,
   AiStreamEvent,
-  AiSurface,
   AiToolContext,
   AiToolDefinition,
 } from './types'
 
 /**
- * AI 运行时：把「配置 + 工具 + 页面上下文」组装成一次真实的模型调用。
+ * AI 运行时：把「事实 + 工具 + 对话历史」组装成一次真实的模型调用 —— **中间层是唯一的出站口**。
  *
  * 这一层是本仓库唯一 import `ai`（Vercel AI SDK）的地方 —— 上层（UI）只消费
- * `AiStreamEvent`，下层（工具 / 上下文）是纯数据。换运行时或加一条「走自家后端」的通道，
- * 只需要改这个文件。
+ * `AiStreamEvent`，下层（工具 / 上下文）是纯数据。
  *
- * **系统提示词不在这里拼**：它按「身份 → 范围闸 → 能力 → 工作方式 → 回答方式 → 事实」
- * 分层组装在 `./prompt`（唯一出口 `buildSystemPrompt`），本文件只负责调用它 ——
- * 提示词要改层级、加减内容都在那边，别把规则再写回这里。
+ * **系统提示词不在这里、也不在前端拼**：它按「身份 → 范围闸 → 能力 → 工作方式 → 回答方式 → 事实」
+ * 分层组装在 `packages/ai-prompt`，由 `apps/ai`（Hono Worker）在服务端拼接。
+ * 本文件只负责**把事实快照随请求发出去**（`promptFacts`），拿回来的结果原样交给上层。
+ * 规则要改 → 改服务端那侧；**别再往前端搬回来**。
  *
  * 三个刻意的选择：
  * - **不引 zod**：工具输入用 JSON Schema（`jsonSchema()`），与仓库其它地方的运行时
  *   schema 同一套描述方式，也少一个依赖。
- * - **不引 `@ai-sdk/react`**：面板的 UI 是自定义的（工具卡片、后续的审批卡），
+ * - **不引 `@ai-sdk/react`**：面板的 UI 是自定义的（工具卡片、审批卡），
  *   自己消费 `fullStream` 比套 `useChat` 的消息模型更直接。
  * - **模型声明不支持工具调用时**（`supportsTools === false`）不注册任何工具，
  *   退化成纯对话 —— 管理后台常见的推理 / 小模型会因为 `tools` 参数直接报错。
@@ -48,49 +38,54 @@ import type {
 export const MAX_TOOL_STEPS = 30
 
 /**
- * 按厂商配置创建语言模型实例。
- *
- * 三家协议各有一处必须注意的地方：
- * - **OpenAI**：SDK 默认走 Responses API，而大量自建网关只实现 Chat Completions，
- *   所以这里统一用 `.chat()`（官方同样支持，兼容性最大）。
- * - **Anthropic**：浏览器直连必须带 `anthropic-dangerous-direct-browser-access` 头，
- *   否则官方 SDK 会在检测到浏览器环境时直接抛错。
- * - **OpenAI 兼容**：`createOpenAICompatible` 只认 `baseURL`，`name` 会随请求发给网关
- *   用于区分来源，填用户给厂商起的显示名即可。
+ * 中间层地址。默认指向本地 `pnpm -C apps/ai dev`（3002）；生产用 `.env` 里的
+ * `VITE_AI_SERVICE_BASE_URL` 覆盖。
  */
-function createLanguageModel(
-  provider: AiProviderConfig,
-  model: AiModelConfig,
-) {
-  const baseURL = resolveProviderBaseUrl(provider) || undefined
-  const apiKey = provider.apiKey || undefined
+const AI_SERVICE_BASE_URL =
+  ((import.meta.env?.VITE_AI_SERVICE_BASE_URL as string | undefined) ?? '').replace(
+    /\/+$/,
+    '',
+  ) || 'http://localhost:3002'
 
-  switch (provider.kind) {
-    case 'anthropic':
-      return createAnthropic({
-        apiKey,
-        baseURL,
-        headers: { 'anthropic-dangerous-direct-browser-access': 'true' },
-      })(model.modelId)
+/**
+ * 发给中间层的 model 占位。
+ *
+ * 真实模型由 Worker 固定（`AI_MODEL_ID`）并**覆盖**这个值 —— 前端不需要、也不应该知道
+ * 网关上的模型名（那是 AI Gateway 的配置）。这里刻意用一个不存在的名字：万一服务端漏配了
+ * `AI_MODEL_ID`，请求会得到一个明确的 404，而不是悄悄用了错模型。
+ */
+const WORKER_MODEL_ID = 'nivo-ai-server-fixed'
 
-    case 'openai': {
-      /*
-        OpenAI 规范支持两种请求格式：
-        - official：使用 OpenAI 官方 Responses 通道（@ai-sdk/openai，适合遵循 Responses API 规范的场景）；
-        - compatible（默认推荐）：通用 Chat Completions 通道（@ai-sdk/openai-compatible，原生支持 reasoning_content，
-          适用于 DeepSeek、月之暗面、通义千问、Ollama、SiliconFlow 等任意遵循 OpenAI 规范的第三方厂商）。
-      */
-      const format = provider.openAiFormat ?? 'compatible'
-      if (format === 'official') {
-        return createOpenAI({ apiKey, baseURL }).chat(model.modelId)
+/**
+ * 指向 AI 中间层的模型端点。
+ *
+ * 走中间层之后，前端**不再关心哪家 provider**：
+ * - **凭证**由 Worker 注入（这里的 `apiKey` 只是 SDK 的必填占位，不会到达厂商）；
+ * - **系统提示词**由 Worker 拼接（本层不再传 `system`）；
+ * - **provider / 模型路由**在 AI Gateway（Worker 侧配置）。
+ *
+ * 事实快照必须随**每一个**请求发出（包括工具循环里的每一轮），因为服务端是无状态的、
+ * 每轮都要重新拼提示词。AI SDK 没有"自定义请求体字段"的入口，所以用自定义 `fetch`
+ * 在最外层把 `promptFacts` 并进请求体 —— 这是本项目**唯一一处**改写出站请求体的地方。
+ */
+function createWorkerModel(promptFacts: PromptFacts) {
+  return createOpenAICompatible({
+    name: 'nivo-ai',
+    baseURL: `${AI_SERVICE_BASE_URL}/v1`,
+    apiKey: 'injected-by-worker',
+    fetch: async (input, init) => {
+      if (init?.body && typeof init.body === 'string') {
+        try {
+          const body = JSON.parse(init.body) as Record<string, unknown>
+          body.promptFacts = promptFacts
+          return fetch(input, { ...init, body: JSON.stringify(body) })
+        } catch {
+          // 不是 JSON 体就不动它（例如 SDK 偶发的探测请求）
+        }
       }
-      return createOpenAICompatible({
-        name: provider.name || 'openai-compatible',
-        apiKey,
-        baseURL: baseURL || 'https://api.openai.com/v1',
-      })(model.modelId)
-    }
-  }
+      return fetch(input, init)
+    },
+  })(WORKER_MODEL_ID)
 }
 
 /**
@@ -126,7 +121,9 @@ function toSdkTools(
  * - 选的是 `'provider-default'` —— 那正是省略参数时的行为。
  * 最后再兜一次「必须落在声明的档位里」，避免存档被手改后发出一个厂商会拒掉的值。
  */
-function resolveReasoning(model: AiModelConfig): AiReasoningLevel | undefined {
+function resolveReasoning(model: AiModelConfig | undefined): AiReasoningLevel | undefined {
+  // 走中间层后前端可以完全不配模型，所以这里必须容忍 undefined
+  if (!model) return undefined
   if (model.reasoningLevels.length === 0) return undefined
   if (model.reasoning === 'provider-default') return undefined
   return model.reasoningLevels.includes(model.reasoning) ? model.reasoning : undefined
@@ -135,19 +132,15 @@ function resolveReasoning(model: AiModelConfig): AiReasoningLevel | undefined {
 export interface StreamAssistantTurnOptions {
   /** 对话历史（不含本轮用户消息时，请先把它 append 进去再调用） */
   messages: readonly ModelMessage[]
-  /** 当前模式：决定"要不要先问用户"的说明 */
-  mode: AiMode
   /**
-   * AI 用什么语言回答（**已解析过的具体语言**，不是 `auto`）。
+   * 本轮**事实快照** —— 随请求发给中间层，由它拼系统提示词。
    *
-   * 「跟随界面语言」那一步由调用方（`chat.ts`）解析 —— 这里只管把它写进提示词。
+   * 规则（身份 / 范围闸 / 能力 / 工作方式 / 回答方式）**不在这里**：那是服务端唯一的真值。
    */
-  outputLocale: LocaleKey
-  /** 当前容器（面板 / 全屏）—— 提示词按它换策略，见 `AiSurface` */
-  surface: AiSurface
+  promptFacts: PromptFacts
   tools: readonly AiToolDefinition[]
   toolContext: AiToolContext
-  /** 模型是否支持工具调用（`AiModelConfig.supportsTools`） */
+  /** 模型是否支持工具调用（来自前端的能力声明） */
   supportsTools: boolean
   abortSignal?: AbortSignal
 }
@@ -271,48 +264,21 @@ class ThinkTagStreamParser {
 export async function* streamAssistantTurn(
   options: StreamAssistantTurnOptions,
 ): AsyncGenerator<AiStreamEvent> {
-  const active = getActiveModel()
-  if (!active) {
-    throw new Error('尚未配置模型：请到 设置 → AI 添加厂商与模型。')
-  }
-
   const useTools = options.supportsTools && options.tools.length > 0
-  const reasoning = resolveReasoning(active.model)
 
   /*
-    厂商专属思考参数适配：
-    - OpenAI / Compatible: AI SDK v7 的顶层 reasoning 会自动映射为 reasoning_effort；
-    - Anthropic: @ai-sdk/anthropic 需要 providerOptions.anthropic.thinking 显式开启并指定 budgetTokens；
-  */
-  const providerOptions: Record<string, Record<string, unknown>> = {}
-  if (active.provider.kind === 'anthropic' && reasoning && reasoning !== 'none') {
-    const budgetMap: Record<string, number> = {
-      minimal: 1024,
-      low: 2048,
-      medium: 4096,
-      high: 8192,
-      xhigh: 16384,
-    }
-    const budget = budgetMap[reasoning] ?? 4096
-    providerOptions.anthropic = {
-      thinking: { type: 'enabled', budgetTokens: budget },
-    }
-  }
+    思考程度仍按前端声明的「模型能力」来传 —— 服务端不知道用户勾了哪个档位；
+    没配模型就不传（走中间层后，**前端配置缺失不再阻断发请求**：模型与凭证都在服务端）。
 
-  // 诊断输出：方便在控制台即时校验思考参数与模型状态
-  console.debug('[AI Runtime StreamText]', {
-    provider: active.provider.kind,
-    modelId: active.model.modelId,
-    resolvedReasoning: reasoning,
-    providerOptions,
-  })
+    厂商专属参数（例如 Anthropic 的 `thinking.budgetTokens`）一律不在这里设置：
+    provider 细节归 AI Gateway，前端不该假装知道自己连的是哪家。
+  */
+  const reasoning = resolveReasoning(getActiveModel()?.model)
 
   const result = streamText({
-    model: createLanguageModel(active.provider, active.model),
-    system: buildSystemPrompt(options.mode, options.outputLocale, options.surface),
+    model: createWorkerModel(options.promptFacts),
     messages: [...options.messages],
-    reasoning,
-    ...(Object.keys(providerOptions).length > 0 ? { providerOptions } : {}),
+    ...(reasoning ? { reasoning } : {}),
     // 模型不支持工具调用时传空集：既不发工具定义，也不会触发 SDK 的多步循环
     tools: useTools ? toSdkTools(options.tools, options.toolContext) : {},
     stopWhen: isStepCount(MAX_TOOL_STEPS),
@@ -378,9 +344,24 @@ export async function* streamAssistantTurn(
       case 'error':
         yield { type: 'error', error: part.error }
         break
-      case 'finish':
-        yield { type: 'finish' }
+      case 'finish': {
+        /*
+          带上 token 用量 —— `cacheReadTokens` 是「提示词拼接是否对齐」的唯一客观指标：
+          任何一处「不该变却变了」（时间戳、随机顺序、历史被改写）都会让它掉下来。
+          SDK 已把各厂商不同的字段名归一化到 `inputTokenDetails`，这里不需要分支。
+        */
+        const usage = part.totalUsage
+        yield {
+          type: 'finish',
+          usage: {
+            inputTokens: usage?.inputTokens,
+            outputTokens: usage?.outputTokens,
+            cacheReadTokens: usage?.inputTokenDetails?.cacheReadTokens,
+            noCacheTokens: usage?.inputTokenDetails?.noCacheTokens,
+          },
+        }
         break
+      }
       default:
         // 其余 part（reasoning / source / step 边界等）本期不呈现
         break
@@ -402,22 +383,11 @@ function stringifyToolOutput(value: unknown): string {
   }
 }
 
-/**
- * 历史里保留**完整**工具结果的最近轮数；更早的只留一句占位。
- *
- * 工具结果是**最容易撑爆上下文**的东西：一次 `call_read_api` 可能返回几百行 JSON
- * （单条上限见 `MAX_RESULT_CHARS`），而它会跟着后面每一轮重发。
- * 但后续对话真正需要的往往只是「当时调了什么、拿到没有」—— 具体数据要再用，
- * 模型重新调一次就是。所以按轮数衰减。
- *
- * 注意保留的是：用户说过的话、助手的文本、以及**工具调用本身（名字 + 入参）** ——
- * 模型仍然知道"那一步做了什么"，只是看不到那几百行返回。
- */
-const FULL_TOOL_RESULT_TURNS = 3
 
 /** 衰减后的占位。必须说明「可以重调」，否则模型会把占位当成数据本身。 */
 const OMITTED_TOOL_RESULT =
   '[历史轮次的结果已省略以节省上下文；需要这些数据请重新调用该工具。]'
+
 
 /**
  * 把面板的消息模型转成 SDK 的消息模型。
@@ -439,17 +409,11 @@ function dataUrlToBase64(url: string): string {
 export function toModelMessages(messages: readonly AiMessage[]): ModelMessage[] {
   const result: ModelMessage[] = []
 
-  // 从后往前数出「最近 FULL_TOOL_RESULT_TURNS 轮」的起点：它之前的工具结果会走占位
-  let recentBoundary = 0
-  let userTurns = 0
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    if (messages[i].role !== 'user') continue
-    userTurns += 1
-    if (userTurns > FULL_TOOL_RESULT_TURNS) {
-      recentBoundary = i + 1
-      break
-    }
-  }
+  /*
+    衰减点按**阶梯**前进（不是每轮前移一位）—— 它决定「哪些更早的工具结果走占位」。
+    边界稳定 = 前缀稳定 = 缓存能命中，理由见 `resolveRecentBoundary` 的注释。
+  */
+  const recentBoundary = resolveRecentBoundary(messages)
 
   for (const [index, message] of messages.entries()) {
     /*
@@ -532,6 +496,18 @@ export function toModelMessages(messages: readonly AiMessage[]): ModelMessage[] 
       文本与工具调用的字段也逐个对齐了 API 契约。
     */
     const assistantContent: Array<Record<string, unknown>> = []
+    /*
+      回传思考内容 —— **这不是可选项**：
+      DeepSeek 官方要求「携带了 `tools` 的请求，后续所有请求必须**完整回传** `reasoning_content`，
+      否则返回 400」（未携带 tools 时它会被忽略，所以一律回传是安全的）。
+      `@ai-sdk/openai-compatible` 在构造请求时会把 reasoning part 拼成 `reasoning_content`
+      字段，所以这里只需要把它放进 assistant 内容，**不用手写那个字段**。
+    */
+    for (const part of message.parts) {
+      if (part.type === 'reasoning' && part.text) {
+        assistantContent.push({ type: 'reasoning', text: part.text })
+      }
+    }
     if (rawText) assistantContent.push({ type: 'text', text: rawText })
     for (const call of calls) {
       assistantContent.push({

@@ -1,0 +1,39 @@
+# 开发环境变量模板 —— 复制成 `.dev.vars` 后填值：
+#
+#     cp apps/ai/.dev.vars.example apps/ai/.dev.vars
+#
+# `.dev.vars` 已被根 .gitignore 忽略（含明文令牌，**永远不要提交**）；
+# 本模板可提交，所以这里**只放占位符**。
+#
+# 本地开发时，`.dev.vars` 的值会覆盖 `wrangler.toml` 的 `[vars]`。
+
+# ─────────────────────────────  上游：Cloudflare AI Gateway  ─────────────────────────────
+# 三种鉴权形态（见 src/model-config.ts）：
+#   · rest-api        —— `…/ai/v1`（OpenAI 兼容层），令牌走 Authorization，需 Workers AI > Read
+#   · provider-native —— `gateway.ai.cloudflare.com/v1/<acct>/<gw>/<provider>`，令牌走 cf-aig-authorization
+#   · direct          —— 不经过网关，直连厂商，用 AI_PROVIDER_API_KEY
+AI_GATEWAY_AUTH_MODE = "rest-api"
+
+# 两种填法都收：填到 `/ai/v1` 为止，或直接粘完整端点（结尾 `/chat/completions`）。
+# ⚠️ 别填成 `/ai/run`（那是 `{model, input}` 信封格式，不能喂 OpenAI 客户端）或漏掉 `/v1`。
+AI_GATEWAY_BASE_URL = "https://api.cloudflare.com/client/v4/accounts/<account_id>/ai/v1"
+
+# 留空 = 走账户 default gateway；要指定就填 gateway 名。
+# 调用 Workers AI 的 `@cf/` 模型时官方要求必须带。
+AI_GATEWAY_ID = ""
+
+# 必须用网关命名：`author/model`（deepseek/deepseek-chat）或 `@cf/author/model`。
+# 留空则透传客户端的 model。
+AI_MODEL_ID = ""
+
+# ─────────────────────────────────  密钥  ─────────────────────────────────
+# Cloudflare API Token，权限 **Account > Workers AI > Read**
+# （只给 AI Gateway 权限会 401 + error code 10000）。
+AI_GATEWAY_TOKEN = ""
+
+# 厂商 key：rest-api / provider-native + Unified Billing 时留空；
+# provider-native + 自带 key（非 BYOK）时填；direct 模式必填。
+AI_PROVIDER_API_KEY = ""
+
+# ─────────────────────────────────  其它  ─────────────────────────────────
+ALLOWED_ORIGINS = "http://localhost:3000"

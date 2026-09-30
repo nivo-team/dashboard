@@ -2,6 +2,24 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
+allowBuilds:
+  # esbuild：vite / wrangler 的打包器（本就列在 onlyBuiltDependencies）
+  esbuild: true
+  # workerd：Cloudflare Workers 的本地运行时，wrangler dev/deploy 必需
+  workerd: true
+
+minimumReleaseAgeExclude:
+  - '@cloudflare/workerd-darwin-64@1.20260930.2'
+  - '@cloudflare/workerd-darwin-arm64@1.20260930.2'
+  - '@cloudflare/workerd-linux-64@1.20260930.2'
+  - '@cloudflare/workerd-linux-arm64@1.20260930.2'
+  - '@cloudflare/workerd-windows-64@1.20260930.2'
+  - '@cloudflare/workers-types@5.20260930.2'
+  - hono@4.13.12
+  - miniflare@5.20260930.0-alpha
+  - workerd@1.20260930.2
+  - wrangler@4.145.0
+
 onlyBuiltDependencies:
   - esbuild
   - lightningcss

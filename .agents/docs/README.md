@@ -20,6 +20,8 @@
 | [features-architecture.md](./features-architecture.md) | **加页面 / 改页面业务代码之前**：`src/features` 布局、薄路由、一页一份 `feature.ts`（权限 / 指令 / 数据源）、迁移现状 |
 | [features-catalog.md](./features-catalog.md) | 功能说明与回归测试清单（按模块；AI 指令 / 数据源 / 权限一览） |
 | [ai-architecture.md](./ai-architecture.md) | **改任何 AI 代码 / 提示词之前**：分层、一轮消息的数据流、**系统提示词七层与范围闸**、权限与模式、上下文预算、扩展点、踩过的坑 |
+| [ai-module-inventory.md](./ai-module-inventory.md) | 想知道「AI 现在到底有什么 / 在哪个文件」时：**清单式总览** —— 提示词七层逐层、16 个工具全表、审批矩阵、14 个设置项、**AI 相关文件全地图**、文档与代码的不一致清单 |
+| [ai-server-layer.md](./ai-server-layer.md) | **改 AI 中间层 / 要把规则搬到服务端时**：`apps/ai`（Hono Worker）与 `packages/ai-prompt` 的边界、接口契约、漂移门控、前端切换清单、SSE 取舍、Cloudflare AI Gateway 接入与限制、鉴权与脱敏的落点 |
 | [routing-architecture.md](./routing-architecture.md) | 加页面、改布局：路由分层拓扑、模块目录化、外壳持久化、面包屑注册 |
 | [ui-and-styling.md](./ui-and-styling.md) | 改样式 / 用 Kumo 组件：令牌与主题、悬浮预览接法、RTL 处理 |
 | [store.md](./store.md) | 加 store、改作用域：三类状态的存储键、per-app 分区、迁移与踩坑 |

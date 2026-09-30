@@ -134,5 +134,6 @@
     "running": "En curso…",
     "paused": "Pausado",
     "cancelled": "Cancelado"
-  }
+  },
+  "usageStats": "Acierto de caché {{cache}} · entrada {{input}} · salida {{output}}"
 }

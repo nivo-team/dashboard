@@ -3,6 +3,13 @@
 > **这份文档是给 AI 读的**：改 AI 相关代码前先通读它一遍。它描述**各层职责、一轮消息的
 > 数据流、扩展点，以及踩过的坑** —— 契约级的硬约束在 `AGENTS.md` §9/§10，设计取舍与
 > 选型调研在 `./ai-integration.md` 与 `../../docs/ai-stack-research.md`（那两份偏"给人看"）。
+>
+> 想知道**「当前到底有哪些工具 / 设置项 / AI 文件」的清单**（含文档与代码的不一致项），
+> 见 [`ai-module-inventory.md`](./ai-module-inventory.md)。
+>
+> 想知道**「AI 规则搬到服务端」这件事做到哪一步**（`apps/ai` 提示词服务、漂移门控、
+> 前端切换清单、Cloudflare AI Gateway 接入与鉴权/脱敏计划），见
+> [`ai-server-layer.md`](./ai-server-layer.md)。
 
 目录：
 
@@ -55,9 +62,11 @@ L1  UI          components/ai-panel · ai-conversation · ai-composer · ai-sess
 L2  状态        lib/ai/session-store（消息 / 状态 / 审批 / 落盘）
                 lib/ai/session-boot（本次页面载入算不算「重新载入」）
                 lib/store/preferences-store（本机偏好，按 app 隔离）
-L3  驱动        lib/ai/chat.ts —— 一轮消息的编排（读偏好 → 挑工具 → 拼提示词 → 消费事件）
-                lib/ai/prompt/* —— **系统提示词的分层装配**：唯一出口 `buildSystemPrompt`，
-                  七层「身份 → 范围闸 → 能力 → 工作方式 → 回答方式 → 事实」（见 §8）
+L3  驱动        lib/ai/chat.ts —— 一轮消息的编排（读偏好 → 挑工具 → **采集事实快照** → 消费事件）
+                lib/ai/prompt-facts.ts —— **事实采集**（页面上下文 / 导航 / 任务 / 语言），随请求上报
+                ⚠️ 系统提示词的**规则已迁到服务端**：真值是 `packages/ai-prompt`（纯函数、零依赖），
+                  由 `apps/ai`（Hono Worker）在每轮请求时拼接。前端**不再有 prompt 层** ——
+                  迁移与边界见 [ai-server-layer.md](./ai-server-layer.md)
 L4  运行时      lib/ai/runtime.ts —— **全仓唯一 import `ai`(Vercel AI SDK) 与 provider 的地方**
 L5  工具        lib/ai/tools/{index,page-tools,data-tools,form-tools}.ts
 L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
@@ -254,9 +263,9 @@ useAiPageContext(Route.id, {
 
 **改系统提示词 / 加一层**
 
-在 `#/lib/ai/prompt/` 下加一个 `buildXxxLayer(input): string | null`，并在 `prompt/index.ts`
-的 `PROMPT_LAYERS` 里占一个位置 —— **顺序只有那一处真值**（细节与分层理由见 §8）。
-不要回到 `runtime.ts` 里拼字符串，也不要在别处另建一个提示词出口。
+在 `packages/ai-prompt/src/layers/` 下加一个 `buildXxxLayer(facts): string | null`，并在
+`src/index.ts` 的 `PROMPT_LAYERS` 里占一个位置 —— **顺序只有那一处真值**（细节与分层理由见 §8）。
+不要回到运行时里拼字符串，也不要在别处另建一个提示词出口。
 
 **别做**：把模块 / 页面名单抄进提示词（范围清单从 `collectNavigation` 派生）；在提示词里
 复述权限（那是工具清单的事）；把「本轮有什么」写成常量（每轮都要重算）。
@@ -322,8 +331,13 @@ useAiPageContext(Route.id, {
 
 ## 8. 系统提示词的分层与范围闸
 
-**唯一出口**：`#/lib/ai/prompt/index.ts` 的 `buildSystemPrompt(mode, outputLocale)`（**每轮重算**）。
-`runtime.ts` 只调用它 —— **不要**在 runtime 或别处再拼提示词。
+> ⚠️ **规则已迁到服务端**：真值是 [`packages/ai-prompt`](../../packages/ai-prompt)（纯函数、零依赖），
+> 由 `apps/ai`（Hono Worker）在每轮请求时拼接；前端只负责**上报事实**
+> （`apps/web/src/lib/ai/prompt-facts.ts`）。迁移过程、接口契约与验证方式见
+> [`ai-server-layer.md`](./ai-server-layer.md)。**下面的层序与口径仍然有效**，只是文件位置变了。
+
+**唯一出口**：`packages/ai-prompt` 的 `buildSystemPrompt(facts)`（**每轮重算**）。
+`apps/ai` 的透传管道只调用它 —— **不要**在别处再拼提示词。
 
 七层由 `PROMPT_LAYERS` 声明顺序（**顺序只有这一处真值**）：
 

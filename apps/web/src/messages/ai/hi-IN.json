@@ -134,5 +134,6 @@
     "running": "प्रगति में…",
     "paused": "रोका गया",
     "cancelled": "रद्द किया गया"
-  }
+  },
+  "usageStats": "कैश हिट {{cache}} · इनपुट {{input}} · आउटपुट {{output}}"
 }

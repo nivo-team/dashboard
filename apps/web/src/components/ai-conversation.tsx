@@ -1,4 +1,4 @@
-import { Button, Collapsible, LinkButton } from '@cloudflare/kumo'
+import { Button, Collapsible } from '@cloudflare/kumo'
 import {
   BrainIcon,
   CaretDownIcon,
@@ -25,7 +25,7 @@ import {
   type AiMessagePart,
   type PendingApproval,
 } from '#/lib/ai'
-import { useAiConfigStore, usePreferencesStore } from '#/lib/store'
+import { usePreferencesStore } from '#/lib/store'
 import { useTimezone } from '#/lib/timezone'
 import { TaskCardView, type TaskItemData } from '#/components/ai-task-card'
 
@@ -141,9 +141,11 @@ export function AiConversation({ manageHistory = true }: AiConversationProps) {
   const error = useAiSessionStore((state) => state.error)
   const pendingApproval = useAiSessionStore((state) => state.pendingApproval)
   const loadHistory = useAiSessionStore((state) => state.loadHistory)
-  const isConfigured = useAiConfigStore(
-    (state) => state.activeModelId !== null && state.models.length > 0,
-  )
+  /*
+    这里原有一个「还没配置模型服务」的空态（配一个「去设置」按钮）—— 走中间层后
+    **前端不再需要配置模型**（模型与凭证都在服务端），它只会挡住本来能用的用户，已删除。
+    服务端不可用的情况由发送失败后的 `status === 'error'` 展示承担。
+  */
   // 会话按 app 分区存 IDB，所以切换应用要换一批历史
   const appId = useAuthStore((state) => state.currentApp?.id ?? null)
   // 空态问候语按用户设置的时区判断时段（不是本机时区）
@@ -166,28 +168,6 @@ export function AiConversation({ manageHistory = true }: AiConversationProps) {
     if (!manageHistory) return
     void loadHistory({ fresh: sessionMode === 'new' && isDocumentReload() })
   }, [appId, loadHistory, sessionMode, manageHistory])
-
-  if (!isConfigured) {
-    /*
-      「还没配模型」的空态：与「新对话」用**同一枚头像**，只是让它 `sleeping` ——
-      它确实还动不了，等你配好。两个空态看到同一个角色，才不会像两个功能。
-
-      「去设置」用**默认尺寸**，不是 `size="sm"`：它是这个空态里唯一的下一步动作，
-      做小了整个页面就没有着力点。
-    */
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-5 p-6 text-center">
-        <AiBotAvatar size={96} state="sleeping" />
-        <p className="max-w-64 text-sm text-kumo-subtle">
-          {t('notConfigured', '还没有配置模型服务，配置之后就能直接对话。')}
-        </p>
-        {/* 用 Kumo 的 LinkButton（内部走本仓的 LinkProvider → 客户端路由），不要 a 套 button */}
-        <LinkButton href="/settings/AI" variant="secondary">
-          {t('goToSettings', '去设置')}
-        </LinkButton>
-      </div>
-    )
-  }
 
   // 时段问候只用在空态，但放在这里算也行（一次 Intl 调用，可忽略）
   const greetingKey = greetingKeyOf(timezoneMeta.iana)
@@ -247,6 +227,14 @@ export function AiConversation({ manageHistory = true }: AiConversationProps) {
       ) : null}
     </div>
   )
+}
+
+/** token 数的紧凑写法（1234 → 1.2K）—— 只用于那一行元信息，不追求精确。 */
+function formatTokenCount(value: number | undefined): string {
+  if (value === undefined) return '—'
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`
+  return String(value)
 }
 
 function AiMessageView({
@@ -424,6 +412,21 @@ function AiMessageView({
           <div className="flex items-center gap-1.5 py-1 text-xs text-kumo-subtle">
             {t('thinking', '正在思考…')}
           </div>
+        ) : null}
+
+        {/*
+          本轮 token 用量（定稿后才有，流式期间拿不到）。
+          **`cache` 是「提示词拼接是否对齐」的唯一客观证据**：它偏低就说明前缀被改动了
+          （时间戳、历史被改写、拼接顺序抖动…）—— 见 .agents/docs/ai-server-layer.md §7.5 / §7.6。
+        */}
+        {!streaming && message.usage ? (
+          <p className="text-xs text-kumo-subtle">
+            {t('usageStats', {
+              cache: formatTokenCount(message.usage.cacheReadTokens),
+              input: formatTokenCount(message.usage.inputTokens),
+              output: formatTokenCount(message.usage.outputTokens),
+            })}
+          </p>
         ) : null}
       </div>
     </div>

@@ -12,6 +12,8 @@
     "typecheck": "pnpm -C apps/web typecheck",
     "mock": "pnpm -C apps/mock dev",
     "mock:build": "pnpm -C apps/mock build",
+    "ai": "pnpm -C apps/ai dev",
+    "ai:deploy": "pnpm -C apps/ai deploy",
     "contract": "node packages/api-contract/scripts/sync.mjs",
     "api": "pnpm contract && pnpm -C apps/web api:generate && pnpm -C apps/web gen:query-params && pnpm -C apps/web gen:endpoint-specs",
     "guardrails": "node scripts/ai/check-guardrails.mjs"

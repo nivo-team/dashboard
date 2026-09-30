@@ -1,0 +1,17 @@
+{
+  "name": "@admin/ai-prompt",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AI 系统提示词的唯一真值：七层分层装配、纯函数、零运行时依赖，前端与 apps/ai 共用。",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2"
+  }
+}

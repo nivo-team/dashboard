@@ -3,6 +3,7 @@ import { getActiveModel, usePreferencesStore } from '#/lib/store'
 import { hasPageFormCapability, listAiForms } from './form-bridge'
 import { getAiShellBridge, getPageContext } from './page-context'
 import { resolveAiPageContext } from './page-context-registry'
+import { collectPromptFacts, resolveOutputLanguageName } from './prompt-facts'
 import { addSessionGrant, hasSessionGrant } from './session-permissions'
 import { useAiSessionStore } from './session-store'
 import { getAllowedTools } from './tools'
@@ -238,11 +239,12 @@ export async function sendAiMessage(
   const store = useAiSessionStore.getState()
   if (store.status === 'streaming') return
 
-  const active = getActiveModel()
-  if (!active) {
-    store.failTurn('尚未配置模型：请到 设置 → AI 添加厂商与模型。')
-    return
-  }
+  /*
+    走中间层后**不再要求前端配置模型**：真实模型与凭证都在服务端（AI Gateway + Worker secret）。
+    前端那份 `admin.ai` 配置只剩「能力声明」用途（是否支持工具调用 / 思考档位 / 图片支持），
+    缺失时按「支持」处理 —— 这里原来会直接 failTurn，那个前提已经不成立了。
+  */
+  const capabilities = getActiveModel()?.model
 
   const assistantId = store.beginTurn(trimmed, attachments)
   /*
@@ -279,11 +281,12 @@ export async function sendAiMessage(
     const { aiPermission, aiAllowedTools, aiOutputLanguage, locale } =
       usePreferencesStore.getState()
     /*
-      「跟随界面语言」在这里落地：设置是 `auto` 就用界面语言，否则用用户单独指定的那门。
-      解析放在这一层（而不是 runtime 里），是为了让 runtime 只管"把语言名写进提示词"，
-      不依赖偏好 store。
+      「跟随界面语言」在这里落地：设置是 `auto` 就用界面语言，否则用用户单独指定的那门，
+      再翻成该语言的**自名**（「日本語」而不是「日语」）—— 服务端的提示词只认自名。
     */
-    const outputLocale = aiOutputLanguage === 'auto' ? locale : aiOutputLanguage
+    const outputLanguageName = resolveOutputLanguageName(
+      aiOutputLanguage === 'auto' ? locale : aiOutputLanguage,
+    )
 
     const pageSpec = resolveAiPageContext(getPageContext().routePath)
     const hasForms =
@@ -292,16 +295,18 @@ export async function sendAiMessage(
 
     const stream = streamAssistantTurn({
       messages,
-      mode,
-      surface,
+      /*
+        事实快照由前端采集、随请求上报（页面描述 / 字段名 / 接口描述 / 导航 / 表单 / 任务）。
+        规则（身份 / 范围闸 / 能力 / 工作方式 / 回答方式）在服务端 —— 见 `prompt-facts.ts` 的边界表。
+      */
+      promptFacts: collectPromptFacts({ mode, surface, outputLanguageName }),
       // 页面具备表单能力或已挂载表单时，保留表单工具
       tools: getAllowedTools(aiPermission, aiAllowedTools, {
         hasForms,
         surface,
       }),
-      outputLocale,
       toolContext: buildToolContext(mode, surface),
-      supportsTools: active.model.supportsTools,
+      supportsTools: capabilities?.supportsTools ?? true,
       abortSignal: controller.signal,
     })
 
