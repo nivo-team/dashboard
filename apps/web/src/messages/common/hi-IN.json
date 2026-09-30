@@ -124,10 +124,16 @@
       "aiApiKeyHint": "कुंजी केवल इस डिवाइस के ब्राउज़र में सहेजी जाती है। साझा कंप्यूटर पर असली कुंजी न डालें।",
       "aiProviderKeySet": "कुंजी सेट है",
       "aiProviderKeyMissing": "कुंजी नहीं है",
+      "aiProviderKind": "प्रोटोकॉल मानक",
       "aiProviderKinds": {
-        "openai": "OpenAI",
-        "anthropic": "Anthropic",
-        "compatible": "OpenAI संगत"
+        "openai": "OpenAI मानक",
+        "anthropic": "Anthropic मानक"
+      },
+      "aiOpenAiFormat": "अनुरोध प्रारूप",
+      "aiOpenAiFormatHint": "संगत प्रारूप DeepSeek, Moonshot, Ollama और SiliconFlow के लिए है; आधिकारिक प्रारूप OpenAI आधिकारिक Responses और o-श्रृंखला के लिए है।",
+      "aiOpenAiFormats": {
+        "compatible": "सामान्य संगत (Chat Completions)",
+        "official": "आधिकारिक मूल (Responses / o-श्रृंखला)"
       },
       "aiProviderDeleteTitle": "प्रदाता हटाएँ",
       "aiProviderDeleteDesc": "हटाने पर इस प्रदाता के मॉडल कॉन्फ़िगरेशन भी हट जाएँगे।",

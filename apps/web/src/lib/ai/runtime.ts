@@ -181,33 +181,19 @@ function createLanguageModel(
 
     case 'openai': {
       /*
-        如果配置了自定义接口地址（如 DeepSeek 官方、硅基流动、Ollama 等自建网关），
-        必须使用 createOpenAICompatible：官方 @ai-sdk/openai 的流解析器只认 delta.content，
-        会直接静默丢弃 DeepSeek 等厂商返回的核心字段 delta.reasoning_content！
+        OpenAI 规范支持两种请求格式：
+        - official：使用 OpenAI 官方原生通道（@ai-sdk/openai，适合官方 Responses/o-系列原生）；
+        - compatible（默认推荐）：通用兼容通道（@ai-sdk/openai-compatible，原生支持 reasoning_content，
+          适用于 DeepSeek、月之暗面、通义千问、Ollama、SiliconFlow 等任意遵循 OpenAI 规范的第三方厂商）。
       */
-      const isCustomGateway = baseURL && !baseURL.includes('api.openai.com')
-      if (isCustomGateway) {
-        return createOpenAICompatible({
-          name: provider.name || 'openai-compatible',
-          apiKey,
-          baseURL,
-        })(model.modelId)
-      }
-      return createOpenAI({ apiKey, baseURL }).chat(model.modelId)
-    }
-
-    case 'compatible': {
-      /*
-        兼容类型的接口地址是**必填**（没有官方默认地址可回落，SDK 的类型也这么要求），
-        缺了就明确报错 —— 让用户在设置页看到原因，而不是发一个注定失败的请求。
-      */
-      if (!baseURL) {
-        throw new Error('OpenAI 兼容服务需要填写接口地址（设置 → AI → 模型服务）')
+      const format = provider.openAiFormat ?? 'compatible'
+      if (format === 'official') {
+        return createOpenAI({ apiKey, baseURL }).chat(model.modelId)
       }
       return createOpenAICompatible({
-        name: provider.name,
+        name: provider.name || 'openai-compatible',
         apiKey,
-        baseURL,
+        baseURL: baseURL || 'https://api.openai.com/v1',
       })(model.modelId)
     }
   }

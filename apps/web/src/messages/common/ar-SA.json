@@ -124,10 +124,16 @@
       "aiApiKeyHint": "يُحفظ المفتاح في متصفح هذا الجهاز فقط. لا تُدخل مفتاحًا حقيقيًا على جهاز مشترك.",
       "aiProviderKeySet": "المفتاح مُعدّ",
       "aiProviderKeyMissing": "المفتاح مفقود",
+      "aiProviderKind": "معيار البروتوكول",
       "aiProviderKinds": {
-        "openai": "OpenAI",
-        "anthropic": "Anthropic",
-        "compatible": "متوافق مع OpenAI"
+        "openai": "معيار OpenAI",
+        "anthropic": "معيار Anthropic"
+      },
+      "aiOpenAiFormat": "صيغة الطلب",
+      "aiOpenAiFormatHint": "التنسيق المتوافق مناسب لـ DeepSeek وMoonshot وOllama وSiliconFlow؛ والتنسيق الرسمي مناسب لـ OpenAI الرسمي وسلسلة o.",
+      "aiOpenAiFormats": {
+        "compatible": "متوافق عام (Chat Completions)",
+        "official": "رسمي أصلي (Responses / سلسلة o)"
       },
       "aiProviderDeleteTitle": "حذف المزوّد",
       "aiProviderDeleteDesc": "عند الحذف ستُحذف أيضًا إعدادات النماذج التابعة لهذا المزوّد.",

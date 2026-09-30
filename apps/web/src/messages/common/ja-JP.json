@@ -124,10 +124,16 @@
       "aiApiKeyHint": "キーはこの端末のブラウザーにのみ保存されます。共用のパソコンでは実際のキーを入力しないでください。",
       "aiProviderKeySet": "キー設定済み",
       "aiProviderKeyMissing": "キー未設定",
+      "aiProviderKind": "プロトコル仕様",
       "aiProviderKinds": {
-        "openai": "OpenAI",
-        "anthropic": "Anthropic",
-        "compatible": "OpenAI 互換"
+        "openai": "OpenAI 仕様",
+        "anthropic": "Anthropic 仕様"
+      },
+      "aiOpenAiFormat": "リクエスト形式",
+      "aiOpenAiFormatHint": "汎用互換形式は DeepSeek、Moonshot、Ollama、SiliconFlow 等のサードパーティ向けです。公式ネイティブは OpenAI 公式 Responses および o シリーズ向けです。",
+      "aiOpenAiFormats": {
+        "compatible": "汎用互換 (Chat Completions)",
+        "official": "公式ネイティブ (Responses / o-シリーズ)"
       },
       "aiProviderDeleteTitle": "プロバイダーを削除",
       "aiProviderDeleteDesc": "削除すると、このプロバイダーに登録したモデル設定もまとめて削除されます。",

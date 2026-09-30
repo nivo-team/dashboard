@@ -15,6 +15,7 @@ import {
   AI_PROVIDER_KINDS,
   resolveProviderBaseUrl,
   useAiConfigStore,
+  type AiOpenAiFormat,
   type AiProviderConfig,
   type AiProviderKind,
 } from '#/lib/store'
@@ -78,6 +79,14 @@ export function AiProviderCard() {
                     AI_PROVIDER_DEFAULTS[provider.kind].name,
                   )}
                 </Badge>
+                {provider.kind === 'openai' ? (
+                  <Badge variant="secondary">
+                    {t(
+                      `profile.settings.aiOpenAiFormats.${provider.openAiFormat ?? 'compatible'}`,
+                      provider.openAiFormat === 'official' ? '官方原生' : '通用兼容',
+                    )}
+                  </Badge>
+                ) : null}
                 {/* 只报「有没有 Key」，不显示 Key 本身 */}
                 <Badge variant={provider.apiKey ? 'success' : 'warning'}>
                   {provider.apiKey
@@ -229,6 +238,9 @@ function AiProviderDialog({
   const updateProvider = useAiConfigStore((state) => state.updateProvider)
 
   const [kind, setKind] = useState<AiProviderKind>(target?.kind ?? 'openai')
+  const [openAiFormat, setOpenAiFormat] = useState<AiOpenAiFormat>(
+    target?.openAiFormat ?? 'compatible',
+  )
   const [name, setName] = useState(target?.name ?? AI_PROVIDER_DEFAULTS.openai.name)
   const [baseUrl, setBaseUrl] = useState(target?.baseUrl ?? '')
   const [apiKey, setApiKey] = useState(target?.apiKey ?? '')
@@ -249,6 +261,7 @@ function AiProviderDialog({
       name: name.trim() || AI_PROVIDER_DEFAULTS[kind].name,
       baseUrl: baseUrl.trim(),
       apiKey: apiKey.trim(),
+      openAiFormat: kind === 'openai' ? openAiFormat : undefined,
     }
     if (target) updateProvider(target.id, payload)
     else addProvider(payload)
@@ -271,8 +284,8 @@ function AiProviderDialog({
             className="flex flex-col gap-4"
           >
             <Select<AiProviderKind>
-              aria-label={t('profile.settings.aiProviderKind', '服务类型')}
-              label={t('profile.settings.aiProviderKind', '服务类型')}
+              aria-label={t('profile.settings.aiProviderKind', '协议规范')}
+              label={t('profile.settings.aiProviderKind', '协议规范')}
               value={kind}
               onValueChange={(next) => {
                 if (next) handleKindChange(next)
@@ -285,6 +298,37 @@ function AiProviderDialog({
                 ),
               }))}
             />
+
+            {kind === 'openai' ? (
+              <Select<AiOpenAiFormat>
+                aria-label={t('profile.settings.aiOpenAiFormat', '请求格式')}
+                label={t('profile.settings.aiOpenAiFormat', '请求格式')}
+                labelTooltip={t(
+                  'profile.settings.aiOpenAiFormatHint',
+                  '通用兼容格式适用于 DeepSeek、月之暗面、Ollama、SiliconFlow 等第三方厂商；官方原生适用于 OpenAI 官方 Responses 与 o 系列。',
+                )}
+                value={openAiFormat}
+                onValueChange={(next) => {
+                  if (next) setOpenAiFormat(next)
+                }}
+                items={[
+                  {
+                    value: 'compatible',
+                    label: t(
+                      'profile.settings.aiOpenAiFormats.compatible',
+                      '通用兼容 (Chat Completions，支持 reasoning_content)',
+                    ),
+                  },
+                  {
+                    value: 'official',
+                    label: t(
+                      'profile.settings.aiOpenAiFormats.official',
+                      '官方原生 (Responses / o-系列)',
+                    ),
+                  },
+                ]}
+              />
+            ) : null}
 
             <Input
               label={t('profile.settings.aiProviderName', '名称')}

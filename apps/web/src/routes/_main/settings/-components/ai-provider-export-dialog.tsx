@@ -29,6 +29,7 @@ export interface ExportedAiProviderPackage {
     name: string
     baseUrl: string
     apiKey: string
+    openAiFormat?: AiProviderConfig['openAiFormat']
   }
   models: Array<{
     modelId: string
@@ -102,6 +103,7 @@ export function AiProviderExportDialog({
       name: provider.name,
       baseUrl: provider.baseUrl,
       apiKey: provider.apiKey,
+      openAiFormat: provider.openAiFormat,
     },
     models: models.map((m) => ({
       modelId: m.modelId,

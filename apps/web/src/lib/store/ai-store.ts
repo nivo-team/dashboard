@@ -17,17 +17,26 @@ import { enableCrossTabSync } from './cross-tab-sync'
  * 而 Base URL 与 Key 属于厂商 —— 合成一条记录会让同一个 Key 被抄 N 份，改一次要改 N 处。
  */
 
-/** 厂商类型：前两种走官方协议，第三种留给自建网关 / One-API 这类兼容服务。 */
-export type AiProviderKind = 'openai' | 'anthropic' | 'compatible'
+/** 厂商遵循的协议规范：通用 OpenAI 规范或通用 Anthropic 规范。 */
+export type AiProviderKind = 'openai' | 'anthropic'
+
+/** OpenAI 规范支持的两种请求格式。 */
+export type AiOpenAiFormat = 'compatible' | 'official'
 
 export interface AiProviderConfig {
   id: string
   kind: AiProviderKind
-  /** 显示名。新增时默认取该类型的名称，允许用户改成「公司网关」这类更直观的名字 */
+  /** 显示名。新增时默认取该规范的名称，允许用户自定义为「DeepSeek」「自建网关」等 */
   name: string
-  /** 接口地址。**留空表示用该类型的官方默认地址**（见 `AI_PROVIDER_DEFAULTS`） */
+  /** 接口地址。**留空表示用该规范的官方默认地址**（见 `AI_PROVIDER_DEFAULTS`） */
   baseUrl: string
   apiKey: string
+  /**
+   * OpenAI 规范下的请求格式：
+   * - `compatible`：通用兼容格式（Chat Completions，支持 reasoning_content，默认推荐，适用于 DeepSeek/Qwen/Ollama 等第三方与开源模型）
+   * - `official`：OpenAI 官方原生格式（Responses / 原生 o-系列）
+   */
+  openAiFormat?: AiOpenAiFormat
 }
 
 /**
@@ -87,25 +96,23 @@ export interface AiModelConfig {
   supportsVision: boolean
 }
 
-/** 各类型的默认接口地址与默认名称。 */
+/** 各协议规范的默认接口地址与默认名称。 */
 export const AI_PROVIDER_DEFAULTS: Record<
   AiProviderKind,
   { baseUrl: string; name: string }
 > = {
-  openai: { baseUrl: 'https://api.openai.com/v1', name: 'OpenAI' },
-  anthropic: { baseUrl: 'https://api.anthropic.com/v1', name: 'Anthropic' },
-  compatible: { baseUrl: '', name: 'OpenAI 兼容' },
+  openai: { baseUrl: 'https://api.openai.com/v1', name: 'OpenAI 规范' },
+  anthropic: { baseUrl: 'https://api.anthropic.com/v1', name: 'Anthropic 规范' },
 }
 
-/** 厂商类型的展示顺序（也用于设置页的下拉选项）。 */
+/** 规范类型的展示顺序（设置页的下拉选项）。 */
 export const AI_PROVIDER_KINDS: readonly AiProviderKind[] = [
   'openai',
   'anthropic',
-  'compatible',
 ]
 
 export function isAiProviderKind(value: unknown): value is AiProviderKind {
-  return value === 'openai' || value === 'anthropic' || value === 'compatible'
+  return value === 'openai' || value === 'anthropic'
 }
 
 interface AiConfigState {
@@ -145,15 +152,32 @@ function createId(): string {
  */
 function normalizeProvider(value: unknown): AiProviderConfig | null {
   if (!value || typeof value !== 'object') return null
-  const raw = value as Partial<AiProviderConfig>
+  const raw = value as Partial<AiProviderConfig> & { kind?: string }
   if (typeof raw.id !== 'string' || !raw.id) return null
-  if (!isAiProviderKind(raw.kind)) return null
+
+  // 旧存档平滑迁移：旧版 'compatible' 自动迁移为 'openai' + openAiFormat: 'compatible'
+  let kind: AiProviderKind
+  if (raw.kind === 'compatible' || raw.kind === 'openai') {
+    kind = 'openai'
+  } else if (raw.kind === 'anthropic') {
+    kind = 'anthropic'
+  } else {
+    return null
+  }
+
+  const openAiFormat: AiOpenAiFormat =
+    raw.openAiFormat === 'official' ? 'official' : 'compatible'
+
   return {
     id: raw.id,
-    kind: raw.kind,
-    name: typeof raw.name === 'string' && raw.name ? raw.name : AI_PROVIDER_DEFAULTS[raw.kind].name,
+    kind,
+    name:
+      typeof raw.name === 'string' && raw.name
+        ? raw.name
+        : AI_PROVIDER_DEFAULTS[kind].name,
     baseUrl: typeof raw.baseUrl === 'string' ? raw.baseUrl : '',
     apiKey: typeof raw.apiKey === 'string' ? raw.apiKey : '',
+    openAiFormat: kind === 'openai' ? openAiFormat : undefined,
   }
 }
 

@@ -124,10 +124,16 @@
       "aiApiKeyHint": "La clave solo se guarda en el navegador de este dispositivo. No introduzcas una clave real en un equipo compartido.",
       "aiProviderKeySet": "Clave configurada",
       "aiProviderKeyMissing": "Falta la clave",
+      "aiProviderKind": "Estándar de protocolo",
       "aiProviderKinds": {
-        "openai": "OpenAI",
-        "anthropic": "Anthropic",
-        "compatible": "Compatible con OpenAI"
+        "openai": "Estándar OpenAI",
+        "anthropic": "Estándar Anthropic"
+      },
+      "aiOpenAiFormat": "Formato de solicitud",
+      "aiOpenAiFormatHint": "El formato compatible funciona con DeepSeek, Moonshot, Ollama y SiliconFlow; el oficial funciona con OpenAI nativo y serie o.",
+      "aiOpenAiFormats": {
+        "compatible": "Compatible general (Chat Completions)",
+        "official": "Oficial nativo (Responses / serie o)"
       },
       "aiProviderDeleteTitle": "Eliminar proveedor",
       "aiProviderDeleteDesc": "Al eliminarlo también se borrarán los modelos configurados en este proveedor.",

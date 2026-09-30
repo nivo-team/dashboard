@@ -124,10 +124,16 @@
       "aiApiKeyHint": "Anahtar yalnızca bu cihazın tarayıcısında saklanır. Ortak kullanılan bir bilgisayarda gerçek anahtar girmeyin.",
       "aiProviderKeySet": "Anahtar tanımlı",
       "aiProviderKeyMissing": "Anahtar yok",
+      "aiProviderKind": "Protokol standardı",
       "aiProviderKinds": {
-        "openai": "OpenAI",
-        "anthropic": "Anthropic",
-        "compatible": "OpenAI uyumlu"
+        "openai": "OpenAI standardı",
+        "anthropic": "Anthropic standardı"
+      },
+      "aiOpenAiFormat": "İstek biçimi",
+      "aiOpenAiFormatHint": "Uyumlu biçim DeepSeek, Moonshot, Ollama ve SiliconFlow içindir; resmi biçim OpenAI resmi Responses ve o-serisi içindir.",
+      "aiOpenAiFormats": {
+        "compatible": "Genel uyumlu (Chat Completions)",
+        "official": "Resmi yerel (Responses / o-serisi)"
       },
       "aiProviderDeleteTitle": "Sağlayıcıyı sil",
       "aiProviderDeleteDesc": "Silindiğinde bu sağlayıcıya bağlı model ayarları da silinir.",

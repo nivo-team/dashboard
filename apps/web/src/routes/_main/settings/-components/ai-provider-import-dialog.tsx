@@ -17,7 +17,9 @@ import {
   isAiProviderKind,
   useAiConfigStore,
   type AiModelConfig,
+  type AiOpenAiFormat,
   type AiProviderConfig,
+  type AiProviderKind,
   type AiReasoningLevel,
 } from '#/lib/store'
 import {
@@ -36,6 +38,7 @@ interface ParsedImportData {
     name: string
     baseUrl: string
     apiKey: string
+    openAiFormat?: AiOpenAiFormat
   }
   models: Array<{
     modelId: string
@@ -116,10 +119,18 @@ export function AiProviderImportDialog({
         )
       }
 
-      const kind = rawProvider.kind
-      if (!isAiProviderKind(kind)) {
-        throw new Error('未知的厂商类型 (kind)，仅支持 openai / anthropic / compatible')
+      const rawKind = (rawProvider as any).kind
+      let kind: AiProviderKind
+      if (rawKind === 'compatible' || rawKind === 'openai') {
+        kind = 'openai'
+      } else if (rawKind === 'anthropic') {
+        kind = 'anthropic'
+      } else {
+        throw new Error('未知的协议规范 (kind)，仅支持 openai / anthropic')
       }
+
+      const openAiFormat: AiOpenAiFormat =
+        rawProvider.openAiFormat === 'official' ? 'official' : 'compatible'
 
       const name = String(rawProvider.name ?? '').trim()
       if (!name) {
@@ -146,7 +157,13 @@ export function AiProviderImportDialog({
         }))
 
       setParsedData({
-        provider: { kind, name, baseUrl, apiKey },
+        provider: {
+          kind,
+          name,
+          baseUrl,
+          apiKey,
+          openAiFormat: kind === 'openai' ? openAiFormat : undefined,
+        },
         models,
       })
       setParseError(null)
@@ -195,6 +212,7 @@ export function AiProviderImportDialog({
       name: providerName,
       baseUrl: parsedData.provider.baseUrl,
       apiKey: parsedData.provider.apiKey,
+      openAiFormat: parsedData.provider.openAiFormat,
     })
 
     // 3. 关联添加所有模型

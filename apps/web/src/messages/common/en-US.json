@@ -124,10 +124,16 @@
       "aiApiKeyHint": "The key is stored only in this browser on this device. Do not enter a real key on a shared computer.",
       "aiProviderKeySet": "Key set",
       "aiProviderKeyMissing": "Key missing",
+      "aiProviderKind": "Protocol standard",
       "aiProviderKinds": {
-        "openai": "OpenAI",
-        "anthropic": "Anthropic",
-        "compatible": "OpenAI-compatible"
+        "openai": "OpenAI standard",
+        "anthropic": "Anthropic standard"
+      },
+      "aiOpenAiFormat": "Request format",
+      "aiOpenAiFormatHint": "Compatible format works with DeepSeek, Moonshot, Ollama, SiliconFlow, and other third parties; Official format works with OpenAI Responses and o-series.",
+      "aiOpenAiFormats": {
+        "compatible": "Compatible (Chat Completions)",
+        "official": "Official (Responses / o-series)"
       },
       "aiProviderDeleteTitle": "Delete provider",
       "aiProviderDeleteDesc": "Models configured under this provider will be deleted too.",
