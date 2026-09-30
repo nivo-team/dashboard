@@ -257,6 +257,85 @@ export interface StreamAssistantTurnOptions {
 }
 
 /**
+ * 流式 <think> 标签解析器：
+ * 兼容市面上大量将思维链包裹在 <think>...</think> 中通过普通文本流返回的模型（如 DeepSeek-R1、Ollama、第三方聚合 API），
+ * 自动将其无缝提升为标准 reasoning 流式事件，使思考折叠卡片在各种渠道下均能稳定生效。
+ */
+class ThinkTagStreamParser {
+  private inThink = false
+  private buffer = ''
+
+  feed(text: string): AiStreamEvent[] {
+    this.buffer += text
+    const events: AiStreamEvent[] = []
+
+    while (this.buffer.length > 0) {
+      if (!this.inThink) {
+        const openIdx = this.buffer.indexOf('<think>')
+        if (openIdx === -1) {
+          const partialMatch = this.buffer.match(/<t?(h?(i?(n?k?)?)?)?$/)
+          if (partialMatch && partialMatch[0].length > 0) {
+            const emitLen = this.buffer.length - partialMatch[0].length
+            if (emitLen > 0) {
+              events.push({ type: 'text', text: this.buffer.slice(0, emitLen) })
+              this.buffer = this.buffer.slice(emitLen)
+            }
+            break
+          } else {
+            events.push({ type: 'text', text: this.buffer })
+            this.buffer = ''
+            break
+          }
+        } else {
+          if (openIdx > 0) {
+            events.push({ type: 'text', text: this.buffer.slice(0, openIdx) })
+          }
+          this.inThink = true
+          this.buffer = this.buffer.slice(openIdx + 7)
+        }
+      } else {
+        const closeIdx = this.buffer.indexOf('</think>')
+        if (closeIdx === -1) {
+          const partialMatch = this.buffer.match(/<\/?t?(h?(i?(n?k?)?)?)?$/)
+          if (partialMatch && partialMatch[0].length > 0) {
+            const emitLen = this.buffer.length - partialMatch[0].length
+            if (emitLen > 0) {
+              events.push({ type: 'reasoning', text: this.buffer.slice(0, emitLen) })
+              this.buffer = this.buffer.slice(emitLen)
+            }
+            break
+          } else {
+            events.push({ type: 'reasoning', text: this.buffer })
+            this.buffer = ''
+            break
+          }
+        } else {
+          if (closeIdx > 0) {
+            events.push({ type: 'reasoning', text: this.buffer.slice(0, closeIdx) })
+          }
+          this.inThink = false
+          this.buffer = this.buffer.slice(closeIdx + 8)
+        }
+      }
+    }
+
+    return events
+  }
+
+  flush(): AiStreamEvent[] {
+    if (this.buffer.length === 0) return []
+    const events: AiStreamEvent[] = [
+      {
+        type: this.inThink ? 'reasoning' : 'text',
+        text: this.buffer,
+      },
+    ]
+    this.buffer = ''
+    return events
+  }
+}
+
+/**
  * 跑一轮助手回复，把流式事件抛给调用方。
  *
  * 用 async generator 而不是回调：调用方用 `for await` 消费，天然支持中途 `break`
@@ -291,15 +370,27 @@ export async function* streamAssistantTurn(
     abortSignal: options.abortSignal,
   })
 
+  const thinkParser = new ThinkTagStreamParser()
+
   for await (const part of result.fullStream) {
     switch (part.type) {
       case 'text-delta':
-        if (part.text) yield { type: 'text', text: part.text }
+        if (part.text) {
+          for (const ev of thinkParser.feed(part.text)) {
+            yield ev
+          }
+        }
         break
-      case 'reasoning-delta':
-        if (part.text) yield { type: 'reasoning', text: part.text }
+      case 'reasoning-delta': {
+        const text =
+          (part as { text?: string; delta?: string }).text ??
+          (part as { delta?: string }).delta ??
+          ''
+        if (text) yield { type: 'reasoning', text }
         break
+      }
       case 'tool-call':
+        for (const ev of thinkParser.flush()) yield ev
         yield {
           type: 'tool-call',
           toolCallId: part.toolCallId,
@@ -333,6 +424,10 @@ export async function* streamAssistantTurn(
         // 其余 part（reasoning / source / step 边界等）本期不呈现
         break
     }
+  }
+
+  for (const ev of thinkParser.flush()) {
+    yield ev
   }
 }
 
