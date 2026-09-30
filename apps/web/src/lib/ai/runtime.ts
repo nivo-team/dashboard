@@ -353,17 +353,42 @@ export async function* streamAssistantTurn(
   }
 
   const useTools = options.supportsTools && options.tools.length > 0
+  const reasoning = resolveReasoning(active.model)
+
+  /*
+    厂商专属思考参数适配：
+    - OpenAI / Compatible: AI SDK v7 的顶层 reasoning 会自动映射为 reasoning_effort；
+    - Anthropic: @ai-sdk/anthropic 需要 providerOptions.anthropic.thinking 显式开启并指定 budgetTokens；
+  */
+  const providerOptions: Record<string, Record<string, unknown>> = {}
+  if (active.provider.type === 'anthropic' && reasoning && reasoning !== 'none') {
+    const budgetMap: Record<string, number> = {
+      minimal: 1024,
+      low: 2048,
+      medium: 4096,
+      high: 8192,
+      xhigh: 16384,
+    }
+    const budget = budgetMap[reasoning] ?? 4096
+    providerOptions.anthropic = {
+      thinking: { type: 'enabled', budgetTokens: budget },
+    }
+  }
+
+  // 诊断输出：方便在控制台即时校验思考参数与模型状态
+  console.debug('[AI Runtime StreamText]', {
+    provider: active.provider.type,
+    modelId: active.model.modelId,
+    resolvedReasoning: reasoning,
+    providerOptions,
+  })
 
   const result = streamText({
     model: createLanguageModel(active.provider, active.model),
     system: buildSystemPrompt(options.mode, options.outputLocale),
     messages: [...options.messages],
-    /*
-      思考程度：**AI SDK v7 的顶层可移植参数**，SDK 会按各 provider 的规范翻译成
-      `reasoning_effort` / `thinking.budget_tokens` 之类。`undefined` = 省略 = 厂商默认。
-      **不要**改成 `providerOptions`：两者不合并，那边一旦出现推理选项，这里会被完全忽略。
-    */
-    reasoning: resolveReasoning(active.model),
+    reasoning,
+    ...(Object.keys(providerOptions).length > 0 ? { providerOptions } : {}),
     // 模型不支持工具调用时传空集：既不发工具定义，也不会触发 SDK 的多步循环
     tools: useTools ? toSdkTools(options.tools, options.toolContext) : {},
     stopWhen: isStepCount(MAX_TOOL_STEPS),
