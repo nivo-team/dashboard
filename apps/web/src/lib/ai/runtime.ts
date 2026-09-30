@@ -179,8 +179,22 @@ function createLanguageModel(
         headers: { 'anthropic-dangerous-direct-browser-access': 'true' },
       })(model.modelId)
 
-    case 'openai':
+    case 'openai': {
+      /*
+        如果配置了自定义接口地址（如 DeepSeek 官方、硅基流动、Ollama 等自建网关），
+        必须使用 createOpenAICompatible：官方 @ai-sdk/openai 的流解析器只认 delta.content，
+        会直接静默丢弃 DeepSeek 等厂商返回的核心字段 delta.reasoning_content！
+      */
+      const isCustomGateway = baseURL && !baseURL.includes('api.openai.com')
+      if (isCustomGateway) {
+        return createOpenAICompatible({
+          name: provider.name || 'openai-compatible',
+          apiKey,
+          baseURL,
+        })(model.modelId)
+      }
       return createOpenAI({ apiKey, baseURL }).chat(model.modelId)
+    }
 
     case 'compatible': {
       /*
@@ -411,7 +425,10 @@ export async function* streamAssistantTurn(
           (part as { text?: string; delta?: string }).text ??
           (part as { delta?: string }).delta ??
           ''
-        if (text) yield { type: 'reasoning', text }
+        if (text) {
+          console.debug('[Reasoning Delta Received]', text)
+          yield { type: 'reasoning', text }
+        }
         break
       }
       case 'tool-call':
