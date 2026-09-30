@@ -48,6 +48,13 @@ apps/web/src/routes/
 ### 双层外壳拓扑：_main 与 $appId 隔离
 - **全局通用外壳 (`_main/`)**：处理与具体应用无关的通用业务，例如工作空间应用列表选择 (`/`)、个人资料 (`/settings/profile`) 等。
 - **业务控制台外壳 (`$appId/`)**：扁平化去除了多余的 `_app` 中间层，直接由 `apps/web/src/routes/$appId/route.tsx` 承载 `AppShell`。每个应用系统享有隔离的 URL 空间 `/$appId/...`，路由守卫自动根据 URL 参数同步激活当前 App 及其专属的 `apiBaseUrl`。
+- **单应用 vs 多应用模式（环境变量可配）**：
+  - **单应用模式（默认，`VITE_MULTI_APP=false`）**：
+    - 访问 `/` 路由或登录成功后，无需调用 `GET /apps` 接口，守卫自动重定向到默认应用路由（如 `/$DEFAULT_APP_ID/home`，默认 `nivo`）；
+    - 保持原有的 IndexedDB 与 localStorage 存储架构不变，仍以默认应用 ID 作为作用域隔离基准；
+    - 通用外壳与侧边栏自动隐藏「应用选择」项，应用切换器转为纯静态应用名展示，流程极简。
+  - **多应用模式（`VITE_MULTI_APP=true`）**：
+    - 开启工作空间应用选择页 (`/`) 与侧边栏多应用切换器，调用 `GET /apps` 动态载入多应用列表。
 - **默认首页与智能面包屑**：
   - 应用默认首页统一规范为 `/$appId/home`（访问 `/$appId` 自动重定向）；
   - 顶栏面包屑自动剥离第一段 `$appId` 参数，使业务层级链路清晰直观（如 `/$appId/home` 显示为 `首页`，`/$appId/orders` 显示为 `首页 / 订单管理`）；
@@ -178,7 +185,7 @@ AI 状态（`lib/ai/session-store`）是模块级 zustand store，与路由无�
 
 - `__root.tsx`：根路由。统一使用 `<LinkProvider component={AppLink}>` 桥接所有 Kumo 内部链接至 TanStack 客户端导航，挂载全局 `<Toasty toastManager={appToastManager}>` 通知容器（共享管理器见 `apps/web/src/lib/toast.ts`，供 API 拦截器等非 React 上下文复用），并集成 TanStack Devtools。
 - `_main/`：与 `appId` 无关的全局通用无路径外壳 (`_main/route.tsx`)。
-  - `_main/index.tsx`：根路径 (`/`) 承载工作空间应用选择页 (`SelectAppPage`)，未登录拦截跳转至 `/login`，已登录供用户选择或切换应用系统。
+  - `_main/index.tsx`：根路径 (`/`)。在多应用模式下承载工作空间应用选择页 (`SelectAppPage`)；在单应用模式下（默认），通过 `beforeLoad` 直接规范化重定向至默认应用首页 (`/nivo/home`，由 `DEFAULT_APP_ID` 配置)，无需接口请求与选应用流程。
   - `_main/select-app.tsx`：兼容历史 `/select-app` 路径，规范化重定向至根路径 `/`。
   - `_main/settings/`：设置模块（**目录化**，与 `/` 共用 `MainLayout`；当前「个人资料 / 外观 / AI」三个子页）。
     - `settings/route.tsx`：模块根，只渲染 `<Outlet />`；`settings/index.tsx` 把 `/settings` 重定向到默认子页 `/settings/profile`（与 `$appId/users/` 同一套写法）。**设置模块的二级导航由 `MainLayout` 的 `MainSidebarSwitch` 按路由前缀切换**（`/settings`、`/settings/**` → `SettingsSidebar`，其余 → 通用导航）—— 嵌套路由只能替换内容区，无法接管外层侧边栏。两套导航共用品牌 Header（`SidebarBrandHeader`：方块 + 标题 + 移动端关闭按钮）与「快速搜索」入口（`SidebarSearchButton`，与 `AppSidebar` 同一套 Kumo 官方范式）；`SettingsSidebar` 在品牌行之下再加一行 `SettingsModuleHeader`（返回 `/` + 模块标题「设置」，参照 Cloudflare 控制台），**真正替换的只有模块行与菜单**。这是「同一 Sidebar 位置换内容」而非第二个 `Sidebar`，`Sidebar.Provider` 不重挂，折叠状态与拖拽宽度都保留。`_main` 外壳已挂 `CommandPaletteDialog`（⌘K / Ctrl+K，与 `AppShell` 同款接线），搜索按钮与快捷键共享同一面板。

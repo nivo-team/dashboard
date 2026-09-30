@@ -9,6 +9,7 @@ import {
   UserIcon,
   UsersIcon,
 } from '@phosphor-icons/react'
+import { isMultiAppEnabled } from './app-config'
 
 /** 二级导航项，渲染为 `Sidebar.MenuSubButton`。 */
 export interface NavSubItem {
@@ -195,8 +196,8 @@ export interface ShellNavItem {
   badge?: string
 }
 
-/** `_main` 通用外壳的默认侧边栏：应用选择 + 个人资料（进设置模块前的入口）。 */
-export const MAIN_NAV_ITEMS: ShellNavItem[] = [
+/** `_main` 通用外壳的默认侧边栏：多应用模式下显示「应用选择 + 个人资料」，单应用模式下仅显示「个人资料」。 */
+const RAW_MAIN_NAV_ITEMS: ShellNavItem[] = [
   {
     label: '应用',
     labelKey: 'profileNav.apps',
@@ -213,6 +214,10 @@ export const MAIN_NAV_ITEMS: ShellNavItem[] = [
     keywords: ['profile', 'account', '个人资料', '账号'],
   },
 ]
+
+export const MAIN_NAV_ITEMS: ShellNavItem[] = isMultiAppEnabled()
+  ? RAW_MAIN_NAV_ITEMS
+  : RAW_MAIN_NAV_ITEMS.filter((item) => item.to !== '/')
 
 /** 设置模块的二级导航：进入 `/settings/**` 后接管侧边栏。 */
 export const SETTINGS_NAV_ITEMS: ShellNavItem[] = [

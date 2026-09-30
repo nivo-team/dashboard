@@ -4,7 +4,7 @@ import { useRouterState } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { NotFoundIllustration } from '#/components/not-found-illustration'
-import { useAuth } from '#/lib/auth'
+import { DEFAULT_APP_ID, isMultiAppEnabled, useAuth } from '#/lib/auth'
 
 interface WireframeBlockProps {
   className?: string
@@ -85,7 +85,8 @@ function NotFoundPage({ className }: { className?: string }) {
   // 否则（非法 appId、_main 外壳）回到应用选择页。
   const firstSegment = pathname.split('/').filter(Boolean)[0]
   const isKnownApp = !!firstSegment && availableApps.some((app) => app.id === firstSegment)
-  const homeHref = isKnownApp && firstSegment ? `/${firstSegment}/home` : '/'
+  const defaultHome = isMultiAppEnabled() ? '/' : `/${DEFAULT_APP_ID}/home`
+  const homeHref = isKnownApp && firstSegment ? `/${firstSegment}/home` : defaultHome
 
   return (
     <div

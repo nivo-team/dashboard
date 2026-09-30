@@ -6,7 +6,7 @@ import {
 } from '@phosphor-icons/react'
 import { useRouter } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { useAuth } from '#/lib/auth'
+import { isMultiAppEnabled, useAuth } from '#/lib/auth'
 import type { AppItem } from '#/lib/auth'
 export type { AppItem }
 
@@ -55,6 +55,20 @@ export function AppSwitcher({
   }
 
   const currentAppName = t(`apps.${currentApp.id}.name`, currentApp.name)
+
+  // 单应用模式：静态展示当前应用，无需下拉切换器与「查看所有应用」
+  if (!isMultiAppEnabled()) {
+    return (
+      <div className="flex w-full min-w-0 items-center gap-2 rounded-lg p-1.5 text-start">
+        <span className="flex size-7 shrink-0 items-center justify-center text-kumo-default">
+          <CurrentIcon size={16} weight={currentApp.iconWeight ?? 'regular'} />
+        </span>
+        <span className="min-w-0 flex-1 truncate font-semibold text-sm text-kumo-default group-data-[state=collapsed]/sidebar:hidden">
+          {currentAppName}
+        </span>
+      </div>
+    )
+  }
 
   return (
     <DropdownMenu>

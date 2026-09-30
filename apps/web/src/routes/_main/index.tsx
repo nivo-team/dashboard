@@ -1,13 +1,16 @@
 import { LayerCard, Loader, Table } from '@cloudflare/kumo'
 import {
   createFileRoute,
+  redirect,
   useNavigate,
   useRouter,
 } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
+  DEFAULT_APP_ID,
   fetchAvailableApps,
+  isMultiAppEnabled,
   selectAppAndComplete,
   setAvailableApps,
   useAuth,
@@ -25,6 +28,19 @@ export const Route = createFileRoute('/_main/')({
   validateSearch: (search: Record<string, unknown>): SelectAppSearch => {
     return {
       redirect: typeof search.redirect === 'string' ? search.redirect : undefined,
+    }
+  },
+  beforeLoad: ({ search }) => {
+    // 单应用模式下 / 路由作为可选，直接重定向至默认应用业务首页
+    if (!isMultiAppEnabled()) {
+      const target =
+        search.redirect &&
+        search.redirect.startsWith('/') &&
+        search.redirect !== '/' &&
+        search.redirect !== '/select-app'
+          ? search.redirect
+          : `/${DEFAULT_APP_ID}/home`
+      throw redirect({ to: target as any })
     }
   },
   component: SelectAppPage,
@@ -55,6 +71,11 @@ function SelectAppPage() {
   }
 
   useEffect(() => {
+    if (!isMultiAppEnabled()) {
+      handleSelectApp(DEFAULT_APP_ID)
+      return
+    }
+
     let isMounted = true
 
     async function loadApps() {

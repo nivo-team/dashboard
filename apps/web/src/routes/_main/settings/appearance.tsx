@@ -22,7 +22,7 @@ import {
   usePreviewAnimation,
 } from '#/components/settings-choice-preview'
 import { SettingsCard, SettingRow } from '#/components/settings-card'
-import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
+import { DEFAULT_APP_ID, isMultiAppEnabled, useAuth } from '#/lib/auth'
 import { cn } from '#/lib/cn'
 import {
   ACCENT_COLOR_OPTIONS,
@@ -378,7 +378,7 @@ function AppearanceSettingsPage() {
       <PageHeader
         title={t('profileNav.settings', '设置')}
         actions={
-          availableApps.length > 0 ? (
+          isMultiAppEnabled() && availableApps.length > 0 ? (
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-kumo-subtle">
                 {t('profile.settings.currentApp', '当前应用：')}

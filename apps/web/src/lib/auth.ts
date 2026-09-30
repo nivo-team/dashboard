@@ -10,18 +10,20 @@ import {
 } from '#/api'
 import {
   DEFAULT_APP_ID,
+  getDefaultApp,
   iconForAppId,
   toAppItems,
   type AppItem,
   type AppPayload,
   type UserInfo,
 } from './app-registry'
+import { isMultiAppEnabled } from './app-config'
 import { clearAllQueryCaches } from './query-client'
 import { setAppScope } from './store/app-scope'
 import { enableCrossTabSync } from './store/cross-tab-sync'
 
 export type { AppItem, UserInfo }
-export { DEFAULT_APP_ID }
+export { DEFAULT_APP_ID, getDefaultApp, isMultiAppEnabled }
 
 /**
  * 认证与应用状态（zustand + persist）。
@@ -113,12 +115,26 @@ function hydrateApp(app: PersistedApp): AppItem {
 
 function hydratePersistedState(persisted: PersistedAuthState): AuthState {
   const rawApps = Array.isArray(persisted.availableApps) ? persisted.availableApps : []
+  let availableApps = rawApps.map(hydrateApp)
+  let currentApp = persisted.currentApp ? hydrateApp(persisted.currentApp) : null
+
+  // 单应用模式下，确保应用列表与当前激活应用统一为当前的默认单应用
+  if (!isMultiAppEnabled()) {
+    const defaultApp = getDefaultApp()
+    if (availableApps.length === 0 || !availableApps.some((a) => a.id === defaultApp.id)) {
+      availableApps = [defaultApp]
+    }
+    if (!currentApp || currentApp.id !== defaultApp.id) {
+      currentApp = defaultApp
+    }
+  }
+
   return {
     isAuthenticated: Boolean(persisted.token && persisted.user),
     token: persisted.token ?? null,
     user: persisted.user ?? null,
-    availableApps: rawApps.map(hydrateApp),
-    currentApp: persisted.currentApp ? hydrateApp(persisted.currentApp) : null,
+    availableApps,
+    currentApp,
   }
 }
 
@@ -168,8 +184,8 @@ export const useAuthStore = create<AuthStore>()(
       isAuthenticated: false,
       token: null,
       user: null,
-      availableApps: [],
-      currentApp: null,
+      availableApps: !isMultiAppEnabled() ? [getDefaultApp()] : [],
+      currentApp: !isMultiAppEnabled() ? getDefaultApp() : null,
 
       setAuthenticatedSession: ({ token, user, apps }) => {
         set({
@@ -305,7 +321,8 @@ export const useAuthStore = create<AuthStore>()(
       },
       // 水合完成即把激活应用同步到 app 作用域：per-app store 据此读对应命名空间
       onRehydrateStorage: () => (state) => {
-        setAppScope(state?.currentApp?.id)
+        const targetId = state?.currentApp?.id || (!isMultiAppEnabled() ? DEFAULT_APP_ID : undefined)
+        setAppScope(targetId)
       },
     },
   ),
@@ -379,16 +396,21 @@ export async function apiLogin(credentials: {
   return {
     token,
     user,
-    // 应用列表由登录页拿到 token 后单独获取（见 fetchAvailableApps）
-    apps: [],
+    // 单应用模式下直接提供默认应用，多应用模式下由登录后单独获取
+    apps: !isMultiAppEnabled() ? [getDefaultApp()] : [],
   }
 }
 
 /**
- * 模拟获取当前账号可授权访问的应用列表接口
- * 预留多服务器/多域名空间，每个 App 携带其独立的 apiBaseUrl
+ * 获取当前账号可授权访问的应用列表：
+ * - 单应用模式（默认）：直接返回默认单应用，无需请求后端接口；
+ * - 多应用模式：调用 GET /apps 获取应用列表（预留多服务器/多域名空间，每个 App 携带其独立的 apiBaseUrl）。
  */
 export async function fetchAvailableApps(): Promise<AppItem[]> {
+  if (!isMultiAppEnabled()) {
+    return [getDefaultApp()]
+  }
+
   try {
     const { data } = await getApps()
     return toAppItems((data?.result ?? []) as AppPayload[])

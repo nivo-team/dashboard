@@ -13,6 +13,7 @@ import { ShortcutKbd } from '#/components/kbd'
 import { NotFound } from '#/components/not-found'
 import { ShellSidebarProvider } from '#/components/shell-sidebar-provider'
 import { cn } from '#/lib/cn'
+import { DEFAULT_APP_ID, isMultiAppEnabled, useAuth } from '#/lib/auth'
 import {
   MAIN_NAV_ITEMS,
   SETTINGS_NAV_ITEMS,
@@ -101,9 +102,15 @@ function SettingsModuleHeader() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { isMobile, setOpenMobile } = useSidebar()
+  const { currentApp } = useAuth()
+  const appId = currentApp?.id || DEFAULT_APP_ID
 
   const handleBack = () => {
-    navigate({ to: '/' as any })
+    if (!isMultiAppEnabled()) {
+      navigate({ to: `/${appId}/home` as any })
+    } else {
+      navigate({ to: '/' as any })
+    }
     if (isMobile) {
       setOpenMobile(false)
     }

@@ -1,5 +1,9 @@
 import type { Icon, IconWeight } from '@phosphor-icons/react'
 import { ChartLineIcon, MonitorIcon, SquaresFourIcon } from '@phosphor-icons/react'
+import { DEFAULT_API_BASE_URL } from '#/api'
+import { DEFAULT_APP_ID, DEFAULT_APP_NAME } from './app-config'
+
+export { DEFAULT_APP_ID, DEFAULT_APP_NAME }
 
 /**
  * 应用注册表：把「服务端下发的应用」与「前端呈现资源」拼起来。
@@ -45,11 +49,9 @@ export interface AppItem {
 /** 接口下发的应用（不含图标等前端资源）。 */
 export type AppPayload = Omit<AppItem, 'icon' | 'iconWeight'>
 
-/** 拿不到当前应用时的兜底 id。 */
-export const DEFAULT_APP_ID = 'app1'
-
 /** 应用 id → 图标。 */
 export const APP_ICONS: Record<string, Icon> = {
+  nivo: MonitorIcon,
   app1: MonitorIcon,
   app2: ChartLineIcon,
 }
@@ -57,6 +59,21 @@ export const APP_ICONS: Record<string, Icon> = {
 const FALLBACK_ICON = SquaresFourIcon
 
 const FALLBACK_GRADIENT = 'from-[#0b3323] via-[#0d3f2c] to-[#08261b]'
+
+/** 单应用模式下的默认应用对象 */
+export function getDefaultApp(): AppItem {
+  return {
+    id: DEFAULT_APP_ID,
+    name: DEFAULT_APP_NAME,
+    headline: DEFAULT_APP_NAME,
+    description: 'Default Application',
+    domain: typeof window !== 'undefined' ? window.location.host : 'localhost',
+    apiBaseUrl: import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL,
+    themeGradient: FALLBACK_GRADIENT,
+    icon: iconForAppId(DEFAULT_APP_ID),
+    iconWeight: 'regular',
+  }
+}
 
 /** 给接口下发的应用补上前端呈现资源。 */
 export function toAppItems(payloads: AppPayload[]): AppItem[] {

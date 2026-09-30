@@ -1,5 +1,12 @@
 import { notFound, redirect } from '@tanstack/react-router'
-import { getAuthSnapshot, selectAppAndComplete } from '#/lib/auth'
+import {
+  DEFAULT_APP_ID,
+  getAuthSnapshot,
+  getDefaultApp,
+  isMultiAppEnabled,
+  selectAppAndComplete,
+  setAvailableApps,
+} from '#/lib/auth'
 
 /**
  * `/$appId/**` 系列路由共用的 `beforeLoad` 守卫。
@@ -32,7 +39,15 @@ export function guardAppRoute({ appId, href }: { appId: string; href: string }):
     })
   }
 
-  const matchedApp = auth.availableApps.find((app) => app.id === appId)
+  let matchedApp = auth.availableApps.find((app) => app.id === appId)
+
+  // 单应用模式兜底：若匹配默认应用且本地列表尚未水合，自动补充默认单应用
+  if (!matchedApp && !isMultiAppEnabled() && appId === DEFAULT_APP_ID) {
+    const defaultApp = getDefaultApp()
+    setAvailableApps([defaultApp])
+    matchedApp = defaultApp
+  }
+
   if (!matchedApp) {
     throw notFound()
   }

@@ -18,7 +18,11 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   apiLogin,
+  completeLoginWithApp,
+  DEFAULT_APP_ID,
   getAuthSnapshot,
+  getDefaultApp,
+  isMultiAppEnabled,
   setAuthenticatedSession,
 } from '#/lib/auth'
 
@@ -34,13 +38,25 @@ export const Route = createFileRoute('/_auth/login')({
   },
   beforeLoad: ({ search }) => {
     const auth = getAuthSnapshot()
-    // 检测到已有登录信息，已选应用则进入控制台，未选应用则进入选择应用页
+    // 检测到已有登录信息：单应用模式直接进入默认应用，多应用模式按是否已选应用分流
     if (auth.isAuthenticated) {
+      if (!isMultiAppEnabled()) {
+        const appId = auth.currentApp?.id || DEFAULT_APP_ID
+        const target =
+          search.redirect &&
+          search.redirect.startsWith('/') &&
+          search.redirect !== '/' &&
+          search.redirect !== '/select-app'
+            ? search.redirect
+            : `/${appId}/home`
+        throw redirect({ to: target as any })
+      }
+
       if (auth.currentApp) {
         const target =
           search.redirect && search.redirect.startsWith('/')
             ? search.redirect
-            : '/'
+            : `/${auth.currentApp.id}/home`
         throw redirect({ to: target as any })
       }
       throw redirect({
@@ -99,13 +115,35 @@ function LoginPage() {
         rememberDevice,
       })
 
-      // 暂存登录态，进入应用选择路由以获取并选定工作空间应用
-      setAuthenticatedSession(data)
-      router.invalidate()
-      navigate({
-        to: '/',
-        search: { redirect: redirectUrl },
-      })
+      // 单应用模式：直接使用默认应用完成选定，跳转至业务首页，避免多余的 / 路由选择
+      if (!isMultiAppEnabled()) {
+        const defaultApp = getDefaultApp()
+        completeLoginWithApp(
+          {
+            token: data.token,
+            user: data.user,
+            apps: [defaultApp],
+          },
+          defaultApp.id,
+        )
+        router.invalidate()
+        const target =
+          redirectUrl &&
+          redirectUrl.startsWith('/') &&
+          redirectUrl !== '/' &&
+          redirectUrl !== '/select-app'
+            ? redirectUrl
+            : `/${defaultApp.id}/home`
+        navigate({ to: target as any })
+      } else {
+        // 多应用模式：暂存登录态，进入应用选择路由以获取并选定工作空间应用
+        setAuthenticatedSession(data)
+        router.invalidate()
+        navigate({
+          to: '/',
+          search: { redirect: redirectUrl },
+        })
+      }
     } catch (err) {
       const errorText = err instanceof Error ? err.message : t('authFailed')
       toast.add({
