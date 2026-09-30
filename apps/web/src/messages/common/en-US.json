@@ -181,6 +181,8 @@
       },
       "aiAutoScroll": "Follow output",
       "aiAutoScrollHint": "Scroll to the latest content while the AI answers; scrolling up pauses it",
+      "aiAutoNavigate": "Auto-open pages",
+      "aiAutoNavigateHint": "In Ask mode, the panel opens pages without asking (Auto mode never asks anyway)",
       "aiPermission": "AI permissions",
       "aiPermissionMode": "Scope",
       "aiPermissionModeHint": "What the AI is allowed to do. Switch to Full access to let it fill forms, submit and call write APIs",

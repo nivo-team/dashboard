@@ -22,6 +22,7 @@ import { USER_FILTER_FIELDS } from '#/api/query-params.gen'
 import {
   definePageCapabilities,
   useAiFormOpener,
+  useAiPageReload,
   usePageCapabilities,
 } from '#/lib/ai'
 import {
@@ -419,6 +420,15 @@ function UserListPage() {
   useEffect(() => {
     void fetchUsers()
   }, [fetchUsers])
+
+  /*
+    把「重新取数」交给 AI 通道：这一页的数据**不走 react-query**（直接调 SDK 塞 state），
+    所以 AI 通过 `call_write_api` 删掉一条后，只有页面自己重取一次，表格才会跟着变
+    （否则用户看到的是"删了但还在"，与 AI 的回答矛盾）。
+    登记的闭包每轮渲染都指向最新的 `fetchUsers`，因此筛选 / 分页 / 排序全部保留。
+    见 `#/lib/ai/page-reload-bridge`。
+  */
+  useAiPageReload(fetchUsers)
 
   const openFormSplit = useCallback(
     (

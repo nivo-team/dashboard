@@ -181,6 +181,8 @@
       },
       "aiAutoScroll": "Çıktıyı takip et",
       "aiAutoScrollHint": "Yapay zeka yanıtlarken en son içeriğe kaydır; yukarı kaydırmak duraklatır",
+      "aiAutoNavigate": "Sayfaları otomatik aç",
+      "aiAutoNavigateHint": "Sor modunda da sayfa açarken sormaz (Otomatik modda zaten sormaz)",
       "aiPermission": "AI izinleri",
       "aiPermissionMode": "Kapsam",
       "aiPermissionModeHint": "Yapay zekanın neler yapabileceği. «Tam erişim» seçilirse form doldurabilir, gönderebilir ve yazma API’lerini çağırabilir",

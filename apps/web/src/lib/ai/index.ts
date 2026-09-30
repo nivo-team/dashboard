@@ -4,6 +4,7 @@
  * 分层与设计约定见 `.agents/docs/ai-integration.md`：
  * - `types`：工具与消息的公共类型（与厂商、SDK 无关）；
  * - `page-context`：当前 URL / 路由 / 应用的采集，以及把 router 能力注入进来的「外壳桥」；
+ * - `page-reload-bridge`：页面把「重新取数」交给 AI 通道（写操作成功后刷新列表用）；
  * - `tools`：工具注册表（名字 / 描述 / JSON Schema / access）；
  * - `session-store` / `chat`：面板的会话状态与「发一条消息」的驱动逻辑；
  * - `session-boot`：本次页面载入算不算「重新载入」，决定要不要开一段新会话。
@@ -17,6 +18,7 @@ export * from './form-bridge'
 export * from './page-capabilities'
 export * from './page-context'
 export * from './page-context-registry'
+export * from './page-reload-bridge'
 export * from './panel-session'
 export * from './route-refs'
 export * from './search-params-bridge'

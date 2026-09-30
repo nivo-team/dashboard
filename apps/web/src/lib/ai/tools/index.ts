@@ -1,4 +1,4 @@
-import type { AiPermissionMode, AiToolDefinition } from '../types'
+import type { AiPermissionMode, AiSurface, AiToolDefinition } from '../types'
 import {
   callReadApiTool,
   callWriteApiTool,
@@ -79,7 +79,7 @@ export function resolveAllowedToolNames(
 export function getAllowedTools(
   permission: AiPermissionMode,
   customTools: readonly string[] = [],
-  options: { hasForms?: boolean } = {},
+  options: { hasForms?: boolean; surface?: AiSurface } = {},
 ): AiToolDefinition[] {
   const allowed = new Set(resolveAllowedToolNames(permission, customTools))
   return AI_TOOLS.filter((tool) => {
@@ -92,6 +92,17 @@ export function getAllowedTools(
       传 `undefined` 表示"不知道"，那就照旧全给（宁多勿缺）。
     */
     if (options.hasForms === false && tool.group === 'form') return false
+    /*
+      **容器的过滤点**（`AiSurface`）：全屏对话页里没有挂载的业务页面，
+      `update_search_params` 依赖页面表格注册的调度器（`useTableQuery` → `search-params-bridge`），
+      在全屏里调用只会走兜底分支、把参数拼到 `/$appId/sphere` 自己的 URL 上 —— 原地打转、
+      既没用又会让模型以为"筛选已生效"。所以它在全屏里**不发给模型**，
+      由提示词的「工作方式」层说明：全屏下把数据直接渲染在对话里。
+
+      容器相关的策略只加在这里（与权限、表单组同一处收口）：将来全屏要放开写操作，
+      也在这一个函数里判断，不要在工具内部再散一份。
+    */
+    if (options.surface === 'sphere' && tool.name === 'update_search_params') return false
     return true
   })
 }

@@ -4,6 +4,7 @@ import { describeEndpointParams, findEndpointSpec } from '../endpoint-specs'
 import { getAiShellBridge, getPageContext, resolveNavLabel } from '../page-context'
 import { resolveActivePageCapabilities } from '../page-capabilities'
 import { resolveAiPageContext } from '../page-context-registry'
+import { NAVIGATION_GRANT } from '../session-permissions'
 import type { AiToolDefinition } from '../types'
 
 /**
@@ -95,7 +96,7 @@ export function isAllowedPath(path: string, appId: string | null): boolean {
 export const getPageContextTool: AiToolDefinition = {
   name: 'get_page_context',
   description:
-    '读取用户此刻所在的页面信息：完整地址、应用、所在页面名称与标题，**以及这个页面用到的接口和它们的参数明细**（参数名 / 位置 / 是否必填）。要在这个页面上查数据时，**先看这里**，再决定调哪个接口、怎么传参。',
+    '读取用户此刻所在的页面信息：完整地址、应用、所在页面名称与标题，**以及这个页面用到的接口和它们的参数明细**（参数名 / 位置 / 是否必填）。要在这个页面上查数据时，**先看这里**，再决定调哪个接口、怎么传参。**全屏对话页里没有业务页面上下文**（你只会看到"在对话页"），那种情况改用 list_navigation 定位模块 + search_api 找接口。',
   inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   access: 'read',
   group: 'page',
@@ -167,16 +168,37 @@ export const listNavigationTool: AiToolDefinition = {
   },
 }
 
+/**
+ * 目标路径对应的**可读页面名**（给确认卡 / 建议卡显示）。
+ *
+ * 取名规则与 `isAllowedPath` 同一套：优先精确命中导航项，否则取最长的前缀命中
+ * （详情页 `/console/users/user/10001` → 「用户列表」）。取不到就退化成路径本身 ——
+ * 卡片上永远不能出现空白标题。
+ */
+function resolveTargetLabel(path: string, appId: string | null): string {
+  const entries = collectNavigation(appId)
+  let best: NavigationEntry | null = null
+  for (const entry of entries) {
+    if (path !== entry.path && !path.startsWith(`${entry.path}/`)) continue
+    if (!best || entry.path.length > best.path.length) best = entry
+  }
+  return best?.name ?? path
+}
+
 export const navigateToTool: AiToolDefinition = {
   name: 'navigate_to',
   description:
-    '把用户带到后台的特定页面（前端路由跳转）。优先级极高：当用户询问或搜索某个单模块的数据列表（如 @引用、用户列表、功能列表等），必须优先调用此工具带用户前往对应页面，并配合 update_search_params 应用搜索条件，直接在页面表格上为用户呈现！',
+    '把用户带到后台的某个页面（前端路由跳转）。**这个动作可能要先经过用户同意**：询问模式下面板会弹确认卡（「带我去」只这一次 / 「本会话自动跳转」本次对话内不再问 / 「先不跳」），**自动模式下直接跳**；全屏对话页里不会真的跳，而是把跳转渲染成一张由用户点击的卡片。因此：**用户拒绝后就不要再重试同一目标**，改为在当前对话里把数据给出来，或换一个目标、或反问用户想去哪里。',
   inputSchema: {
     type: 'object',
     properties: {
       path: {
         type: 'string',
         description: '目标路径，例如 /console/users/user 或 /console/users/user/10001',
+      },
+      reason: {
+        type: 'string',
+        description: '可选。为什么建议去这个页面（给用户看的一句话）',
       },
     },
     required: ['path'],
@@ -186,24 +208,66 @@ export const navigateToTool: AiToolDefinition = {
     归到 `read` 而不是 `act`：导航**不改变任何东西** —— 它只是把用户带到另一个页面，
     「看哪里」不是「改什么」。所以只读档也应该能用它；否则一个只读的 AI 连
     「带我去用户列表」都做不到，那显然过严了。
+
+    但「只读」不等于「免确认」：跳转会带离当前页面，所以**询问模式下**要用户点头
+    （自动模式 = 始终允许，直接跳）。三个落点：
+    - **面板 · 询问模式**：`requestApproval` 弹三选一确认卡（带我去 / 本会话自动跳转 / 先不跳）；
+      「本会话自动跳转」写 `NAVIGATION_GRANT`（本会话免问），设置里的「自动跳转」开着时直接跳；
+    - **面板 · 自动模式**：不问，直接跳；
+    - **全屏**：不跳、不阻塞 —— 返回一份建议，由运行时翻成 `nav-proposal` part，
+      用户点卡片才真正跳（那一跳是用户自己的动作）。
   */
   access: 'read',
   group: 'page',
-  execute: async (input) => {
+  execute: async (input, ctx) => {
     const path = typeof input.path === 'string' ? input.path.trim() : ''
     if (!path) throw new Error('缺少目标路径')
 
-    const { appId } = getPageContext()
+    const reason = typeof input.reason === 'string' ? input.reason.trim() : ''
+    const { appId } = ctx.getPageContext()
     if (!isAllowedPath(path, appId)) {
       throw new Error(
         `拒绝跳转到未知路径：${path}。请先用 list_navigation 确认可用的页面路径。`,
       )
     }
 
+    const label = resolveTargetLabel(path, appId)
+
+    /*
+      全屏容器：不跳，交回一张建议卡（非阻塞）。
+      返回里刻意带一句 note 告诉模型「等用户点击、不要重复提议」—— 否则它会以为
+      跳转没生效，在同一轮里反复调用。
+    */
+    if (ctx.surface === 'sphere') {
+      return {
+        ok: true,
+        proposed: { path, label, ...(reason ? { reason } : {}) },
+        note: '已向用户展示跳转建议卡片，等待用户点击。不要重复提议同一个目标；先把用户要的数据直接在这里给出来。',
+      }
+    }
+
+    // 面板容器：**询问模式才问**（自动模式 = 始终允许，"自动"就是不要打断）；
+    // 「自动跳转」设置开着时连询问模式也不问。grant 的短路在 chat.ts 里。
+    if (ctx.mode === 'ask' && !ctx.autoNavigate) {
+      const approved = await ctx.requestApproval({
+        kind: 'navigate',
+        // 授权键是「跳转」这项能力，不是工具名（见 session-permissions.ts）
+        toolName: NAVIGATION_GRANT,
+        path,
+        label,
+        ...(reason ? { reason } : {}),
+      })
+      if (!approved) {
+        throw new Error(
+          `用户拒绝了跳转到「${label}」（${path}）。不要重试同一个目标：改为在当前对话里给出数据，或换一个目标、或反问用户想去哪里。`,
+        )
+      }
+    }
+
     const bridge = getAiShellBridge()
     if (!bridge) throw new Error('当前环境不支持页面跳转（外壳尚未就绪）')
 
     bridge.navigate(path)
-    return { ok: true, path }
+    return { ok: true, path, label }
   },
 }

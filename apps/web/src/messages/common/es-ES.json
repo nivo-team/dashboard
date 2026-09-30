@@ -181,6 +181,8 @@
       },
       "aiAutoScroll": "Seguir la salida",
       "aiAutoScrollHint": "Desplazarse al contenido más reciente mientras la IA responde; subir lo pausa",
+      "aiAutoNavigate": "Abrir páginas automáticamente",
+      "aiAutoNavigateHint": "En modo Preguntar, el panel abre páginas sin preguntar (en modo Automático nunca pregunta)",
       "aiPermission": "Permisos de la IA",
       "aiPermissionMode": "Alcance",
       "aiPermissionModeHint": "Qué puede hacer la IA. Cambia a «Acceso completo» para que rellene formularios, los envíe y llame a APIs de escritura",

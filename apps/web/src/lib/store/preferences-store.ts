@@ -245,6 +245,20 @@ export function isAiSessionMode(value: unknown): value is AiSessionMode {
 export const DEFAULT_AI_AUTO_SCROLL = true
 
 /**
+ * 「自动跳转」默认**关闭** —— 询问模式下跳转要先问用户。
+ *
+ * 跳转本身是只读动作（`navigate_to` 归 `read` 档），但它会把用户**带离当前页面**，
+ * 所以在**询问模式**下面板会弹一张三选一确认卡（带我去 / 本会话自动跳转 / 先不跳）；
+ * 选「本会话自动跳转」后本会话内不再问（会话级授权，见 `session-permissions.ts` 的
+ * `NAVIGATION_GRANT`）。这个开关是给"我就要它直接带路"的用户开的后门：
+ * 开了之后询问模式连那张卡都不弹。
+ *
+ * **自动模式不需要它**（自动模式本来就等于始终允许，直接跳）。它也**只作用于面板**：
+ * 全屏对话页永远给建议卡（跳转由用户点卡片触发）。
+ */
+export const DEFAULT_AI_AUTO_NAVIGATE = false
+
+/**
  * AI 权限默认档：**只读**。
  *
  * 刻意保守：它是「AI 能对我的数据做什么」的总闸，默认应该是"只能看"——
@@ -394,6 +408,8 @@ interface PreferencesState {
   aiOutputMode: AiOutputMode
   /** AI 回答时是否自动滚动到最新内容（默认开） */
   aiAutoScroll: boolean
+  /** 面板里跳转页面是否免确认（默认关：先问一次；同意后本会话内不再问） */
+  aiAutoNavigate: boolean
   /** AI 权限档（默认只读）——「能不能用」，与「要不要问」的模式正交 */
   aiPermission: AiPermissionMode
   /** `custom` 档下勾选的工具名 */
@@ -419,6 +435,7 @@ interface PreferencesState {
   setAiBotAvatar: (aiBotAvatar: AiBotAvatar) => void
   setAiOutputMode: (aiOutputMode: AiOutputMode) => void
   setAiAutoScroll: (aiAutoScroll: boolean) => void
+  setAiAutoNavigate: (aiAutoNavigate: boolean) => void
   setAiPermission: (aiPermission: AiPermissionMode) => void
   setAiAllowedTools: (aiAllowedTools: string[]) => void
   /** 勾选/取消单个工具（权限界面的复选框用它，省得每次自己拼数组） */
@@ -446,6 +463,7 @@ type PersistedPreferences = Pick<
   | 'aiBotAvatar'
   | 'aiOutputMode'
   | 'aiAutoScroll'
+  | 'aiAutoNavigate'
   | 'aiPermission'
   | 'aiAllowedTools'
   | 'aiOutputLanguage'
@@ -479,6 +497,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       aiBotAvatar: DEFAULT_AI_BOT_AVATAR,
       aiOutputMode: DEFAULT_AI_OUTPUT_MODE,
       aiAutoScroll: DEFAULT_AI_AUTO_SCROLL,
+      aiAutoNavigate: DEFAULT_AI_AUTO_NAVIGATE,
       aiPermission: DEFAULT_AI_PERMISSION,
       aiAllowedTools: DEFAULT_AI_ALLOWED_TOOLS,
       aiOutputLanguage: DEFAULT_AI_OUTPUT_LANGUAGE,
@@ -500,6 +519,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       setAiBotAvatar: (aiBotAvatar) => set({ aiBotAvatar }),
       setAiOutputMode: (aiOutputMode) => set({ aiOutputMode }),
       setAiAutoScroll: (aiAutoScroll) => set({ aiAutoScroll }),
+      setAiAutoNavigate: (aiAutoNavigate) => set({ aiAutoNavigate }),
       setAiPermission: (aiPermission) => set({ aiPermission }),
       setAiAllowedTools: (aiAllowedTools) => set({ aiAllowedTools }),
       setAiOutputLanguage: (aiOutputLanguage) => set({ aiOutputLanguage }),
@@ -538,6 +558,7 @@ export const usePreferencesStore = create<PreferencesState>()(
         aiBotAvatar: state.aiBotAvatar,
         aiOutputMode: state.aiOutputMode,
         aiAutoScroll: state.aiAutoScroll,
+        aiAutoNavigate: state.aiAutoNavigate,
         aiPermission: state.aiPermission,
         aiAllowedTools: state.aiAllowedTools,
         aiOutputLanguage: state.aiOutputLanguage,
@@ -604,6 +625,10 @@ export const usePreferencesStore = create<PreferencesState>()(
             typeof saved.aiAutoScroll === 'boolean'
               ? saved.aiAutoScroll
               : current.aiAutoScroll,
+          aiAutoNavigate:
+            typeof saved.aiAutoNavigate === 'boolean'
+              ? saved.aiAutoNavigate
+              : current.aiAutoNavigate,
           aiPermission: isAiPermissionMode(saved.aiPermission)
             ? saved.aiPermission
             : current.aiPermission,

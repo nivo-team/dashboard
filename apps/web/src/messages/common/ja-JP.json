@@ -181,6 +181,8 @@
       },
       "aiAutoScroll": "出力に追従",
       "aiAutoScrollHint": "AI の回答中は最新の内容まで自動スクロールします。上にスクロールすると一時停止します",
+      "aiAutoNavigate": "ページへ自動移動",
+      "aiAutoNavigateHint": "確認モードでも、AI がページへ移動する際に確認しません（自動モードでは元々確認しません）",
       "aiPermission": "AI の権限",
       "aiPermissionMode": "権限の範囲",
       "aiPermissionModeHint": "AI に許可する操作です。「フルアクセス」にするとフォーム入力・送信・書き込み API の呼び出しができます",

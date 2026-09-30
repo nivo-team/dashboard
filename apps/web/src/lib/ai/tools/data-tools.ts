@@ -1,5 +1,6 @@
 import { client, getApiQueryOptions, getDataDictOptionsQueryOptions } from '#/api'
 import { normalizeDictOptions } from '#/lib/dict-options'
+import { reloadAiPageData } from '../page-reload-bridge'
 import type { ApiItem } from '#/api'
 import type { AiToolContext, AiToolDefinition } from '../types'
 
@@ -51,10 +52,39 @@ function truncatePayload(value: unknown): unknown {
   }
 }
 
+/**
+ * 白名单解析：把「模型给的路径（模板或真实路径）+ `pathParams`」解析成**真实路径**，
+ * 并在清单里找到对应条目（method 一致 + 模板匹配）。
+ *
+ * **只读与写工具共用这一处**（`call_read_api` / `call_write_api`）：两条路的边界必须完全一致，
+ * 各写一份迟早分叉 —— 而分叉的后果是"同一个接口能读不能写"或者反过来绕过白名单。
+ *
+ * 失败时抛错并给出可执行的下一步（让模型去 `search_api` 查），而不是静默返回空。
+ */
+function resolveWhitelistedPath(
+  items: readonly ApiItem[],
+  method: string,
+  rawPath: string,
+  pathParams?: Record<string, unknown>,
+): string {
+  const path = resolvePathTemplate(rawPath, pathParams)
+  const matched = items.find(
+    (item) =>
+      (item.method ?? '').toUpperCase() === method &&
+      isPathAllowedForTemplate(item.path, path),
+  )
+  if (!matched) {
+    throw new Error(
+      `接口不在清单里，或 method 不匹配：${method} ${path}。请先用 search_api 确认接口与它声明的路径参数。`,
+    )
+  }
+  return path
+}
+
 export const searchApiTool: AiToolDefinition = {
   name: 'search_api',
   description:
-    '在系统的接口清单里检索接口（按关键词匹配方法与路径）。仅在「跨多个模块的综合统计或多源数据汇总」（单页面无法呈现）时使用。对于单一管理页面的查询需求，优先 navigate_to 前往对应页面并在界面呈现。',
+    '在系统的接口清单里检索接口（按关键词匹配方法与路径）。要用接口取数时先用它找到接口，再调 call_read_api。**取数还是带用户去页面，按当前容器的行事策略**（见系统提示）：全屏对话页把结果直接呈现在对话里，面板优先用 navigate_to 带用户去页面。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -103,11 +133,20 @@ export const searchApiTool: AiToolDefinition = {
 export const callReadApiTool: AiToolDefinition = {
   name: 'call_read_api',
   description:
-    '调用只读（GET）业务接口取回真实数据。注意：仅在「跨多个模块的组合统计、数据对比或综合分析」（单一管理页面无法呈现）时才调用此接口在聊天框中输出表格。若是单模块单页面上的列表浏览或搜索过滤（如 @user:list、查看用户等），严禁直接调用本工具，必须优先使用 navigate_to 带用户前往该页面并使用 update_search_params 在界面上直观呈现！',
+    '调用只读（GET）业务接口取回真实数据。**取数还是带用户去页面，按当前容器的行事策略**（见系统提示）：全屏对话页就用它在对话里以 Markdown 表格 / 摘要给出结果；面板里单模块单页面的列表浏览与搜索过滤（如 @user:list、查看用户）应优先 navigate_to 带用户去页面、再用 update_search_params 让表格呈现，只有跨模块的综合统计/对比才在这里输出表格。**路径里的 `{id}` 这类占位符**：可以传模板路径并用 `pathParams` 填值（例如 `path: "/user/{id}", pathParams: { id: 10001 }`），也可以直接给替换好的真实路径。无论哪种情况，**都不要凭印象编数据、不要猜参数名**。',
   inputSchema: {
     type: 'object',
     properties: {
-      path: { type: 'string', description: '接口路径，例如 /api/user' },
+      path: {
+        type: 'string',
+        description: '接口路径，例如 /user 或带占位符的 /user/{id}',
+      },
+      pathParams: {
+        type: 'object',
+        description:
+          '路径参数对象（可选）。当 path 里带 {id} 这类占位符时用它填值，例如 {"id": 10001}',
+        additionalProperties: true,
+      },
       query: {
         type: 'object',
         description: '查询参数对象，例如 { page: 1, page_size: 20 }',
@@ -120,18 +159,16 @@ export const callReadApiTool: AiToolDefinition = {
   access: 'read',
   group: 'data',
   execute: async (input, ctx) => {
-    const path = typeof input.path === 'string' ? input.path.trim() : ''
-    if (!path) throw new Error('缺少接口路径')
+    const rawPath = typeof input.path === 'string' ? input.path.trim() : ''
+    if (!rawPath) throw new Error('缺少接口路径')
+
+    const pathParams =
+      input.pathParams && typeof input.pathParams === 'object'
+        ? (input.pathParams as Record<string, unknown>)
+        : undefined
 
     const items = await loadApiItems(ctx)
-    const matched = items.find(
-      (item) => item.path === path && (item.method ?? '').toUpperCase() === 'GET',
-    )
-    if (!matched) {
-      throw new Error(
-        `接口不在只读清单里，或它不是 GET：${path}。请先用 search_api 确认接口路径。`,
-      )
-    }
+    const path = resolveWhitelistedPath(items, 'GET', rawPath, pathParams)
 
     const query =
       input.query && typeof input.query === 'object'
@@ -184,6 +221,54 @@ export const listDictOptionsTool: AiToolDefinition = {
 }
 
 /**
+ * 把模板路径里的 `{name}` 用 `pathParams` 替换成真实路径。
+ *
+ * 两类输入都要收（模型给哪种都行）：
+ * - **模板**（`/user/{id}`）→ 必须能从 `pathParams` 里取到每个占位符；**缺一个就报错**，
+ *   绝不把 `{id}` 原样发出去（那会打到 `/user/%7Bid%7D` 这种 404 上，而模型会以为已删掉）；
+ * - **已经是真实路径**（`/user/10001`）→ 原样返回。
+ */
+function resolvePathTemplate(
+  rawPath: string,
+  pathParams?: Record<string, unknown>,
+): string {
+  const placeholders = [...rawPath.matchAll(/\{([^}]+)\}/g)].map((match) => match[1])
+  if (placeholders.length === 0) return rawPath
+
+  const missing = placeholders.filter(
+    (name) => pathParams?.[name] === undefined || pathParams[name] === null,
+  )
+  if (missing.length > 0) {
+    throw new Error(
+      `路径 ${rawPath} 缺少路径参数：${missing.join(' / ')}。请用 pathParams 传入（例如 {"${missing[0]}": 10001}）。`,
+    )
+  }
+
+  return placeholders.reduce(
+    (acc, name) =>
+      acc.replace(`{${name}}`, encodeURIComponent(String(pathParams?.[name]))),
+    rawPath,
+  )
+}
+
+/**
+ * 清单里的**模板路径**是否覆盖这个**真实路径**。
+ *
+ * 白名单校验的仍然是"替换完成后的真实路径"：`/user/{id}` 只放行 `/user/xxx`（一段），
+ * 不放行 `/user`、也不放行 `/user/1/2`。所以"支持模板"只是把比较方式从字符串相等
+ * 换成模板匹配，**边界没有被放宽**（这就是删除类接口能用、而乱拼路径仍然被拒的原因）。
+ */
+function isPathAllowedForTemplate(template: string, path: string): boolean {
+  if (template === path) return true
+  if (!template.includes('{')) return false
+
+  const pattern = template
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\\\{[^}]+\\\}/g, '[^/]+')
+  return new RegExp(`^${pattern}$`).test(path)
+}
+
+/**
  * 写操作工具：**唯一一个「两个模式都要人工审批」的工具**。
  *
  * 三道闸门（缺一不可）：
@@ -196,19 +281,34 @@ export const listDictOptionsTool: AiToolDefinition = {
  *    因为表单自己用 `canSubmit()` 把关、用户也能看见填了什么；而通用写接口没有可预览的表单，
  *    自动执行等于让模型直接改库。被拒绝时**直接抛错**（而不是静默跳过）：
  *    模型必须知道这次没执行，才不会向用户谎报成功。
+ *
+ * ## 路径参数（`{id}`）与删除类操作
+ *
+ * 清单里的路径**带占位符**（`DELETE /user/{id}`、`DELETE /system/menu/{id}`），
+ * 早期实现拿模型给的字符串与清单做**完全相等**比较，于是这些接口永远匹配不上 ——
+ * 所有「删除某一条」在 AI 侧都是死的。现在两种给法都收：
+ * - 给**模板** `path: "/user/{id}"` + `pathParams: { id: 10001 }`；
+ * - 或者直接给**替换好的真实路径** `/user/10001`（按模板匹配）。
+ * 白名单校验的对象始终是**替换完成后的真实路径**，所以"模板匹配"不会放宽边界。
  */
 export const callWriteApiTool: AiToolDefinition = {
   name: 'call_write_api',
   description:
-    '调用一个会**修改数据**的接口（POST / PUT / PATCH / DELETE）。执行前系统一定会请用户确认；如果用户拒绝，会返回失败，此时不要重复尝试同一个请求，改为向用户说明并询问下一步。',
+    '调用一个会**修改数据**的接口（POST / PUT / PATCH / DELETE）。执行前系统一定会请用户确认（删除会额外标明不可撤销）；如果用户拒绝，会返回失败，此时不要重复尝试同一个请求，改为向用户说明并询问下一步。**路径里的 `{id}` 这类占位符**：可以传模板路径（`"/user/{id}"`）并用 `pathParams`（`{"id":10001}`）填值，也可以直接给替换好的真实路径。接口与参数名以 `get_page_context` / `search_api` 返回的为准，**不要凭印象拼路径**。',
   inputSchema: {
     type: 'object',
     properties: {
-      path: { type: 'string', description: '接口路径，必须是 search_api 返回过的接口' },
+      path: { type: 'string', description: '接口路径，必须是 search_api 返回过的接口（可以是带 {id} 的模板）' },
       method: {
         type: 'string',
         enum: ['POST', 'PUT', 'PATCH', 'DELETE'],
         description: 'HTTP 方法',
+      },
+      pathParams: {
+        type: 'object',
+        description:
+          '路径参数对象（可选）。当 path 里带 {id} 这类占位符时用它填值，例如 {"id": 10001}',
+        additionalProperties: true,
       },
       query: {
         type: 'object',
@@ -227,8 +327,8 @@ export const callWriteApiTool: AiToolDefinition = {
   access: 'commit',
   group: 'data',
   execute: async (input, ctx) => {
-    const path = typeof input.path === 'string' ? input.path.trim() : ''
-    if (!path) throw new Error('缺少接口路径')
+    const rawPath = typeof input.path === 'string' ? input.path.trim() : ''
+    if (!rawPath) throw new Error('缺少接口路径')
 
     /*
       用**字面量比较**而不是 `Set.has`：这样 TS 会把 `method` 收窄成四个字面量的联合，
@@ -247,16 +347,15 @@ export const callWriteApiTool: AiToolDefinition = {
     }
     const method = rawMethod
 
-    // 白名单：清单里存在、且 method 完全一致 —— 清单也是「AI 能碰哪些接口」的边界
+    const pathParams =
+      input.pathParams && typeof input.pathParams === 'object'
+        ? (input.pathParams as Record<string, unknown>)
+        : undefined
+
+    // 白名单：清单里存在、且 method 完全一致 —— 清单也是「AI 能碰哪些接口」的边界。
+    // 比对用**模板匹配**（`/user/{id}` ↔ `/user/10001`），比对的仍然是替换后的真实路径。
     const items = await loadApiItems(ctx)
-    const matched = items.find(
-      (item) => item.path === path && (item.method ?? '').toUpperCase() === method,
-    )
-    if (!matched) {
-      throw new Error(
-        `接口不在清单里，或 method 不匹配：${method} ${path}。请先用 search_api 确认。`,
-      )
-    }
+    const path = resolveWhitelistedPath(items, method, rawPath, pathParams)
 
     const query =
       input.query && typeof input.query === 'object'
@@ -270,7 +369,7 @@ export const callWriteApiTool: AiToolDefinition = {
     // 审批：把 method / path / 参数原样交给用户看，DELETE 额外标一句不可撤销
     const approved = await ctx.requestApproval({
       toolName: 'call_write_api',
-      input: { method, path, query, body },
+      input: { method, path, ...(pathParams ? { pathParams } : {}), query, body },
       reason:
         method === 'DELETE'
           ? '这是一次删除操作，执行后无法撤销'
@@ -296,6 +395,19 @@ export const callWriteApiTool: AiToolDefinition = {
       const message =
         typeof result.error === 'string' ? result.error : JSON.stringify(result.error)
       throw new Error(`接口调用失败：${message}`)
+    }
+
+    /*
+      写成功后**刷新页面数据**，两条路：
+      1. **页面自己登记过的重载**（`page-reload-bridge`）：走页面自己的取数语义
+         （保留筛选 / 分页 / 排序）。列表页常把数据放在 React state 里（用户列表页就是），
+         react-query 那条路对它完全无效 —— 不刷新的话用户会看到"删了但还在"，与 AI 的回答矛盾；
+      2. **react-query 兜底**：页面没登记时整体失效一次（工具拿不到页面的 query key）。
+      ⚠️ 这是通用通道的兜底；页面自己声明的动作（capabilities.actions）才拥有精确的
+      提示与刷新语义，将来接入「动作桥」时优先走那边。
+    */
+    if (!reloadAiPageData()) {
+      void ctx.queryClient.invalidateQueries()
     }
 
     return truncatePayload(result.data)

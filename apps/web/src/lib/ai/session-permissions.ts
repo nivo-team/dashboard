@@ -13,6 +13,18 @@ import { isDocumentReload } from './session-boot'
 
 const STORAGE_PREFIX = 'admin.ai.session-grants'
 
+/**
+ * **跳转能力的会话授权键** —— 它刻意不是工具名（`navigate_to`）。
+ *
+ * 用户同意的是「这个会话里可以带我去页面」这项**能力**：与用哪个工具实现无关。
+ * 面板的确认卡（`AiApprovalRequest.kind === 'navigate'`）写的就是它，之后本会话内
+ * 所有跳转都免确认（`chat.ts` 的 `requestApproval` 会先查 grant 再弹卡）。
+ *
+ * 与其它 grant 同一套边界：**按 chat session 隔离**、只存 sessionStorage、刷新即失效。
+ * **全屏容器的建议卡不写它** —— 那一跳是用户自己点的，不该顺便授权 AI 自动跳。
+ */
+export const NAVIGATION_GRANT = 'navigate'
+
 function getStorageKey(appId: string | null, sessionId: string | null): string {
   const safeAppId = appId || 'global'
   // 若会话尚未落盘（新对话初始状态），使用独立的草稿作用域

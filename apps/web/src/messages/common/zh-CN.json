@@ -181,6 +181,8 @@
       },
       "aiAutoScroll": "跟随输出滚动",
       "aiAutoScrollHint": "AI 回答时自动滚到最新内容；手动往上翻会临时暂停",
+      "aiAutoNavigate": "自动跳转页面",
+      "aiAutoNavigateHint": "询问模式下，AI 需要带你去某个页面时不再询问（自动模式本来就不问）",
       "aiPermission": "AI 权限",
       "aiPermissionMode": "权限范围",
       "aiPermissionModeHint": "控制 AI 能做什么；改成「完全访问」它才能填表、提交与调用写接口",

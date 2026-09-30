@@ -12,7 +12,10 @@ import type { QueryClient } from '@tanstack/react-query'
  * 工具的权限等级 —— **由工具自己声明**。
  *
  * - `read`：只读 —— **不改数据，也不改页面上的内容**。**导航属于这一档**：
- *   `navigate_to` 只是移动视角，「看哪里」不是「改什么」，所以只读档同样给；
+ *   `navigate_to` 只是移动视角，「看哪里」不是「改什么」，所以只读档同样给。
+ *   ⚠️ **只读 ≠ 免确认**：跳转仍归 `read`，但它会把用户带离当前页面，所以默认**要用户确认**
+ *   （面板弹确认卡、全屏落建议卡，见 `AiApprovalRequest` 的 `navigate` 形态与
+ *   `NAVIGATION_GRANT`）。「属于哪一档」与「要不要先问」是两个维度，别揉在一起；
  * - `act`：改变**页面上的内容**（目前只有填表），但不产生持久数据；
  * - `commit`：发起写请求（POST/PUT/DELETE、提交表单）—— 在自己的 `execute` 里
  *   `await ctx.requestApproval(...)`，用户点了「允许」才真正发请求；
@@ -35,6 +38,23 @@ export type AiToolGroup = 'page' | 'data' | 'form'
 
 /** 与输入面板的模式一一对应（见 `#/lib/store` 的 `AiComposerMode`）。 */
 export type AiMode = 'ask' | 'auto'
+
+/**
+ * AI 此刻跑在**哪个容器**里 —— 面板（分屏 / 浮窗）还是全屏对话页。
+ *
+ * 为什么要把它做成一个显式维度：同一句话在两个容器里的代价完全不同。
+ * 面板挂在 `AppShell` 上、路由切换不影响它，所以「带用户去某页」是顺手的一步
+ * （左边表格、右边 AI）；而全屏页**本身就是一个页面**，跳走等于把用户从对话里拽出去。
+ *
+ * 因此容器决定两件事，且**只在两处收口**（别在工具或渲染处各判一次）：
+ * - 提示词的「工作方式」层（`#/lib/ai/prompt`）：面板鼓励带路、全屏默认不跳；
+ * - 工具清单（`getAllowedTools(..., { surface })`）：全屏没有挂载的页面，
+ *   `update_search_params` 这类"只对当前页面成立"的工具不发给模型。
+ *
+ * 它**由渲染处显式传入**（`AiComposer` 的 `surface` prop），不要用路由字符串反推 ——
+ * 手写的路由匹配会在某次重命名后静默失配。
+ */
+export type AiSurface = 'panel' | 'sphere'
 
 /**
  * AI 权限三档（设置 → AI 的「AI 权限」）。
@@ -69,19 +89,53 @@ export interface AiPageContext {
 }
 
 /**
- * 一次「请用户确认」的请求 —— `commit` 类工具在执行前必须发起它。
+ * 用户在卡片上的决定 —— **必须是三态**，别退回布尔。
  *
- * 三个字段都是**给人看的**：`input` 会原样展示（用户要能看清到底要发什么），
- * `reason` 是给审批人补的一句上下文（例如「这是删除操作」）。
+ * - `deny`：拒绝（工具抛错，模型改用别的做法）；
+ * - `once`：**只放行这一次** —— 不写任何授权，下次同样的动作还会再问
+ *   （「带我去」/「允许一次」就是这个语义）；
+ * - `session`：放行**并记住**：写会话级授权（`NAVIGATION_GRANT` / 工具名），
+ *   本会话内同样的动作不再询问（刷新即失效）。
+ *
+ * 为什么不能只用 `boolean + remember`：布尔那次实现里"允许一次"也会往内存授权表里
+ * 塞一条，于是**标签写着一 次、行为却是本会话** —— 三态把这个洞堵上了。
  */
-export interface AiApprovalRequest {
-  /** 发起请求的工具名（同时用于「本会话内不再询问」的授权键） */
-  toolName: string
-  /** 工具输入，原样展示给用户 */
-  input: unknown
-  /** 为什么需要确认 */
-  reason?: string
-}
+export type AiApprovalDecision = 'deny' | 'once' | 'session'
+
+/**
+ * 一次「请用户确认」的请求 —— **写操作与跳转共用这一条通道**。
+ *
+ * 两种形态（判别联合，`kind` 缺省表示 `action`，旧调用点不用改）：
+ * - `action`：写操作 / 走审批的表单动作。`input` 原样展示（用户要看清到底要发什么）；
+ * - `navigate`：**跳转**。不再展示原始 JSON（`{"path":"…"}` 对用户没有意义），
+ *   改为展示**目标页面名 + 路径 + 理由**，按钮是「带我去 / 本会话自动跳转 / 先不跳」。
+ *
+ * 两种形态在 `chat.ts` 里是**同一条 Promise 通道**：用户在卡片上点了才继续。
+ */
+export type AiApprovalRequest =
+  | {
+      kind?: 'action'
+      /** 发起请求的工具名（同时用于「本会话内不再询问」的授权键） */
+      toolName: string
+      /** 工具输入，原样展示给用户 */
+      input: unknown
+      /** 为什么需要确认 */
+      reason?: string
+    }
+  | {
+      kind: 'navigate'
+      /**
+       * 授权键 —— 跳转用 `NAVIGATION_GRANT`（`'navigate'`）而不是工具名：
+       * 用户同意的是「这个会话里可以带我去页面」这项**能力**，与工具实现无关。
+       */
+      toolName: string
+      /** 目标路径（站内绝对路径） */
+      path: string
+      /** 目标页面的可读名字（来自导航清单，取不到时退化成路径） */
+      label: string
+      /** 为什么要去（给用户的一句上下文，可选） */
+      reason?: string
+    }
 
 /** 工具执行时拿到的能力集合 —— 全部由 React 侧注入，见 `#/lib/ai/shell-bridge`。 */
 export interface AiToolContext {
@@ -98,6 +152,16 @@ export interface AiToolContext {
    * 注意它与「权限」是两件事：**权限决定有没有这个工具，模式决定用起来要不要问**。
    */
   mode: AiMode
+  /** 当前容器（面板 / 全屏）—— 决定「跳转」怎么落地（确认卡 vs 建议卡），见 `AiSurface` */
+  surface: AiSurface
+  /**
+   * 「自动跳转」是否已开（设置 → AI，默认关）。
+   *
+   * 它**只在面板的询问模式下**起作用：开了之后跳转连确认卡都不弹。
+   * **自动模式不需要它**（自动模式 = 始终允许，直接跳）；全屏容器也不读它
+   * （那里永远是建议卡，跳转由用户点卡片触发）。
+   */
+  autoNavigate: boolean
   /** 客户端路由跳转（保留 SPA 行为，不要用 `location.assign`） */
   navigate: (to: string) => void
   getPageContext: () => AiPageContext
@@ -168,6 +232,23 @@ export type AiMessagePart =
       output?: unknown
       error?: string
     }
+  /**
+   * **全屏容器里的跳转建议卡**（非阻塞）。
+   *
+   * 面板里跳转走的是阻塞审批卡（`pendingApproval`，用户不点这一轮就停在那儿）；
+   * 全屏里刻意相反：AI 不等待 —— 它一边把数据就地渲染出来、一边把这张卡留在消息里，
+   * 用户想去看真正的页面时再点。于是「全屏可以直接把业务做完」这条路是通的，
+   * 而卡片的 `state` 会跟着点击落盘（刷新后卡片还在，点了还能用）。
+   */
+  | {
+      type: 'nav-proposal'
+      /** 卡片自己的 id（会话里可能有多张，点击时要认领到具体这一张） */
+      id: string
+      path: string
+      label: string
+      reason?: string
+      state: 'pending' | 'accepted' | 'dismissed'
+    }
 
 /**
  * 图片附件：以 **data URL** 表示（UI 直接 `src` 预览，IndexedDB 也只存字符串）。
@@ -219,5 +300,13 @@ export type AiStreamEvent =
   | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
   | { type: 'tool-result'; toolCallId: string; toolName: string; output: unknown }
   | { type: 'tool-error'; toolCallId: string; toolName: string; error: unknown }
+  /**
+   * 全屏容器里 `navigate_to` 的返回被运行时翻成这条事件 → store 落成 `nav-proposal` part。
+   *
+   * 为什么要经过一次翻译而不是让工具直接写 store：工具是**纯函数 + 返回值**，
+   * 它不该知道「会话里哪条消息、哪个 part」；把"输出 → UI part"这一步收在运行时，
+   * 工具层与渲染层就不必互相认识（换运行时也不用改工具）。
+   */
+  | { type: 'nav-proposal'; path: string; label: string; reason?: string }
   | { type: 'error'; error: unknown }
   | { type: 'finish' }

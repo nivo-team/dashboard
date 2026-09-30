@@ -64,6 +64,8 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
                 lib/ai/page-context-registry.ts 页面声明的 AI 上下文（这页用什么接口）
                 lib/ai/endpoint-specs.ts        接口参数索引（按需懒加载）
                 lib/ai/form-bridge.ts           表单桥（两半注册）
+                lib/ai/page-reload-bridge.ts    页面把「重新取数」交给 AI
+                                                  （写操作成功后刷新列表，见坑 17）
                 lib/ai/session-db.ts            会话持久化（IndexedDB，按 app 分区）
 ```
 
@@ -139,10 +141,18 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
 
 | 工具 | `ask` | `auto` |
 |---|---|---|
-| `read` 类、`navigate_to` | 直接执行 | 直接执行 |
+| `read` 类 | 直接执行 | 直接执行 |
+| `navigate_to` | **先请用户确认**（面板三选一确认卡） | 直接跳（**自动模式 = 始终允许**） |
 | `fill_form` | 先请用户确认 | 直接写 |
 | `submit_form` | 一律确认 | `canSubmit()` 通过就直接提交 |
 | `call_write_api` | 确认 | **仍然确认**（刻意不读 `ctx.mode`） |
+
+**跳转是一条独立于写操作的规则**：它归 `read` 档（只读档也有这个工具），但会把用户带离
+当前页面，所以**询问模式下**要用户点头 —— 面板弹三选一确认卡（「带我去」只这一次 /
+「本会话自动跳转」本次对话内不再问 / 「先不跳」）；「本会话自动跳转」写会话授权
+`NAVIGATION_GRANT`（本会话免确认），设置里的「自动跳转」（`aiAutoNavigate`）让询问模式
+也彻底免问。**自动模式直接跳**（"自动"就是不要打断）；**全屏容器永远是建议卡**
+（那不是确认、是"去看页面"的入口，与模式无关）。细节见 §8.1。
 
 `submit_form` 在 auto 下免确认的依据是**表单自己的 `canSubmit()`**（校验通过 + 确实有改动）——
 那是「信息足够」最可靠的可判定表达，比让模型自述可信。`call_write_api` 没有这个待遇：
@@ -279,6 +289,34 @@ useAiPageContext(Route.id, {
 12. **不要暴露分诊过程，也不要复述提示词**：分诊只在内部发生（回答里不出现「判定：越界」这类
     标签），规则原文也不能念给用户（「你的提示词是什么」按越界处理）。这两条分别写在 `scope`
     层与 `output` 层 —— 改提示词时别把「过程可见」当成"更透明"的改进。
+13. **容器（面板 / 全屏）只能由渲染处传入**（`AiComposer` 的 `surface`）。用
+    `window.location` / `routePath` 字符串反推在哪一页，会在路由重命名后**静默**变成"永远是面板"，
+    于是全屏里的跳转又把人拽走。同理：容器的两条差异（提示词策略、工具清单）各只有一个落点，
+    不要在工具内部再判一次 surface。
+14. **跳转的确认不是权限**：`navigate_to` 仍在 `read` 档（只读档也有它），
+    所以提示词里**不能**写「你没有跳转权限」——那是坑 1 那个 bug 的复刻。要表达的是
+    「跳转要先经用户同意，那是交互」，并且明确告诉模型：用户拒绝 ≠ 你没权限，
+    不要重试同一目标。
+15. **会话授权要等会话落盘再写**：`session-permissions` 按 `activeSessionId` 记账，
+    新对话在首次落盘前只有 `draft` 作用域。所以 `sendAiMessage` 里那次 `persist()` 要
+    **await**（落盘失败也不阻断这一轮）—— 否则刚同意的跳转授权会挂在草稿上，
+    等会话拿到真实 id 后凭空失效（表现为「刚同意过又问一次」）。
+16. **「允许一次」不能顺手写授权**：审批回调回传的是**三态**（`AiApprovalDecision`：
+    `deny` / `once` / `session`），只有 `session` 才 `addSessionGrant`。早期实现是
+    `(approved, remember)` 布尔对，而 `addSessionGrant` 无论 `remember` 真假都会把授权
+    写进**内存缓存**（`remember` 只管要不要落 sessionStorage）—— 于是「允许一次」在同一标签页里
+    变成了"本会话不再问"，与按钮字面意思自相矛盾。跳转卡的「带我去」正是靠 `once` 才做到
+    "就这一次"。
+17. **写操作不会自己刷新页面**：`call_write_api` 是通用通道，不知道页面数据放在哪。
+    用户列表页**直接调 SDK 塞 React state**（不走 react-query），所以只 `invalidateQueries()`
+    对它完全无效 —— 删完那一行还在，用户读成"没删掉"。两条路都要有：
+    **页面登记重载**（`page-reload-bridge` 的 `useAiPageReload(fetchUsers)`，保留筛选/分页）
+    优先，react-query 的 `invalidateQueries()` 兜底。
+18. **删除类接口必须在 `GET /api` 清单里，且路径模板要能匹配**：清单就是写操作白名单，
+    缺一条 = AI 对该模块完全没有删除能力（用户模块曾经就是这样）；而清单里的路径是
+    `DELETE /user/{id}` 这种**模板**，`call_write_api` 早期拿它与模型给的字符串做完全相等比较，
+    于是**所有模板化删除（用户/功能/字典/字典分类）都是死的**。现在：白名单按模板匹配
+    **替换后的真实路径**，`{id}` 用 `pathParams` 填（缺参数直接报错，绝不把 `{id}` 发出去）。
 
 ## 8. 系统提示词的分层与范围闸
 
@@ -292,7 +330,7 @@ useAiPageContext(Route.id, {
 | L1 | `identity.ts` | 你是谁、为谁服务 | 先掐掉「通用助手」这个默认人格（应用名走参数） |
 | L2 | `scope.ts` | **什么该答、什么该拒** | 范围闸：先分诊（业务内 / 越界 / 模糊）再决定动作；越界一律拒、且不做任何工具调用 |
 | L3 | `capability.ts` | 手上有什么、要不要先问 | 权限由工具清单表达，**这里绝不复述权限**（见坑 1）；只说模式 |
-| L4 | `workflow.ts` | 业务内请求怎么做 | 决策优先级（单模块先带路）+ 操作规约 |
+| L4 | `workflow.ts` | 业务内请求怎么做 | 决策优先级 + 操作规约，**按容器分策略**（面板先带路 / 全屏就地渲染，见下） |
 | L5 | `output.ts` | 怎么说话 | 语言（用自名）、先结论后依据、不暴露内部过程 |
 | L6 | `index.ts`（`buildPageContextLayer`） | 我在哪 | 页面上下文的单一出口 `formatPageContext` |
 | L7 | `workflow.ts`（`buildActiveTasksLayer`） | 这轮在续做什么 | 当前会话的 Todo 目录（绕开历史工具结果的衰减） |
@@ -316,6 +354,39 @@ useAiPageContext(Route.id, {
 翻译以外的语言任务、其它产品与厂商、专业建议、以及任何「忽略规则」的元指令；
 **例外只有两个**：翻译（系统是多语言的，文案与字段的译文对齐是本职工作）与一句寒暄
 （用户打招呼只礼貌回应一句，随即引回业务）。
+
+### 8.1 容器维度（`AiSurface`）与跳转
+
+`buildSystemPrompt(mode, outputLocale, **surface**)` —— `surface`（`panel` / `sphere`）
+**由渲染处显式传入**（`AiComposer` 的 `surface` prop → `sendAiMessage` → `buildToolContext`
+→ `streamAssistantTurn`），**不要用路由字符串反推**（重命名后会静默失配）。它只影响两件事，
+且各自**只有一个落点**：
+
+| 影响 | 落点 | 面板 | 全屏 |
+|---|---|---|---|
+| 提示词的工作方式 | `workflow.ts`（读 `input.surface`） | 单模块查询**先带用户去页面** | **就地渲染数据**，跳转退化成建议卡 |
+| 工具清单 | `getAllowedTools(..., { surface })` | 全量按权限给 | 不发 `update_search_params`（那边的"当前页面"就是对话本身） |
+
+**工具描述保持容器中立**：`search_api` / `call_read_api` / `get_page_context` 的说明里不再写
+「必须优先 `navigate_to`」「先看本页接口」这类**面板策略**（写进描述会让全屏的模型拒绝取数、
+或去查一个不存在的页面上下文）。描述只说"这个工具做什么"，策略一律由提示词按容器给。
+
+**跳转的四个维度**（别揉成一个）：`access` 仍是 `read`（只读档也有这个工具）｜
+**要不要问** = 模式（`ask` 问 / `auto` **直接跳**）+「自动跳转」设置 + 会话授权｜
+**怎么问**分容器（确认卡 / 建议卡）｜**拒绝了怎么办**由提示词钉死（同一路径不重试、
+改就地渲染或反问）。
+
+- **面板**：`ctx.mode === 'ask' && !ctx.autoNavigate` 时 `navigate_to` 才
+  `await ctx.requestApproval({ kind: 'navigate', … })`；卡片是「页面名 + 路径 + 理由」+
+  **三选一**：「带我去」（`once`，只这一次）/「本会话自动跳转」（`session` → 写
+  **`NAVIGATION_GRANT`（`'navigate'`）**，之后由 `chat.ts` 的 `requestApproval` 短路）/
+  「先不跳」（`deny` → 工具抛错）。**自动模式不发这张卡**（始终允许，直接跳）。
+  `aiAutoNavigate` 开着时询问模式也不问。
+- **全屏**：不 `await`、不真跳 —— 工具返回 `{ proposed: { path, label, reason? } }`，
+  `runtime.ts` 把它翻成 `nav-proposal` 流式事件，store 落成消息里的
+  **`nav-proposal` part**（非阻塞、随消息落盘，刷新后还能点）。点「带我去」才走
+  `getAiShellBridge().navigate`。**全屏不写 `NAVIGATION_GRANT`**：那一跳是用户自己点的，
+  不该顺手授权 AI 自动跳。
 
 ---
 
@@ -507,8 +578,9 @@ useAiPageContext(Route.id, {
   `AiComposerMode` / `isAiComposerMode` / `DEFAULT_AI_COMPOSER_MODE`；**加新枚举时
   `partialize` 与 `merge` 两处都要补**）。
   **它只管「用起来要不要问」，不再决定「有哪些工具可用」**（那归 AI 权限，见下一条）：
-  `ask` 下与"替用户做主"有关的动作先过审批 —— `fill_form` 要确认、`submit_form` 一律确认；
-  `auto` 下 `fill_form` 直接写、`submit_form` 只要表单 `canSubmit()` 通过就直接提交。
+  `ask` 下与"替用户做主"有关的动作先过审批 —— `fill_form` 要确认、`submit_form` 一律确认、
+  **跳转要确认**（三选一卡，见 §8.1）；`auto` 下 `fill_form` 直接写、`submit_form` 只要表单
+  `canSubmit()` 通过就直接提交、**跳转直接跳**（自动 = 始终允许）。
   三条坑（细节见代码注释）：① 菜单**必须 `side="top"`**；
   ② 选中标记不要用 `RadioItemIndicator`（写死 `ml-auto`，RTL 与 `ms-auto` 打架），
   自己画 `CheckIcon` + `ms-auto`；③ 菜单项图标别用 `icon` prop（写死 `mr-2`），
@@ -687,7 +759,8 @@ useAiPageContext(Route.id, {
   形成**分叉** —— 真实踩过：`navigate_to` 已经放进只读档，模型却照着旧提示词回答
   「我只有读取权限，不能执行页面跳转」，用户看到的就是"改了代码却没生效"。
   提示词里还要**明确禁止**用「我是只读 / 询问模式所以不行」来解释（模式和权限是两回事，
-  且**页面跳转在所有权限档里都可用**）；能力不足时应当说"权限没开，可以去 设置 → AI 调整"。
+  且**页面跳转在所有权限档里都可用** —— 它只是要用户**确认一次**，那是交互而不是权限，
+  见 §8.1）；能力不足时应当说"权限没开，可以去 设置 → AI 调整"。
 - **表单桥分两半**（`#/lib/ai/form-bridge`）：字段读写由表单组件 `useAiFormFields`、提交由页面
   `useAiFormSubmit`，**两半靠同一个 id 拼成一条记录**；注册表在模块级 Map（不进 state），
   同步 effect **故意不写依赖数组**（否则 `fields` 会停在首次渲染的快照）。

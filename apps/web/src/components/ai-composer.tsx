@@ -38,6 +38,7 @@ import type {
   AiImageFile,
   AiRouteRefItem,
   AiRouteRefKind,
+  AiSurface,
   AiTextFile,
 } from '#/lib/ai'
 import { cn } from '#/lib/cn'
@@ -53,6 +54,16 @@ import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 
 export interface AiComposerProps {
   className?: string
+  /**
+   * 当前容器（面板 / 全屏）—— **由渲染处显式传入**，一路带到工具上下文与提示词。
+   *
+   * 为什么不让下层自己判断：容器的差异（跳转是"确认卡"还是"建议卡"、要不要发
+   * `update_search_params`）都挂在 `surface` 这一个维度上，而**渲染处是唯一确知自己在哪的人**；
+   * 用路由字符串反推会在某次重命名后静默失配（见 `AiSurface` 的注释）。
+   *
+   * 缺省 `panel`：面板是默认容器，只有全屏对话页需要显式声明。
+   */
+  surface?: AiSurface
   /**
    * 「配置权限」入口：**传了才在设置菜单里放这一项**（与头行的折叠按钮同一个约定 ——
    * 用回调的有无表达「这个形态有没有入口」，不再另加一个布尔 prop）。
@@ -219,7 +230,11 @@ function parseMentionQuery(draft: string): { query: string; start: number } | nu
  * 其二：**「+」动作菜单** —— 刻意只有三行。会长的那份清单（模块 / 页面 / 记录）走 `@`，
  * 模块再多也不会把这个菜单撑爆。
  */
-export function AiComposer({ className, onConfigurePermissions }: AiComposerProps) {
+export function AiComposer({
+  className,
+  surface = 'panel',
+  onConfigurePermissions,
+}: AiComposerProps) {
   const { t } = useTranslation('ai')
   const router = useRouter()
   const [value, setValue] = useState('')
@@ -436,7 +451,7 @@ export function AiComposer({ className, onConfigurePermissions }: AiComposerProp
     setValue('')
     setAttachments([])
     setMentionOpen(false)
-    void sendAiMessage(next, composerMode, outgoing)
+    void sendAiMessage(next, composerMode, outgoing, surface)
   }
 
   /**

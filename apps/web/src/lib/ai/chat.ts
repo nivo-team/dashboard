@@ -7,9 +7,11 @@ import { addSessionGrant, hasSessionGrant } from './session-permissions'
 import { useAiSessionStore } from './session-store'
 import { getAllowedTools } from './tools'
 import type {
+  AiApprovalDecision,
   AiApprovalRequest,
   AiAttachment,
   AiMode,
+  AiSurface,
   AiToolContext,
 } from './types'
 
@@ -27,10 +29,13 @@ let activeController: AbortController | null = null
  *
  * 刻意放在模块级 Map 而不是 store 里：Promise 的 resolver 不是渲染数据，
  * 放进 state 只会让每次 set 都带一个函数引用。store 里只留「给人看的」那条 `pendingApproval`。
+ *
+ * 回传的是**三态决定**（`AiApprovalDecision`）而不是布尔：只有 `session` 才写会话授权，
+ * `once` 是一次性放行 —— 否则「允许一次」会被内存授权表放大成"本会话不再问"。
  */
 const approvalResolvers = new Map<
   string,
-  (approved: boolean, remember: boolean) => void
+  (decision: AiApprovalDecision) => void
 >()
 
 function createApprovalId(): string {
@@ -43,8 +48,8 @@ function createApprovalId(): string {
 /**
  * 把一条审批请求交给 UI，并等用户决定。
  *
- * 这是 `commit` 类工具**唯一**的执行前置：工具里 `await requestApproval(...)`，
- * 拿到 `false` 就抛错（让模型知道用户不同意，并在 system 提示里被告知不要重试）。
+ * 这是写操作与跳转**唯一**的执行前置：工具里 `await requestApproval(...)`，
+ * 拿到 `false` 就抛错（让模型知道用户不同意，工具描述里也写了不要重试）。
  */
 function requestApproval(request: AiApprovalRequest): Promise<boolean> {
   const activeSessionId = useAiSessionStore.getState().activeSessionId
@@ -54,31 +59,31 @@ function requestApproval(request: AiApprovalRequest): Promise<boolean> {
 
   const id = createApprovalId()
   return new Promise<boolean>((resolve) => {
-    approvalResolvers.set(id, (approved, remember) => {
+    approvalResolvers.set(id, (decision) => {
       approvalResolvers.delete(id)
-      if (approved) {
-        addSessionGrant(request.toolName, activeSessionId, remember)
+      /*
+        只有「本会话」才落授权（`session-permissions` 按 session 隔离、sessionStorage、
+        刷新失效）。`once` **什么都不写** —— 那是「就这一次」的字面意思。
+      */
+      if (decision === 'session') {
+        addSessionGrant(request.toolName, activeSessionId, true)
       }
-      resolve(approved)
+      resolve(decision !== 'deny')
     })
     useAiSessionStore.getState().setPendingApproval({ id, ...request })
   })
 }
 
 /**
- * 用户在审批卡上的决定。
+ * 用户在卡片上的决定。
  *
  * 找不到这个 id 时**什么都不做**（fail-closed）：卡片可能已经被中止流程收掉了，
  * 这时拿不到明确决定就绝不执行。
  */
-export function resolveAiApproval(
-  id: string,
-  approved: boolean,
-  remember = false,
-): void {
+export function resolveAiApproval(id: string, decision: AiApprovalDecision): void {
   const resolver = approvalResolvers.get(id)
   if (!resolver) return
-  resolver(approved, remember)
+  resolver(decision)
   useAiSessionStore.getState().clearPendingApproval()
 }
 
@@ -86,7 +91,7 @@ export function resolveAiApproval(
 function rejectPendingApprovals(): void {
   for (const [id, resolver] of approvalResolvers) {
     approvalResolvers.delete(id)
-    resolver(false, false)
+    resolver('deny')
   }
   useAiSessionStore.getState().clearPendingApproval()
 }
@@ -97,12 +102,20 @@ function rejectPendingApprovals(): void {
  * 三样能力都不需要 React 注入：`queryClient` 有按作用域取实例的工厂、
  * 导航走外壳桥（`AppShell` 挂载时注册）、页面上下文直接读 `window.location`。
  * 这样 `navigate_to` / `call_read_api` 才能在非组件环境里正常工作。
+ *
+ * 另外两样是**这一轮的环境**（都由调用方决定，工具只读）：
+ * - `surface`：面板还是全屏 —— 决定跳转是"确认卡"还是"建议卡"；
+ * - `autoNavigate`：询问模式下开了「自动跳转」就直接跳（**自动模式本来就不问**，
+ *   所以工具里的条件是 `mode === 'ask' && !autoNavigate`）。
+ * 两者都**不改变可用工具清单**（那在 `getAllowedTools` 里按 surface 收口）。
  */
-function buildToolContext(mode: AiMode): AiToolContext {
+function buildToolContext(mode: AiMode, surface: AiSurface): AiToolContext {
   return {
     queryClient: getQueryClient(),
     // 工具的审批策略看它（权限那维只管"有没有这个工具"）
     mode,
+    surface,
+    autoNavigate: usePreferencesStore.getState().aiAutoNavigate,
     navigate: (to) => {
       getAiShellBridge()?.navigate(to)
     },
@@ -213,6 +226,11 @@ export async function sendAiMessage(
   text: string,
   mode: AiMode,
   attachments: readonly AiAttachment[] = [],
+  /**
+   * 当前容器 —— **由渲染处显式传入**（`AiComposer` 的 `surface` prop），
+   * 不要用 `window.location` 反推：路由名的字符串匹配会在重命名后静默失配。
+   */
+  surface: AiSurface = 'panel',
 ): Promise<void> {
   const trimmed = text.trim()
   if (!trimmed && attachments.length === 0) return
@@ -227,8 +245,16 @@ export async function sendAiMessage(
   }
 
   const assistantId = store.beginTurn(trimmed, attachments)
-  // 用户的问题**立刻落盘**：助手回复到一半刷新页面，问题也不该丢
-  void useAiSessionStore.getState().persist()
+  /*
+    用户的问题**立刻落盘**：助手回复到一半刷新页面，问题也不该丢。
+
+    这里刻意 `await`（而不是 `void`）：**会话级授权按 `activeSessionId` 记账**
+    （见 `session-permissions.ts`），新对话在第一次落盘之前只有草稿作用域 ——
+    不等这次写入完成，工具在这一轮里写下的授权（例如跳转的 `navigate`）就会挂到草稿上，
+    等会话拿到真实 id 后凭空失效，表现成「刚同意过又问一次」。
+    落盘失败**不阻断这一轮**：对话照常跑，只是刷新后可能丢这一笔。
+  */
+  await useAiSessionStore.getState().persist().catch(() => undefined)
 
   const controller = new AbortController()
   activeController = controller
@@ -267,12 +293,14 @@ export async function sendAiMessage(
     const stream = streamAssistantTurn({
       messages,
       mode,
+      surface,
       // 页面具备表单能力或已挂载表单时，保留表单工具
       tools: getAllowedTools(aiPermission, aiAllowedTools, {
         hasForms,
+        surface,
       }),
       outputLocale,
-      toolContext: buildToolContext(mode),
+      toolContext: buildToolContext(mode, surface),
       supportsTools: active.model.supportsTools,
       abortSignal: controller.signal,
     })

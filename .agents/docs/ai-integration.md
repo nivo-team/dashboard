@@ -18,6 +18,15 @@
   与一句寒暄；分诊过程不输出给用户。分层理由、当前口径与扩展点见
   [ai-architecture.md](./ai-architecture.md) §8；
 - **只读工具**：读页面上下文、列导航、检索接口清单、调用 GET 接口、读字典选项；
+- **删除类动作（AI 可直接执行）**：先查清对象拿到 id，再走 `call_write_api`
+  （`DELETE /user/{id}` 这类模板路径 + `pathParams`，批量删除走 `POST /xxx/batch-delete`）——
+  **必过审批卡**（DELETE 标注「执行后无法撤销」），成功后刷新当前页面数据
+  （`page-reload-bridge`，页面把自己的取数交给 AI，见 ai-architecture.md 坑 17/18）；
+- **跳转要用户同意**（`navigate_to` 仍归 `read`）：**询问模式**下面板弹**三选一确认卡**
+  （带我去 / 本会话自动跳转 / 先不跳）——「本会话自动跳转」写会话授权 `NAVIGATION_GRANT`
+  （本会话免问）；**自动模式 = 始终允许，直接跳**；设置里的「自动跳转」让询问模式也免问。
+  **全屏对话页落建议卡**（非阻塞，AI 不跳、把数据就地渲染，用户点卡片才去页面）。
+  细节见 §3.2 与 [ai-architecture.md](./ai-architecture.md) §8.1；
 - `ask`（只读）/ `auto`（多出「页面操作」）两模式的**权限分级**；
 - **写操作 + 人工审批**：`call_write_api`（`access: 'commit'`）在执行前弹审批卡，
   用户点「允许一次 / 本会话不再询问 / 拒绝」才决定是否发请求；审批链路异常一律 fail-closed；
@@ -220,7 +229,7 @@ interface AiToolDefinition<Input = unknown> {
 | 工具 | ask | auto |
 |---|---|---|
 | `read` 类 | ✅ 直接 | ✅ 直接 |
-| `navigate_to` | ✅ 直接 | ✅ 直接 |
+| `navigate_to` | ⚠️ 先确认（面板三选一确认卡） | ✅ 直接跳（**自动 = 始终允许**） |
 | `fill_form` | ⚠️ 先请用户确认 | ✅ 直接写 |
 | `submit_form` | ⚠️ 一律确认 | ✅ 表单 `canSubmit()` 通过就直接提交 |
 | `call_write_api` | ⚠️ 确认 | ⚠️ **仍然确认** |
@@ -228,6 +237,21 @@ interface AiToolDefinition<Input = unknown> {
 `call_write_api` 是唯一"两个模式都要确认"的：通用写接口**没有可预览的表单**，
 自动执行等于让模型直接改库；而 `submit_form` 有表单兜底 —— `canSubmit()`
 （校验通过 + 确实有改动）就是「信息足够」最可靠的可判定表达，比让模型自述可信得多。
+
+**跳转（`navigate_to`）是一条独立于写操作的规则**：它归 `read` 档 —— 只读档也必须有它，
+否则只读的 AI 连「带我去用户列表」都做不到 —— 但它会把用户**带离当前页面**，
+所以**询问模式下**要用户点头（**自动模式 = 始终允许，直接跳**）：
+
+| 容器 | 形态 |
+|---|---|
+| 面板 · 询问模式 | **确认卡**（页面名 + 路径 + 理由），**三选一**：「带我去」（只这一次，不写授权）/「本会话自动跳转」（写会话授权 `NAVIGATION_GRANT`，本会话内不再问，刷新失效）/「先不跳」（拒绝）。设置里的「自动跳转」（`aiAutoNavigate`）让询问模式也免问 |
+| 面板 · 自动模式 | 不问，直接跳 |
+| 全屏 | **建议卡**（`nav-proposal` part，非阻塞，与模式无关）：不真跳，AI 继续把数据渲染在对话里，用户点卡片才跳。全屏不写会话授权 |
+
+被拒绝时工具**抛错**，错误文案明确要求模型"不要重试同一目标"（改就地渲染 / 换目标 / 反问）。
+两处容器差异各只有一个落点：提示词的工作方式层（`prompt/workflow.ts` 读 `surface`）
+与工具清单（`getAllowedTools(..., { surface })`，全屏不发 `update_search_params`）。
+细节见 [ai-architecture.md](./ai-architecture.md) §8.1。
 
 `access` 现在**只描述风险等级**（权限界面按它解释、`readonly` 档按它过滤），
 **不再决定可用性** —— 早先 `getToolsForMode` 那版里它确实兼任了权限，
@@ -242,8 +266,8 @@ interface AiToolDefinition<Input = unknown> {
 | `search_api` | read | 在 `GET /api` 的 632 条接口清单里按关键词检索 |
 | `call_read_api` | read | 调用**清单内**的一个 GET 接口，带 query，返回 JSON（截断） |
 | `list_dict_options` | read | 读字典选项（`1/2` → 「启用/禁用」），避免 AI 瞎猜枚举含义 |
-| `call_write_api` | **commit** | 调用清单内的写接口（POST/PUT/PATCH/DELETE）；**执行前弹审批卡**，被拒则抛错、不发请求 |
-| `navigate_to` | read | 导航到某个路径（归 `read`：它不改变任何东西，只读档也允许） |
+| `call_write_api` | **commit** | 调用清单内的写接口（POST/PUT/PATCH/DELETE）；**执行前弹审批卡**（DELETE 标注不可撤销），被拒则抛错、不发请求；路径模板的 `{id}` 用 `pathParams` 填；成功后刷新页面数据 |
+| `navigate_to` | read | 导航到某个路径（归 `read`：它不改变任何东西，只读档也允许）。**默认要用户确认**：面板确认卡（同意后本会话免确认）/ 全屏建议卡 —— 见 §3.2 |
 
 `call_read_api` 的两条硬约束（这是「利用现实已有东西」的关键）：
 
@@ -253,8 +277,16 @@ interface AiToolDefinition<Input = unknown> {
 `call_write_api` 的额外约束：
 
 1. **method 必须与清单完全一致**：`DELETE /api/user` 不能靠伪造 method 绕过（清单里没有这条就拒绝）；
-2. **审批是执行前置**：`await ctx.requestApproval({ toolName, input, reason })`，UI 展示 method / path / body 原文，用户三选一；
-3. **拒绝即抛错**：错误文案里带「不要重试同一个请求」，让模型如实向用户说明，而不是假装成功。
+2. **路径参数按模板填**：清单里的路径是 `DELETE /user/{id}` 这种模板，模型可以传模板 +
+   `pathParams`（`{ id: 10001 }`），也可以直接给替换好的真实路径 —— 白名单校验的对象始终是
+   **替换完成后的真实路径**（模板匹配只放宽"比较方式"，不放宽边界）；占位符没填满**直接报错**，
+   绝不把 `{id}` 原样发出去；
+3. **审批是执行前置**：`await ctx.requestApproval({ toolName, input, reason })`，UI 展示 method / path / pathParams / body 原文，用户三选一；DELETE 额外标注「执行后无法撤销」；
+4. **拒绝即抛错**：错误文案里带「不要重试同一个请求」，让模型如实向用户说明，而不是假装成功；
+5. **成功后刷新页面数据**：优先走页面登记的 `page-reload-bridge`（`useAiPageReload`，
+   保留筛选/分页/排序），页面没登记时退回 `queryClient.invalidateQueries()` ——
+   列表页可能把数据放在 React state 里（用户列表页就是），不刷新就会出现「AI 说删了、
+   界面上还在」。
 
 另外返回值要**截断**（列表接口动辄几百条），并在截断时明确告知模型「还有更多数据」，让它改用分页参数而不是把整个响应塞进上下文。
 

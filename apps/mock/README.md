@@ -22,6 +22,9 @@ pnpm mock          # 在仓库根执行，启动 http://localhost:3001
 | GET | `/apps` | 可选应用列表（每个应用带自己的 `apiBaseUrl`） |
 | GET | `/api` | 系统接口清单（功能管理关联接口权限用） |
 | GET | `/user` | 用户分页列表（支持 `kw` 搜索） |
+| POST / PUT | `/user` | 新建 / 更新用户 |
+| DELETE | `/user/{id}` | 删除单个用户 |
+| POST | `/user/batch-delete` | 批量删除用户（body `{ ids }`） |
 | GET | `/system/menu/tree` | 功能菜单树 |
 | POST / PUT | `/system/menu` | 新建 / 更新功能 |
 | DELETE | `/system/menu/{id}` | 删除功能（连同下级） |
@@ -32,6 +35,12 @@ pnpm mock          # 在仓库根执行，启动 http://localhost:3001
 | GET | `/data_dict/type/tree` | 字典分类树 |
 | POST / PUT | `/data_dict/type` | 新建 / 更新字典分类 |
 | DELETE | `/data_dict/type/{id}` | 删除分类（有子分类或字典项时拒绝） |
+
+> **`GET /api` 的清单必须与真实接口对齐**：它不只是"功能管理里的 API Keys 选项"，
+> 同时是 **AI 写操作的白名单**（`call_write_api` 按它校验 method + 路径模板）。
+> 页面能力（`usePageCapabilities`）里声明了某个接口、而这份清单里没有它，AI 就**完全动不了**
+> 那个模块 —— 用户模块的删除曾经就是这样：接口在、页面按钮也能删，但 AI 一调就被判"不在清单里"。
+> 所以**新增接口时顺手补 `server/routes/api.ts`**（带路径参数写成 `/user/{id}` 模板）。
 
 ## 数据是内存态
 

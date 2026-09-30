@@ -393,6 +393,8 @@ function AiSettingsPage() {
   const setAiOutputMode = usePreferencesStore((state) => state.setAiOutputMode)
   const aiAutoScroll = usePreferencesStore((state) => state.aiAutoScroll)
   const setAiAutoScroll = usePreferencesStore((state) => state.setAiAutoScroll)
+  const aiAutoNavigate = usePreferencesStore((state) => state.aiAutoNavigate)
+  const setAiAutoNavigate = usePreferencesStore((state) => state.setAiAutoNavigate)
   const aiEnabled = usePreferencesStore((state) => state.aiEnabled)
   const setAiEnabled = usePreferencesStore((state) => state.setAiEnabled)
   const aiOutputLanguage = usePreferencesStore((state) => state.aiOutputLanguage)
@@ -667,6 +669,24 @@ function AiSettingsPage() {
             checked={aiAutoScroll}
             onCheckedChange={setAiAutoScroll}
             aria-label={t('profile.settings.aiAutoScroll', '跟随输出滚动')}
+          />
+        </SettingRow>
+
+        {/*
+          自动跳转：询问模式下跳转默认要确认，这个开关是"我不介意被直接带过去"。
+          只在**面板**生效 —— 全屏对话页永远给建议卡；**自动模式本来就不问**，所以文案限定"询问模式"。
+        */}
+        <SettingRow
+          label={t('profile.settings.aiAutoNavigate', '自动跳转页面')}
+          hint={t(
+            'profile.settings.aiAutoNavigateHint',
+            '询问模式下，AI 需要带你去某个页面时不再询问（自动模式本来就不问）',
+          )}
+        >
+          <Switch
+            checked={aiAutoNavigate}
+            onCheckedChange={setAiAutoNavigate}
+            aria-label={t('profile.settings.aiAutoNavigate', '自动跳转页面')}
           />
         </SettingRow>
 

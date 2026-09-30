@@ -1,6 +1,6 @@
 import type { LocaleKey } from '#/lib/locale'
 import { formatPageContext, getPageContext } from '../page-context'
-import type { AiMode, AiPageContext } from '../types'
+import type { AiMode, AiPageContext, AiSurface } from '../types'
 import { buildCapabilityLayer } from './capability'
 import { buildIdentityLayer } from './identity'
 import { buildOutputLayer } from './output'
@@ -30,10 +30,18 @@ import { buildActiveTasksLayer, buildWorkflowLayer } from './workflow'
  * 任务清单含会话状态、范围清单含当前 appId 与界面语言 —— 缓存等于把它们焊在第一轮。
  */
 
-/** 各层的输入：**每轮只采一次**的上下文快照 + 本轮的模式与输出语言。 */
+/** 各层的输入：**每轮只采一次**的上下文快照 + 本轮的模式、容器与输出语言。 */
 export interface PromptLayerInput {
   /** 当前模式（ask / auto）—— 只影响「用起来要不要问」，不影响范围判定 */
   mode: AiMode
+  /**
+   * 当前容器（面板 / 全屏）。
+   *
+   * 它决定「工作方式」层的策略：面板鼓励带用户去页面（面板不随路由消失），
+   * 全屏默认不跳、把数据直接渲染在对话里 —— 详见 `workflow.ts` 的文件注释。
+   * 它**只影响策略，不影响范围闸**：业务/越界的判定在两个容器里完全一致。
+   */
+  surface: AiSurface
   /** 已解析过的具体输出语言（不是 `auto`） */
   outputLocale: LocaleKey
   /**
@@ -88,10 +96,15 @@ export const PROMPT_LAYERS: readonly PromptLayer[] = [
  * 空层（返回 `null` 或只有空白）不参与拼接，层与层之间空一行 —— 于是「这轮没有任务清单」
  * 在提示词里表现为**整段不存在**，而不是留下一个空标题。
  */
-export function buildSystemPrompt(mode: AiMode, outputLocale: LocaleKey): string {
+export function buildSystemPrompt(
+  mode: AiMode,
+  outputLocale: LocaleKey,
+  surface: AiSurface,
+): string {
   const context = getPageContext()
   const input: PromptLayerInput = {
     mode,
+    surface,
     outputLocale,
     context,
     appName: context.appName ?? '管理后台',

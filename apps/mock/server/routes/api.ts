@@ -15,6 +15,13 @@ const API_ITEMS = [
   { label: '可选应用列表', method: 'GET', path: '/apps' },
   { label: '系统接口清单', method: 'GET', path: '/api' },
   { label: '用户列表', method: 'GET', path: '/user' },
+  { label: '新建用户', method: 'POST', path: '/user' },
+  { label: '更新用户', method: 'PUT', path: '/user' },
+  // 删除类接口**必须在清单里**：清单就是 AI 的写操作白名单（call_write_api 按它校验
+  // method + 路径模板），缺一条 AI 就完全删不了那个模块。页面能力里的 endpoints 与这里
+  // 应当保持一致（见 .agents/docs/ai-architecture.md §8.1 的"清单即边界"）。
+  { label: '删除用户', method: 'DELETE', path: '/user/{id}' },
+  { label: '批量删除用户', method: 'POST', path: '/user/batch-delete' },
   { label: '功能树', method: 'GET', path: '/system/menu/tree' },
   { label: '新建功能', method: 'POST', path: '/system/menu' },
   { label: '更新功能', method: 'PUT', path: '/system/menu' },

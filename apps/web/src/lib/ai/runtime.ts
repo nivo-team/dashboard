@@ -19,6 +19,7 @@ import type {
   AiMessagePart,
   AiMode,
   AiStreamEvent,
+  AiSurface,
   AiToolContext,
   AiToolDefinition,
 } from './types'
@@ -142,11 +143,41 @@ export interface StreamAssistantTurnOptions {
    * 「跟随界面语言」那一步由调用方（`chat.ts`）解析 —— 这里只管把它写进提示词。
    */
   outputLocale: LocaleKey
+  /** 当前容器（面板 / 全屏）—— 提示词按它换策略，见 `AiSurface` */
+  surface: AiSurface
   tools: readonly AiToolDefinition[]
   toolContext: AiToolContext
   /** 模型是否支持工具调用（`AiModelConfig.supportsTools`） */
   supportsTools: boolean
   abortSignal?: AbortSignal
+}
+
+/**
+ * 从 `navigate_to` 的返回值里认领「全屏建议卡」的载荷。
+ *
+ * 约定：全屏分支返回 `{ proposed: { path, label, reason? } }`（见 `tools/page-tools.ts`）。
+ * 这里只做**形状校验** —— 认不出来就什么都不做（结果照常作为 `tool-result` 交给模型），
+ * 绝不因为多出一个字段就让整条事件流变形。
+ */
+function readNavigationProposal(
+  output: unknown,
+): { path: string; label: string; reason?: string } | null {
+  if (!output || typeof output !== 'object') return null
+  const proposed = (output as { proposed?: unknown }).proposed
+  if (!proposed || typeof proposed !== 'object') return null
+
+  const { path, label, reason } = proposed as {
+    path?: unknown
+    label?: unknown
+    reason?: unknown
+  }
+  if (typeof path !== 'string' || !path) return null
+
+  return {
+    path,
+    label: typeof label === 'string' && label ? label : path,
+    ...(typeof reason === 'string' && reason ? { reason } : {}),
+  }
 }
 
 /**
@@ -278,7 +309,7 @@ export async function* streamAssistantTurn(
 
   const result = streamText({
     model: createLanguageModel(active.provider, active.model),
-    system: buildSystemPrompt(options.mode, options.outputLocale),
+    system: buildSystemPrompt(options.mode, options.outputLocale, options.surface),
     messages: [...options.messages],
     reasoning,
     ...(Object.keys(providerOptions).length > 0 ? { providerOptions } : {}),
@@ -319,14 +350,23 @@ export async function* streamAssistantTurn(
           input: part.input,
         }
         break
-      case 'tool-result':
+      case 'tool-result': {
         yield {
           type: 'tool-result',
           toolCallId: part.toolCallId,
           toolName: String(part.toolName),
           output: part.output,
         }
+        /*
+          全屏容器里 `navigate_to` **不会真跳**，返回的是一份 `proposed` 建议（见
+          `tools/page-tools.ts`）—— 在这里翻成 `nav-proposal` 流式事件，由 store 落成
+          消息里的建议卡。这样工具层仍是「纯函数 + 返回值」，不必知道会话里哪条消息、
+          哪个 part；渲染层也只认事件，不认工具实现。
+        */
+        const proposal = readNavigationProposal(part.output)
+        if (proposal) yield { type: 'nav-proposal', ...proposal }
         break
+      }
       case 'tool-error':
         yield {
           type: 'tool-error',

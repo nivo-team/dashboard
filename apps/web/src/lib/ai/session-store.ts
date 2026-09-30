@@ -37,10 +37,13 @@ import type {
 
 export type AiSessionStatus = 'idle' | 'streaming' | 'error'
 
-/** 一条等待用户决定的审批请求（`id` 由 `chat.ts` 生成，用来认领用户的点击）。 */
-export interface PendingApproval extends AiApprovalRequest {
-  id: string
-}
+/**
+ * 一条等待用户决定的审批请求（`id` 由 `chat.ts` 生成，用来认领用户的点击）。
+ *
+ * `AiApprovalRequest` 是判别联合（写操作 / 跳转），所以这里用**交叉类型**而不是
+ * `interface extends` —— 联合不能被 interface 继承。
+ */
+export type PendingApproval = AiApprovalRequest & { id: string }
 
 interface AiSessionState {
   /** 该 app 的历史会话（元数据，不含消息体），按最近更新倒序 */
@@ -91,6 +94,13 @@ interface AiSessionState {
   setPendingApproval: (approval: PendingApproval) => void
   /** 收起审批请求（用户已决定，或这一轮被中止） */
   clearPendingApproval: () => void
+  /**
+   * 认领**全屏建议卡**上的一次点击（带我去 / 不用了）。
+   *
+   * 与审批卡不同：建议卡**不阻塞**这一轮（工具早就返回了），所以这里只改 part 的状态
+   * 并落盘 —— 刷新后卡片还在、点过的状态也还在。
+   */
+  resolveNavProposal: (id: string, state: 'accepted' | 'dismissed') => void
   /** 把当前消息写进 IDB，并在需要时补上会话记录 */
   persist: () => Promise<void>
 
@@ -269,6 +279,23 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
             }),
           )
 
+        case 'nav-proposal': {
+          /*
+            全屏容器里 `navigate_to` 返回的建议（运行时翻成这条事件）→ 落成一张卡片。
+            它**不是**工具卡片：工具卡片默认隐藏（`aiShowToolCalls`），而这张卡是
+            用户唯一能"去页面"的入口，必须始终可见。
+          */
+          const part: Extract<AiMessagePart, { type: 'nav-proposal' }> = {
+            type: 'nav-proposal',
+            id: createId(),
+            path: event.path,
+            label: event.label,
+            state: 'pending',
+            ...(event.reason ? { reason: event.reason } : {}),
+          }
+          return patch((parts) => [...finishPendingReasoning(parts), part])
+        }
+
         case 'tool-error':
           return patch((parts) =>
             patchToolCall(parts, event.toolCallId, {
@@ -336,6 +363,29 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
   setPendingApproval: (approval) => set({ pendingApproval: approval }),
 
   clearPendingApproval: () => set({ pendingApproval: null }),
+
+  resolveNavProposal: (id, state) => {
+    const has = (parts: AiMessagePart[]) =>
+      parts.some((part) => part.type === 'nav-proposal' && part.id === id)
+    if (!get().messages.some((message) => has(message.parts))) return
+
+    set((state) => ({
+      messages: state.messages.map((message) =>
+        has(message.parts)
+          ? {
+              ...message,
+              parts: message.parts.map((part) =>
+                part.type === 'nav-proposal' && part.id === id
+                  ? { ...part, state }
+                  : part,
+              ),
+            }
+          : message,
+      ),
+    }))
+    // 卡片状态也在存档里（刷新后点过的状态不该变回"待决定"）
+    void get().persist()
+  },
 
   persist: async () => {
     const { messages, activeSessionId, sessions } = get()

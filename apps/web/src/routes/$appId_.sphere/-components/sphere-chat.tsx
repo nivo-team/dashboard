@@ -61,7 +61,12 @@ export function SphereChat() {
       */}
       <div className="shrink-0 p-3">
         <div className={widthClass}>
-          <AiComposer />
+          {/*
+            显式声明容器是**全屏**：它决定跳转落成"建议卡"而不是"确认卡"，也决定
+            `update_search_params` 这类只对业务页面成立的工具不发给模型（见 `AiSurface`）。
+            面板那边不传 —— 缺省就是 `panel`。
+          */}
+          <AiComposer surface="sphere" />
         </div>
       </div>
     </div>
