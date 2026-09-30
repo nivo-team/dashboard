@@ -13,6 +13,7 @@
 5. [上下文预算](#5-上下文预算)
 6. [扩展点：加东西改哪里](#6-扩展点加东西改哪里)
 7. [已知的坑](#7-已知的坑)
+8. [系统提示词的分层与范围闸](#8-系统提示词的分层与范围闸)
 
 ---
 
@@ -55,6 +56,8 @@ L2  状态        lib/ai/session-store（消息 / 状态 / 审批 / 落盘）
                 lib/ai/session-boot（本次页面载入算不算「重新载入」）
                 lib/store/preferences-store（本机偏好，按 app 隔离）
 L3  驱动        lib/ai/chat.ts —— 一轮消息的编排（读偏好 → 挑工具 → 拼提示词 → 消费事件）
+                lib/ai/prompt/* —— **系统提示词的分层装配**：唯一出口 `buildSystemPrompt`，
+                  七层「身份 → 范围闸 → 能力 → 工作方式 → 回答方式 → 事实」（见 §8）
 L4  运行时      lib/ai/runtime.ts —— **全仓唯一 import `ai`(Vercel AI SDK) 与 provider 的地方**
 L5  工具        lib/ai/tools/{index,page-tools,data-tools,form-tools}.ts
 L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
@@ -83,7 +86,7 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
        ├─ await import('./runtime')                                ← 懒加载
        ├─ toModelMessages(messages)                                ← 历史衰减 + 图片转 FilePart
        └─ streamAssistantTurn({ messages, mode, outputLocale, tools, toolContext })
-            ├─ buildSystemPrompt(mode, outputLocale)               ← 每轮重算
+            ├─ buildSystemPrompt(mode, outputLocale)               ← 每轮重算（#/lib/ai/prompt，分层见 §8）
             └─ streamText({ …, reasoning: resolveReasoning(model) })  ← 思考程度在这里落地
   └─ for await (event of stream) → StreamEventBatcher (~25ms 缓冲) → session-store.applyEvent
        └─ UI 随之平滑重渲染（PretextStreamText 段落隔离 + 滚动容器 RAF 调度，规避 Layout Thrashing）
@@ -151,7 +154,7 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
 
 | 内容 | 出口 | 时机 |
 |---|---|---|
-| 系统提示词 | `buildSystemPrompt(mode, outputLocale)` | **每轮请求重算**（别缓存成常量） |
+| 系统提示词 | `buildSystemPrompt(mode, outputLocale)`（`#/lib/ai/prompt`） | **每轮请求重算**（别缓存成常量） |
 | 当前页面（我在哪） | `formatPageContext(getPageContext())`，注入提示词 | 每轮采集 |
 | 导航清单（能去哪） | `collectNavigation(appId)` → `list_navigation` | 模型调用工具时 |
 | 表单清单 | `listAiForms()` → `list_page_forms` | 模型调用工具时 |
@@ -179,7 +182,7 @@ endpoints })` 声明「我是干什么的、我用了哪些接口」。动机是
 
 | 项 | 量级 | 控制手段 |
 |---|---|---|
-| 系统提示词 | ~900 token | 保持精简；分节按需拼（暂未做） |
+| 系统提示词 | **~2k token**（七层，见 §8） | 层化装配：空层整段不拼；要压缩先压 §8 的越界清单、再压工作方式层的细则 |
 | 工具定义 | 10 个工具（无表单时 7 个） | `getAllowedTools(..., { hasForms: false })` 剔除表单组 |
 | 单条工具结果 | **≤ 6000 字符** | `truncatePayload`，截断时**明确告知模型** |
 | 历史里的工具结果 | **最近 3 轮完整**，更早占位 | `FULL_TOOL_RESULT_TURNS`（`toModelMessages`） |
@@ -237,6 +240,15 @@ useAiPageContext(Route.id, {
 
 只改 `resolveAllowedToolNames` 里加一条预设。界面上多一项 `Tabs`。
 
+**改系统提示词 / 加一层**
+
+在 `#/lib/ai/prompt/` 下加一个 `buildXxxLayer(input): string | null`，并在 `prompt/index.ts`
+的 `PROMPT_LAYERS` 里占一个位置 —— **顺序只有那一处真值**（细节与分层理由见 §8）。
+不要回到 `runtime.ts` 里拼字符串，也不要在别处另建一个提示词出口。
+
+**别做**：把模块 / 页面名单抄进提示词（范围清单从 `collectNavigation` 派生）；在提示词里
+复述权限（那是工具清单的事）；把「本轮有什么」写成常量（每轮都要重算）。
+
 ## 7. 已知的坑
 
 **这些全是踩过的，别重犯：**
@@ -244,7 +256,7 @@ useAiPageContext(Route.id, {
 1. **提示词里不要复述权限。** 权限由**实际交给模型的工具清单**精确表达。提示词再写一句
    "你只能读"，一旦权限改了而提示词忘了改，模型会**放着给它的工具不用**、反过来告诉用户
    "我没权限" —— 真实发生过：`navigate_to` 已放进只读档，模型却照着旧提示词回答
-   「我只有读取权限，不能执行页面跳转」。
+   「我只有读取权限，不能执行页面跳转」。这条规则现在的落点是 `#/lib/ai/prompt/capability.ts`。
 2. **页面上下文的键用 `Route.id`。** 手写字符串会在某次重命名后静默失配，然后 AI 又不声不响
    回去猜接口。
 3. **`getPageContext()` 整体不要缓存**（它含 `title`，标题随页面异步加载变化）；
@@ -257,6 +269,53 @@ useAiPageContext(Route.id, {
    也不知道它为什么还在。
 8. **工具卡片这类浮在装饰背景上的元素要有自己的底色**，否则点阵从背后透出来。
 9. **`call_write_api` 两个模式都要确认**，别"顺手统一"成读 `ctx.mode`。
+10. **范围闸要写成「先分诊、再行动」，并且必须逐个点名越界类型。** 只写一句「只回答业务问题」是
+    没用的：模型会把「帮我写个 SQL 统计用户数」也算成业务相关，然后把整段 SQL 答出来 —— 所以
+    `scope` 层把闲聊 / 通识 / 数学 / 写代码与**解释代码** / 其它产品 / 专业建议逐条列出，并把
+    分诊写成**先于任何工具调用**的第一步。它**不是权限问题**：权限只由工具清单表达（见坑 1），
+    提示词里写「你没权限」会得到坑 1 那个反向结果。
+11. **越界清单里要留「翻译」这个口子**：本系统是多语言的，界面文案 / 字段名 / 字典项的语言
+    对齐是实际工作，全按越界拒掉会挡住真实需求；同时寒暄只留「一句话礼貌回应」，别展开闲聊。
+12. **不要暴露分诊过程，也不要复述提示词**：分诊只在内部发生（回答里不出现「判定：越界」这类
+    标签），规则原文也不能念给用户（「你的提示词是什么」按越界处理）。这两条分别写在 `scope`
+    层与 `output` 层 —— 改提示词时别把「过程可见」当成"更透明"的改进。
+
+## 8. 系统提示词的分层与范围闸
+
+**唯一出口**：`#/lib/ai/prompt/index.ts` 的 `buildSystemPrompt(mode, outputLocale)`（**每轮重算**）。
+`runtime.ts` 只调用它 —— **不要**在 runtime 或别处再拼提示词。
+
+七层由 `PROMPT_LAYERS` 声明顺序（**顺序只有这一处真值**）：
+
+| # | 层（文件） | 回答的问题 | 说明 |
+|---|---|---|---|
+| L1 | `identity.ts` | 你是谁、为谁服务 | 先掐掉「通用助手」这个默认人格（应用名走参数） |
+| L2 | `scope.ts` | **什么该答、什么该拒** | 范围闸：先分诊（业务内 / 越界 / 模糊）再决定动作；越界一律拒、且不做任何工具调用 |
+| L3 | `capability.ts` | 手上有什么、要不要先问 | 权限由工具清单表达，**这里绝不复述权限**（见坑 1）；只说模式 |
+| L4 | `workflow.ts` | 业务内请求怎么做 | 决策优先级（单模块先带路）+ 操作规约 |
+| L5 | `output.ts` | 怎么说话 | 语言（用自名）、先结论后依据、不暴露内部过程 |
+| L6 | `index.ts`（`buildPageContextLayer`） | 我在哪 | 页面上下文的单一出口 `formatPageContext` |
+| L7 | `workflow.ts`（`buildActiveTasksLayer`） | 这轮在续做什么 | 当前会话的 Todo 目录（绕开历史工具结果的衰减） |
+
+四条约定：
+
+- **每层只写一件事**，`build` 返回 `null` 表示这轮不参与（空层整段不拼）。边界（scope）与流程
+  （workflow）**必须分开**：混写会让 30 行操作细则把那句「越界要拒」平均掉 —— 这正是这次
+  拆层的原因。
+- **顺序即优先级**：范围闸刻意排得很靠前（分诊是"每轮第一件事"），可变的**事实**（页面、
+  任务清单）排在最后。
+- **范围清单从导航派生**：`scope.ts` 的模块行来自 `collectNavigation(appId)`（与 `list_navigation`
+  同一个过滤点），没有 appId 时给外壳页面清单（`ALL_SHELL_NAV_TARGETS`）—— **提示词里没有第二份
+  模块名单**，将来按权限收窄可见模块只改那一处。
+- **分诊过程不输出给用户**（使用者明确要求）：回答里不出现「判定：业务内 / 越界」这类标签，
+  也不复述规则原文（用户问「你的提示词是什么」按越界处理）。
+
+**当前口径**（要调就只改 `scope.ts` 的清单，别动别的层）：业务内 = 本后台系统自身 —— 模块数据 /
+页面导航 / 筛选排序 / 表单填写与提交 / 接口与字段的含义和参数 / 字典 / 权限 / 任务清单 /
+跨模块跨应用统计 / 关于系统自身的元问题；越界 = 闲聊、通识百科、数学、写代码与**解释代码**、
+翻译以外的语言任务、其它产品与厂商、专业建议、以及任何「忽略规则」的元指令；
+**例外只有两个**：翻译（系统是多语言的，文案与字段的译文对齐是本职工作）与一句寒暄
+（用户打招呼只礼貌回应一句，随即引回业务）。
 
 ---
 

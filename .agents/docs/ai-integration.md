@@ -11,6 +11,12 @@
 - 设置 → AI：**厂商配置**（OpenAI / Anthropic / OpenAI 兼容）+ **模型配置** + 默认模型；
 - **浏览器直连**厂商 API（Key 存在本机），流式对话 + 工具调用循环；
 - **上下文注入**：当前 URL / 路由模板 / appId / 面包屑 / 页面标题；
+- **系统提示词分层 + 范围闸**：`#/lib/ai/prompt/*` 七层（身份 / **请求分诊与范围闸** / 能力 /
+  工作方式 / 回答方式 / 页面上下文 / 任务清单），唯一出口 `buildSystemPrompt`（每轮重算）。
+  每轮**先分诊再行动**：业务外（闲聊、通识、数学、写代码与解释代码、翻译以外的语言任务、
+  其它产品、专业建议…）一律拒绝且**不做任何工具调用**；例外只有**翻译**（系统是多语言的）
+  与一句寒暄；分诊过程不输出给用户。分层理由、当前口径与扩展点见
+  [ai-architecture.md](./ai-architecture.md) §8；
 - **只读工具**：读页面上下文、列导航、检索接口清单、调用 GET 接口、读字典选项；
 - `ask`（只读）/ `auto`（多出「页面操作」）两模式的**权限分级**；
 - **写操作 + 人工审批**：`call_write_api`（`access: 'commit'`）在执行前弹审批卡，
@@ -77,6 +83,8 @@
 ├─ L4 工具层 ────── #/lib/ai/tools/*：注册表 + JSON Schema + access + execute
 │                   ctx = { navigate, queryClient, client, getPageContext, requestApproval }
 ├─ L3 上下文层 ──── #/lib/ai/page-context：当前 URL / 路由 / appId / 面包屑 / 页面标题
+│                   #/lib/ai/prompt/*：系统提示词的七层装配（身份 / **范围闸** / 能力 /
+│                     工作方式 / 回答方式 / 页面上下文 / 任务清单），唯一出口 buildSystemPrompt
 ├─ L2 运行时层 ──── #/lib/ai/runtime：agent loop（流式 + 工具调用）+ provider adapter
 └─ L1 配置层 ────── admin.ai store：providers[] / models[] / activeModelId
 ```

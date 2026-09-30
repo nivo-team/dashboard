@@ -17,7 +17,7 @@
 
 | 文档 | 什么时候读 |
 |---|---|
-| [ai-architecture.md](./ai-architecture.md) | **改任何 AI 代码之前**：分层、一轮消息的数据流、权限与模式、上下文预算、扩展点、踩过的坑 |
+| [ai-architecture.md](./ai-architecture.md) | **改任何 AI 代码 / 提示词之前**：分层、一轮消息的数据流、**系统提示词七层与范围闸**、权限与模式、上下文预算、扩展点、踩过的坑 |
 | [routing-architecture.md](./routing-architecture.md) | 加页面、改布局：路由分层拓扑、模块目录化、外壳持久化、面包屑注册 |
 | [ui-and-styling.md](./ui-and-styling.md) | 改样式 / 用 Kumo 组件：令牌与主题、悬浮预览接法、RTL 处理 |
 | [store.md](./store.md) | 加 store、改作用域：三类状态的存储键、per-app 分区、迁移与踩坑 |

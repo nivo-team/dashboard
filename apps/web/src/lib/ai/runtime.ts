@@ -3,7 +3,7 @@ import { createOpenAI } from '@ai-sdk/openai'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { isStepCount, jsonSchema, streamText, tool } from 'ai'
 import type { ModelMessage, ToolSet } from 'ai'
-import { SUPPORTED_LOCALES, type LocaleKey } from '#/lib/locale'
+import type { LocaleKey } from '#/lib/locale'
 import {
   getActiveModel,
   resolveProviderBaseUrl,
@@ -11,10 +11,8 @@ import {
   type AiProviderConfig,
   type AiReasoningLevel,
 } from '#/lib/store'
-import { formatPageContext, getPageContext } from './page-context'
+import { buildSystemPrompt } from './prompt'
 import { expandRouteRefs } from './route-refs'
-import { useAiSessionStore } from './session-store'
-import { getLatestSessionTasks } from './tools/task-tools'
 import type {
   AiAttachment,
   AiMessage,
@@ -32,6 +30,10 @@ import type {
  * `AiStreamEvent`，下层（工具 / 上下文）是纯数据。换运行时或加一条「走自家后端」的通道，
  * 只需要改这个文件。
  *
+ * **系统提示词不在这里拼**：它按「身份 → 范围闸 → 能力 → 工作方式 → 回答方式 → 事实」
+ * 分层组装在 `./prompt`（唯一出口 `buildSystemPrompt`），本文件只负责调用它 ——
+ * 提示词要改层级、加减内容都在那边，别把规则再写回这里。
+ *
  * 三个刻意的选择：
  * - **不引 zod**：工具输入用 JSON Schema（`jsonSchema()`），与仓库其它地方的运行时
  *   schema 同一套描述方式，也少一个依赖。
@@ -43,115 +45,6 @@ import type {
 
 /** 一次用户提问最多允许几轮工具调用（提高至 30 轮以支持多任务连续推进与规划执行）。 */
 export const MAX_TOOL_STEPS = 30
-
-/**
- * 拼系统提示词 —— **每次请求都重新算**，不要把它缓存成常量。
- *
- * 页面上下文**每轮重新采集**并注入（而不是让模型每轮先调一次工具）：
- * 「我在哪」是每次回答都要用的信息，为它多花一次往返不划算。
- *
- * 提示词里任何**可能随权限变化**的内容都必须经过函数（当前是 `formatPageContext`
- * 与本函数的模式描述），这样才能在函数内部一处加过滤条件；往这里塞一段写死的
- * 字符串常量，等于把"过滤点"焊死 —— 上一轮就踩过：提示词里写死了"询问模式不能导航"，
- * 工具层后来放开了它，模型却照着提示词说自己没权限。
- */
-function outputLanguageName(locale: LocaleKey): string {
-  /*
-    用**自名**（「日本語」而不是「日语」）：模型的语种知识在自名上最可靠，
-    而且这样不必要求它认识当前界面语言里的语种叫法。
-  */
-  return SUPPORTED_LOCALES.find((item) => item.key === locale)?.nativeName ?? '简体中文'
-}
-
-/**
- * 汇总当前会话的历史未完成 Todo 任务清单目录，直接注入模型上下文。
- */
-function formatActiveTasksPrompt(): string | null {
-  const messages = useAiSessionStore.getState().messages
-  const tasks = getLatestSessionTasks(messages)
-  if (!tasks || tasks.length === 0) return null
-
-  const uncompleted = tasks.filter(
-    (t) => t.status !== 'completed' && t.status !== 'cancelled',
-  )
-  if (uncompleted.length === 0) return null
-
-  const lines = [
-    '# 当前会话进行中/未完成的任务清单（Todo List 目录）',
-    `当前任务共 ${tasks.length} 项，已完成 ${tasks.filter((t) => t.status === 'completed').length} 项，待处理如下：`,
-    ...tasks.map((t) => `  * [${t.status}] ${t.id}. ${t.title}`),
-    '',
-    '【续做与取消守则】',
-    '- 用户输入「继续 / 恢复 / 搞定剩下的」时：必须直接沿用上述任务清单！',
-    '  1. 先调用 manage_tasks 将第一项未完成的任务状态更新为 in_progress；',
-    '  2. 随后执行其对应操作（open_form 唤起表单并填入数据，用户同意后调用 submit_form 提交）；',
-    '  3. 完成后调用 manage_tasks 将该项标记为 completed，并继续推进下一项，直至全部完成。',
-    '- 用户若明确要求「取消 / 不要了 / 停止任务」时：调用 manage_tasks 将尚未完成的任务项标记为 cancelled。',
-    '- 严禁丢弃现有清单或重复从头创建已完成的项！',
-  ]
-  return lines.join('\n')
-}
-
-export function buildSystemPrompt(mode: AiMode, outputLocale: LocaleKey): string {
-  const context = getPageContext()
-  const appName = context.appName ?? '管理后台'
-  const activeTasksPrompt = formatActiveTasksPrompt()
-
-  /*
-    只描述**模式**（要不要先问用户），**绝不在提示词里复述权限**。
-
-    权限那一维已经由「本轮实际给它的工具清单」精确表达了。再写一句"你只能读"，
-    一旦权限改了而这里忘了改，模型就会**放着给它的工具不用**、反过来告诉用户
-    "我没权限" —— 这个 bug 真实发生过：`navigate_to` 明明已经放进只读档，
-    模型却照着旧提示词回答「我只有读取权限，不能执行页面跳转」。
-
-    所以这里只说模式，能力边界一律交给工具清单。
-  */
-  const modeRule =
-    mode === 'ask'
-      ? '当前是「询问」模式：**动手之前先问过用户** —— 填表、提交这类会改动内容或数据的操作，系统会自动弹确认卡等你点头，用户不点就不做。**只读查询与页面跳转不需要确认，直接做。**'
-      : '当前是「自动」模式：能直接做的就直接做 —— 导航、填表、以及表单校验通过后的提交，都不必再问。唯一例外是通用写接口（`call_write_api`）：系统仍会弹确认卡，那是强制的。'
-
-  return [
-    `你是「${appName}」管理后台里的 AI 助手，运行在用户自己的浏览器里。`,
-    '',
-    '# 当前页面上下文',
-    formatPageContext(context),
-    ...(activeTasksPrompt ? ['', activeTasksPrompt] : []),
-    '',
-    '# 你可以做的事',
-    '**以本轮实际给你的工具清单为准** —— 那就是你此刻的能力边界；清单里没有的能力，你就是没有。',
-    '用户要求的事如果没有对应工具，说明当前权限没开：如实说明，并告诉他可以在「设置 → AI → AI 权限」里调整。**不要**用「我是询问模式 / 只读模式所以不行」来解释 —— 模式和权限是两回事，**页面跳转在所有权限档里都可用**。',
-    '',
-    '# 操作前的确认',
-    modeRule,
-    '',
-    '# 查询与页面交互决策优先级（铁律）',
-    '1. 【单模块 / 单页面查询（最高优先级：带用户去页面直观呈现）】：',
-    '   - 当用户询问单模块数据、查询具体列表（如「用户列表」、「查看功能菜单」），或者指令中使用了 @模块 / @模块:list 引用（例如「@user:list 中名称带有 "人" 的用户」）：',
-    '   - **严禁直接调用接口（call_read_api）抓取数据输出文本**！管理后台的核心交互在于直观可视化的数据表格界面；',
-    '   - **必须执行如下标准流程**：',
-    '     a. 若用户当前不在目标页面，先调用 `navigate_to` 带用户前往该页面；',
-    '     b. 若用户带有搜索或筛选条件（如关键词、时间范围、状态过滤、排序），紧接着调用 `update_search_params` 将参数更新到页面的 URL 上，使页面表格直接为用户呈现过滤后的数据；',
-    '     c. 随后在对话中友好告知用户已跳转并呈现该列表，让用户在表格中直接浏览、交互与操作。',
-    '2. 【多模块组合查询 / 跨系统综合统计分析（才调用接口输出表格）】：',
-    '   - 仅当用户的指令跨越多个不同业务模块（例如「对比各个应用下的用户数与功能树」、「统计各个字典分类下的字典项数量」）、或属于管理后台单一页面无法承载的综合对比分析时：',
-    '   - 此时先通过 `search_api` 检索接口，调用 `call_read_api` 抓取多方数据，并在对话中以 Markdown 结构化表格的形式汇总呈现分析结果。',
-    '',
-    '# 工作方式',
-    '- 需要事实（数量、名称、状态、路径）时**先调用工具**，不要凭印象回答；拿不到就直说拿不到。',
-    '- 用户说「带我去 / 打开某某页面」时：先 list_navigation 找到路径，再 navigate_to。',
-    '- **用户要求在当前页面搜索、过滤、排序或翻页时**：直接调用 `update_search_params` 更新搜索参数（例如设置 kw 搜索关键词、field/order 排序、page 页码或各项筛选字段；清空筛选时将对应参数设为 null）。该操作属于只读视图筛选，直接更新生效，无需等待确认。',
-    '- **处理多个对象或复合任务时（如批量录入/创建多个用户）**：先调用 `manage_tasks` 创建结构化任务规划清单（Todo List），让用户实时看到推进步骤；随后按清单顺序执行（执行前更新该项为 in_progress，完成后更新为 completed），连续推进至全部任务完成。',
-    '- **刷新页面或回到历史会话继续任务时**：若用户要求「继续 / 继续任务 / 接下来」，检查历史消息中既有的任务清单（Todo List），已完成的项（completed）绝不重复执行；从第一项尚未完成的项（pending 或 in_progress）开始继续顺序推进。若需要权限确认，系统会自动弹出授权卡（或调用 `request_permission` 明确申请），获得授权后继续执行。',
-    '- **用户要求新建 / 创建 / 修改 / 编辑数据时**：若当前页面表单尚未打开，先调用 `open_form` 唤起表单（可直接附带 `values` 一步完成打开与预填）；表单打开后如需修改可调用 `fill_form`；用户确认核对无误后，用 `submit_form` 发起提交。**切勿直接用 `call_write_api` 绕过表单偷偷写库，必须打开表单让用户在界面上可见**！',
-    '- **要查数据前先 get_page_context**：它会给出当前页面用到的接口与**参数明细**（参数名 / 位置 / 是否必填）。有它就别去 search_api 里大海捞针，更**不要凭印象猜参数名** —— 猜错会被后端直接拒掉（例如把 `id` 写成 `uid`）。',
-    '- **写操作被用户拒绝后不要重试同一个请求**，也不要假装它成功了 —— 如实说明被拒绝并询问下一步。',
-    '- 结果里出现 `truncated: true` 说明数据被截断了，改用更精确的查询参数或分页，**不要**基于截断数据下结论。',
-    `- **用${outputLanguageName(outputLocale)}回答**、先给结论再给依据（接口路径与关键数字），不要复述工具的原始返回。`,
-    '- 一次只做一件明确的事；需求不清楚时先问清楚，不要连着调一堆工具乱试。',
-  ].join('\n')
-}
 
 /**
  * 按厂商配置创建语言模型实例。
