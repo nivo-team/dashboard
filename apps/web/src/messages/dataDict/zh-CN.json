@@ -143,5 +143,6 @@
   "statusFilter": {
     "all": "全部状态"
   },
+  "aiFormTitle": "分类信息（可编辑）",
   "typeDescription": "该分类下的子分类与字典项"
 }

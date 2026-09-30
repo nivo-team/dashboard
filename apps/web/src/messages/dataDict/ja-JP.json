@@ -143,5 +143,6 @@
   "statusFilter": {
     "all": "すべてのステータス"
   },
+  "aiFormTitle": "分類情報（編集可）",
   "typeDescription": "このカテゴリ内の子カテゴリと辞書項目"
 }

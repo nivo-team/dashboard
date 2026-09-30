@@ -18,7 +18,7 @@ export const DASHBOARD_LAYOUT_VERSION = 1
 export interface DashboardWidget {
   /** 实例 id：拖拽定位与持久化的主键，**与 `type` 不同**（同一类型可以放多张）。 */
   id: string
-  /** 卡片类型，对应 `-data/widget-registry` 的注册 key。 */
+  /** 卡片类型，对应 `src/features/home/widget-registry` 的注册 key。 */
   type: string
   /** 起始列（0-based，0 ~ DASHBOARD_COLUMNS - w）。 */
   x: number

@@ -6,7 +6,7 @@
 
 ## 1. 为什么是「用户自定义」而不是「后台配好」
 
-页面能放什么由**卡片注册表**（`-data/widget-registry.tsx`）决定，不由账号权限决定。
+页面能放什么由**卡片注册表**（`src/features/home/widget-registry.tsx`）决定，不由账号权限决定。
 后端目前还说不清「每个人能用多少内容」，先写一套必然要改的权限映射是净负债；
 反过来让用户自己挑卡片，看不到的内容他自然不会加。
 
@@ -113,32 +113,41 @@ apps/web/src/lib/
   dashboard-layout.ts           # 数据模型 + normalize + compact（纯逻辑，无 React）
   store/dashboard-store.ts      # per-app 持久化（admin.dashboard:<appId>）
 
+apps/web/src/features/home/            # 业务代码（一个业务一个文件夹，扁平）
+  index.tsx                     # 页面：页头编辑开关 + 栅格 + 添加卡片面板（导出 HomePage）
+  feature.ts                    # ★ 对 AI 的声明：卡片数据源 + 编排指令（见 features-architecture.md）
+  use-dashboard-grid.ts         # 拖动 / 缩放 / 键盘交互（指针事件 + RTL 换算）
+  widget-registry.tsx           # 卡片注册表（有哪些卡片可选）—— 唯一真值
+  dashboard-grid.tsx            # 栅格容器（8 列定位 / 移动端单列）
+  dashboard-widget-frame.tsx    # 卡片外壳 + 编辑态手柄（拖拽 / 移除 / 缩放）
+  add-widget-dialog.tsx         # 「添加卡片」面板
+  overview-card.tsx             # 各卡片的**内容**（不含外壳，扁平放在模块根）
+  quick-actions-card.tsx
+  metrics-card.tsx
+  version-card.tsx
+
 apps/web/src/routes/$appId/home/
-  index.tsx                     # 页面：页头编辑开关 + 栅格 + 添加卡片面板
-  -data/
-    use-dashboard-grid.ts       # 拖动 / 缩放 / 键盘交互（指针事件 + RTL 换算）
-    widget-registry.tsx         # 卡片注册表（有哪些卡片可选）
-  -components/
-    dashboard-grid.tsx          # 栅格容器（8 列定位 / 移动端单列）
-    dashboard-widget-frame.tsx  # 卡片外壳 + 编辑态手柄（拖拽 / 移除 / 缩放）
-    add-widget-dialog.tsx       # 「添加卡片」面板
-    cards/                      # 各卡片的**内容**（不含外壳）
-      overview-card.tsx
-      quick-actions-card.tsx
-      metrics-card.tsx
+  index.tsx                     # 薄适配：createFileRoute + 渲染 HomePage
 ```
 
-私有不参与路由的代码放 `-` 前缀目录（`@tanstack/router-plugin` 默认忽略）。
+**目录约定**：业务代码在 `src/features/**`（薄路由 + 一页一份 `feature.ts`）——
+迁移前的 `-data/` / `-components/` 已取消，见 [features-architecture.md](./features-architecture.md)。
+
+**对 AI 的声明**（`feature.ts`，页面里一次 `useFeature`）：
+数据源 `widgets`（当前卡片与 `x/y/w/h`、是否编辑态 / 默认布局）与 `available-widgets`（注册表全部卡片）；
+指令 `add-widget`（传 `type`，不弹卡）、`remove-widget`（传**实例 id**，弹确认卡）、
+`reset-dashboard-layout`（不可撤销，弹确认卡）。**新增卡片时只动注册表**，声明会自动跟着变
+（卡片清单从 `DASHBOARD_WIDGETS` 派生，页面里不另抄一份）。
 
 ---
 
 ## 6. 新增一张卡片
 
-1. 在 `-components/cards/` 写**只渲染内容**的组件（不要自己画卡片外壳：
+1. 在 `src/features/home/` 写**只渲染内容**的组件（不要自己画卡片外壳：
 
    标题、图标、拖拽手柄、移除按钮统一由 `DashboardWidgetFrame` 提供，
    自己画会漏掉编辑态，表现为「这张卡拖不动也删不掉」）。
-2. 在 `-data/widget-registry.tsx` 的 `DASHBOARD_WIDGETS` 加一条：
+2. 在 `src/features/home/widget-registry.tsx` 的 `DASHBOARD_WIDGETS` 加一条：
    `type`（**上线后不要再改**，存档里存的就是它）、`titleKey`、`descriptionKey`、
    `icon`、`content`、`defaultSize`（高度必须是档位）、`allowMultiple`。
 3. 在 `apps/web/src/messages/dashboard/*.json` 补 `cards.<type>.title` 等文案（**7 种语言**，
@@ -181,7 +190,7 @@ apps/web/src/routes/$appId/home/
   **CSS Grid 的自动排布做不到这件事**（游标只前进不回退），别试图删掉它。
 - 持久化在 `admin.dashboard:<appId>`；**`layout === null` 表示「从未自定义」**，
   页面现算默认布局 —— **不要在 store 初始化时写一份默认值**，否则以后调整默认布局老用户全停在旧的。
-- **卡片注册表是「有哪些卡片可选」的唯一真值**（`-data/widget-registry.tsx`）：新增卡片 =
+- **卡片注册表是「有哪些卡片可选」的唯一真值**（`src/features/home/widget-registry.tsx`）：新增卡片 =
   写一个**只渲染内容**的组件 + 注册表加一条 + 补齐 7 语言文案。**不要在卡片里自己画外壳**
   （标题 / 拖拽手柄 / 移除按钮统一由 `DashboardWidgetFrame` 提供）。注册表里的 `type` 上线后不要再改。
 - **手写拖拽 / 缩放，不要引入栅格库**（`react-grid-layout` 不支持 RTL，一票否决）。

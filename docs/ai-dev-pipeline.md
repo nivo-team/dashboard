@@ -199,7 +199,7 @@ git push origin chore/ai-pipeline
 只做展示，不需要任何接口。
 
 ### 参考的现有模块
-apps/web/src/routes/$appId/home/-components/cards/metrics-card.tsx
+apps/web/src/features/home/metrics-card.tsx
 
 ### 目标路由 / 位置
 按现有约定（/$appId/home 的卡片栅格）
@@ -579,7 +579,7 @@ create or approve pull requests (createPullRequest)
 - **复用已有文案键** —— 卡片标题用现成的 `profile.sections.basic`，
   没有为「基本信息」新造一个语义重复的 key；
 - **引用了上一次的产出** —— 注释里写「与仪表盘的版本信息卡同一套做法
-  （见 `$appId/home/-components/cards/version-card.tsx`）」，即跨 issue 学习本仓做法；
+  （见 `src/features/home/version-card.tsx`）」，即跨 issue 学习本仓做法；
 - 版本号仍走 `package.json?raw`，解析失败用 `—` 而不是编造版本。
 
 **这次为什么能验证 bash 工具**：`routeTree.gen.ts` 的 diff 是标准生成物的形状

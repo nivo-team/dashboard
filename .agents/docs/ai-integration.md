@@ -266,6 +266,8 @@ interface AiToolDefinition<Input = unknown> {
 | `search_api` | read | 在 `GET /api` 的 632 条接口清单里按关键词检索 |
 | `call_read_api` | read | 调用**清单内**的一个 GET 接口，带 query，返回 JSON（截断） |
 | `list_dict_options` | read | 读字典选项（`1/2` → 「启用/禁用」），避免 AI 瞎猜枚举含义 |
+| `get_page_data` | read | 读**当前页面已加载的数据**（`feature.ts` 的 `dataSources`）与可用指令清单 —— 面板模式不必再调接口（全屏容器里不下发） |
+| `run_page_command` | **commit** | 执行页面声明的指令（`feature.ts` 的 `commands`），**复用页面自己的处理函数**（含 toast / 刷新）；write 类必过审批卡 |
 | `call_write_api` | **commit** | 调用清单内的写接口（POST/PUT/PATCH/DELETE）；**执行前弹审批卡**（DELETE 标注不可撤销），被拒则抛错、不发请求；路径模板的 `{id}` 用 `pathParams` 填；成功后刷新页面数据 |
 | `navigate_to` | read | 导航到某个路径（归 `read`：它不改变任何东西，只读档也允许）。**默认要用户确认**：面板确认卡（同意后本会话免确认）/ 全屏建议卡 —— 见 §3.2 |
 

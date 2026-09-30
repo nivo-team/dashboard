@@ -45,6 +45,7 @@ pnpm guardrails       # 铁律的机器检查（CI 用，scripts/ai/check-guardr
 
 | 要做什么 | 读哪份 |
 |---|---|
+| **加页面 / 改页面业务代码（`src/features`）** | [features-architecture.md](./.agents/docs/features-architecture.md)（薄路由 + 一页一份 `feature.ts` 声明权限/指令/数据源）· 功能与测试清单 [features-catalog.md](./.agents/docs/features-catalog.md) |
 | 加页面 / 改路由 / 改外壳布局 | [routing-architecture.md](./.agents/docs/routing-architecture.md) |
 | 改导航项 / 命令面板 / 面包屑 | 同上（含「导航系统与命令面板」契约速查） |
 | 改样式 / 用 Kumo 组件 / RTL 适配 | [ui-and-styling.md](./.agents/docs/ui-and-styling.md) |
@@ -77,7 +78,7 @@ pnpm guardrails       # 铁律的机器检查（CI 用，scripts/ai/check-guardr
    **严禁 `font-bold`**（标题 `font-semibold`、强调 `font-medium`）；颜色只用 Kumo 语义令牌
    （`bg-kumo-base` / `text-kumo-default` / `border-kumo-line` …）。
 3. **名单与配置只有一个真值**：导航只动 `apps/web/src/lib/navigation.ts`、仪表盘卡片只动
-   `-data/widget-registry.tsx`、工具只动 `AI_TOOLS`。**不要在渲染处再硬编码一份平行的名单。**
+   `src/features/home/widget-registry.tsx`、工具只动 `AI_TOOLS`。**不要在渲染处再硬编码一份平行的名单。**
 4. **给模型的内容都必须经过函数并留过滤点**（提示词 / 导航清单 / 表单清单 / 页面接口），
    **过滤条件集中在一处** —— 否则「将来按权限收窄」的落点就被焊死了。
 5. **校验命令默认不跑**（见上）；改动完**不要**主动跑 `typecheck` / `build`。

@@ -37,7 +37,7 @@ async function loadApiItems(ctx: AiToolContext): Promise<ApiItem[]> {
  * 超长结果的处理：**明确告诉模型被截断了**，并给出原始长度 ——
  * 否则它会拿一段截断的数据当全量去统计，得出错误结论。
  */
-function truncatePayload(value: unknown): unknown {
+export function truncatePayload(value: unknown): unknown {
   let text: string
   try {
     text = JSON.stringify(value)

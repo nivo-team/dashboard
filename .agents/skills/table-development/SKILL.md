@@ -6,7 +6,7 @@ description: 本仓库数据表格开发规范（DataTable + TanStack Table v9 +
 # 数据表格开发
 
 适用：`src/routes/**` 下的列表页，以及 `src/components/data-table`、`src/components/table-controls`。
-**参考实现：`src/routes/$appId/users/user/index.tsx`（用户列表：schema 生成 23 列 + 数组悬浮卡片 + 详情跳转）。列顺序与默认可见性的最新做法见数据字典分类树 / 功能树（ID 列第一、默认全显示）。**
+**参考实现：`src/features/users/user/list/index.tsx`（用户列表：schema 生成 23 列 + 数组悬浮卡片 + 详情跳转；薄路由在 `src/routes/$appId/users/user/index.tsx`）。列顺序与默认可见性的最新做法见数据字典分类树 / 功能树（ID 列第一、默认全显示）。**
 
 ## 0. 数据来源：不重复定义数据模型
 
@@ -108,8 +108,8 @@ Kumo 的 `Table.Head` / `Table.Cell` 只接受物理 `left` / `right`，因此 `
 
 ### 2.4 树形表格（父子层级，可选）
 
-> 现有使用方：**数据字典分类树**（`$appId/system/data-dict/-components/dict-type-table.tsx`）与
-> **功能树容器视图**（`$appId/system/features/-components/feature-container.tsx`）。
+> 现有使用方：**数据字典分类树**（`src/features/system/data-dict/dict-type-table.tsx`）与
+> **功能树容器视图**（`src/features/system/features/feature-container.tsx`）。
 > 展开态 hook 是 `#/components/data-table` 的 **`useTreeSearchExpanded`**；
 > 过滤纯函数是 `#/lib/tree-search` 的 **`filterTreeByMatch`**（UI 侧可从前者一处导入）。
 > 两个模块共用同一套交互，新模块照抄，不要再各写一份。

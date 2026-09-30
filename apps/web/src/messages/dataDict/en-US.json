@@ -143,5 +143,6 @@
   "statusFilter": {
     "all": "All statuses"
   },
+  "aiFormTitle": "Category details (editable)",
   "typeDescription": "Subcategories and dictionary items in this category"
 }

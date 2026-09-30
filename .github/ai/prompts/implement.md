@@ -27,7 +27,7 @@
    禁用 `tracking-*`；**严禁 `font-bold`**（标题用 `font-semibold`，强调用 `font-medium`）；
    颜色只用 Kumo 语义令牌（`bg-kumo-base` / `text-kumo-default` / `border-kumo-line` …）。
 3. **名单与配置只有一个真值**：导航只动 `apps/web/src/lib/navigation.ts`、仪表盘卡片只动
-   `-data/widget-registry.tsx`、AI 工具只动 `AI_TOOLS`。**不要在渲染处再硬编码一份平行名单**。
+   `src/features/home/widget-registry.tsx`、AI 工具只动 `AI_TOOLS`。**不要在渲染处再硬编码一份平行名单**。
 4. **不要手改 `apps/web/src/routeTree.gen.ts`** —— 它由 `pnpm dev` / `pnpm build` 自动生成。
    如果你的改动新增或删除了路由文件，**把这个文件一起提交**（跑构建后它会被更新）。
 5. **给模型/AI 的内容都必须经过函数并留过滤点**（提示词 / 导航清单 / 表单清单 / 页面接口），

@@ -143,5 +143,6 @@
   "statusFilter": {
     "all": "Todos los estados"
   },
+  "aiFormTitle": "Datos de la categoría (editable)",
   "typeDescription": "Subcategorías y elementos de esta categoría"
 }

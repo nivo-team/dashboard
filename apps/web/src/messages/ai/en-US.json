@@ -84,7 +84,9 @@
     "submit_form": "Submit form",
     "open_form": "Open Form",
     "manage_tasks": "Task Planning",
-    "update_search_params": "Update Search Params"
+    "update_search_params": "Update Search Params",
+    "get_page_data": "Read page data",
+    "run_page_command": "Run page command"
   },
   "approvalTitle": "This action needs your approval",
   "approve": "Allow once",

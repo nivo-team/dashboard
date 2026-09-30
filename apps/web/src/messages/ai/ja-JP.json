@@ -84,7 +84,9 @@
     "submit_form": "フォームを送信",
     "open_form": "フォームを開く",
     "manage_tasks": "タスク計画",
-    "update_search_params": "検索パラメータの更新"
+    "update_search_params": "検索パラメータの更新",
+    "get_page_data": "ページデータを読む",
+    "run_page_command": "ページ操作を実行"
   },
   "approvalTitle": "この操作には確認が必要です",
   "approve": "1 回だけ許可",

@@ -12,7 +12,7 @@ import { SettingsCard, SettingRow } from '#/components/settings-card'
  * 这一页连设置项都没有，只是信息展示）。
  *
  * 版本号直接读 `package.json` 的 `version`（单一真值，不另外维护一份常量）——
- * 与仪表盘的版本信息卡同一套做法（见 `$appId/home/-components/cards/version-card.tsx`）。
+ * 与仪表盘的版本信息卡同一套做法（见 `src/features/home/version-card.tsx`）。
  * 卡片外壳与「左 label / 右内容」的行布局来自 `#/components/settings-card`，
  * 不在页面里手写 `LayerCard`。
  */

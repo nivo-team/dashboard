@@ -67,6 +67,8 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
                 lib/ai/page-reload-bridge.ts    页面把「重新取数」交给 AI
                                                   （写操作成功后刷新列表，见坑 17）
                 lib/ai/session-db.ts            会话持久化（IndexedDB，按 app 分区）
+                lib/features/*                  页面特性注册表（一页一份 feature.ts）——
+                                                  get_page_data / run_page_command 读它（见 §4）
 ```
 
 **两条硬边界**：

@@ -6,6 +6,7 @@ import {
   searchApiTool,
 } from './data-tools'
 import { getPageContextTool, listNavigationTool, navigateToTool } from './page-tools'
+import { getPageDataTool, runPageCommandTool } from './feature-tools'
 import {
   fillFormTool,
   listPageFormsTool,
@@ -25,6 +26,7 @@ import { updateSearchParamsTool } from './search-tools'
  */
 export const AI_TOOLS: readonly AiToolDefinition[] = [
   getPageContextTool,
+  getPageDataTool,
   listNavigationTool,
   searchApiTool,
   callReadApiTool,
@@ -38,6 +40,7 @@ export const AI_TOOLS: readonly AiToolDefinition[] = [
   listPageFormsTool,
   fillFormTool,
   submitFormTool,
+  runPageCommandTool,
 ]
 
 /**
@@ -94,15 +97,24 @@ export function getAllowedTools(
     if (options.hasForms === false && tool.group === 'form') return false
     /*
       **容器的过滤点**（`AiSurface`）：全屏对话页里没有挂载的业务页面，
-      `update_search_params` 依赖页面表格注册的调度器（`useTableQuery` → `search-params-bridge`），
-      在全屏里调用只会走兜底分支、把参数拼到 `/$appId/sphere` 自己的 URL 上 —— 原地打转、
-      既没用又会让模型以为"筛选已生效"。所以它在全屏里**不发给模型**，
-      由提示词的「工作方式」层说明：全屏下把数据直接渲染在对话里。
+      这三样"只对当前页面成立"的工具不发给模型：
+      - `update_search_params` 依赖页面表格注册的调度器（`useTableQuery` → `search-params-bridge`），
+        在全屏里调用只会走兜底分支、把参数拼到 `/$appId/sphere` 自己的 URL 上 —— 原地打转、
+        既没用又会让模型以为"筛选已生效"；
+      - `get_page_data` / `run_page_command` 依赖页面登记的 `feature.ts`（数据源 / 指令），
+        全屏里没有任何页面特性可读，调用只会拿到一句报错 —— 白费一次往返。
 
       容器相关的策略只加在这里（与权限、表单组同一处收口）：将来全屏要放开写操作，
       也在这一个函数里判断，不要在工具内部再散一份。
     */
-    if (options.surface === 'sphere' && tool.name === 'update_search_params') return false
+    if (
+      options.surface === 'sphere' &&
+      (tool.name === 'update_search_params' ||
+        tool.name === 'get_page_data' ||
+        tool.name === 'run_page_command')
+    ) {
+      return false
+    }
     return true
   })
 }

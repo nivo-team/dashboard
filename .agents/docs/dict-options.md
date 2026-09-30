@@ -133,7 +133,7 @@ const resolveFilterFieldOptions = useCallback<ResolveFilterFieldOptions>(
 - 已应用条件的 chip 文案通过 `describeFilterCondition(condition, field, labels, optionLabelOf)` 的**第 4 个参数**传入，
   否则会显示 `账号类型 normal` 而不是 `账号类型 普通用户`；
 - `disabled: true` 的字典项不会出现在候选里；
-- 参考实现：`apps/web/src/routes/$appId/users/user/index.tsx`（用户列表的 `account_type`）。
+- 参考实现：`apps/web/src/features/users/user/list/index.tsx`（用户列表的 `account_type`）。
 
 ## 8. 已接入
 

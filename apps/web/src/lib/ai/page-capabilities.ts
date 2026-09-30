@@ -147,6 +147,34 @@ export function definePageCapabilities(
 }
 
 /**
+ * **权限判定的唯一实现**（页面能力 / 页面指令共用）。
+ *
+ * 约定：
+ * - `admin` / `superadmin` 放行全量；
+ * - 未声明 `permission` 的能力是公开的；
+ * - 还没接入权限清单（`permissions` 为空）时**默认放行** —— 宁多勿缺，
+ *   等真正的权限表接进来再把这里改成"默认拒绝"。
+ *
+ * 页面指令（`#/lib/features`）与页面能力走同一处判定，**不要各写一份**：
+ * 两处判定一旦分叉，就会出现"能力列表里看不到、指令却能执行"这种越权缝。
+ */
+export function hasPageCapabilityPermission(
+  permission?: string,
+  authContext?: { role?: string; permissions?: readonly string[] },
+): boolean {
+  if (!permission) return true
+
+  const role = authContext?.role ?? useAuthStore.getState().user?.role
+  if (role === 'admin' || role === 'superadmin') return true
+
+  // 预留对接未来用户权限清单：清单还没接上时放行（宁多勿缺，
+  // 接入后把这里改成默认拒绝即可，调用方一处都不用动）
+  const permissions = authContext?.permissions
+  if (!permissions) return true
+  return permissions.includes(permission)
+}
+
+/**
  * 权限过滤中心（集中过滤点，遵循铁律 4）：
  *
  * 任何给模型的页面能力（表单、接口、动作）都必须统一流经本函数。
@@ -167,11 +195,8 @@ export function filterPageCapabilities(
 
   const permissions = authContext?.permissions
   // 未配置具体权限表时，默认放行未声明 permission 的公开能力
-  const hasPerm = (perm?: string) => {
-    if (!perm) return true
-    if (!permissions) return true
-    return permissions.includes(perm)
-  }
+  const hasPerm = (perm?: string) =>
+    hasPageCapabilityPermission(perm, { role: authContext?.role, permissions })
 
   return {
     ...spec,

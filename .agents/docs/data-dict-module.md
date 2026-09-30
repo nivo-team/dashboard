@@ -54,7 +54,7 @@
   - `code` = **局部码**（`channel`）；
   - `p_code` = **从根到自身的完整 code 链**（`common.channel`）；
   - `id_path` = **祖先 id 链、不含自身**（`/0/38/`，与 features 的 `id_path` 语义一致）。
-- 时间字段是**秒级数字**，且存在脏值（曾见到 `created_at: 54353`）→ 渲染走容错解析（`-data/data-dict-options.ts` 的 `toEpochMs`）。
+- 时间字段是**秒级数字**，且存在脏值（曾见到 `created_at: 54353`）→ 渲染走容错解析（`src/features/system/data-dict/data-dict-options.ts` 的 `toEpochMs`）。
 - `parent_id` 用 `0` 表示后端视角的顶级；自本模块收窄到根分类 `DICT_ROOT_TYPE_ID` 之后，前端不再直接使用 `0`。
 
 ### 2.2 字典项：独立资源 + 服务端分页
@@ -90,7 +90,7 @@
 
 1. **openapi 里这两个接口的 response schema 是错的。**
    `/data_dict/type/tree` 与 `/data_dict` 都被声明为 `v1.DataOptions`（`{ options, total }`，其实是 `/data_dict/options` 的类型），与实际返回完全不同。
-   → 本模块在 `-data/data-dict-types.ts` 自行声明响应类型与运行时 schema（实际分别是 `DictType[]` 与 `{ total, items }`），
+   → 本模块在 `src/features/system/data-dict/data-dict-types.ts` 自行声明响应类型与运行时 schema（实际分别是 `DictType[]` 与 `{ total, items }`），
    **请求参数与请求体仍用生成类型**（那些是正确的）。
    断言的落点只有两处（各 hook 的取值点，注释都打了 `⏳`，附删除条件）。
    这是**本仓库唯一一处**自声明响应类型的地方（其余模块的响应类型都以 openapi 生成为准）。
@@ -125,24 +125,38 @@
 ### 4.2 目录
 
 ```
+apps/web/src/features/system/data-dict/      # 业务代码（一个业务一个文件夹，扁平）
+├── list/index.tsx                  # /data-dict：分类列表（导出 DataDictTypeListPage）
+├── list/feature.ts                 # ★ 对 AI 的声明：分类数据源 + reload（无 commands，见文件注释）
+├── detail/index.tsx                # 选中分类：子分类卡片 + 字典项表格 + 侧栏信息卡片
+├── detail/feature.ts               # ★ 两个数据源（当前分类 / 子分类）+ 表单桥 id
+├── dict-type-table.tsx             # 分类树表（列表页与详情页「子分类」卡片共用；含增删改）
+├── dict-type-form.tsx              # 分类表单（弹窗与详情页内嵌共用；可选注册 AI 表单桥）
+├── dict-type-form-dialog.tsx       # 分类 新建/编辑 弹窗
+├── dict-type-info-card.tsx         # 分类元信息只读卡片（详情页侧栏）
+├── dict-item-table.tsx             # 字典项表格（TableControls + 服务端分页 + 行操作）
+├── dict-item-form-dialog.tsx       # 字典项 新建/编辑 弹窗
+├── data-dict-types.ts              # ⚠️ 自定义响应类型 + 运行时 schema（第 3 节第 1 条）
+├── data-dict-options.ts            # 枚举、树工具（查找/过滤/统计）、toEpochMs、分页默认值
+├── data-dict-columns.tsx           # 两张表的列编排 + 枚举徽章
+├── data-dict-breadcrumb.ts         # 把分类层级注册给顶栏面包屑（两个 owner）
+├── use-dict-type-tree.ts           # 分类树单一数据源 + 失效
+└── use-dict-items.ts               # 分页列表 query（服务端分页 + kw + status）+ 失效
+
 apps/web/src/routes/$appId/system/data-dict/
 ├── route.tsx                       # 模块根（Outlet）
-├── index.tsx                       # /data-dict：分类列表（分类树表）
-├── $typeId.tsx                     # 选中分类：子分类卡片 + 字典项表格 + 侧栏信息卡片
-├── -components/
-│   ├── dict-type-table.tsx         # 分类树表（列表页与详情页「子分类」卡片共用；含增删改）
-│   ├── dict-type-form-dialog.tsx   # 分类 新建/编辑 弹窗
-│   ├── dict-type-info-card.tsx     # 分类元信息只读卡片（详情页侧栏）
-│   ├── dict-item-table.tsx         # 字典项表格（TableControls + 服务端分页 + 行操作）
-│   └── dict-item-form-dialog.tsx   # 字典项 新建/编辑 弹窗
-└── -data/
-    ├── data-dict-types.ts          # ⚠️ 自定义响应类型 + 运行时 schema（第 3 节第 1 条）
-    ├── data-dict-options.ts        # 枚举、树工具（查找/过滤/统计）、toEpochMs、分页默认值
-    ├── data-dict-columns.tsx       # 两张表的列编排 + 枚举徽章
-    ├── data-dict-breadcrumb.ts     # 把分类层级注册给顶栏面包屑（两个 owner）
-    ├── use-dict-type-tree.ts       # 分类树单一数据源 + 失效
-    └── use-dict-items.ts           # 分页列表 query（服务端分页 + kw + status）+ 失效
+├── index.tsx                       # /data-dict：薄适配（渲染 DataDictTypeListPage）
+└── $typeId.tsx                     # 薄适配 + beforeLoad 的根分类重定向
 ```
+
+**对 AI 的声明**（`useFeature`，一页一次）：
+- 分类列表：数据源 `dict-types`（根分类的直接子分类 + 它们的 `children`）；**暂无 commands**
+  —— 新建 / 删除的弹窗状态在 `dict-type-table.tsx` 内部，页面拿不到句柄，补齐方式见
+  [features-architecture.md](./features-architecture.md) §7；
+- 分类详情：数据源 `dict-type`（当前分类 + 是否有未保存改动）与 `sub-types`；**表单桥已接**
+  （`dict-type-form.tsx` 注册字段读写、详情页注册提交，id = `dict-type-detail`）——
+  AI 可 `fill_form` 填字段、`submit_form` 走审批卡保存；字典项列表**不进数据源**（由子组件自持，
+  页面拿不到那一屏，宁可先不给）。
 
 ### 4.3 数据层要点
 
@@ -188,7 +202,7 @@ apps/web/src/routes/$appId/system/data-dict/
 | --- | --- |
 | 不可逆操作二次确认（输入名称 + 一键复制） | `#/components/danger-confirm-dialog`（分类删除） |
 | 轻量删除确认（叶子节点） | `LayerDialog.Alert`（字典项删除，参照 features 的权限删除） |
-| 弹窗表单（`LayerDialog` + `form` 属性提交） | 参照 `features/-components/feature-form-dialog.tsx`，本模块另写两份 |
+| 弹窗表单（`LayerDialog` + `form` 属性提交） | 参照 `src/features/system/data-dict/dict-type-form-dialog.tsx`，本模块另写两份 |
 | 表格能力 | `TableControls`（搜索 / 刷新 / 列设置）+ `DataTable`（列设置、服务端分页、sticky 操作列、树表 `tree`：层级列固定第一列） |
 | 顶栏面包屑层级注册 | `#/lib/breadcrumb-trail`（分类树拍平成「路径 → 名称 + 父级路径」） |
 | 可复制值 / 一键复制 | `#/components/copyable-value` |

@@ -17,6 +17,8 @@
 
 | 文档 | 什么时候读 |
 |---|---|
+| [features-architecture.md](./features-architecture.md) | **加页面 / 改页面业务代码之前**：`src/features` 布局、薄路由、一页一份 `feature.ts`（权限 / 指令 / 数据源）、迁移现状 |
+| [features-catalog.md](./features-catalog.md) | 功能说明与回归测试清单（按模块；AI 指令 / 数据源 / 权限一览） |
 | [ai-architecture.md](./ai-architecture.md) | **改任何 AI 代码 / 提示词之前**：分层、一轮消息的数据流、**系统提示词七层与范围闸**、权限与模式、上下文预算、扩展点、踩过的坑 |
 | [routing-architecture.md](./routing-architecture.md) | 加页面、改布局：路由分层拓扑、模块目录化、外壳持久化、面包屑注册 |
 | [ui-and-styling.md](./ui-and-styling.md) | 改样式 / 用 Kumo 组件：令牌与主题、悬浮预览接法、RTL 处理 |

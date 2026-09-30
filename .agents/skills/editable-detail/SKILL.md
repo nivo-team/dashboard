@@ -10,7 +10,8 @@ description: 本仓库「可编辑详情页」的统一交互规范：详情页�
 
 参考实现（两份都读一遍再动手）：
 
-- `src/routes/$appId/system/features/-components/feature-detail.tsx` + `feature-form.tsx`
+- `src/features/system/features/feature-detail.tsx` + `feature-form.tsx`（功能详情；同模块的容器视图是 `feature-container.tsx`）
+- `src/features/system/data-dict/detail/index.tsx` + `dict-type-form.tsx`（数据字典分类详情）
 - `src/routes/$appId/system/data-dict/$typeId.tsx` + `-components/dict-type-form.tsx`
 
 ## 1. 交互契约（8 条，缺一不可）

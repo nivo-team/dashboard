@@ -5,7 +5,7 @@
 
 - 能力实现：[`apps/web/src/components/detail-preview/`](../apps/web/src/components/detail-preview/detail-preview.tsx)
 - 偏好存储：`admin.preferences:<appId>` 的 `detailOpenMode`（[store.md](./store.md)）
-- 参考实现：[用户列表](../apps/web/src/routes/$appId/users/user/index.tsx) + [用户详情视图](../apps/web/src/routes/$appId/users/user/-components/user-detail-view.tsx)
+- 参考实现：[用户列表](../apps/web/src/features/users/user/list/index.tsx) + [用户详情视图](../apps/web/src/features/users/user/detail/user-detail-view.tsx)
 - 表格侧的整行点击：[`DataTable` 的 `onRowClick`](../apps/web/src/components/data-table/data-table.tsx)
 
 ## 1. 三种打开方式

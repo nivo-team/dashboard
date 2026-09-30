@@ -199,6 +199,9 @@ AI 状态（`lib/ai/session-store`）是模块级 zustand store，与路由无�
   - `$appId/index.tsx`：访问 `/$appId` 根路径时自动重定向至默认主页 `/$appId/home`；
   - `$appId/home/index.tsx`：应用的默认主页**仪表盘**（用户可自定义卡片，见第 8 节），侧边栏第一项（`nav.home`，文案「仪表盘」）对应 `/$appId/home`；
   - `$appId/$.tsx`：业务外壳内局部 404 兜底路由；
+  - **业务代码在 `src/features/**`**（新架构）：路由目录只留薄适配（`createFileRoute` + 取参 + 渲染 feature 组件），
+    页面组件与 AI 声明（`feature.ts`）放 `src/features/<模块路径>/<页面>/` —— 见 [features-architecture.md](./features-architecture.md)。
+    `-components/` / `-data/` **不再新增**（存量模块迁移时一并去掉）。
   - **模块目录化约定（强制）**：任何业务模块都必须以目录承载，禁止再新增扁平的 `$appId/xxx.tsx` 单文件模块。目录内 `route.tsx` 是该模块的根与边界（渲染 `<Outlet />`，承载模块级守卫/布局扩展点），模块入口用 `index.tsx`，模块下的子模块继续用子目录组织；模块私有、不参与路由的代码放在 `-` 前缀目录中（如 `-data/`、`-components/`），`@tanstack/router-plugin` 默认忽略 `-` 前缀。
   - 示例（用户运营模块）：`$appId/users/route.tsx`（模块根）→ `$appId/users/index.tsx`（重定向到默认子模块）→ `$appId/users/user/index.tsx`（用户列表 `/$appId/users/user`）→ `$appId/users/user/$uid.tsx`（用户详情 `/$appId/users/user/$uid`），私有数据与共享展示逻辑位于 `$appId/users/user/-data/`。
   - 子路由切换时外壳不重新挂载（Zero-Remount），页面切换仅替换内容区 `<Outlet />`；

@@ -84,7 +84,9 @@
     "submit_form": "फ़ॉर्म सबमिट करें",
     "open_form": "फ़ॉर्म खोलें",
     "manage_tasks": "कार्य योजना",
-    "update_search_params": "खोज पैरामीटर अपडेट करें"
+    "update_search_params": "खोज पैरामीटर अपडेट करें",
+    "get_page_data": "पेज डेटा पढ़ें",
+    "run_page_command": "पेज कमांड चलाएँ"
   },
   "approvalTitle": "इस कार्रवाई के लिए आपकी पुष्टि चाहिए",
   "approve": "एक बार अनुमति दें",

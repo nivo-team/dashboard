@@ -143,5 +143,6 @@
   "statusFilter": {
     "all": "Tüm durumlar"
   },
+  "aiFormTitle": "Kategori bilgileri (düzenlenebilir)",
   "typeDescription": "Bu kategorideki alt kategoriler ve sözlük öğeleri"
 }

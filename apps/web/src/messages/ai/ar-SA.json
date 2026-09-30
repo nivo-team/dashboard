@@ -84,7 +84,9 @@
     "submit_form": "إرسال النموذج",
     "open_form": "فتح النموذج",
     "manage_tasks": "تخطيط المهام",
-    "update_search_params": "تحديث معلمات البحث"
+    "update_search_params": "تحديث معلمات البحث",
+    "get_page_data": "قراءة بيانات الصفحة",
+    "run_page_command": "تنفيذ أمر الصفحة"
   },
   "approvalTitle": "هذا الإجراء يحتاج إلى موافقتك",
   "approve": "السماح مرة واحدة",

@@ -1,7 +1,7 @@
 # 功能（Features）模块
 
 > 面向「接手继续开发」的现状说明：读完这篇不必再翻会话历史。
-> 代码位于 `apps/web/src/routes/$appId/system/features/`；仓库级规范见 [AGENTS.md](../AGENTS.md) 第 6 节与 skill `table-development`。
+> 业务代码位于 `apps/web/src/features/system/features/`（薄路由在 `apps/web/src/routes/$appId/system/features/`）；仓库级规范见 [AGENTS.md](../AGENTS.md) 第 6 节与 skill `table-development`。
 > 最后更新：2026-09-25。
 
 把后台原本的「菜单管理」按 Clerk 的 **Features** 概念重新呈现：**功能组（分组）→ 功能（最小交付单元）→ 权限（功能下的权限点，绑定具体接口）**。
@@ -42,27 +42,40 @@
 ## 3. 目录结构
 
 ```
-features/
-├── route.tsx              # 模块根（Outlet）
-├── index.tsx              # /features 根容器视图
-├── $featureId.tsx         # 按 menu_type 分流的节点视图（含 482 → /features 的重定向）
-├── new.tsx                # 创建表单（pid / type 来自 URL）
-├── -components/
-│   ├── feature-container.tsx          # 容器视图：搜索 + 分页 + 表格 + 分裂按钮 + 功能组自身的编辑/删除
-│   ├── feature-detail.tsx             # 详情视图：左侧表单 + 权限表，右侧 sticky 信息卡片
-│   ├── feature-form.tsx               # 共用表单（group / feature / button 三种字段集）
-│   ├── feature-form-dialog.tsx        # 表单的弹窗封装（FeatureFormDialog）
-│   ├── feature-permission-delete-dialog.tsx  # 权限的轻量删除确认
-│   ├── feature-create-actions.tsx     # 容器视图的分裂创建按钮（ButtonGroup）
-│   └── feature-api-keys-field.tsx     # 「绑定接口」多选（Kumo Combobox）
-└── -data/
-    ├── feature-options.ts        # 枚举、树工具、固定 id（见第 4 节）
-    ├── feature-columns.tsx       # 列表列与子表列编排 + 渲染器
-    ├── feature-apis.ts           # GET /api 接口清单（useApiItems / useApiKeyLabel）
-    ├── feature-breadcrumb.ts     # 把层级注册给顶栏面包屑
-    ├── use-features-tree.ts      # 单一数据源 hook + 缓存失效
-    └── demo-features.ts          # 接口不可用时的演示兜底数据
+apps/web/src/features/system/features/       # 业务代码（一个业务一个文件夹，扁平）
+├── list/index.tsx             # /features 根容器视图（导出 FeaturesRootPage）
+├── list/feature.ts            # ★ 对 AI 的声明：这一层的功能数据源（来自容器上报）
+├── node/index.tsx             # 按 menu_type 分流的节点视图（导出 FeatureNodePage，featureId 走 props）
+├── node/feature.ts            # ★ 当前节点数据源（节点 + 下级）
+├── create/index.tsx           # 创建表单（pid / type 由薄路由解析后传入）
+├── create/feature.ts          # ★ 新建上下文（pid / 类型）+ 表单声明
+├── feature-container.tsx      # 容器视图：搜索 + 分页 + 表格 + 分裂按钮 + 功能组自身的编辑/删除
+├── feature-detail.tsx         # 详情视图：左侧表单 + 权限表，右侧 sticky 信息卡片
+├── feature-form.tsx           # 共用表单（group / feature / button 三种字段集）
+├── feature-form-dialog.tsx    # 表单的弹窗封装（FeatureFormDialog）
+├── feature-permission-delete-dialog.tsx  # 权限的轻量删除确认
+├── feature-create-actions.tsx # 容器视图的分裂创建按钮（ButtonGroup）
+├── feature-api-keys-field.tsx # 「绑定接口」多选（Kumo Combobox）
+├── feature-options.ts         # 枚举、树工具、固定 id（见第 4 节）
+├── feature-columns.tsx        # 列表列与子表列编排 + 渲染器
+├── feature-apis.ts            # GET /api 接口清单（useApiItems / useApiKeyLabel）
+├── feature-breadcrumb.ts      # 把层级注册给顶栏面包屑
+├── use-features-tree.ts       # 单一数据源 hook + 缓存失效
+└── demo-features.ts           # 接口不可用时的演示兜底数据
+
+apps/web/src/routes/$appId/system/features/
+├── route.tsx                  # 模块根（Outlet）
+├── index.tsx / $featureId.tsx / new.tsx   # 薄适配（+ beforeLoad 的 482 重定向、validateSearch）
 ```
+
+**对 AI 的声明**（`useFeature`，一页一次）：
+- 根视图 / 节点视图：数据源 `feature-tree` / `feature-node`（这一层的功能与下级、菜单 id、权限标识、路由名…）。
+  根视图的数据由 `FeatureContainer` 通过 `onData` 上报（"这一层有哪些行"的推导只在那边有一份）；
+- 新建页：数据源 `create-context`（这次新建挂在谁下面、是哪一类节点）；
+- **功能详情的表单桥早已接好**（`feature-form.tsx` 的 `useAiFormFields` + 详情页 `useAiFormSubmit`，id = `feature-detail`）——
+  AI 可 `fill_form` / `submit_form`（`canSubmit` 复用 `isDirty`）；**新建页的表单桥还没接**（下一步）；
+- **没有 `commands`**：增删入口的弹窗状态在 `feature-container.tsx` / `feature-detail.tsx` 内部，页面拿不到句柄
+  （补齐方式见 [features-architecture.md](./features-architecture.md) §7）。
 
 ## 4. 固定 id 与临时值（将来可能删）
 
@@ -72,11 +85,11 @@ features/
 
 | 值 | 位置 | 来源 | 现在为什么留着 | 删除条件 |
 | --- | --- | --- | --- | --- |
-| `MENU_ROOT_ID = 482` | `-data/feature-options.ts` | 测试环境实测：后端为新架构单独建的根节点 `new-adm` | 所有请求靠它把范围限定在新架构内 | 后端提供「当前应用的功能根」查询或由 App 配置下发根 id |
+| `MENU_ROOT_ID = 482` | `apps/web/src/features/system/features/feature-options.ts` | 测试环境实测：后端为新架构单独建的根节点 `new-adm` | 所有请求靠它把范围限定在新架构内 | 后端提供「当前应用的功能根」查询或由 App 配置下发根 id |
 | `MENU_PLACEHOLDER_COMPONENT = '/ignore'` | 同上 | 真实节点的 `component` 也是 `/ignore` | 后端 `SysMenuCreateReq/UpdateReq` 仍校验「组件[Component]不能为空」 | 后端放开该字段必填校验 |
 | `MENU_PLACEHOLDER_PATH = '/ignore'` | 同上 | 同上 | 同上（「路由地址[Path]不能为空」） | 同上 |
-| 演示数据里的 `482 / 484 / 483 / 485` | `-data/demo-features.ts` | 测试环境**真实存在**的 id，不是编的 | 接口不可用时仍可预览/联调（页面显示「演示数据模式」） | 接口稳定后删除整个文件 + `use-features-tree.ts` 的兜底分支 + 各页面 `demoBadge` |
-| 「只渲染前 50 条」 | `-components/feature-api-keys-field.tsx` | 按接口清单 632 条的量级定的 | 避免 632 条一次性进 DOM | 接口量级大幅变化时重新评估 |
+| 演示数据里的 `482 / 484 / 483 / 485` | `apps/web/src/features/system/features/demo-features.ts` | 测试环境**真实存在**的 id，不是编的 | 接口不可用时仍可预览/联调（页面显示「演示数据模式」） | 接口稳定后删除整个文件 + `use-features-tree.ts` 的兜底分支 + 各页面 `demoBadge` |
+| 「只渲染前 50 条」 | `apps/web/src/features/system/features/feature-api-keys-field.tsx` | 按接口清单 632 条的量级定的 | 避免 632 条一次性进 DOM | 接口量级大幅变化时重新评估 |
 
 ## 5. 可复用的约定（做新模块直接照搬）
 
@@ -97,7 +110,7 @@ features/
 - **数据字典模块已实现**（`apps/web/src/routes/$appId/system/data-dict/`，现状见 [data-dict-module.md](./data-dict-module.md)）：上面的约定（弹窗表单、危险确认、面包屑注册、错误处理、RTL 注意点）都被它直接复用；注意它的数据源是「全量分类树 + 服务端分页字典项」两个，列表走服务端分页，没有照搬本模块的「单棵树本地派生」。它还有一处特殊之处：两个接口的 openapi 响应 schema 是错的，响应类型与运行时 schema 由模块自声明（搜 `⏳`）。
 - i18n：`features` 命名空间**当前只有中文**，其余 6 种语言回退 `zh-CN`，待测试通过后补齐。
 - RTL：尚未按 `ar-SA` 逐项巡检（列表、下钻、详情表单、三个弹窗、下拉、权限表、sticky）。
-- `apps/web/src/routes/$appId/users/user/index.tsx` 有 3 处 `DropdownMenu.Item icon=`，RTL 下间距不镜像。
+- `apps/web/src/features/users/user/list/index.tsx` 有 3 处 `DropdownMenu.Item icon=`，RTL 下间距不镜像。
 - `apps/web/src/messages/system/*`（7 个语言文件）在本模块迁移后**已无任何引用**，确认后可删。
 - 后端放开 `component` / `path` 校验后，清理两个占位常量；接口稳定后删除演示兜底数据。
 - 浏览器端交互（sticky 吸顶、浮条、弹窗、RTL）尚未人工逐项验收；`pnpm build` / `pnpm dev` 可用（若报 `@rolldown/binding-darwin-universal` 缺失，换系统 node 即可，与代码无关）。
@@ -123,16 +136,16 @@ features/
 
 - 权限的增删改都在页内弹窗完成；权限表是**「简洁表格」**（不挂 `TableControls` / 列设置）：卡片头部左侧只有标题「权限」（与统计同色，仅 `font-medium` 区分层级）、右侧是 `DataTable.headerActions` 里的 **`ghost` 变体**「添加权限」按钮，统计（共 N 项）通过 `DataTable.footer` 放到卡片尾部。
 - 列只保留**名称 / 权限标识 / 排序 / 状态 / 绑定接口** —— `menu_type` 与 `visible` 对权限没有信息量，已从 `FEATURE_CHILD_COLUMN_SPECS` 去掉；表格最后一列是 actions（编辑 / 删除）。
-- 新建与编辑共用通用弹窗 `-components/feature-form-dialog.tsx`（`FeatureFormDialog`：`variant` 决定字段显隐，标题 / 描述 / 提交按钮文案由调用方给，`LayerDialog.Actions.Primary` 用 HTML `form` 属性提交、因此表单在 `LayerDialog.Body` 内、`formId` 需页面内唯一）。
+- 新建与编辑共用通用弹窗 `apps/web/src/features/system/features/feature-form-dialog.tsx`（`FeatureFormDialog`：`variant` 决定字段显隐，标题 / 描述 / 提交按钮文案由调用方给，`LayerDialog.Actions.Primary` 用 HTML `form` 属性提交、因此表单在 `LayerDialog.Body` 内、`formId` 需页面内唯一）。
 - **编辑时显式回传原 `parent_id`**，避免后端把缺失的上级当成根层级。
-- 删除走轻量的 `LayerDialog.Alert` 确认（见 `-components/feature-permission-delete-dialog.tsx`：叶子节点、风险低，**不要求输入名称**）。
+- 删除走轻量的 `LayerDialog.Alert` 确认（见 `apps/web/src/features/system/features/feature-permission-delete-dialog.tsx`：叶子节点、风险低，**不要求输入名称**）。
 - **权限没有「是否显示」概念**：表单不出 `visible` 开关，请求也不带该字段（编辑时不传即保持后端原值）。
 
 ## 10. 接口清单与「绑定接口」多选
 
 - **数据源 `GET /api`**：baseUrl 已含 `/api`，所以浏览器里实际是 `/api/api`。**该接口在 `openapi.json` 里是存在的**（response 为 `v1.ApiItem[]`，字段 `label / method / path / value`），SDK 已有 `getApi` / `getApiQueryOptions`，**不要手工补生成产物**。实测返回约 **632 条**；`api_keys` 存的就是其中的 `value`（md5），例如 `30cd4f597a030a1b9bad8ca9e571f7ef` → `GET:/api/system/menu/tree`。
-- 封装在 `-data/feature-apis.ts`（`useApiItems` / `useApiKeyLabel`，30 分钟 `staleTime`、跨组件共享缓存）；列表 / 详情展示时同样把 md5 还原成可读 label。
-- 表单里作为「绑定接口」候选：`FeatureApiKeysField`（`-components/feature-api-keys-field.tsx`）用 Kumo `Combobox` 的 **`multiple` + `TriggerMultipleWithInput` + `Chip`** 形态（框内 chip、浮层候选不推挤表单、方向键 / Enter / Esc 键盘可达、`limit=50` 限制单次渲染）。
+- 封装在 `apps/web/src/features/system/features/feature-apis.ts`（`useApiItems` / `useApiKeyLabel`，30 分钟 `staleTime`、跨组件共享缓存）；列表 / 详情展示时同样把 md5 还原成可读 label。
+- 表单里作为「绑定接口」候选：`FeatureApiKeysField`（`apps/web/src/features/system/features/feature-api-keys-field.tsx`）用 Kumo `Combobox` 的 **`multiple` + `TriggerMultipleWithInput` + `Chip`** 形态（框内 chip、浮层候选不推挤表单、方向键 / Enter / Esc 键盘可达、`limit=50` 限制单次渲染）。
 - Combobox 的 value 需要是可显示字符串，所以组件内部在 **label 与 md5 之间双向映射**，并**按 id（`value` / md5）把已选项从候选里过滤掉** —— 已绑定只以 chip 显示，下拉不再重复出现；清单外的历史值同样只出现在 chip 上，保证回显不丢。
 - chip 渲染走的是受控 `value`（不依赖 `items`），且 chip 与选中值的关联依赖渲染顺序，**必须按 `value` 顺序渲染 chip**。
 
