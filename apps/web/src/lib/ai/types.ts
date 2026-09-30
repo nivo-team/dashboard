@@ -147,6 +147,11 @@ export interface AiMessage {
 
 export type AiMessagePart =
   | { type: 'text'; text: string }
+  | {
+      type: 'reasoning'
+      text: string
+      state: 'streaming' | 'done'
+    }
   | ({ type: 'attachment' } & AiAttachment)
   /**
    * @deprecated 早期只支持图片时写进会话存档的 part。
@@ -210,6 +215,7 @@ export interface AiImageAttachment {
  */
 export type AiStreamEvent =
   | { type: 'text'; text: string }
+  | { type: 'reasoning'; text: string }
   | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
   | { type: 'tool-result'; toolCallId: string; toolName: string; output: unknown }
   | { type: 'tool-error'; toolCallId: string; toolName: string; error: unknown }

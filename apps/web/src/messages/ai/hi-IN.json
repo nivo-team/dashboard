@@ -66,6 +66,8 @@
   "notConfigured": "अभी कोई मॉडल सेवा कॉन्फ़िगर नहीं है। शुरू करने के लिए इसे सेट करें।",
   "goToSettings": "सेटिंग खोलें",
   "thinking": "सोच रहा है…",
+  "reasoningTitle": "विचार प्रक्रिया",
+  "reasoningThinking": "गहराई से सोच रहा है…",
   "toolRunning": "चल रहा है",
   "toolDone": "पूर्ण",
   "toolFailed": "विफल",

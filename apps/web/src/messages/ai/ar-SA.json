@@ -66,6 +66,8 @@
   "notConfigured": "لم يتم إعداد خدمة نموذج بعد. أعدّها لبدء المحادثة.",
   "goToSettings": "فتح الإعدادات",
   "thinking": "يفكّر…",
+  "reasoningTitle": "عملية التفكير",
+  "reasoningThinking": "يفكر بعمق…",
   "toolRunning": "قيد التنفيذ",
   "toolDone": "تم",
   "toolFailed": "فشل",

@@ -66,6 +66,8 @@
   "notConfigured": "モデルサービスが未設定です。設定すると会話できます。",
   "goToSettings": "設定を開く",
   "thinking": "考えています…",
+  "reasoningTitle": "思考プロセス",
+  "reasoningThinking": "深く思考中…",
   "toolRunning": "実行中",
   "toolDone": "完了",
   "toolFailed": "失敗",

@@ -107,6 +107,11 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
   `kind: 'text'`（md / txt，内容已由客户端解析）→ 用 `<file name="…">…</file>` 拼进**同一条**
   user 消息的文本。图片上限 4 MB、文本 256 KB、一次最多 4 个；发送前在**附件预览区**可见、
   可逐个删除；
+- **思考程度与思考链流式展示**：输入时通过 AI SDK v7 的**顶层可移植参数** `reasoning`
+  传递思考等级；生成时 `streamAssistantTurn` 监听 `fullStream` 的 `reasoning-delta`，
+  派发 `{ type: 'reasoning' }` 流式事件，在 store 沉淀为 `{ type: 'reasoning', state: 'streaming' | 'done' }`
+  part。UI 侧（`ai-conversation`）通过 Kumo `Collapsible` 折叠卡片实时呈现思考中脉冲与思考完成态，
+  兼顾过程可见性与回答主文排版；
 - **思考程度只有一条通路**：AI SDK v7 的**顶层可移植参数** `reasoning`，传不传由
   `resolveReasoning(model)` 决定（没声明档位、或选了 `provider-default` 就不传）。
   档位清单由模型自己声明（`reasoningLevels`），输入区的设置菜单只列这些档。

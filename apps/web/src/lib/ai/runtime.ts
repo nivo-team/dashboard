@@ -296,6 +296,9 @@ export async function* streamAssistantTurn(
       case 'text-delta':
         if (part.text) yield { type: 'text', text: part.text }
         break
+      case 'reasoning-delta':
+        if (part.text) yield { type: 'reasoning', text: part.text }
+        break
       case 'tool-call':
         yield {
           type: 'tool-call',

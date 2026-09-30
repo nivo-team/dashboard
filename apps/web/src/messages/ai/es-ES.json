@@ -66,6 +66,8 @@
   "notConfigured": "Aún no hay ningún servicio de modelos configurado. Configúralo para empezar.",
   "goToSettings": "Abrir ajustes",
   "thinking": "Pensando…",
+  "reasoningTitle": "Proceso de pensamiento",
+  "reasoningThinking": "Pensando profundamente…",
   "toolRunning": "Ejecutando",
   "toolDone": "Hecho",
   "toolFailed": "Error",

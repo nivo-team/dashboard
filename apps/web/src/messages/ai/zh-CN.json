@@ -66,6 +66,8 @@
   "notConfigured": "还没有配置模型服务，配置之后就能直接对话。",
   "goToSettings": "去设置",
   "thinking": "正在思考…",
+  "reasoningTitle": "思考过程",
+  "reasoningThinking": "深度思考中…",
   "toolRunning": "执行中",
   "toolDone": "完成",
   "toolFailed": "失败",

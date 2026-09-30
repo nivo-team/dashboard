@@ -66,6 +66,8 @@
   "notConfigured": "No model service configured yet. Set one up to start chatting.",
   "goToSettings": "Open settings",
   "thinking": "Thinking…",
+  "reasoningTitle": "Thought process",
+  "reasoningThinking": "Thinking deeply…",
   "toolRunning": "Running",
   "toolDone": "Done",
   "toolFailed": "Failed",

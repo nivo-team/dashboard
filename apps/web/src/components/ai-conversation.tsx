@@ -1,5 +1,6 @@
 import { Button, Collapsible, LinkButton } from '@cloudflare/kumo'
 import {
+  BrainIcon,
   CaretDownIcon,
   CheckCircleIcon,
   CircleIcon,
@@ -9,7 +10,7 @@ import {
   WarningCircleIcon,
   XCircleIcon,
 } from '@phosphor-icons/react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AiBotAvatar } from '#/components/ai-bot-avatar'
 import { MarkdownContent } from '#/components/markdown-content'
@@ -337,7 +338,12 @@ function AiMessageView({
       (part) => part.type === 'text' && part.text.trim().length > 0,
     )
 
-  const showThinking = streaming && !hasVisibleText && !pendingApproval
+  const isCurrentlyReasoning = message.parts.some(
+    (part) => part.type === 'reasoning' && part.state === 'streaming',
+  )
+
+  const showThinking =
+    streaming && !hasVisibleText && !isCurrentlyReasoning && !pendingApproval
 
   // 查找该消息内最后一个 manage_tasks 工具调用的索引
   let lastManageTasksIndex = -1
@@ -363,6 +369,9 @@ function AiMessageView({
   const hasVisibleParts = message.parts.some((part, index) => {
     if (part.type === 'text') {
       return (outputMode === 'stream' || !streaming) && part.text.trim().length > 0
+    }
+    if (part.type === 'reasoning') {
+      return part.text.trim().length > 0 || part.state === 'streaming'
     }
     if (part.type === 'tool-call') {
       if (part.toolName === 'manage_tasks') {
@@ -442,6 +451,10 @@ function AssistantPart({
   if (part.type === 'text') {
     if (!part.text.trim()) return null
     return <MarkdownContent text={part.text} streaming={streaming} />
+  }
+
+  if (part.type === 'reasoning') {
+    return <ReasoningPartView part={part} />
   }
 
   // 任务规划卡（manage_tasks）的处理原则：
@@ -590,4 +603,69 @@ function formatApprovalInput(input: unknown): string {
   } catch {
     return String(input)
   }
+}
+
+/**
+ * 思考链（Reasoning / Chain of thought）卡片。
+ *
+ * 遵循 Kumo 设计规范：
+ * - 流式生成中默认展开，并展示旋转与脉冲动效；
+ * - 生成完成后展示大脑图标，用户可随时自由折叠与展开；
+ * - 纯色语义令牌适配深浅色模式，禁用 dark: 变体。
+ */
+function ReasoningPartView({
+  part,
+}: {
+  part: Extract<AiMessagePart, { type: 'reasoning' }>
+}) {
+  const { t } = useTranslation('ai')
+  const isStreaming = part.state === 'streaming'
+  const [isOpen, setIsOpen] = useState(isStreaming)
+
+  useEffect(() => {
+    if (isStreaming) {
+      setIsOpen(true)
+    }
+  }, [isStreaming])
+
+  if (!part.text.trim() && !isStreaming) return null
+
+  const title = isStreaming
+    ? t('reasoningThinking', '深度思考中…')
+    : t('reasoningTitle', '思考过程')
+
+  return (
+    <Collapsible.Root
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      className="rounded-lg border border-kumo-line bg-kumo-tint/30"
+    >
+      <Collapsible.Trigger className="group flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-start text-xs">
+        {isStreaming ? (
+          <CircleNotchIcon
+            size={13}
+            className="shrink-0 text-kumo-subtle motion-safe:animate-spin"
+          />
+        ) : (
+          <BrainIcon size={13} className="shrink-0 text-kumo-subtle" />
+        )}
+        <span className="min-w-0 truncate font-medium text-kumo-subtle">
+          {title}
+        </span>
+        <CaretDownIcon
+          size={12}
+          className="ms-auto shrink-0 text-kumo-subtle transition-transform group-aria-expanded:rotate-180 motion-safe:duration-200"
+        />
+      </Collapsible.Trigger>
+
+      <Collapsible.Panel className="border-t border-kumo-line px-2.5 py-2">
+        <div className="max-h-52 overflow-y-auto text-xs leading-5 whitespace-pre-wrap text-kumo-subtle">
+          {part.text}
+          {isStreaming ? (
+            <span className="ms-0.5 inline-block h-3 w-1.5 align-middle bg-kumo-subtle motion-safe:animate-pulse" />
+          ) : null}
+        </div>
+      </Collapsible.Panel>
+    </Collapsible.Root>
+  )
 }

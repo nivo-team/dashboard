@@ -66,6 +66,8 @@
   "notConfigured": "Henüz model servisi tanımlı değil. Sohbet için önce ayarlayın.",
   "goToSettings": "Ayarları aç",
   "thinking": "Düşünüyor…",
+  "reasoningTitle": "Düşünme süreci",
+  "reasoningThinking": "Derinlemesine düşünülüyor…",
   "toolRunning": "Çalışıyor",
   "toolDone": "Tamam",
   "toolFailed": "Başarısız",

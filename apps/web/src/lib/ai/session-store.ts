@@ -137,6 +137,31 @@ function appendText(parts: AiMessagePart[], text: string): AiMessagePart[] {
   return [...parts, { type: 'text', text }]
 }
 
+function finishPendingReasoning(parts: AiMessagePart[]): AiMessagePart[] {
+  let changed = false
+  const next = parts.map((part) => {
+    if (part.type === 'reasoning' && part.state === 'streaming') {
+      changed = true
+      return { ...part, state: 'done' as const }
+    }
+    return part
+  })
+  return changed ? next : parts
+}
+
+function appendReasoning(parts: AiMessagePart[], text: string): AiMessagePart[] {
+  const last = parts[parts.length - 1]
+  if (last && last.type === 'reasoning' && last.state === 'streaming') {
+    const next = parts.slice(0, -1)
+    next.push({ ...last, text: last.text + text })
+    return next
+  }
+  return [
+    ...finishPendingReasoning(parts),
+    { type: 'reasoning', text, state: 'streaming' },
+  ]
+}
+
 /** 更新某个工具调用 part 的状态（结果 / 失败），找不到就原样返回。 */
 function patchToolCall(
   parts: AiMessagePart[],
@@ -219,11 +244,14 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
 
       switch (event.type) {
         case 'text':
-          return patch((parts) => appendText(parts, event.text))
+          return patch((parts) => appendText(finishPendingReasoning(parts), event.text))
+
+        case 'reasoning':
+          return patch((parts) => appendReasoning(parts, event.text))
 
         case 'tool-call':
           return patch((parts) => [
-            ...parts,
+            ...finishPendingReasoning(parts),
             {
               type: 'tool-call',
               toolCallId: event.toolCallId,
@@ -253,7 +281,14 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
           return { error: describeUnknown(event.error) }
 
         case 'finish':
-          return { status: 'idle' }
+          return {
+            status: 'idle',
+            messages: state.messages.map((item) =>
+              item.id === assistantId
+                ? { ...item, parts: finishPendingReasoning(item.parts) }
+                : item,
+            ),
+          }
 
         default:
           return {}
@@ -261,7 +296,18 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
     })
   },
 
-  endTurn: () => set({ status: 'idle' }),
+  endTurn: () =>
+    set((state) => ({
+      status: 'idle',
+      messages: state.messages.map((item) =>
+        item.role === 'assistant'
+          ? {
+              ...item,
+              parts: finishPendingReasoning(item.parts),
+            }
+          : item,
+      ),
+    })),
 
   failTurn: (message) =>
     set((state) => ({
@@ -269,16 +315,18 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
       error: message,
       // 失败时把审批卡一起收掉：这一轮已经结束了，留着它点也没用
       pendingApproval: null,
-      // 失败时把最后一条助手消息里的「执行中」工具标记为失败，
+      // 失败时把最后一条助手消息里的「执行中」工具和正在进行的思考标记为终态，
       // 否则 UI 上会永远转圈
       messages: state.messages.map((item) =>
         item.role === 'assistant'
           ? {
               ...item,
-              parts: item.parts.map((part) =>
-                part.type === 'tool-call' && part.state === 'running'
-                  ? { ...part, state: 'error' as const, error: message }
-                  : part,
+              parts: finishPendingReasoning(
+                item.parts.map((part) =>
+                  part.type === 'tool-call' && part.state === 'running'
+                    ? { ...part, state: 'error' as const, error: message }
+                    : part,
+                ),
               ),
             }
           : item,
