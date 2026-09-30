@@ -361,7 +361,7 @@ export async function* streamAssistantTurn(
     - Anthropic: @ai-sdk/anthropic 需要 providerOptions.anthropic.thinking 显式开启并指定 budgetTokens；
   */
   const providerOptions: Record<string, Record<string, unknown>> = {}
-  if (active.provider.type === 'anthropic' && reasoning && reasoning !== 'none') {
+  if (active.provider.kind === 'anthropic' && reasoning && reasoning !== 'none') {
     const budgetMap: Record<string, number> = {
       minimal: 1024,
       low: 2048,
@@ -377,7 +377,7 @@ export async function* streamAssistantTurn(
 
   // 诊断输出：方便在控制台即时校验思考参数与模型状态
   console.debug('[AI Runtime StreamText]', {
-    provider: active.provider.type,
+    provider: active.provider.kind,
     modelId: active.model.modelId,
     resolvedReasoning: reasoning,
     providerOptions,
