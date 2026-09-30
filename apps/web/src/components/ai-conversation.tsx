@@ -10,7 +10,7 @@ import {
   WarningCircleIcon,
   XCircleIcon,
 } from '@phosphor-icons/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AiBotAvatar } from '#/components/ai-bot-avatar'
 import { MarkdownContent } from '#/components/markdown-content'
@@ -608,9 +608,11 @@ function formatApprovalInput(input: unknown): string {
 /**
  * 思考链（Reasoning / Chain of thought）卡片。
  *
- * 遵循 Kumo 设计规范：
- * - 流式生成中默认展开，并展示旋转与脉冲动效；
- * - 生成完成后展示大脑图标，用户可随时自由折叠与展开；
+ * 遵循 AI SDK / AI Elements 的折叠与自动收起规范：
+ * - 默认状态与历史会话：默认保持折叠（Collapsed），不侵占会话主视觉；
+ * - 流式思考中：自动临时展开，实时呈现思考动态与脉冲；
+ * - 思考结束：自动平滑折叠收起（Auto-close），把空间留给正式回答；
+ * - 用户随时可点击 Trigger 自由展开或重新收起查看完整思考链路；
  * - 纯色语义令牌适配深浅色模式，禁用 dark: 变体。
  */
 function ReasoningPartView({
@@ -620,13 +622,35 @@ function ReasoningPartView({
 }) {
   const { t } = useTranslation('ai')
   const isStreaming = part.state === 'streaming'
-  const [isOpen, setIsOpen] = useState(isStreaming)
 
+  // 按照 AI SDK 约束：默认保持折叠，仅在流式生成中动态展开
+  const [isOpen, setIsOpen] = useState(isStreaming)
+  const hasEverStreamedRef = useRef(isStreaming)
+  const hasAutoClosedRef = useRef(false)
+
+  // 1. 流式思考开始时展开
   useEffect(() => {
     if (isStreaming) {
+      hasEverStreamedRef.current = true
       setIsOpen(true)
     }
   }, [isStreaming])
+
+  // 2. 按照 AI SDK 规范：流式思考结束时，自动平滑折叠收起
+  useEffect(() => {
+    if (
+      hasEverStreamedRef.current &&
+      !isStreaming &&
+      isOpen &&
+      !hasAutoClosedRef.current
+    ) {
+      const timer = setTimeout(() => {
+        setIsOpen(false)
+        hasAutoClosedRef.current = true
+      }, 600)
+      return () => clearTimeout(timer)
+    }
+  }, [isStreaming, isOpen])
 
   if (!part.text.trim() && !isStreaming) return null
 
@@ -640,7 +664,7 @@ function ReasoningPartView({
       onOpenChange={setIsOpen}
       className="rounded-lg border border-kumo-line bg-kumo-tint/30"
     >
-      <Collapsible.Trigger className="group flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-start text-xs">
+      <Collapsible.Trigger className="group flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-start text-xs transition-colors hover:bg-kumo-tint/50">
         {isStreaming ? (
           <CircleNotchIcon
             size={13}
@@ -659,7 +683,7 @@ function ReasoningPartView({
       </Collapsible.Trigger>
 
       <Collapsible.Panel className="border-t border-kumo-line px-2.5 py-2">
-        <div className="max-h-52 overflow-y-auto text-xs leading-5 whitespace-pre-wrap text-kumo-subtle">
+        <div className="max-h-60 overflow-y-auto text-xs leading-5 whitespace-pre-wrap text-kumo-subtle">
           {part.text}
           {isStreaming ? (
             <span className="ms-0.5 inline-block h-3 w-1.5 align-middle bg-kumo-subtle motion-safe:animate-pulse" />
