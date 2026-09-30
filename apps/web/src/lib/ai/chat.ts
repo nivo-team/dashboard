@@ -127,6 +127,88 @@ function describeError(error: unknown): string {
  * `attachments` 是随文发出的附件（图片或普通文件，data URL）；**只有附件、没有文字也可以发**
  * （截图直接甩进来问「这是什么」是常见用法），所以判空要看「文字与附件都空」。
  */
+/**
+ * 流式文本事件批处理器：将高频的单个 token / 增量合并为平滑帧（~25ms，约 40fps），
+ * 避免每秒触发数十上百次 React 全树重渲染与 DOM 同步重排，从根本上解决流式输出卡顿。
+ */
+class StreamEventBatcher {
+  private assistantId: string
+  private pendingText = ''
+  private pendingReasoning = ''
+  private lastFlushTime = 0
+  private flushTimer: ReturnType<typeof setTimeout> | null = null
+  private readonly FLUSH_INTERVAL_MS = 25
+
+  constructor(assistantId: string) {
+    this.assistantId = assistantId
+  }
+
+  push(event: AiStreamEvent): void {
+    if (event.type === 'text') {
+      if (this.pendingReasoning) this.flush()
+      this.pendingText += event.text
+      this.scheduleFlush()
+      return
+    }
+
+    if (event.type === 'reasoning') {
+      if (this.pendingText) this.flush()
+      this.pendingReasoning += event.text
+      this.scheduleFlush()
+      return
+    }
+
+    // 其余结构化事件（tool-call / finish / error 等）：立刻清空文本缓冲并同步派发
+    this.flush()
+    useAiSessionStore.getState().applyEvent(this.assistantId, event)
+  }
+
+  private scheduleFlush(): void {
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
+    if (now - this.lastFlushTime >= this.FLUSH_INTERVAL_MS) {
+      this.flush()
+      return
+    }
+
+    if (this.flushTimer === null) {
+      const wait = Math.max(0, this.FLUSH_INTERVAL_MS - (now - this.lastFlushTime))
+      this.flushTimer = setTimeout(() => {
+        this.flushTimer = null
+        this.flush()
+      }, wait)
+    }
+  }
+
+  flush(): void {
+    if (this.flushTimer !== null) {
+      clearTimeout(this.flushTimer)
+      this.flushTimer = null
+    }
+
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
+
+    if (this.pendingReasoning) {
+      const text = this.pendingReasoning
+      this.pendingReasoning = ''
+      this.lastFlushTime = now
+      useAiSessionStore.getState().applyEvent(this.assistantId, {
+        type: 'reasoning',
+        text,
+      })
+    }
+
+    if (this.pendingText) {
+      const text = this.pendingText
+      this.pendingText = ''
+      this.lastFlushTime = now
+      useAiSessionStore.getState().applyEvent(this.assistantId, {
+        type: 'text',
+        text,
+      })
+    }
+  }
+}
+
 export async function sendAiMessage(
   text: string,
   mode: AiMode,
@@ -150,6 +232,7 @@ export async function sendAiMessage(
 
   const controller = new AbortController()
   activeController = controller
+  let batcher: StreamEventBatcher | null = null
 
   try {
     /*
@@ -194,12 +277,16 @@ export async function sendAiMessage(
       abortSignal: controller.signal,
     })
 
+    batcher = new StreamEventBatcher(assistantId)
+
     for await (const event of stream) {
-      useAiSessionStore.getState().applyEvent(assistantId, event)
+      batcher.push(event)
     }
 
+    batcher.flush()
     useAiSessionStore.getState().endTurn()
   } catch (error) {
+    batcher?.flush()
     // 用户主动停止会走到这里（AbortError），不该报成错误
     if (controller.signal.aborted) {
       useAiSessionStore.getState().endTurn()
@@ -207,6 +294,7 @@ export async function sendAiMessage(
       useAiSessionStore.getState().failTurn(describeError(error))
     }
   } finally {
+    batcher?.flush()
     // 无论是正常结束、用户停止还是报错：挂起的审批都要了结，否则工具会一直等着
     rejectPendingApprovals()
     /*

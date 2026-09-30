@@ -85,8 +85,8 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
        └─ streamAssistantTurn({ messages, mode, outputLocale, tools, toolContext })
             ├─ buildSystemPrompt(mode, outputLocale)               ← 每轮重算
             └─ streamText({ …, reasoning: resolveReasoning(model) })  ← 思考程度在这里落地
-  └─ for await (event of stream) → session-store.applyEvent(assistantId, event)
-       └─ UI 随之重渲染（ai-conversation 读 store）
+  └─ for await (event of stream) → StreamEventBatcher (~25ms 缓冲) → session-store.applyEvent
+       └─ UI 随之平滑重渲染（PretextStreamText 段落隔离 + 滚动容器 RAF 调度，规避 Layout Thrashing）
   └─ endTurn() → 落盘
 
 工具执行时（由 SDK 的 stopWhen 循环触发）
@@ -705,3 +705,7 @@ useAiPageContext(Route.id, {
 - **表单桥分两半**（`useAiFormFields` + `useAiFormSubmit`，靠同一个 id 拼成一条记录）；
   同步 effect **故意不写依赖数组**（否则 `fields` 会停在首次渲染的快照）。
 - **会话持久化在 IndexedDB**、按 app 分区；**流式期间不写盘**（只在发送后 / 一轮结束后 / 切删会话时写）。
+- **流式输出性能防卡顿三要素**：
+  1. `chat.ts` 内部使用 `StreamEventBatcher` 进行约 25ms（~40fps）时间窗口的微缓冲合并，禁止每个小 token 触发一次 Zustand 重刷；
+  2. `AiConversationScroller` 贴底滚动使用 `requestAnimationFrame` 驱动，禁止在渲染周期内同步读写 `scrollHeight` 触发 Layout Thrashing；
+  3. `MarkdownContent` 流式状态下使用 `PretextStreamText`，利用 Pretext 离屏断行计算与自然段落解耦隔离（历史段落 memo 冻结），消除随字数增长引发的 O(N^2) 全局 Word-wrap 重排。

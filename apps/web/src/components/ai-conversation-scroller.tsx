@@ -66,12 +66,17 @@ export function AiConversationScroller({
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const [pinnedToBottom, setPinnedToBottom] = useState(true)
 
-  // 内容或状态一变就贴底（前提：设置开着、且用户没有主动上翻）
+  // 内容或状态一变就贴底（前提：设置开着、且用户没有主动上翻）。
+  // 采用 requestAnimationFrame 调度，去重高频触发并杜绝强制同步布局（Layout Thrashing）。
   useEffect(() => {
     if (!autoScroll || !pinnedToBottom) return
     const element = scrollRef.current
     if (!element) return
-    element.scrollTop = element.scrollHeight
+
+    const rafId = requestAnimationFrame(() => {
+      element.scrollTop = element.scrollHeight
+    })
+    return () => cancelAnimationFrame(rafId)
   }, [messages, status, autoScroll, pinnedToBottom])
 
   const handleScroll = () => {
