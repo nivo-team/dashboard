@@ -99,7 +99,7 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
        ├─ await import('./runtime')                                ← 懒加载
        ├─ toModelMessages(messages)                                ← 历史衰减 + 图片转 FilePart
        └─ streamAssistantTurn({ messages, mode, outputLocale, tools, toolContext })
-            ├─ buildSystemPrompt(mode, outputLocale)               ← 每轮重算（#/lib/ai/prompt，分层见 §8）
+            ├─ buildSystemPrompt(facts)               ← 每轮重算（服务端 packages/ai-prompt，分层见 §8）
             └─ streamText({ …, reasoning: resolveReasoning(model) })  ← 思考程度在这里落地
   └─ for await (event of stream) → StreamEventBatcher (~25ms 缓冲) → session-store.applyEvent
        └─ UI 随之平滑重渲染（PretextStreamText 段落隔离 + 滚动容器 RAF 调度，规避 Layout Thrashing）
@@ -175,7 +175,7 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
 
 | 内容 | 出口 | 时机 |
 |---|---|---|
-| 系统提示词 | `buildSystemPrompt(mode, outputLocale)`（`#/lib/ai/prompt`） | **每轮请求重算**（别缓存成常量） |
+| 系统提示词 | `buildSystemPrompt(facts)`（服务端 `packages/ai-prompt`） | **每轮请求重算**（别缓存成常量） |
 | 当前页面（我在哪） | `formatPageContext(getPageContext())`，注入提示词 | 每轮采集 |
 | 导航清单（能去哪） | `collectNavigation(appId)` → `list_navigation` | 模型调用工具时 |
 | 表单清单 | `listAiForms()` → `list_page_forms` | 模型调用工具时 |
@@ -277,7 +277,7 @@ useAiPageContext(Route.id, {
 1. **提示词里不要复述权限。** 权限由**实际交给模型的工具清单**精确表达。提示词再写一句
    "你只能读"，一旦权限改了而提示词忘了改，模型会**放着给它的工具不用**、反过来告诉用户
    "我没权限" —— 真实发生过：`navigate_to` 已放进只读档，模型却照着旧提示词回答
-   「我只有读取权限，不能执行页面跳转」。这条规则现在的落点是 `#/lib/ai/prompt/capability.ts`。
+   「我只有读取权限，不能执行页面跳转」。这条规则现在的落点是 `packages/ai-prompt/src/layers/capability.ts`。
 2. **页面上下文的键用 `Route.id`。** 手写字符串会在某次重命名后静默失配，然后 AI 又不声不响
    回去猜接口。
 3. **`getPageContext()` 整体不要缓存**（它含 `title`，标题随页面异步加载变化）；
@@ -373,7 +373,7 @@ useAiPageContext(Route.id, {
 
 ### 8.1 容器维度（`AiSurface`）与跳转
 
-`buildSystemPrompt(mode, outputLocale, **surface**)` —— `surface`（`panel` / `sphere`）
+`buildSystemPrompt(facts)` —— `surface`（`panel` / `sphere`）
 **由渲染处显式传入**（`AiComposer` 的 `surface` prop → `sendAiMessage` → `buildToolContext`
 → `streamAssistantTurn`），**不要用路由字符串反推**（重命名后会静默失配）。它只影响两件事，
 且各自**只有一个落点**：

@@ -23,7 +23,7 @@
 
 | 项 | 现状 |
 |---|---|
-| 系统提示词 | **7 层**，唯一出口 `buildSystemPrompt(mode, outputLocale, surface)`，**每轮重算**，约 2k token 量级 |
+| 系统提示词 | **7 层**，唯一出口 `buildSystemPrompt(facts)`（服务端），**每轮重算**，约 2k token 量级 |
 | 工具 | **16 个**（`AI_TOOLS`），按 `group` 分 页面 / 数据 / 表单；权限界面按 `access` 解释风险 |
 | 运行容器 | 2 个：`panel`（分屏 / 浮窗）、`sphere`（全屏对话页）；**由渲染处显式传入**，不靠路由字符串反推 |
 | 正交维度 | **权限**（能不能用） × **模式**（用起来要不要问） × **容器**（策略与工具清单） |
@@ -48,7 +48,7 @@ L3 驱动      chat.ts ───────────────────
                ├─ toModelMessages(messages)        ← @ 引用展开 + 历史衰减 + 附件转 part
                └─ streamAssistantTurn(...)
 L4 运行时    runtime.ts（唯一 import 'ai'）
-               ├─ buildSystemPrompt(mode, outputLocale, surface)   ← 提示词唯一出口
+               ├─ buildSystemPrompt(facts)   ← 提示词唯一出口
                ├─ createLanguageModel(provider, model)             ← openai / anthropic 两大规范
                ├─ streamText({ reasoning, tools, stopWhen: isStepCount(30) })
                └─ fullStream → AiStreamEvent（think 标签解析 + nav-proposal 翻译）
@@ -67,7 +67,7 @@ L7 上下文    page-context / page-context-registry / page-capabilities / endpo
 
 ### 2.1 唯一出口与装配
 
-- 出口：`#/lib/ai/prompt/index.ts` 的 `buildSystemPrompt(mode, outputLocale, surface)`。
+- 出口：`packages/ai-prompt/src/index.ts` 的 `buildSystemPrompt(facts)`（服务端）。
 - 顺序真值：同文件的 `PROMPT_LAYERS`（**加一层 = 加 builder + 在数组占位**）。
 - 空层（`build` 返回 `null` / 空白）整段不拼，层间空一行。
 - 每轮重算：页面上下文含标题、任务清单含会话状态、范围清单含 appId 与界面语言 → **绝不缓存成常量**。
