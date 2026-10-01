@@ -1,3 +1,4 @@
+import { isToolGranted } from '../tool-permission'
 import type { AiPermissionMode, AiSurface, AiToolDefinition } from '../types'
 import {
   callReadApiTool,
@@ -79,14 +80,41 @@ export function resolveAllowedToolNames(
  *
  * 一律返回**新数组**：调用方（运行时）可能按自己的需要增删，不该动到注册表。
  */
+/**
+ * **依赖「当前挂载了业务页面」的工具** —— 全屏对话页里没有页面，它们调用只会拿到一句报错
+ * （`get_page_data` / `run_page_command` 读页面特性注册表，`update_search_params` 要表格调度器，
+ * `check_result_match` / `analyze_data` 读页面数据源），白费一次往返。
+ *
+ * 收成一处真值：以后有新的"页面绑定"工具，加到这个数组即可 —— 不要在过滤里再写一串 `||`。
+ */
+const PAGE_BOUND_TOOLS: readonly string[] = [
+  'update_search_params',
+  'get_page_data',
+  'run_page_command',
+  'check_result_match',
+  'analyze_data',
+]
+
 export function getAllowedTools(
   permission: AiPermissionMode,
   customTools: readonly string[] = [],
-  options: { hasForms?: boolean; surface?: AiSurface } = {},
+  options: {
+    hasForms?: boolean
+    surface?: AiSurface
+    /** 后端下发的权限点；**不传表示不按权限过滤**（保持老调用方可用） */
+    permissions?: readonly string[]
+  } = {},
 ): AiToolDefinition[] {
   const allowed = new Set(resolveAllowedToolNames(permission, customTools))
   return AI_TOOLS.filter((tool) => {
     if (!allowed.has(tool.name)) return false
+
+    /*
+      权限点过滤 —— **在把工具交给模型之前**的第一道闸。
+      `permissions` 不传就跳过（老调用方不受影响）；传了就要求工具声明的权限点都满足。
+      它与「模式」正交：这里只回答"能不能用"，"要不要问"仍由各工具读 `ctx.mode`。
+    */
+    if (options.permissions && !isToolGranted(tool, options.permissions)) return false
     /*
       页面上**一张表单都没有**时，表单组那三个工具（列出 / 填写 / 提交）纯属占位 ——
       而它们的定义（描述 + JSON Schema）是**每一轮都要发**的固定开销。

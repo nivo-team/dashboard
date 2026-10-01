@@ -1,3 +1,4 @@
+import { ensureUserPermissions } from '#/lib/permissions'
 import { getQueryClient } from '#/lib/query-client'
 import { getActiveModel, usePreferencesStore } from '#/lib/store'
 import { hasPageFormCapability, listAiForms } from './form-bridge'
@@ -293,6 +294,13 @@ export async function sendAiMessage(
       hasPageFormCapability() ||
       Boolean(pageSpec?.forms && pageSpec.forms.length > 0)
 
+    /*
+      后端权限点 —— **在把工具交给模型之前先过滤一次**。
+      失败会降级成空清单（AI 更保守），不阻断这条链路；真正的边界仍在
+      「执行时用用户身份 + 后端校验」。
+    */
+    const { permissions } = await ensureUserPermissions(getQueryClient())
+
     const stream = streamAssistantTurn({
       messages,
       /*
@@ -304,6 +312,8 @@ export async function sendAiMessage(
       tools: getAllowedTools(aiPermission, aiAllowedTools, {
         hasForms,
         surface,
+        // 后端权限（上限）∩ 用户偏好（在权限内收紧）
+        permissions,
       }),
       toolContext: buildToolContext(mode, surface),
       supportsTools: capabilities?.supportsTools ?? true,

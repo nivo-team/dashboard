@@ -190,6 +190,20 @@ export interface AiToolDefinition<Input = Record<string, unknown>> {
   access: AiToolAccess
   /** 权限界面里的分组（页面 / 数据 / 表单）：设置页按它折叠、计数 */
   group: AiToolGroup
+  /**
+   * 必须**全部**具备的权限点（AND）。空 / 不声明 = 人人可用（例如纯上下文工具）。
+   *
+   * 权限点来自后端（`#/lib/permissions`），与页面能力 / 页面指令是**同一套命名**。
+   */
+  requiredPermissions?: readonly string[]
+  /**
+   * 至少具备**其一**（OR）；支持 `*` 通配（`*:read` = 任一模块的读权限）。
+   *
+   * 通用通道（`call_read_api` / `call_write_api`）只能声明到这一层 —— 它们具体打哪个
+   * 接口由模型决定，无法预先声明精确权限点；更细的校验在**执行时**按目标接口所属模块做，
+   * 最终由后端按用户身份兜底。
+   */
+  requiredPermissionsAny?: readonly string[]
   execute: (input: Input, ctx: AiToolContext) => Promise<unknown>
 }
 
