@@ -12,9 +12,9 @@ description: 本仓库数据表格开发规范（DataTable + TanStack Table v9 +
 
 | 层 | 来源 | 手写？ |
 | --- | --- | --- |
-| 行数据类型 | `src/api/generated/types.gen.ts`（`pnpm api:generate`） | 否 |
-| 运行时 schema | `src/api/generated/schemas.gen.ts`（`@hey-api/schemas`，`XxxSchema` 常量） | 否 |
-| 筛选字段目录 | `src/api/query-params.gen.ts`（`scripts/gen-query-params.js`，`pnpm api` 已串） | 否 |
+| 行数据类型 | `packages/api-client/src/generated/types.gen.ts`（`pnpm api` 生成，经 `#/api` 转发） | 否 |
+| 运行时 schema | `packages/api-client/src/generated/schemas.gen.ts`（`@hey-api/schemas`，`XxxSchema` 常量） | 否 |
+| 筛选字段目录 | `packages/api-client/src/query-params.gen.ts`（`scripts/gen-query-params.js`，`pnpm api` 已串） | 否 |
 | 列编排 | 页面内 `Xxx_COLUMN_SPECS` / `DEFAULT_HIDDEN_COLUMNS` / `SORTABLE_FIELDS` | **是** |
 | 列文案 | `src/messages/<module>/<lang>.json` 的 `columns.*`（7 语言） | **是** |
 

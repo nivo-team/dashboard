@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * 从 `openapi.json` 生成**接口参数索引**（`src/api/endpoint-specs.gen.ts`）。
+ * 从 `openapi.json` 生成**接口参数索引**（`src/endpoint-specs.gen.ts`）。
  *
  * 为什么需要它：后端 `GET /api` 返回的接口清单只有 `label / method / path`，
  * **没有参数信息**，于是 AI 只能猜参数 —— 真实踩过：它用 `query: { uid }` 去调
@@ -9,14 +9,20 @@
  *
  * 而 `openapi.json` 里有权威的参数定义（名字 / 位置 / 是否必填）。但它几百 KB，
  * 不能进 bundle —— 所以在这里**压成只含必要字段的索引**。
+ * 调用方通过子路径 `@admin/api-client/endpoint-specs` **动态 import**，主 chunk 不受影响。
  *
- * 用法：node scripts/gen-endpoint-specs.js
+ * 用法：pnpm -C packages/api-client gen:endpoint-specs
  */
 import { readFileSync, writeFileSync, statSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const SOURCE = resolve('../../packages/api-contract/openapi.json')
-const TARGET = resolve('src/api/endpoint-specs.gen.ts')
+// 用脚本自身位置定位包目录：从仓库根或任意 cwd 调用结果都一致
+const here = dirname(fileURLToPath(import.meta.url))
+const pkgDir = resolve(here, '..')
+
+const SOURCE = resolve(pkgDir, 'openapi.json')
+const TARGET = resolve(pkgDir, 'src/endpoint-specs.gen.ts')
 
 /** 说明文字截断：给模型看的一句话就够，整段描述会把索引撑大好几倍 */
 const trim = (text, max = 80) => {
@@ -85,4 +91,4 @@ export const ENDPOINT_SPECS: Record<string, EndpointSpec> = ${JSON.stringify(spe
 
 writeFileSync(TARGET, header)
 console.log(`✅ 生成 ${Object.keys(specs).length} 条接口参数索引`)
-console.log(`   ${TARGET.replace(`${process.cwd()}/`, '')}  ${(statSync(TARGET).size / 1024).toFixed(1)} KB`)
+console.log(`   ${TARGET.replace(`${pkgDir}/`, '')}  ${(statSync(TARGET).size / 1024).toFixed(1)} KB`)

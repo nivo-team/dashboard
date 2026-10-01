@@ -38,6 +38,9 @@ importers:
       '@admin/ai-prompt':
         specifier: workspace:*
         version: link:../../packages/ai-prompt
+      '@admin/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
       '@ai-sdk/anthropic':
         specifier: ^4.0.65
         version: 4.0.65(zod@4.6.5)
@@ -89,9 +92,6 @@ importers:
       nuqs:
         specifier: ^2.10.1
         version: 2.10.1(@tanstack/react-router@1.170.40(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
-      ofetch:
-        specifier: ^1.5.1
-        version: 1.5.1
       react:
         specifier: ^19.2.0
         version: 19.3.0
@@ -114,9 +114,6 @@ importers:
         specifier: ^5.0.15
         version: 5.0.15(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.7.0(react@19.3.0))
     devDependencies:
-      '@hey-api/openapi-ts':
-        specifier: ^0.99.0
-        version: 0.99.0(typescript@6.0.3)
       '@tanstack/devtools-vite':
         specifier: latest
         version: 0.8.5(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(vite@8.3.0(@types/node@22.20.4)(esbuild@0.28.1)(jiti@2.7.0))
@@ -151,7 +148,21 @@ importers:
         specifier: ^6.0.2
         version: 6.0.3
 
-  packages/api-contract: {}
+  packages/api-client:
+    dependencies:
+      ofetch:
+        specifier: ^1.5.1
+        version: 1.5.1
+    devDependencies:
+      '@hey-api/openapi-ts':
+        specifier: ^0.99.0
+        version: 0.99.0(typescript@6.0.3)
+      '@tanstack/react-query':
+        specifier: ^5.103.2
+        version: 5.103.2(react@19.3.0)
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.3
 
 packages:
 

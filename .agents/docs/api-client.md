@@ -5,28 +5,47 @@
 
 ## 契约与生成链路
 
-契约的唯一真值是 `packages/api-contract/openapi.json`。它默认由本地 Mock **反向生成**
-（`apps/mock` 里每个路由的 `defineRouteMeta` 声明即契约），也可以切到任意外部来源 ——
-见 [packages/api-contract/README.md](../../packages/api-contract/README.md)。
+契约的唯一真值、以及由它生成的 SDK，都在 **`packages/api-client`** 这一个包里
+（包的职责与目录结构见 [packages/api-client/README.md](../../packages/api-client/README.md)）。
+契约默认由本地 Mock **反向生成**（`apps/mock` 里每个路由的 `defineRouteMeta` 声明即契约），
+也可以切到任意外部来源。
 
 ```
 apps/mock 的路由（defineRouteMeta）
         │  Nitro 静态提取
         ▼
-GET /openapi.json ──pnpm contract──► packages/api-contract/openapi.json
+GET /openapi.json ──pnpm contract──► packages/api-client/openapi.json
                                               │
-                                    pnpm api  │
+                                    pnpm api  │（包内执行）
                                               ▼
-                     apps/web/src/api/generated/（SDK / 类型 / schema / Query 产物）
+                     packages/api-client/src/generated/（SDK / 类型 / schema / Query 产物）
+                     packages/api-client/src/{query-params,endpoint-specs}.gen.ts（派生索引）
+                                              │
+                                    import    ▼
+                     apps/web/src/api/index.ts（薄封装：baseUrl + 拦截器，再 export * 转发）
 ```
 
-`pnpm api` 依次做四件事：同步契约 → `openapi-ts` 生成 SDK → 生成筛选字段目录 → 生成接口参数索引。
+`pnpm api` = `pnpm contract` + 包内三件事：`openapi-ts` 生成 SDK → 生成筛选字段目录 → 生成接口参数索引。
+**应用不各自生成**：新 app 加 `"@admin/api-client": "workspace:*"` 即可复用整套产物。
 
-- **来源切换**：改 `contract.config.json`，或用环境变量临时覆盖
+- **来源切换**：改 `packages/api-client/contract.config.json`，或用环境变量临时覆盖
   （`API_SPEC_SOURCE` / `API_SPEC_URL` / `API_SPEC_FILE` / `APIFOX_PROJECT_ID`）；
-- **生成产物** `apps/web/src/api/generated/` **不要手改**；
+- **生成产物** `packages/api-client/src/generated/`、`src/*.gen.ts` **不要手改**
+  （`openapi-ts` 会清空重建 `src/generated/`，所以派生脚本写在 `src/` 根下）；
 - **Hey API 插件链**：`@hey-api/client-ofetch` + `typescript` + `sdk` + `schemas` + `@tanstack/react-query`。
-  queryOptions 统一加 `QueryOptions` 后缀，避免与同名 SDK 方法冲突。
+  queryOptions 统一加 `QueryOptions` 后缀，避免与同名 SDK 方法冲突；
+- **依赖约定**：`ofetch` 是运行时依赖；`@tanstack/react-query` 是 peerDependency
+  （各 app 提供同一实例，`apps/web/vite.config.ts` 的 `resolve.dedupe` 里也加了一项）。
+
+### 应用侧要做的事（`apps/web/src/api/index.ts`）
+
+包只提供「通用的客户端与产物」，**应用特有的行为留在应用里**：baseUrl 来源
+（`VITE_API_BASE_URL`）、请求/响应拦截器注入（鉴权、401、错误 toast），
+然后 `export * from '@admin/api-client'` 把一切转发给业务代码。
+
+**业务代码不要直接 import `@admin/api-client`**，统一走 `#/api`
+（见下方「导入规范」）—— 这样换实现、加通用包装时只有一个落点。
+唯一例外是体积大的索引：`@admin/api-client/endpoint-specs` 子路径按需懒加载。
 
 ## 响应拦截（`apps/web/src/api/index.ts`）
 
@@ -57,18 +76,21 @@ GET /openapi.json ──pnpm contract──► packages/api-contract/openapi.jso
 
 ## 运行时 JSON Schema
 
-`schemas.gen.ts` 内含 `#/components/schemas` 的运行时对象（`userItemSchema`、`menuNodeSchema`
-这类 `as const` 常量），供表格列自动编排（`useSchemaColumns`）使用。
-**只按需 import 具体 schema**，未被引用的部分会被 tree-shaking 移除。
+`packages/api-client/src/generated/schemas.gen.ts` 内含 `#/components/schemas` 的运行时对象
+（`userItemSchema`、`menuNodeSchema` 这类 `as const` 常量），经 `#/api` 转发后供表格列自动编排
+（`useSchemaColumns`）使用。**只按需 import 具体 schema**，未被引用的部分会被 tree-shaking 移除。
 
 ## 导入规范
 
-业务组件与页面统一从 `#/api` 导入：
+业务组件与页面统一从 `#/api` 导入（`#/api` 是应用侧薄封装，内部 `export *` 转发契约包）：
 
 ```ts
-import { client, getUserQueryOptions } from '#/api'
-import type { UserItem } from '#/api'
+import { client, getUserQueryOptions, USER_FILTER_FIELDS } from '#/api'
+import type { UserItem, QueryFilterField } from '#/api'
 ```
+
+不要写 `#/api/query-params.gen` 这类深路径（文件已不在应用内），也不要直接 import
+`@admin/api-client` —— 唯一例外是需要懒加载的 `@admin/api-client/endpoint-specs`。
 
 ## 各模块的数据层
 
@@ -79,4 +101,4 @@ import type { UserItem } from '#/api'
 | 用户 | `GET /user` | 服务端分页，支持 `kw` 搜索 |
 
 这些接口全部由 `apps/mock` 提供，字段与契约一一对应。要改接口：先改 mock 的路由
-（**定义即契约**），再跑 `pnpm api` 重新生成前端 SDK。
+（**定义即契约**），再跑 `pnpm api` 重新生成 SDK（生成发生在 `packages/api-client` 包内）。

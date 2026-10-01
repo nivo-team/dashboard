@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * 从 openapi.json 生成「可筛选 query 参数目录」。
+ * 从 openapi.json 生成「可筛选 query 参数目录」（`src/query-params.gen.ts`）。
  *
  * 规则：
  * 1. 只取指定接口的 query 参数（默认 GET /user）；
@@ -9,11 +9,16 @@
  * 3. 形如 xxx_min / xxx_max 的参数对合并为一个「区间」字段；
  * 4. 展示文案取内置中文词典（openapi 描述仅作兜底）。
  *
- * 用法：node scripts/gen-query-params.js
+ * 用法：pnpm -C packages/api-client gen:query-params
  */
 
 import { readFileSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+// 用脚本自身位置定位包目录：从仓库根或任意 cwd 调用结果都一致
+const here = dirname(fileURLToPath(import.meta.url))
+const pkgDir = resolve(here, '..')
 
 /** 主查询参数：不进入筛选器字段目录 */
 const PRIMARY_PARAMS = [
@@ -41,7 +46,7 @@ const LABELS = {
 
 const ENDPOINT_METHOD = 'get'
 const ENDPOINT_PATH = '/user'
-const OUTPUT_PATH = 'src/api/query-params.gen.ts'
+const OUTPUT_PATH = 'src/query-params.gen.ts'
 
 /** 取展示文案：词典 → openapi 描述首个分句 → 参数名 */
 function labelFor(name, param) {
@@ -68,7 +73,7 @@ function controlFor(schema) {
   return { control: 'text' }
 }
 
-const specPath = resolve('../../packages/api-contract/openapi.json')
+const specPath = resolve(pkgDir, 'openapi.json')
 const spec = JSON.parse(readFileSync(specPath, 'utf8'))
 
 // 契约路径可能带服务前缀（本模板的 Mock 就把接口挂在 /api 下），按后缀匹配更稳
@@ -138,7 +143,7 @@ for (const param of queryParams) {
 const banner = `/**
  * 本文件由 scripts/gen-query-params.js 自动生成，请勿手动编辑。
  * 数据源：openapi.json 中 ${ENDPOINT_METHOD.toUpperCase()} ${ENDPOINT_PATH} 的 query 参数。
- * 重新生成：pnpm gen:query-params（或随 pnpm api 一并执行）
+ * 重新生成：pnpm -C packages/api-client gen:query-params（或随 pnpm api 一并执行）
  */
 
 /** 值控件类型：按参数类型自动渲染，无需操作符选择 */
@@ -174,7 +179,7 @@ export const PRIMARY_QUERY_PARAMS = ${JSON.stringify(PRIMARY_PARAMS, null, 2)} a
 export const USER_FILTER_FIELDS: QueryFilterField[] = ${JSON.stringify(fields, null, 2)}
 `
 
-writeFileSync(resolve(process.cwd(), OUTPUT_PATH), banner, 'utf8')
+writeFileSync(resolve(pkgDir, OUTPUT_PATH), banner, 'utf8')
 
 console.log(
   `[gen-query-params] ${ENDPOINT_METHOD.toUpperCase()} ${ENDPOINT_PATH}：query 参数 ${queryParams.length} 个 → 排除 primary ${PRIMARY_PARAMS.length} 个 → 生成可筛选字段 ${fields.length} 个`,

@@ -1,0 +1,31 @@
+{
+  "name": "@admin/api-client",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "OpenAPI 契约的唯一真值 + 由它生成并导出的 API 客户端（SDK / 类型 / JSON Schema / Query options / 派生索引），供各 app 复用。",
+  "exports": {
+    ".": "./src/index.ts",
+    "./endpoint-specs": "./src/endpoint-specs.gen.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "sync": "node scripts/sync.mjs",
+    "generate": "openapi-ts",
+    "gen:query-params": "node scripts/gen-query-params.js",
+    "gen:endpoint-specs": "node scripts/gen-endpoint-specs.js",
+    "api": "pnpm generate && pnpm gen:query-params && pnpm gen:endpoint-specs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ofetch": "^1.5.1"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.103.2"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "^0.99.0",
+    "@tanstack/react-query": "^5.103.2",
+    "typescript": "^6.0.2"
+  }
+}

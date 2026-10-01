@@ -24,7 +24,7 @@ import type { GetPermissionsResponse } from '#/api'
  *
  * ## 字段从哪来
  *
- * 请求与类型都直接用**契约生成物**（`apps/web/src/api/generated`）：后端改字段时
+ * 请求与类型都直接用**契约生成物**（`@admin/api-client`，经 `#/api` 转发）：后端改字段时
  * 这里跟着报错，而不是静默漂移。所以本文件**不再另写一份 `interface`**。
  */
 

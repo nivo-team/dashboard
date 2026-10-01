@@ -9,7 +9,9 @@ import tailwindcss from '@tailwindcss/vite'
 const config = defineConfig({
   resolve: {
     tsconfigPaths: true,
-    dedupe: ['@tanstack/react-router', 'react', 'react-dom'],
+    // 契约包（@admin/api-client）内也声明了 react-query 用于本地类型检查/生成，
+    // dedupe 强制走本应用的同一份实例，避免出现两份 Query 库。
+    dedupe: ['@tanstack/react-router', '@tanstack/react-query', 'react', 'react-dom'],
   },
   plugins: [
     devtools(),

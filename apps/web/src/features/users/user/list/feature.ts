@@ -1,5 +1,5 @@
 import type { UserItem } from '#/api'
-import { USER_FILTER_FIELDS } from '#/api/query-params.gen'
+import { USER_FILTER_FIELDS } from '#/api'
 import { defineFeature } from '#/lib/features'
 import type { FeatureSpec } from '#/lib/features'
 

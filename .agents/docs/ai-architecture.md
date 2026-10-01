@@ -763,7 +763,7 @@ useAiPageContext(Route.id, {
   **参数明细**一起交给模型。三条约定：
   ① **键用 `Route.id`**，不要手写路由字符串 —— 手写的会在某次重命名后**静默失配**，
   然后 AI 就又不声不响地回去猜接口了；
-  ② **参数明细不要手写**：由 `#/api/endpoint-specs.gen`（`scripts/gen-endpoint-specs.js`
+  ② **参数明细不要手写**：由 `@admin/api-client/endpoint-specs`（`packages/api-client/scripts/gen-endpoint-specs.js`
   从 `openapi.json` 生成，已并入 `pnpm api`）自动补上，手写的迟早和后端不一致；
   ③ **`/api` 前缀在消费侧归一化**：同一份 openapi 里 450 条路径不带、18 条带，
   所以 `findEndpointSpec` 会依次试「原样 / 去 `/api` / 加 `/api`」三种写法。

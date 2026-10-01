@@ -9,11 +9,6 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "generate-routes": "tsr generate",
-    "api:pull": "node scripts/pull-apifox.js",
-    "api:generate": "openapi-ts",
-    "gen:query-params": "node scripts/gen-query-params.js",
-    "api": "pnpm api:pull && pnpm api:generate && pnpm gen:query-params && pnpm gen:endpoint-specs",
-    "gen:endpoint-specs": "node scripts/gen-endpoint-specs.js",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
@@ -22,6 +17,7 @@
   },
   "dependencies": {
     "@admin/ai-prompt": "workspace:*",
+    "@admin/api-client": "workspace:*",
     "@ai-sdk/anthropic": "^4.0.65",
     "@ai-sdk/openai": "^4.0.77",
     "@ai-sdk/openai-compatible": "^3.0.57",
@@ -39,7 +35,6 @@
     "i18next": "^24.2.2",
     "motion": "^13.4.4",
     "nuqs": "^2.10.1",
-    "ofetch": "^1.5.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-i18next": "^15.4.1",
@@ -49,7 +44,6 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@hey-api/openapi-ts": "^0.99.0",
     "@tanstack/devtools-vite": "latest",
     "@tanstack/router-cli": "^1.132.0",
     "@tanstack/router-plugin": "latest",

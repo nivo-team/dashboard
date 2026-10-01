@@ -2,7 +2,7 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Updater } from '@tanstack/react-table'
 import type { SortingState } from '#/components/data-table'
-import type { QueryFilterField } from '#/api/query-params.gen'
+import type { QueryFilterField } from '#/api'
 import type { FilterCondition } from '#/components/table-controls'
 import { useAiSearchParamsUpdater } from '#/lib/ai/search-params-bridge'
 import { filterConditionsToQueryPatch, queryToFilterConditions } from './filter-sync'

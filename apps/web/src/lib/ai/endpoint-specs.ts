@@ -1,4 +1,4 @@
-import type { EndpointSpec } from '#/api/endpoint-specs.gen'
+import type { EndpointSpec } from '@admin/api-client/endpoint-specs'
 
 /**
  * 查一个接口的**参数明细**（名字 / 位置 / 是否必填 / 说明）。
@@ -28,7 +28,7 @@ let loading: Promise<SpecTable> | null = null
 /** 懒加载索引：只在第一次真的要查参数时下载，且并发调用共享同一次加载。 */
 async function loadTable(): Promise<SpecTable> {
   if (table) return table
-  loading ??= import('#/api/endpoint-specs.gen').then((mod) => {
+  loading ??= import('@admin/api-client/endpoint-specs').then((mod) => {
     table = mod.ENDPOINT_SPECS
     return table
   })

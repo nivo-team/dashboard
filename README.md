@@ -5,7 +5,7 @@
 模板提供完整的企业级基础架构——统一登录门户、独立应用选择中心、全局控制台外壳、多语言与多主题支持，开箱即用。
 
 **自带 Mock API 与 OpenAPI 契约**：`clone` 之后不依赖任何私有后端即可跑通全站；
-将来接入你自己的后端时，只需要换一份契约（见 [packages/api-contract](./packages/api-contract/README.md)）。
+将来接入你自己的后端时，只需要换一份契约（见 [packages/api-client](./packages/api-client/README.md)）。
 
 ## 仓库结构
 
@@ -14,7 +14,7 @@ apps/
   web/                # 前端：React 19 + Vite + TanStack Router/Query + Kumo
   mock/               # Mock API：Nitro v3，接口定义同时反向生成 OpenAPI 契约
 packages/
-  api-contract/       # 契约唯一真值：默认由 mock 生成，也可切到任意外部来源
+  api-client/         # 契约唯一真值 + 由它生成并导出的 API 客户端（SDK/类型/schema/Query），多 app 复用
 ```
 
 ---
@@ -84,7 +84,7 @@ pnpm api
 echo 'VITE_API_BASE_URL=https://your-api.example.com' > apps/web/.env.local
 ```
 
-详见 [packages/api-contract/README.md](./packages/api-contract/README.md)。
+详见 [packages/api-client/README.md](./packages/api-client/README.md)。
 
 ---
 
@@ -95,6 +95,6 @@ echo 'VITE_API_BASE_URL=https://your-api.example.com' > apps/web/.env.local
 - [📘 路由与布局架构 (.agents/docs/routing-architecture.md)](./.agents/docs/routing-architecture.md) —— 文件系统路由、无路径布局机制、新增页面规范
 - [🎨 UI 与样式设计规范 (.agents/docs/ui-and-styling.md)](./.agents/docs/ui-and-styling.md) —— Kumo UI 接入要点、Tailwind v4 配置、界面设计规则
 - [🧩 Mock API (apps/mock/README.md)](./apps/mock/README.md) —— 契约驱动的假数据后端、部署到 Cloudflare / Vercel
-- [📜 API 契约 (packages/api-contract/README.md)](./packages/api-contract/README.md) —— 契约来源切换与「换后端」步骤
+- [📜 API 契约与客户端 (packages/api-client/README.md)](./packages/api-client/README.md) —— 契约来源切换、API 生成产物与「换后端」步骤
 - [🔐 认证、多应用与国际化 (.agents/docs/auth-and-i18n.md)](./.agents/docs/auth-and-i18n.md) —— 双阶段登录认证、应用池配置、模块化零配置 i18n
 - [🤖 AI 编程助手指引 (AGENTS.md)](./AGENTS.md) —— 面向 AI Agent / Claude Code 的项目开发总览与常用命令

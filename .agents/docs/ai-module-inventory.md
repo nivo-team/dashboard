@@ -339,10 +339,10 @@ L7 上下文    page-context / page-context-registry / page-capabilities / endpo
 
 ### 4.8 脚本、依赖、门控
 
-- 生成：`apps/web/scripts/gen-endpoint-specs.js`（读 `packages/api-contract/openapi.json` →
-  `apps/web/src/api/endpoint-specs.gen.ts`，**不要手改**；由 `pnpm api` 编排）；
-  产物当前 **7324 字节 / 24 条**。
-- `apps/web/scripts/gen-query-params.js`（`USER_FILTER_FIELDS` 等编译期查询参数）。
+- 生成：`packages/api-client/scripts/gen-endpoint-specs.js`（读同包 `openapi.json` →
+  `packages/api-client/src/endpoint-specs.gen.ts`，**不要手改**；由 `pnpm api` 编排）；
+  产物当前 **7.5 KB / 25 条**，应用侧经 `@admin/api-client/endpoint-specs` 子路径懒加载。
+- `packages/api-client/scripts/gen-query-params.js`（`USER_FILTER_FIELDS` 等编译期查询参数）。
 - 门控：`scripts/ai/check-guardrails.mjs`（`pnpm guardrails`：i18n 键树全量一致 + diff 内禁用样式）。
 - 依赖：`ai@^7.0.116`、`@ai-sdk/anthropic@^4.0.65`、`@ai-sdk/openai@^4.0.77`、
   `@ai-sdk/openai-compatible@^3.0.57`、`bot-avatars@^0.1.1`、`border-beam@^1.4.1`、
@@ -361,7 +361,7 @@ L7 上下文    page-context / page-context-registry / page-capabilities / endpo
 |---|---|---|---|
 | 1 | `ai-architecture.md` §5 | 写「工具定义 10 个工具（无表单时 7 个）」，实际 `AI_TOOLS` **16 个**（无表单时 12 个） | 改成 16，并按 §3.2 补全工具表 |
 | 2 | `ai-architecture.md` §1 / §3 | §1 的 L5 只列 4 个工具文件（实际 8 个）；§3 的审批表格未覆盖 `open_form` / `run_page_command` / `manage_tasks` / `request_permission` | 按本文 §3.2 / §3.3 同步 |
-| 3 | `ai-architecture.md` §4 / §5、`lib/ai/endpoint-specs.ts` 注释 | 写「接口参数索引 363 KB / gzip 23.6 KB」「全局接口清单 600+ 条」，实际 `endpoint-specs.gen.ts` **7.3 KB / 24 条**；注释里的 `scripts/gen-endpoint-specs.js` 路径实际是 `apps/web/scripts/gen-endpoint-specs.js` | 更新量级与路径 |
+| 3 | `ai-architecture.md` §4 / §5、`lib/ai/endpoint-specs.ts` 注释 | 写「接口参数索引 363 KB / gzip 23.6 KB」「全局接口清单 600+ 条」，实际 `endpoint-specs.gen.ts` **7.5 KB / 25 条**；生成脚本已从 `apps/web/scripts/` 迁到 `packages/api-client/scripts/` | 更新量级与路径 |
 | 4 | `lib/ai/chat.ts:159` | 使用 `AiStreamEvent` 但**顶部没有 import 它**（`import type` 列表缺一项）→ `tsc --noEmit` 会报 `Cannot find name` | 补一个 `import type` 即可（用 `verify` skill 确认） |
 | 5 | `lib/ai/tools/form-tools.ts:287` | `formSpec?.submission?.requireApproval ?? (ctx.mode === 'ask' \|\| true)` —— 右侧**恒为 true**，于是 `submit_form` 在 `auto` 模式**仍然弹审批**，与工具描述、`ai-architecture.md` §3 表格（auto 下 `canSubmit()` 通过即提交）矛盾 | 去掉 `\|\| true`，改为按 `ctx.mode` / 声明判定 |
 | 6 | `lib/ai/route-refs.ts:276` | `expandRouteRefs` 追加的说明**硬编码面板策略**（「必须优先 `navigate_to` … 配合 `update_search_params` … 切勿直接调用只读接口」），与 §8.1「策略由提示词按容器给、工具描述保持容器中立」冲突；**全屏容器**里 `update_search_params` 根本不下发，模型会被引向一个不存在的工具 | 改为容器中立的表述（或按 `surface` 分策略，与 `workflow.ts` 同源） |

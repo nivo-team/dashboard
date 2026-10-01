@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { QueryFilterField } from '#/api/query-params.gen'
+import type { QueryFilterField } from '#/api'
 
 /**
  * 筛选字段的候选项（值 + 显示文案）。

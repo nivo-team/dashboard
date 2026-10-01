@@ -1,9 +1,13 @@
 import { defineConfig } from '@hey-api/openapi-ts';
 
+// 路径相对于本文件所在目录（`pnpm -C packages/api-client generate`）；
+// 产物直接落到包内并被 `src/index.ts` 导出，各 app 只 import 这个包，不再各自生成。
 export default defineConfig({
-  input: '../../packages/api-contract/openapi.json',
+  input: './openapi.json',
   output: {
-    path: './src/api/generated',
+    // 注意：openapi-ts 会整体清空 output 目录，所以派生产物
+    // （query-params.gen.ts / endpoint-specs.gen.ts）刻意放在 src/ 根下，不放这里。
+    path: './src/generated',
   },
   plugins: [
     // HTTP 客户端：ofetch（自动解析响应体，保留原生 onRequest / onResponse 钩子能力）

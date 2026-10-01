@@ -5,7 +5,7 @@ import { defineHandler } from 'nitro'
  *
  * 给部署平台（Cloudflare / Vercel 的存活探针）与本地排查用。
  * 刻意不写 `defineRouteMeta`，因此它不会出现在给前端用的契约里
- * （契约的过滤规则见 `packages/api-contract/contract.config.json`）。
+ * （契约的过滤规则见 `packages/api-client/contract.config.json`）。
  */
 export default defineHandler(() => ({
   status: 'ok',

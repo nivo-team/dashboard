@@ -26,7 +26,7 @@ pnpm build            # 前端生产构建（输出 apps/web/dist）
 pnpm preview          # 预览前端构建产物
 pnpm typecheck        # tsc --noEmit
 pnpm contract         # 按 contract.config.json 同步契约（默认从本地 mock 拉）
-pnpm api              # 一键：同步契约 + 生成 SDK + 筛选目录 + 接口参数索引
+pnpm api              # 一键：同步契约 + 在 packages/api-client 内生成 SDK/类型/schema/Query/派生索引
 pnpm guardrails       # 铁律的机器检查（CI 用，scripts/ai/check-guardrails.mjs）
 ```
 
@@ -53,7 +53,7 @@ pnpm guardrails       # 铁律的机器检查（CI 用，scripts/ai/check-guardr
 | 改登录登出 / 加 UI 文案 / 字典枚举 | [auth-and-i18n.md](./.agents/docs/auth-and-i18n.md) · [dict-i18n.md](./.agents/docs/dict-i18n.md) · [dict-options.md](./.agents/docs/dict-options.md) |
 | 改接口调用 / 生成产物 / 缓存策略 | [api-client.md](./.agents/docs/api-client.md) |
 | **改 Mock 接口 / 加一个接口** | [apps/mock/README.md](./apps/mock/README.md) —— 接口定义即契约 |
-| **换后端 / 改契约来源** | [packages/api-contract/README.md](./packages/api-contract/README.md) |
+| **换后端 / 改契约来源 / 改 API 生成** | [packages/api-client/README.md](./packages/api-client/README.md) |
 | **列表页 / 表格 / 筛选 / 列设置** | skill **`table-development`** ← 先加载它 |
 | **表格 URL 搜索参数 / 增删改查规范** | [table-query-and-crud.md](./.agents/docs/table-query-and-crud.md) |
 | **表单架构 / 人机协同 / 三态自适应** | [form-architecture.md](./.agents/docs/form-architecture.md) |

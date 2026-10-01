@@ -17,7 +17,7 @@
 
 1. **fx.sh 不能作为依赖引入本项目。** 它是 Vercel Labs 的 **Zig 编写的编码 agent / CLI**（Apache-2.0，v0.0.11，标注 `experimental · use at your own risk`），可嵌入部分叫 `libfx`。浏览器路径（`libfx/browser`）**硬依赖 WebAssembly JSPI**（Chrome/Edge **137+**、Safari 27+，WebKit STP 238），且 npm 包 unpacked **36.4 MB**、包内无 `browser` 字段（`exports` 里给了 browser 入口），**与我们「不依赖很新浏览器特性」的约束直接冲突** → 放弃引入。**但它的权限模型设计非常值得抄**：三态模式（`ask` / `auto` / `full-access`）+ 通配符规则表 + 会话级 grant + 无解时 fail-closed（见 §1.4）。
 2. **Vercel AI SDK 是本项目最合适的唯一新增依赖**，当前稳定大版本是 **v7**（npm `ai@7.0.116`，Apache-2.0）。它**同时**给了我们需要的三件事：① `streamText` + `tool()` + `stopWhen` 的多步工具循环；② **官方的 human-in-the-loop 审批**（`toolApproval: 'user-approval'` + `addToolApprovalResponse` + `sendAutomaticallyWhen`）；③ **纯浏览器就地运行**的通道（`DirectChatTransport`，把 Agent 直接接进 `useChat`，不走 HTTP）。**注意：AI SDK 的 provider 层没有 `dangerouslyAllowBrowser` 这种东西**（对 `@ai-sdk/openai@4.0.78` dist 425 KB 与 `llms-full.txt` 6.1 MB 全文 grep，命中 0），需要在浏览器跑的是它**底层不依赖官方厂商 SDK**、自己发 fetch，所以不存在浏览器拦截。
-3. **`inputSchema` 可以不引 zod**：`tool({ inputSchema: jsonSchema<...>({...}) })` 接受 **JSON Schema**。这正好对接本项目已有的 `apps/web/src/api/generated/schemas.gen.ts`（Hey API 生成的运行时 JSON Schema）。另：`zod@4.6.5` **本来就在本仓依赖树里**（`@cloudflare/kumo` 的 peer），版本上已满足 `ai@7` 的 peer 要求 `^3.25.76 || ^4.1.8` —— 也就是说 **AI SDK 不会给我们带来新的大版本族**。
+3. **`inputSchema` 可以不引 zod**：`tool({ inputSchema: jsonSchema<...>({...}) })` 接受 **JSON Schema**。这正好对接本项目已有的 `packages/api-client/src/generated/schemas.gen.ts`（Hey API 生成的运行时 JSON Schema，经 `#/api` 转发）。另：`zod@4.6.5` **本来就在本仓依赖树里**（`@cloudflare/kumo` 的 peer），版本上已满足 `ai@7` 的 peer 要求 `^3.25.76 || ^4.1.8` —— 也就是说 **AI SDK 不会给我们带来新的大版本族**。
    附注：`ai@7` 系列包都声明 `engines: node >= 22`；本仓没有 `.npmrc`（未设 `engine-strict=true`），pnpm 默认只**告警不阻断**，但本机开发用 Node 版本建议先升到 22+。
 4. **Beautiful UI 是 MIT 的 copy-paste 组件集合，不是 npm 包，也不提供 shadcn registry 安装命令** → 只能「照着自己实现」。好消息是它的 `ThinkingState.tsx` 源码完全暴露，**我可以给出精确到毫秒与缓动曲线的复刻规格**（见 §3.4）。它有 3 处会拖累我们：自研颜色令牌（`text-ink-2` / `bg-hover` / `border-line`…）、无 `prefers-reduced-motion` 处理（与本仓 `motion-safe:` 约定冲突）、以及需要我们自己补动画 keyframes。
 5. **WebMCP 现在确实不能用**：规范是 **「WebMCP Draft Community Group Report, 26 September 2026」**，官方 status 原文明确 *"It is not a W3C Standard nor is it on the W3C Standards Track"*；落地形态是 **Chrome 149 Origin Trial**（需登记）与 **Edge 150 Origin Trial**，本地开发要开 `about:flags#enable-webmcp-testing`。**stable 不可用** → 与我们的判断一致。
@@ -405,7 +405,7 @@ jsonSchema<...>(schema, { validate: (value) => /* {success,value} | {success,err
 配套事实：`ai@7.0.116` 的 `peerDependencies` 是 **`zod: ^3.25.76 || ^4.1.8`** —— zod 是 peer 依赖。**本仓情况（已实测）**：`zod@4.6.5` 已经因为 `@cloudflare/kumo@2.14.0` 的 peer 存在于 pnpm store 中，**版本上满足 AI SDK 的 peer 范围，不会引入新的大版本族**；但它没有 hoist 到根 `node_modules/zod`，所以：
 - **只用 `jsonSchema()`（不 import zod）时**：pnpm 的 `auto-install-peers`（默认开）会为 `ai` 补装匹配的 zod，`pnpm install` 不应报错 → **可以直接走 JSON Schema 路线**；
 - **若我们想自己写 zod schema**：需要把 `zod` 提升为直接依赖（`zod@4.6.5` 即可）。
-→ 落地第一步仍是**实测一次「不装 zod 直接 `pnpm install ai`」**，确认 pnpm 不报 peer 缺失；**能用 JSON Schema 就优先用**，因为 `apps/web/src/api/generated/schemas.gen.ts` 里已经有现成的 `as const` JSON Schema，可直接喂给模型，零重复定义。
+→ 落地第一步仍是**实测一次「不装 zod 直接 `pnpm install ai`」**，确认 pnpm 不报 peer 缺失；**能用 JSON Schema 就优先用**，因为 `packages/api-client/src/generated/schemas.gen.ts` 里已经有现成的 `as const` JSON Schema，可直接喂给模型，零重复定义。
 
 ### 2.9 来源
 

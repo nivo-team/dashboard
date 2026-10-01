@@ -1,6 +1,22 @@
 import { ApiError } from '#/lib/api-error'
 import { notifyApiError } from '#/lib/toast'
-import { client } from './generated/client.gen'
+import { client } from '@admin/api-client'
+
+/**
+ * 应用侧 API 薄封装。
+ *
+ * 生成物（SDK / 类型 / JSON Schema / TanStack Query options / 契约派生索引）全部来自
+ * `@admin/api-client` —— 那里是契约的唯一真值，也是「换后端」「新 app 复用」的唯一入口。
+ * 本文件只负责**这个应用特有的部分**：
+ *
+ * 1. baseUrl 来源（`VITE_API_BASE_URL`）与运行时切换；
+ * 2. 请求拦截：附加 `Authorization` / `X-App-Id`；
+ * 3. 响应拦截：401 清理会话并跳登录页、业务码 `code !== 0` 弹 toast 并抛 `ApiError`；
+ * 4. 把包的导出原样转发出去，业务代码继续统一从 `#/api` 导入。
+ *
+ * 换句话说：**业务侧不要直接 import `@admin/api-client`**，走 `#/api`，
+ * 这样换实现、加通用包装时只有一个落点。
+ */
 
 /**
  * 默认为仓库内置的 Mock API（见 `apps/mock/README.md`）。
@@ -99,12 +115,9 @@ client.interceptors.response.use((response) => {
   return response
 })
 
-// 统一导出自动生成的 SDK 方法、类型以及预配置客户端
-export * from './generated'
-// 运行时 JSON Schema（@hey-api/schemas 产物）：供表格列自动编排与表单校验复用
-export * from './generated/schemas.gen'
-// TanStack Query 产物（@tanstack/react-query 插件）：
-// 每个接口都会生成 `xxxOptions()` / `xxxQueryKey()` / `xxxMutation()`，
-// 页面直接用 useQuery(useMutation) 接入即可获得缓存、去重与失效重取能力
-export * from './generated/@tanstack/react-query.gen'
-export { client } from './generated/client.gen'
+// 统一转发契约包的全部导出：SDK 方法、请求/响应类型、运行时 JSON Schema、
+// TanStack Query 产物（`xxxQueryOptions()` / `xxxQueryKey()` / `xxxMutation()`）、
+// 筛选字段目录（`USER_FILTER_FIELDS` / `QueryFilterField`）与 `buildQueryFromFilters`。
+// 业务代码因此仍然只需 `import { ... } from '#/api'`。
+export * from '@admin/api-client'
+export { client }

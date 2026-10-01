@@ -2,7 +2,7 @@ import { Button, Input, Select } from '@cloudflare/kumo'
 import { PlusIcon, TrashIcon, XIcon } from '@phosphor-icons/react'
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { QueryFilterField } from '#/api/query-params.gen'
+import type { QueryFilterField } from '#/api'
 import type { ResolveFilterFieldOptions } from './types'
 
 /** 单条筛选条件（受控值，id 用于行内稳定 key） */

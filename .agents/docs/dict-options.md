@@ -110,7 +110,7 @@ export const DICT_NAMESPACE = 'new.'   // ⏳ 正式版改成 ''（或删掉前�
 
 ### 7.1 筛选条件（FilterBuilder）
 
-筛选字段目录来自生成产物 `apps/web/src/api/query-params.gen.ts`（从 openapi enum 提取），里面只有 value、也没有多语言。
+筛选字段目录来自生成产物 `packages/api-client/src/query-params.gen.ts`（从 openapi enum 提取，经 `#/api` 转发），里面只有 value、也没有多语言。
 用 `FilterBuilder` 的 `resolveFieldOptions` 在**运行时**用字典覆盖它：
 
 ```tsx

@@ -18,7 +18,7 @@ import {
   UserItemSchema,
 } from '#/api'
 import type { GetUserData, UserItem } from '#/api'
-import { USER_FILTER_FIELDS } from '#/api/query-params.gen'
+import { USER_FILTER_FIELDS } from '#/api'
 import { useFeature } from '#/lib/features'
 import { createUserListFeature, USER_SORTABLE_FIELDS as SORTABLE_FIELDS } from './feature'
 import {

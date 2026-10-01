@@ -1,7 +1,7 @@
 /**
  * 本文件由 scripts/gen-query-params.js 自动生成，请勿手动编辑。
  * 数据源：openapi.json 中 GET /user 的 query 参数。
- * 重新生成：pnpm gen:query-params（或随 pnpm api 一并执行）
+ * 重新生成：pnpm -C packages/api-client gen:query-params（或随 pnpm api 一并执行）
  */
 
 /** 值控件类型：按参数类型自动渲染，无需操作符选择 */

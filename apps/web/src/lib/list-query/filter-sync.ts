@@ -1,4 +1,4 @@
-import type { QueryFilterField } from '#/api/query-params.gen'
+import type { QueryFilterField } from '#/api'
 import type { FilterCondition } from '#/components/table-controls'
 
 /**

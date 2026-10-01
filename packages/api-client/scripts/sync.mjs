@@ -106,6 +106,6 @@ if (pathCount === 0) fail('同步结果里没有任何业务路径，请检查�
 writeFileSync(targetPath, `${JSON.stringify(spec, null, 2)}\n`)
 
 console.log(
-  `[contract] 已从「${source}」同步契约 → packages/api-contract/openapi.json\n` +
+  `[contract] 已从「${source}」同步契约 → packages/api-client/openapi.json\n` +
     `           路径 ${pathCount} 个，schema ${schemaCount} 个，OpenAPI ${spec.openapi}`,
 )
