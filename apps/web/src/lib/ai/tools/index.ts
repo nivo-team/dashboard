@@ -17,6 +17,8 @@ import {
 import { manageTasksTool } from './task-tools'
 import { requestPermissionTool } from './permission-tools'
 import { updateSearchParamsTool } from './search-tools'
+import { checkResultMatchTool } from './check-result-match-tool'
+import { analyzeDataTool } from './analyze-tool'
 
 /**
  * 工具注册表 —— 「AI 能做什么」的**唯一真值**。
@@ -42,6 +44,8 @@ export const AI_TOOLS: readonly AiToolDefinition[] = [
   fillFormTool,
   submitFormTool,
   runPageCommandTool,
+  checkResultMatchTool,
+  analyzeDataTool,
 ]
 
 /**
@@ -135,12 +139,7 @@ export function getAllowedTools(
       容器相关的策略只加在这里（与权限、表单组同一处收口）：将来全屏要放开写操作，
       也在这一个函数里判断，不要在工具内部再散一份。
     */
-    if (
-      options.surface === 'sphere' &&
-      (tool.name === 'update_search_params' ||
-        tool.name === 'get_page_data' ||
-        tool.name === 'run_page_command')
-    ) {
+    if (options.surface === 'sphere' && PAGE_BOUND_TOOLS.includes(tool.name)) {
       return false
     }
     return true

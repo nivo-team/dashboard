@@ -1,6 +1,7 @@
 import { findAiForm, listAiForms, openPageForm } from '../form-bridge'
 import { resolveActivePageCapabilities } from '../page-capabilities'
 import { hasSessionGrant } from '../session-permissions'
+import { DATA_READ_GRANT } from '../session-permissions'
 import { useAiSessionStore } from '../session-store'
 import type { AiToolDefinition } from '../types'
 
@@ -167,6 +168,19 @@ export const fillFormTool: AiToolDefinition = {
   access: 'act',
   group: 'form',
   execute: async (input, ctx) => {
+    /*
+      读表单 = **读数据**：表单里可能有用户已经填过的内容。
+      与 get_page_data / call_read_api 同一档 —— `DATA_READ_GRANT`（首次必问 + 本会话允许）。
+    */
+    const approved = await ctx.requestApproval({
+      toolName: DATA_READ_GRANT,
+      input: { tool: 'list_page_forms' },
+      reason: 'AI 想读取当前页面表单的字段与已填内容',
+    })
+    if (!approved) {
+      throw new Error('用户拒绝让 AI 读取数据。不要重试，改为请用户自己查看。')
+    }
+
     const formId = typeof input.formId === 'string' ? input.formId.trim() : ''
     if (!formId) throw new Error('缺少表单 id')
 

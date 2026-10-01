@@ -1,6 +1,7 @@
 import { client, getApiQueryOptions, getDataDictOptionsQueryOptions } from '#/api'
 import { normalizeDictOptions } from '#/lib/dict-options'
 import { reloadAiPageData } from '../page-reload-bridge'
+import { DATA_READ_GRANT } from '../session-permissions'
 import type { ApiItem } from '#/api'
 import type { AiToolContext, AiToolDefinition } from '../types'
 
@@ -158,6 +159,8 @@ export const callReadApiTool: AiToolDefinition = {
   },
   access: 'read',
   group: 'data',
+  // 通用读通道：只要能读**任一**模块就放行；具体接口的权限在执行时按模块再校验
+  requiredPermissionsAny: ['*:read'],
   execute: async (input, ctx) => {
     const rawPath = typeof input.path === 'string' ? input.path.trim() : ''
     if (!rawPath) throw new Error('缺少接口路径')
@@ -174,6 +177,21 @@ export const callReadApiTool: AiToolDefinition = {
       input.query && typeof input.query === 'object'
         ? (input.query as Record<string, unknown>)
         : undefined
+
+    /*
+      **读数据授权**：与 `get_page_data` 共用 `DATA_READ_GRANT` 这一条会话授权 ——
+      用户同意的是"这个会话里 AI 可以读我的业务数据"这项**能力**，不是某一个工具名。
+      所以先授权过 `get_page_data` 的话，这里不会再弹一次卡。
+      被拒**直接抛错**（不发请求、不静默返回空），模型才知道是"用户不同意"。
+    */
+    const approved = await ctx.requestApproval({
+      toolName: DATA_READ_GRANT,
+      input: { tool: 'call_read_api', source: path },
+      reason: 'AI 想调用这个接口读取业务数据',
+    })
+    if (!approved) {
+      throw new Error('用户拒绝让 AI 读取数据。不要重试，改为请用户自己查看。')
+    }
 
     const result = await client.get({ url: path, query })
     if (result.error) {
@@ -326,6 +344,8 @@ export const callWriteApiTool: AiToolDefinition = {
   },
   access: 'commit',
   group: 'data',
+  // 通用写通道：需要**任一**写权限；精确到接口的校验在执行时做，后端再按身份兜底
+  requiredPermissionsAny: ['*:create', '*:edit', '*:update', '*:delete', '*:write'],
   execute: async (input, ctx) => {
     const rawPath = typeof input.path === 'string' ? input.path.trim() : ''
     if (!rawPath) throw new Error('缺少接口路径')

@@ -25,6 +25,16 @@ const STORAGE_PREFIX = 'admin.ai.session-grants'
  */
 export const NAVIGATION_GRANT = 'navigate'
 
+/**
+ * 「允许 AI 读取业务数据」的**会话授权键**。
+ *
+ * 它与 `NAVIGATION_GRANT` 同一套机制（按 session 隔离、sessionStorage、刷新失效），
+ * 但语义独立：**它不受 `aiComposerMode`（询问 / 自动）影响** ——
+ * 那个开关管的是"要不要为替我做的决定打断我"，而"读我的数据"不是替你决定，是涉及你。
+ * 所以**首次必问**，用户点过"本会话允许"后不再打扰。
+ */
+export const DATA_READ_GRANT = 'data:read'
+
 function getStorageKey(appId: string | null, sessionId: string | null): string {
   const safeAppId = appId || 'global'
   // 若会话尚未落盘（新对话初始状态），使用独立的草稿作用域

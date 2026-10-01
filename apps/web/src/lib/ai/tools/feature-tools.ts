@@ -4,7 +4,9 @@ import {
   resolveFeature,
   resolveFeatureCommands,
 } from '#/lib/features/registry'
+import { redactRecords } from '../content-redact'
 import { getPageContext } from '../page-context'
+import { DATA_READ_GRANT } from '../session-permissions'
 import type { AiToolDefinition } from '../types'
 import { truncatePayload } from './data-tools'
 
@@ -46,7 +48,7 @@ export const getPageDataTool: AiToolDefinition = {
   },
   access: 'read',
   group: 'page',
-  execute: async (input) => {
+  execute: async (input, ctx) => {
     const context = getPageContext()
     const routeId = context.routePath
     const spec = resolveFeature(routeId)
@@ -70,16 +72,62 @@ export const getPageDataTool: AiToolDefinition = {
     }
 
     const wanted = typeof input.source === 'string' ? input.source.trim() : ''
+    const declared = spec.dataSources ?? []
+    const selected = wanted
+      ? declared.filter((source) => source.id === wanted)
+      : declared
+
+    if (wanted && selected.length === 0) {
+      throw new Error(
+        `没有这个数据源：${wanted}。可用的是：${declared.map((source) => source.id).join(' / ') || '（无）'}`,
+      )
+    }
+
+    /*
+      **读数据授权**（`DATA_READ_GRANT`）：把业务数据带进对话是"涉及用户"的事，不是
+      "替用户决定"，所以**首次必问**，且与 `aiComposerMode`（询问 / 自动）无关。
+      授权键不是工具名：用户同意的是"这个会话里 AI 可以读我的数据"这项能力，
+      于是 `call_read_api` / `list_page_forms` 复用同一条授权，不会各自再问一遍。
+
+      审批放在 `readFeatureData` **之前** —— 严格是"读数据前"，不是"返回前"。
+      页面没声明数据源时不问（下面提前返回了），因为没有数据可读。
+      被拒**直接抛错**（不静默返回空）：模型必须知道是"用户不同意"，才不会换个说法再试。
+    */
+    if (selected.length > 0) {
+      const approved = await ctx.requestApproval({
+        toolName: DATA_READ_GRANT,
+        input: {
+          tool: 'get_page_data',
+          source: selected.map((source) => source.title).join(' / '),
+        },
+        reason: 'AI 想读取当前页面的表格数据（敏感字段已脱敏）',
+      })
+      if (!approved) {
+        throw new Error('用户拒绝让 AI 读取数据。不要重试，改为请用户自己查看。')
+      }
+    }
+
     const sources = readFeatureData(routeId)
     const picked = wanted
       ? sources.filter((source) => source.id === wanted)
       : sources
 
-    if (wanted && picked.length === 0) {
-      throw new Error(
-        `没有这个数据源：${wanted}。可用的是：${sources.map((source) => source.id).join(' / ') || '（无）'}`,
-      )
-    }
+    /*
+      脱敏（`sensitive: true` 的字段）：**出口只有 `redactRecords` 一处**，不再在别处写第二套。
+      字段注解一并给模型 —— 它要知道"有这个字段、只是看不到值"，才想得到用
+      `check_result_match` 去问存在性，而不是拿脱敏后的值当原文猜。
+    */
+    const fieldsBySource = new Map(
+      declared.map((source) => [source.id, source.fields ?? []] as const),
+    )
+    const data = picked.map((snapshot) => {
+      const fields = fieldsBySource.get(snapshot.id) ?? []
+      return {
+        ...snapshot,
+        ...(fields.length > 0 ? { fields } : {}),
+        value: redactRecords(snapshot.value, fields),
+      }
+    })
 
     const commands = resolveFeatureCommands(routeId).map((command) => ({
       id: command.id,
@@ -95,10 +143,10 @@ export const getPageDataTool: AiToolDefinition = {
         description: spec.description,
         ...(spec.entities?.length ? { entities: [...spec.entities] } : {}),
       },
-      data: picked,
+      data,
       commands,
       note:
-        '这些数据是**页面此刻已经加载的**（`state` 里是当前筛选 / 分页 / 选中）。据此直接回答即可；要改数据用 `run_page_command`（写类会先弹确认卡）。',
+        '这些数据是**页面此刻已经加载的**（`state` 里是当前筛选 / 分页 / 选中）。标了 `sensitive: true` 的字段值已脱敏，**不要尝试还原**；要确认某个具体值在不在结果里，用 `check_result_match`（每次都会问用户）。据此直接回答即可；要改数据用 `run_page_command`（写类会先弹确认卡）。',
     })
   },
 }

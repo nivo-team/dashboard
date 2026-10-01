@@ -76,6 +76,14 @@ interface AiSessionState {
    * 因此不存在「队列」—— 模型的工具调用本来就是串行的。
    */
   pendingApproval: PendingApproval | null
+  /**
+   * 本会话内各工具的调用计数（键 = 工具名）。
+   *
+   * 目前只给 `check_result_match` 的限流用：它是唯一能"逐次问出原文"的工具，
+   * 靠次数上限把"多次试探"的信息量压到定位不出一个值（详见 ai-tools-implementation-shape）。
+   * **不落盘**，新建 / 切换会话即归零。
+   */
+  toolCounters: Record<string, number>
 
   /**
    * 追加一条用户消息，并开一条空的助手消息（返回它的 id，后续事件都往它身上写）。
@@ -94,6 +102,8 @@ interface AiSessionState {
   setPendingApproval: (approval: PendingApproval) => void
   /** 收起审批请求（用户已决定，或这一轮被中止） */
   clearPendingApproval: () => void
+  /** 递增并返回某个工具的会话内调用次数（限流用） */
+  bumpToolCounter: (key: string) => number
   /**
    * 认领**全屏建议卡**上的一次点击（带我去 / 不用了）。
    *
@@ -220,6 +230,7 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
   status: 'idle',
   error: null,
   pendingApproval: null,
+  toolCounters: {},
 
   beginTurn: (text, attachments = []) => {
     const assistantId = createId()
@@ -369,6 +380,12 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
 
   clearPendingApproval: () => set({ pendingApproval: null }),
 
+  bumpToolCounter: (key) => {
+    const next = (get().toolCounters[key] ?? 0) + 1
+    set((state) => ({ toolCounters: { ...state.toolCounters, [key]: next } }))
+    return next
+  },
+
   resolveNavProposal: (id, state) => {
     const has = (parts: AiMessagePart[]) =>
       parts.some((part) => part.type === 'nav-proposal' && part.id === id)
@@ -484,6 +501,8 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
       status: 'idle',
       error: null,
       pendingApproval: null,
+      // 新会话 = 新的限流窗口
+      toolCounters: {},
     })
     void setActiveSessionId(getAppScope(), null)
   },
@@ -497,6 +516,8 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
       status: 'idle',
       error: null,
       pendingApproval: null,
+      // 换会话 = 新的限流窗口
+      toolCounters: {},
     })
     void setActiveSessionId(appId, sessionId)
   },
@@ -527,6 +548,8 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
       status: 'idle',
       error: null,
       pendingApproval: null,
+      // 删掉当前会话后切到别的会话 = 新的限流窗口
+      toolCounters: {},
     })
     void setActiveSessionId(appId, next?.id ?? null)
   },

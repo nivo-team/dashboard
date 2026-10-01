@@ -66,6 +66,37 @@ export interface FeatureCommandSpec {
   run: (input: Record<string, unknown>) => unknown | Promise<unknown>
 }
 
+/**
+ * 数据源里**一个字段的注解** —— AI 写表达式、脱敏、正确计算都靠它。
+ *
+ * 缺了它，AI 只能从自由文本的 `shape` 里猜字段名 —— 猜错就会算出一个错数（比不给还糟）。
+ */
+export interface FeatureDataFieldSpec {
+  /** 字段名，必须与 `read()` 返回的行里的键**完全一致** */
+  name: string
+  /** 给模型看的字段含义（一句话，别贴文档） */
+  label: string
+  /**
+   * 值的类型。它决定**能做什么运算**：
+   * - `number` → 可 sum / avg
+   * - `datetime` → 可按区间筛
+   * - `enum` → 值取自 `options`，模型不必猜数字含义
+   * - `boolean` / `string` → 只能比较 / 计数
+   */
+  type: 'string' | 'number' | 'boolean' | 'datetime' | 'enum'
+  /** 补充说明（可选）：单位、格式、口径 */
+  description?: string
+  /** `type === 'enum'` 时给候选值；其它类型忽略 */
+  options?: readonly { value: string | number; label: string }[]
+  /**
+   * **敏感字段**：AI 读到它时一律脱敏（见 §1.2）。
+   *
+   * 它**仍然要出现在注解里** —— 模型需要知道"有这个字段、只是看不到值"，
+   * 否则连"该用 `check_result_match` 查它"都想不到。
+   */
+  sensitive?: boolean
+}
+
 /** 一个数据源 = 页面上"一块已经加载好的数据"（列表行、当前筛选、选中项…）。 */
 export interface FeatureDataSourceSpec {
   /** 数据源 id（如 `users`），`get_page_data` 按它返回 */
@@ -75,6 +106,10 @@ export interface FeatureDataSourceSpec {
   description?: string
   /** 数据形状说明（纯文本，比 JSON Schema 更适合描述"一行有哪些字段"） */
   shape?: string
+  /**
+   * 这个数据源有哪些字段（字段注解）。**未注解的字段 AI 不可用** —— 宁缺勿猜。
+   */
+  fields?: readonly FeatureDataFieldSpec[]
   /**
    * 与数据一起给的**页面状态**（筛选关键词、分页、选中项…）。
    * 模型判断"用户问的是不是这一屏"全靠它，别省。

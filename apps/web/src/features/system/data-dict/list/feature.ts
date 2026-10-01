@@ -41,25 +41,34 @@ export function createDictTypeListFeature(
     description:
       '树表浏览根分类的直接子分类；可展开子分类、本地搜索（名称 / 局部码 / 完整编码）、新建与删除分类；点分类名下钻到分类详情。',
     entities: ['数据字典', '分类', '分类编码', '键值类型'],
+    /*
+      权限点按 `{模块}:{动作}` 细分（§1.8）：模块名与后端权限清单一致（`dict`），
+      「查看 / 新建 / 更新 / 删除」各是一个点。判定仍只在 `hasPageCapabilityPermission` 一处。
+    */
+    permissions: ['dict:read', 'dict:create', 'dict:update', 'dict:delete'],
     endpoints: [
       {
         method: 'GET',
         path: '/data_dict/type/tree',
+        permission: 'dict:read',
         purpose: '一次拉全量分类树（本页在本地收窄到根分类的直接子分类）',
       },
       {
         method: 'POST',
         path: '/data_dict/type',
+        permission: 'dict:create',
         purpose: '新建分类（工具条「新增分类」挂在根分类下，行内菜单挂在被点的那一级下）',
       },
       {
         method: 'PUT',
         path: '/data_dict/type',
+        permission: 'dict:update',
         purpose: '更新分类（在分类详情页提交）',
       },
       {
         method: 'DELETE',
         path: '/data_dict/type/{id}',
+        permission: 'dict:delete',
         purpose: '删除分类（有子分类 / 有字典项时前端先拦，通过后仍要输入分类名确认）',
       },
     ],
@@ -71,6 +80,49 @@ export function createDictTypeListFeature(
           '这一页表格里的分类：根分类的直接子分类，`children` 里是它们的子分类',
         shape:
           '每行：id / name / code / type（键值类型 1=string 2=number）/ status（1 启用 2 禁用）/ sort / remark / children[]',
+        /*
+          字段注解（与 `read()` 返回的键逐字对应）。`type` / `status` 用 `enum` + `options`：
+          它们是数字码，模型不必去猜 1 和 2 各是什么意思；`remark` 标 `sensitive`（备注常写内部说明）。
+
+          ⚠️ `children`（嵌套子分类数组）**故意不进 fields**：`FeatureDataFieldSpec.type`
+          只有 string / number / boolean / datetime / enum，没有数组类型 —— 宁可不注解，
+          也不把数组谎报成 `string`。它仍会随数据原样返回（未声明字段不脱敏、不改写）。
+        */
+        fields: [
+          { name: 'id', label: '分类 id', type: 'number' },
+          { name: 'name', label: '分类名称', type: 'string' },
+          {
+            name: 'code',
+            label: '分类局部码',
+            type: 'string',
+            description: '形如 channel，与父级拼成全码',
+          },
+          {
+            name: 'type',
+            label: '键值类型',
+            type: 'enum',
+            options: [
+              { value: 1, label: '字符串' },
+              { value: 2, label: '数字' },
+            ],
+          },
+          {
+            name: 'status',
+            label: '状态',
+            type: 'enum',
+            options: [
+              { value: 1, label: '启用' },
+              { value: 2, label: '禁用' },
+            ],
+          },
+          {
+            name: 'sort',
+            label: '排序值',
+            type: 'number',
+            description: '同级内的升序位置',
+          },
+          { name: 'remark', label: '备注', type: 'string', sensitive: true },
+        ],
         state: () => ({
           rootName: options.rootName,
           count: options.types.length,

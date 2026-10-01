@@ -173,6 +173,17 @@ export interface AiToolContext {
    * 实现由 `chat.ts` 提供：把请求交给 UI，拿回一个 Promise。
    */
   requestApproval: (request: AiApprovalRequest) => Promise<boolean>
+  /**
+   * 本轮用户消息的**原始文本** —— `check_result_match` 用它校验"探测值必须来自用户"。
+   *
+   * 这是枚举攻击的主要护栏：模型可以自造正则去二分，但不能自造一个**用户没说过的值**。
+   */
+  getUserMessageText: () => string
+  /**
+   * 递增并返回本会话某个工具的调用计数 —— `check_result_match` 的限流用它。
+   * 计数随会话走（新建 / 切换会话归零），**不落盘**。
+   */
+  bumpToolCounter: (key: string) => number
 }
 
 /**

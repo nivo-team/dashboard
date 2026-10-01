@@ -111,7 +111,12 @@ function rejectPendingApprovals(): void {
  *   所以工具里的条件是 `mode === 'ask' && !autoNavigate`）。
  * 两者都**不改变可用工具清单**（那在 `getAllowedTools` 里按 surface 收口）。
  */
-function buildToolContext(mode: AiMode, surface: AiSurface): AiToolContext {
+function buildToolContext(
+  mode: AiMode,
+  surface: AiSurface,
+  /** 本轮用户消息的原始文本（`check_result_match` 校验探测值来源用） */
+  userMessageText: string,
+): AiToolContext {
   return {
     queryClient: getQueryClient(),
     // 工具的审批策略看它（权限那维只管"有没有这个工具"）
@@ -123,6 +128,8 @@ function buildToolContext(mode: AiMode, surface: AiSurface): AiToolContext {
     },
     getPageContext,
     requestApproval,
+    getUserMessageText: () => userMessageText,
+    bumpToolCounter: (key) => useAiSessionStore.getState().bumpToolCounter(key),
   }
 }
 
@@ -315,7 +322,7 @@ export async function sendAiMessage(
         // 后端权限（上限）∩ 用户偏好（在权限内收紧）
         permissions,
       }),
-      toolContext: buildToolContext(mode, surface),
+      toolContext: buildToolContext(mode, surface, trimmed),
       supportsTools: capabilities?.supportsTools ?? true,
       abortSignal: controller.signal,
     })

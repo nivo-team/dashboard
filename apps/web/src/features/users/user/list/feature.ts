@@ -51,15 +51,29 @@ export function createUserListFeature(options: UserListFeatureOptions): FeatureS
     description:
       '分页浏览用户，支持关键词搜索、多字段精确/范围筛选、排序，以及新建、编辑、单个/批量删除；点击行可打开详情。',
     entities: ['用户', '昵称', '邮箱', '注册时间', '最后登录'],
-    permissions: ['user:create', 'user:edit', 'user:delete'],
+    /*
+      权限点按 `{模块}:{动作}` 细分（动作取 read / create / fill / submit / update / delete）：
+      「查看」与「AI 填表 / 提交」「直连接口更新」是四件不同的事，各管各的 ——
+      声明处按 §1.8 的口径给，判定仍只在 `hasPageCapabilityPermission` 一处。
+    */
+    permissions: [
+      'user:read',
+      'user:create',
+      'user:edit',
+      'user:fill',
+      'user:submit',
+      'user:update',
+      'user:delete',
+    ],
     endpoints: [
       {
         method: 'GET',
         path: '/user',
+        permission: 'user:read',
         purpose: '分页查询用户列表；支持 kw、多字段 filter 与排序',
       },
       { method: 'POST', path: '/user', permission: 'user:create', purpose: '新建用户' },
-      { method: 'PUT', path: '/user', permission: 'user:edit', purpose: '编辑更新用户' },
+      { method: 'PUT', path: '/user', permission: 'user:update', purpose: '编辑更新用户' },
       {
         method: 'DELETE',
         path: '/user/{id}',
@@ -79,6 +93,9 @@ export function createUserListFeature(options: UserListFeatureOptions): FeatureS
         title: '新建用户',
         action: 'create',
         permission: 'user:create',
+        // AI 填表只改页面状态、不落库 → `fill`；提交才落库、不可撤销 → `submit`（§1.8）。
+        fillPermission: 'user:fill',
+        submitPermission: 'user:submit',
         description: '录入新用户的昵称、邮箱与头像',
         submission: {
           endpoint: { method: 'POST', path: '/user' },
@@ -92,6 +109,8 @@ export function createUserListFeature(options: UserListFeatureOptions): FeatureS
         title: '编辑用户',
         action: 'edit',
         permission: 'user:edit',
+        fillPermission: 'user:fill',
+        submitPermission: 'user:submit',
         // 运行时挂载的表单 id 带目标用户后缀（`user-form-edit-10001`）：这里是**逻辑 id**，
         // 真要 fill_form / submit_form 时以 list_page_forms 返回的为准（工具在 id 不匹配时
         // 也会明确提示"请先 list_page_forms"）。
@@ -159,6 +178,7 @@ export function createUserListFeature(options: UserListFeatureOptions): FeatureS
         description:
           '在不离开列表的前提下打开某个用户的详情（分屏 / 抽屉 / 跳转，随用户的偏好）。用户问「某某的详细资料」时优先用它，而不是 navigate_to 跳走。',
         kind: 'navigate',
+        permission: 'user:read',
         actionType: 'custom',
         inputSchema: {
           type: 'object',
@@ -240,6 +260,34 @@ export function createUserListFeature(options: UserListFeatureOptions): FeatureS
         description: '用户列表页此刻显示的这一屏用户，已应用当前关键词与筛选条件',
         shape:
           '每行：id / nickname / email / createtime / logintime。state 里是关键词、筛选条件、分页、排序与表格选中项。',
+        /*
+          字段注解（`read()` 返回的键**逐字对应**）：AI 写表达式、判断类型、以及决定
+          哪些字段该脱敏都靠它。`email` 标 `sensitive` —— 模型知道"有这个字段"，
+          但永远只看到 `a***@example.com` 这类掩码。
+        */
+        fields: [
+          { name: 'id', label: '用户 id', type: 'number' },
+          { name: 'nickname', label: '昵称', type: 'string' },
+          {
+            name: 'email',
+            label: '邮箱',
+            type: 'string',
+            description: '可能为空',
+            sensitive: true,
+          },
+          {
+            name: 'createtime',
+            label: '注册时间',
+            type: 'datetime',
+            description: '秒级时间戳',
+          },
+          {
+            name: 'logintime',
+            label: '最后登录时间',
+            type: 'datetime',
+            description: '秒级时间戳',
+          },
+        ],
         state: () => ({
           page: options.queryState.page,
           pageSize: options.queryState.page_size,

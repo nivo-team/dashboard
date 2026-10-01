@@ -42,6 +42,10 @@ export interface CapabilityForm {
   description?: string
   /** 权限标识（如 'user:edit' / 'user:create'）。将来根据当前用户权限过滤给 AI 的表单 */
   permission?: string
+  /** AI 填写这张表单需要的权限点（只改页面状态、不落库） */
+  fillPermission?: string
+  /** AI 提交这张表单需要的权限点（落库，不可撤销） */
+  submitPermission?: string
   /** 表单提交行为与审批策略规格声明 */
   submission?: CapabilityFormSubmission
   fields?: CapabilityFormField[]
