@@ -1,7 +1,7 @@
 import i18n from 'i18next'
 import type { Resource } from 'i18next'
 import { initReactI18next } from 'react-i18next'
-import { SUPPORTED_LOCALES, type LocaleKey } from './locale'
+import { LOCALE_LOCK, SUPPORTED_LOCALES, type LocaleKey } from './locale'
 import { usePreferencesStore } from './store/preferences-store'
 
 /**
@@ -35,12 +35,13 @@ for (const path in localeModules) {
 }
 
 /**
- * 初始语言直接取偏好 store。
+ * 初始语言：开发期锁定值优先（见 `#/lib/locale` 的 `LOCALE_LOCK`），
+ * 否则取偏好 store。
  *
  * store 用同步 storage（localStorage）水合，模块加载完成时已经是用户的真实选择，
  * 因此这里不需要再单独读一次 localStorage（旧键的迁移由 preferences-store 负责）。
  */
-const initialLocale = usePreferencesStore.getState().locale
+const initialLocale = LOCALE_LOCK ?? usePreferencesStore.getState().locale
 
 i18n.use(initReactI18next).init({
   resources,

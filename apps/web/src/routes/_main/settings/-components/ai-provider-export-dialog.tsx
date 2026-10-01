@@ -8,7 +8,6 @@ import {
 import {
   CheckIcon,
   CopyIcon,
-  DownloadSimpleIcon,
   WarningCircleIcon,
 } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'

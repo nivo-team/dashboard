@@ -75,7 +75,8 @@
       "nickname": "昵称",
       "createtime": "注册时间",
       "id": "ID",
-      "email": "邮箱"
+      "email": "邮箱",
+      "logintime": "最后登录"
     }
   },
   "actions": {

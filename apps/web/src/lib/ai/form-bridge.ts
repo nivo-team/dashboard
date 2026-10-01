@@ -22,6 +22,11 @@ export interface AiFormField {
   label: string
   type: 'text' | 'number' | 'switch' | 'select' | 'tags'
   description?: string
+  /**
+   * 是否必填 —— 只作为**给模型的元数据**（让它知道哪些字段不能留空），
+   * 真正的校验仍由表单自己的 `validateXxxForm` 负责。
+   */
+  required?: boolean
   /** `select` / `tags` 的候选值 */
   options?: Array<{ value: string; label: string }>
 }

@@ -46,6 +46,27 @@ export function isLocaleKey(value: unknown): value is LocaleKey {
   )
 }
 
+/**
+ * 开发期语言锁定（可选）—— 见 `VITE_I18N_LOCK_LOCALE`。
+ *
+ * 新契约下开发阶段只写源语言（`zh-CN`），其它语言交给 CI 的翻译流水线。
+ * 本地开发时设上它，可以避免「切到还没翻完的语言、看到半截中文」的干扰：
+ *
+ * ```bash
+ * # .env.local
+ * VITE_I18N_LOCK_LOCALE=zh-CN
+ * ```
+ *
+ * 放在 `locale.ts` 而不是 `i18n.ts`：`use-locale.ts` 需要读它，
+ * 而反向依赖 `i18n.ts` 会在导入时就把 i18next 初始化一遍。
+ */
+const RAW_LOCKED_LOCALE = import.meta.env.VITE_I18N_LOCK_LOCALE?.trim()
+
+/** 被锁定的语言；未设置或值非法时为 `null`。 */
+export const LOCALE_LOCK: LocaleKey | null = isLocaleKey(RAW_LOCKED_LOCALE)
+  ? RAW_LOCKED_LOCALE
+  : null
+
 /** 按浏览器语言推断初始语言：用户从未主动选择过时的兜底。 */
 export function getBrowserLocale(): LocaleKey {
   if (typeof window === 'undefined') return 'zh-CN'

@@ -1,7 +1,7 @@
 import { ensureUserPermissions } from '#/lib/permissions'
 import { getQueryClient } from '#/lib/query-client'
 import { getActiveModel, usePreferencesStore } from '#/lib/store'
-import { hasPageFormCapability, listAiForms } from './form-bridge'
+import { hasPageFormCapability } from './form-bridge'
 import { getAiShellBridge, getPageContext } from './page-context'
 import { resolveAiPageContext } from './page-context-registry'
 import { collectPromptFacts, resolveOutputLanguageName } from './prompt-facts'
@@ -13,6 +13,7 @@ import type {
   AiApprovalRequest,
   AiAttachment,
   AiMode,
+  AiStreamEvent,
   AiSurface,
   AiToolContext,
 } from './types'

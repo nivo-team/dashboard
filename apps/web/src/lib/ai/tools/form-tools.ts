@@ -101,7 +101,9 @@ export const openFormTool: AiToolDefinition = {
 
     // 3. 兜底方案：通过 URL 导航驱动唤起
     const pageCtx = ctx.getPageContext()
-    const path = pageCtx.path || ''
+    // 注意：`AiPageContext` 上叫 `pathname`（不是 `path`）—— 写错会让这里永远为空、
+    // 整个「URL 兜底唤起表单」的分支静默失效。
+    const path = pageCtx.pathname || ''
     if (path) {
       const qs =
         action === 'create'

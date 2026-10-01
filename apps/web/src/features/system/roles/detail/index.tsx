@@ -18,7 +18,6 @@ import { UnsavedChangesBar } from '#/components/unsaved-changes-bar'
 import { extractApiErrorMessage } from '#/lib/api-error'
 import { useFeature } from '#/lib/features'
 import { useHasPermission } from '#/lib/permissions'
-import { appToastManager } from '#/lib/toast'
 import {
   ROLE_STATUS,
   RoleForm,
@@ -62,7 +61,7 @@ export function RoleDetailPage() {
   const { t } = useTranslation('roles')
   const toast = useKumoToastManager()
   const queryClient = useQueryClient()
-  const { appId, roleId } = useParams({ from: '/$appId/system/roles/$roleId' })
+  const { roleId } = useParams({ from: '/$appId/system/roles/$roleId' })
   const numericId = Number(roleId)
 
   const canEdit = useHasPermission('role:edit')
@@ -124,7 +123,7 @@ export function RoleDetailPage() {
     （见 skill `editable-detail` 坑 4）。
   */
   useEffect(() => {
-    if (role) setStatus(role.status)
+    if (role) setStatus(role.status ?? ROLE_STATUS.enabled)
     setDraft(null)
     setMenusDraft(null)
     setResetSeq(0)
@@ -203,7 +202,7 @@ export function RoleDetailPage() {
   const handleReset = useCallback(() => {
     setDraft(null)
     setMenusDraft(null)
-    if (role) setStatus(role.status)
+    if (role) setStatus(role.status ?? ROLE_STATUS.enabled)
     setResetSeq((seq) => seq + 1)
     setFormError(null)
   }, [role])

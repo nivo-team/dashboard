@@ -1,0 +1,19 @@
+{
+  "_comment": "翻译术语表：让同一概念在各语言、各模块里译法一致。只放真正需要统一的核心术语，太长会白占提示词 token。",
+  "terms": {
+    "菜单": { "en-US": "Menu", "ja-JP": "メニュー", "ar-SA": "القائمة", "hi-IN": "मेनू", "es-ES": "Menú", "tr-TR": "Menü" },
+    "目录": { "en-US": "Directory", "ja-JP": "ディレクトリ", "ar-SA": "دليل", "hi-IN": "निर्देशिका", "es-ES": "Directorio", "tr-TR": "Dizin" },
+    "操作": { "en-US": "Action", "ja-JP": "操作", "ar-SA": "إجراء", "hi-IN": "क्रिया", "es-ES": "Acción", "tr-TR": "İşlem" },
+    "权限": { "en-US": "Permission", "ja-JP": "権限", "ar-SA": "صلاحية", "hi-IN": "अनुमति", "es-ES": "Permiso", "tr-TR": "Yetki" },
+    "角色": { "en-US": "Role", "ja-JP": "ロール", "ar-SA": "دور", "hi-IN": "भूमिका", "es-ES": "Rol", "tr-TR": "Rol" },
+    "用户": { "en-US": "User", "ja-JP": "ユーザー", "ar-SA": "مستخدم", "hi-IN": "उपयोगकर्ता", "es-ES": "Usuario", "tr-TR": "Kullanıcı" },
+    "数据字典": { "en-US": "Data Dictionary", "ja-JP": "データ辞書", "ar-SA": "قاموس البيانات", "hi-IN": "डेटा शब्दकोश", "es-ES": "Diccionario de datos", "tr-TR": "Veri Sözlüğü" },
+    "仪表盘": { "en-US": "Dashboard", "ja-JP": "ダッシュボード", "ar-SA": "لوحة التحكم", "hi-IN": "डैशबोर्ड", "es-ES": "Panel", "tr-TR": "Gösterge Paneli" },
+    "详情": { "en-US": "Details", "ja-JP": "詳細", "ar-SA": "التفاصيل", "hi-IN": "विवरण", "es-ES": "Detalles", "tr-TR": "Ayrıntılar" },
+    "启用": { "en-US": "Enabled", "ja-JP": "有効", "ar-SA": "مفعّل", "hi-IN": "सक्षम", "es-ES": "Habilitado", "tr-TR": "Etkin" },
+    "禁用": { "en-US": "Disabled", "ja-JP": "無効", "ar-SA": "معطّل", "hi-IN": "अक्षम", "es-ES": "Deshabilitado", "tr-TR": "Devre Dışı" },
+    "搜索": { "en-US": "Search", "ja-JP": "検索", "ar-SA": "بحث", "hi-IN": "खोजें", "es-ES": "Buscar", "tr-TR": "Ara" },
+    "刷新": { "en-US": "Refresh", "ja-JP": "更新", "ar-SA": "تحديث", "hi-IN": "रीफ़्रेश करें", "es-ES": "Actualizar", "tr-TR": "Yenile" },
+    "删除": { "en-US": "Delete", "ja-JP": "削除", "ar-SA": "حذف", "hi-IN": "हटाएँ", "es-ES": "Eliminar", "tr-TR": "Sil" }
+  }
+}

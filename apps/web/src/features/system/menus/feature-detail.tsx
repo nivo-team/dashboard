@@ -794,7 +794,7 @@ export function FeatureDetail({ node }: FeatureDetailProps) {
         description={
           <Trans
             i18nKey="detail.deleteFeatureConfirm"
-            ns="features"
+            ns="menus"
             defaults="该操作不可撤销。将永久删除功能 <b>{{name}}</b>，以及它在功能树中的位置。"
             values={{ name: node.menu_name ?? '' }}
             components={{ b: <b className="font-medium text-kumo-default" /> }}

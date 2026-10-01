@@ -55,6 +55,18 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: node scripts/ai/check-guardrails.mjs --base "$BASE_SHA"
 
+      - name: i18n 检查
+        run: |
+          echo "::group::代码 ↔ 源语言（键是否存在）"
+          node scripts/i18n/check-keys.mjs --strict
+          echo "::endgroup::"
+          echo "::group::源语言 ↔ 目标语言（译文是否等齐）"
+          node scripts/i18n/translate.mjs --check
+          echo "::endgroup::"
+          echo "::group::键类型是否与源语言同步"
+          node scripts/i18n/gen-types.mjs --check
+          echo "::endgroup::"
+
       - name: Install
         run: pnpm install --frozen-lockfile
 
@@ -69,7 +81,7 @@ jobs:
       # 却是「路由新增页面却打不开」的典型成因。
       - name: 生成物与源码同步检查
         run: |
-          if ! git diff --exit-code -- src/routeTree.gen.ts; then
-            echo "::error file=src/routeTree.gen.ts::routeTree.gen.ts 与路由不一致。请把 pnpm build 生成的版本一起提交（不要手改该文件）。"
+          if ! git diff --exit-code -- apps/web/src/routeTree.gen.ts; then
+            echo "::error file=apps/web/src/routeTree.gen.ts::routeTree.gen.ts 与路由不一致。请把 pnpm build 生成的版本一起提交（不要手改该文件）。"
             exit 1
           fi

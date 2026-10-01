@@ -76,7 +76,7 @@ export function AppSwitcher({
         render={
           <button
             type="button"
-            aria-label={t('auth.switchApp', '切换应用')}
+            aria-label={t('auth:switchApp', '切换应用')}
             className="flex w-full min-w-0 items-center gap-2 rounded-lg p-1.5 text-start transition-colors hover:bg-kumo-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-line"
           >
             {/* 应用图标：不套深色底块，直接显示图标本身 */}

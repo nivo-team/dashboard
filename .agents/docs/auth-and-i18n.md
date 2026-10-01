@@ -121,11 +121,15 @@ apps/web/src/messages/
 ## 3. 独立语言包零配置国际化 (Modular i18n Pattern)
 
 > 目录 / 命名空间规范、字典文案的分工与回落链、与 `/lang` 的边界见
-> [.agents/docs/auth-and-i18n.md](./.agents/docs/auth-and-i18n.md) 第 2 节与 [.agents/docs/dict-i18n.md](./.agents/docs/dict-i18n.md)。
+> [.agents/docs/dict-i18n.md](./dict-i18n.md)。
 
 - `apps/web/src/lib/i18n.ts` 用 `import.meta.glob('/apps/web/src/messages/*/*.json', { eager: true })` 自动注册：
   **目录名 = 命名空间，文件名 = 语言码**。全量支持 7 种语言（zh-CN / en-US / ja-JP / ar-SA /
-  hi-IN / es-ES / tr-TR）—— **新增任何用户可见文案都要补齐 7 份，只改中文等于没改**。
+  hi-IN / es-ES / tr-TR）。
+- **新契约：开发时只写源语言 `zh-CN`**，其它 6 种语言由翻译流水线补齐
+  （`pnpm i18n`，带缓存、只翻增量）—— **不要手写其它语言**。
+  写错键名用 `#/lib/use-typed-t` 的 `useT('ns')` 会在编译期报错。
+  完整机制见 [i18n-translation-pipeline.md](./i18n-translation-pipeline.md)。
 - 语言 / 主题 / 时区等偏好持久化在 `admin.preferences:<appId>`（**按应用隔离**），
   所以**切换应用会切换语言**，这是刻意行为，不是 bug。
 - **字典文案是另一套机制**（`apps/web/src/messages/dict/*`，按模块懒加载、**不进**上面的 eager glob）：

@@ -75,7 +75,8 @@
       "nickname": "Takma ad",
       "createtime": "Kayıt tarihi",
       "id": "ID",
-      "email": "E-posta"
+      "email": "E-posta",
+      "logintime": "Son giriş"
     }
   },
   "actions": {

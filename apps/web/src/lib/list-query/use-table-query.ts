@@ -8,6 +8,17 @@ import { useAiSearchParamsUpdater } from '#/lib/ai/search-params-bridge'
 import { filterConditionsToQueryPatch, queryToFilterConditions } from './filter-sync'
 import type { FilterParserConstraint } from './types'
 
+/**
+ * 解析后的查询状态（标准参数 + 各列表声明的筛选字段）。
+ */
+type ParsedQueryState = {
+  page: number
+  page_size: number
+  kw: string
+  field: string
+  order: 'asc' | 'desc'
+} & Record<string, unknown>
+
 export interface UseTableQueryOptions<
   TQuery extends Record<string, any>,
   TFilterParsers extends FilterParserConstraint<TQuery>,
@@ -52,11 +63,27 @@ export function useTableQuery<
     [defaultPage, defaultPageSize, defaultSortField, defaultSortOrder, filterParsers],
   )
 
-  const [rawQuery, setRawQuery] = useQueryStates(parsers, {
-    history: 'replace',
-    shallow: false,
-    clearOnDefault: true,
-  })
+  /*
+    `FilterParserConstraint` 用**可选属性**（`?`）表达「只声明一部分筛选字段」
+    （见 `defineFilterParsers`），于是 `TFilterParsers` 在约束位置带 `| undefined`；
+    而 nuqs 的 `useQueryStates` 入参要求 `{ [x: string]: KeyMapValue<any> }`，不接受 undefined。
+
+    运行时对象展开不会产生 undefined 值，所以入参断言只影响类型检查、不改变行为。
+    但断言之后 nuqs 无法再推断返回类型 —— 若不显式标注，`rawQuery` 会退化成 `any`，
+    并把「没有类型保护」一路传到 `queryParams`（那才是真正喂给 API 的东西）。
+    因此这里把解析结果写成 `ParsedQueryState`。
+  */
+  const [rawQuery, setRawQuery] = useQueryStates(
+    parsers as unknown as Parameters<typeof useQueryStates>[0],
+    {
+      history: 'replace',
+      shallow: false,
+      clearOnDefault: true,
+    },
+  ) as unknown as [
+    ParsedQueryState,
+    (patch: Record<string, unknown>) => void,
+  ]
 
   // 注册让 AI 能够直接更新当前表格的搜索与筛选参数
   useAiSearchParamsUpdater(

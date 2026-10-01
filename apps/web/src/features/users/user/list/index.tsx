@@ -844,7 +844,7 @@ export function UserListPage() {
               },
             )}
           </LayerDialog.Description>
-          <LayerDialog.Body />
+          <LayerDialog.Body>{null}</LayerDialog.Body>
           <LayerDialog.Actions dismissLabel={t('form.cancel', '取消')}>
             <LayerDialog.Actions.Primary
               variant="destructive"
@@ -870,7 +870,7 @@ export function UserListPage() {
               },
             )}
           </LayerDialog.Description>
-          <LayerDialog.Body />
+          <LayerDialog.Body>{null}</LayerDialog.Body>
           <LayerDialog.Actions dismissLabel={t('form.cancel', '取消')}>
             <LayerDialog.Actions.Primary
               variant="destructive"

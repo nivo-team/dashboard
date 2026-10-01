@@ -8,7 +8,7 @@ import { FeatureContainer } from '../feature-container'
 import { FeatureDetail } from '../feature-detail'
 import { useFeature } from '#/lib/features'
 import { createFeatureNodeFeature } from './feature'
-import { MENU_ROOT_ID, findMenuPath, menuIsGroup } from '../feature-options'
+import { findMenuPath, menuIsGroup } from '../feature-options'
 import { useFeaturesTree } from '../use-features-tree'
 
 /**

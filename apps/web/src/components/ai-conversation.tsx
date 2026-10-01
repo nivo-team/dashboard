@@ -3,12 +3,9 @@ import {
   BrainIcon,
   CaretDownIcon,
   CheckCircleIcon,
-  CircleIcon,
   CircleNotchIcon,
   FileIcon,
-  ListChecksIcon,
   WarningCircleIcon,
-  XCircleIcon,
 } from '@phosphor-icons/react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'

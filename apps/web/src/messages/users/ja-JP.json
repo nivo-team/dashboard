@@ -75,7 +75,8 @@
       "nickname": "ニックネーム",
       "createtime": "登録日時",
       "id": "ID",
-      "email": "メールアドレス"
+      "email": "メールアドレス",
+      "logintime": "最終ログイン"
     }
   },
   "actions": {

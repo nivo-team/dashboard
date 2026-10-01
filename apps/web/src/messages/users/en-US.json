@@ -75,7 +75,8 @@
       "nickname": "Nickname",
       "createtime": "Registered",
       "id": "ID",
-      "email": "Email"
+      "email": "Email",
+      "logintime": "Last Login"
     }
   },
   "actions": {

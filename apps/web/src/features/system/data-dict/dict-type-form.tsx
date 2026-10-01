@@ -97,6 +97,7 @@ export interface DictTypeFormProps {
 }
 
 export function DictTypeForm({
+  aiFormId,
   formId,
   initialValues,
   submitError,
@@ -193,7 +194,7 @@ export function DictTypeForm({
             },
             {
               name: 'status',
-              label: t('form.status', '启用'),
+              label: t('form.statusEnabled', '启用'),
               type: 'switch',
             },
             {

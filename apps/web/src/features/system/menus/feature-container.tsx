@@ -589,7 +589,7 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
         quotaText={
           <Trans
             i18nKey="quota"
-            ns="features"
+            ns="menus"
             defaults="共 <b>{{total}}</b> 项"
             values={{ total: countTreeNodes(filteredRows, MENU_SUB_ROWS) }}
             components={{
@@ -650,7 +650,7 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
         description={
           <Trans
             i18nKey="detail.deleteGroupConfirm"
-            ns="features"
+            ns="menus"
             defaults="该操作不可撤销。将永久删除功能组 <b>{{name}}</b>。"
             values={{ name: node?.menu_name ?? '' }}
             components={{ b: <b className="font-medium text-kumo-default" /> }}
@@ -678,7 +678,7 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
           deleteRowIsGroup ? (
             <Trans
               i18nKey="detail.deleteGroupConfirm"
-              ns="features"
+              ns="menus"
               defaults="该操作不可撤销。将永久删除功能组 <b>{{name}}</b>。"
               values={{ name: deleteRowTarget?.menu_name ?? '' }}
               components={{ b: <b className="font-medium text-kumo-default" /> }}
@@ -686,7 +686,7 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
           ) : (
             <Trans
               i18nKey="detail.deleteFeatureConfirm"
-              ns="features"
+              ns="menus"
               defaults="该操作不可撤销。将永久删除功能 <b>{{name}}</b>，以及它在功能树中的位置。"
               values={{ name: deleteRowTarget?.menu_name ?? '' }}
               components={{ b: <b className="font-medium text-kumo-default" /> }}

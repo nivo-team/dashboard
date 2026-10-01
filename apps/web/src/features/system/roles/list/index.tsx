@@ -27,7 +27,6 @@ import { extractApiErrorMessage } from '#/lib/api-error'
 import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
 import { useFeature } from '#/lib/features'
 import { useHasPermission } from '#/lib/permissions'
-import { appToastManager } from '#/lib/toast'
 import { ROLE_STATUS } from '../role-form'
 import { RoleFormDialog } from '../role-form-dialog'
 import { createRoleListFeature } from './feature'
@@ -44,7 +43,7 @@ const DEFAULT_HIDDEN_COLUMNS: readonly string[] = []
  * 列顺序即白名单。ID 排第一（便于与后端数据对照），其余按「标识 → 说明 → 状态 → 派生 → 时间」。
  * 列 id 必须等于后端字段名（排序时直接作为 `field` 参数）。
  */
-const ROLE_COLUMN_SPECS: SchemaColumnSpec<RoleItem>[] = [
+const ROLE_COLUMN_SPECS: (string | SchemaColumnSpec<RoleItem>)[] = [
   { field: 'id', render: 'code' },
   'name',
   { field: 'code', render: 'code' },

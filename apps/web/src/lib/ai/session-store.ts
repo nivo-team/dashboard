@@ -391,8 +391,10 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
       parts.some((part) => part.type === 'nav-proposal' && part.id === id)
     if (!get().messages.some((message) => has(message.parts))) return
 
-    set((state) => ({
-      messages: state.messages.map((message) =>
+    // 内层回调参数**必须**改名：它一旦也叫 `state`，下面 `{ ...part, state }`
+    // 写进去的就是整份 session 状态，而不是调用方传进来的目标状态（accepted/dismissed）。
+    set((session) => ({
+      messages: session.messages.map((message) =>
         has(message.parts)
           ? {
               ...message,

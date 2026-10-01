@@ -28,6 +28,10 @@ pnpm typecheck        # tsc --noEmit
 pnpm contract         # 按 contract.config.json 同步契约（默认从本地 mock 拉）
 pnpm api              # 一键：同步契约 + 在 packages/api-client 内生成 SDK/类型/schema/Query/派生索引
 pnpm guardrails       # 铁律的机器检查（CI 用，scripts/ai/check-guardrails.mjs）
+pnpm i18n:dry         # 只看「哪些键待翻译」，不写文件、不调 AI
+pnpm i18n             # 补翻译：只翻增量、带缓存（需 DSH_GATEWAY_* 凭据）
+pnpm i18n:check       # 键是否齐全 + 译文是否最新 + 类型是否同步（CI 用）
+pnpm i18n:types       # 重新生成 i18n 键类型（改了 zh-CN.json 后跑）
 ```
 
 路由文件在 `pnpm dev` / `pnpm build` 时由 `@tanstack/router-plugin` 自动侦测并生成
@@ -51,6 +55,7 @@ pnpm guardrails       # 铁律的机器检查（CI 用，scripts/ai/check-guardr
 | 改样式 / 用 Kumo 组件 / RTL 适配 | [ui-and-styling.md](./.agents/docs/ui-and-styling.md) |
 | 加 store / 改持久化 / 切应用作用域 | [store.md](./.agents/docs/store.md) |
 | 改登录登出 / 加 UI 文案 / 字典枚举 | [auth-and-i18n.md](./.agents/docs/auth-and-i18n.md) · [dict-i18n.md](./.agents/docs/dict-i18n.md) · [dict-options.md](./.agents/docs/dict-options.md) |
+| **加/改用户可见文案（i18n 翻译流水线）** | [i18n-translation-pipeline.md](./.agents/docs/i18n-translation-pipeline.md) —— 只写 `zh-CN`，其它语言交给 `pnpm i18n` |
 | **加需要权限的页面 / 按钮 / 菜单 / AI 工具** | [permissions-architecture.md](./.agents/docs/permissions-architecture.md)（唯一判定点 `hasPermission`、`Admin` 不是超管、三个导航过滤入口、守卫与按钮级收口） |
 | 改接口调用 / 生成产物 / 缓存策略 | [api-client.md](./.agents/docs/api-client.md) |
 | **改 Mock 接口 / 加一个接口** | [apps/mock/README.md](./apps/mock/README.md) —— 接口定义即契约 |
@@ -73,8 +78,12 @@ pnpm guardrails       # 铁律的机器检查（CI 用，scripts/ai/check-guardr
 
 ## 铁律（任何改动都适用，不必读文档）
 
-1. **用户可见文案 7 语言齐**（`zh-CN` / `en-US` / `ja-JP` / `ar-SA` / `hi-IN` / `es-ES` / `tr-TR`）
-   —— **只改中文等于没改**。
+1. **只写源语言 `zh-CN`，其它语言交给流水线**：新增/修改用户可见文案时**只改**
+   `apps/web/src/messages/<ns>/zh-CN.json`，**不要手写其它 6 种语言** ——
+   它们由 `pnpm i18n`（或 CI 的 `translate.yml`）用 AI 补齐，带缓存、只翻增量。
+   写错键名会在 `pnpm typecheck` / `pnpm build` 直接报错（用 `#/lib/use-typed-t` 的
+   `useT('ns')`）；`pnpm i18n:check` 会拦住「没补翻译就合并」。详见
+   [i18n-translation-pipeline.md](./.agents/docs/i18n-translation-pipeline.md)。
 2. **禁用 Tailwind 的 `dark:` 变体**（主题由根节点 `data-mode` 驱动）、**禁用 `tracking-*`**、
    **严禁 `font-bold`**（标题 `font-semibold`、强调 `font-medium`）；颜色只用 Kumo 语义令牌
    （`bg-kumo-base` / `text-kumo-default` / `border-kumo-line` …）。

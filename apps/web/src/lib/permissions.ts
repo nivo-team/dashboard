@@ -96,6 +96,17 @@ export function getPermissionContext(override?: PermissionContext): PermissionCo
  * 2. 增强签名：`hasPermission(requirement, context?)` —— 支持权限对象、通配、数组、角色配置，
  *    未传 context 时自动从 `usePermissionStore` 读取当前激活状态。
  */
+/**
+ * `Array.isArray` 的类型守卫签名是 `arg is any[]`，**收窄不了 `readonly string[]`**。
+ * 于是 `Array.isArray(requirement)` 之后再访问 `requirement.role` 会报 TS2339
+ * （`readonly string[]` 上当然没有 `role`）。用它替代，类型守卫才能正确排除数组分支。
+ */
+function isPermissionArray(
+  requirement: PermissionRequirement,
+): requirement is readonly string[] {
+  return Array.isArray(requirement)
+}
+
 export function hasPermission(
   permissions: readonly string[],
   pattern: string,
@@ -134,7 +145,7 @@ export function hasPermission(
   }
 
   // 4. 数组模式：默认全部满足 (ALL)
-  if (Array.isArray(requirement)) {
+  if (isPermissionArray(requirement)) {
     if (requirement.length === 0) return true
     return requirement.every((req) => hasPermission(req, context))
   }

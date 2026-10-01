@@ -7,6 +7,8 @@ import { expandRouteRefs } from './route-refs'
 import { resolveRecentBoundary } from './history-boundary'
 import type {
   AiAttachment,
+  AiImageAttachment,
+  AiImageFile,
   AiMessage,
   AiMessagePart,
   AiStreamEvent,
@@ -464,7 +466,12 @@ export function toModelMessages(messages: readonly AiMessage[]): ModelMessage[] 
       const promptText = [text, fileBlocks].filter(Boolean).join('\n\n')
 
       const images = attachmentParts.filter(
-        (part) => part.type === 'image' || part.kind === 'image',
+        (
+          part,
+        ): part is
+          | ({ type: 'image' } & AiImageAttachment)
+          | ({ type: 'attachment' } & AiImageFile) =>
+          part.type === 'image' || (part.type === 'attachment' && part.kind === 'image'),
       )
 
       const content: Array<Record<string, unknown>> = []

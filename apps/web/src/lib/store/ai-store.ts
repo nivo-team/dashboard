@@ -156,10 +156,13 @@ function normalizeProvider(value: unknown): AiProviderConfig | null {
   if (typeof raw.id !== 'string' || !raw.id) return null
 
   // 旧存档平滑迁移：旧版 'compatible' 自动迁移为 'openai' + openAiFormat: 'compatible'
+  // 注意：'compatible' 已不在 `AiProviderKind` 里，直接比较类型会被判「无重叠」——
+  // 这里刻意按 string 比较，因为要认的就是**历史字面量**。
+  const rawKind = raw.kind as string | undefined
   let kind: AiProviderKind
-  if (raw.kind === 'compatible' || raw.kind === 'openai') {
+  if (rawKind === 'compatible' || rawKind === 'openai') {
     kind = 'openai'
-  } else if (raw.kind === 'anthropic') {
+  } else if (rawKind === 'anthropic') {
     kind = 'anthropic'
   } else {
     return null

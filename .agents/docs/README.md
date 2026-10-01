@@ -31,6 +31,7 @@
 | [api-client.md](./api-client.md) | 改接口调用 / 生成产物：生成链路、响应拦截、Query 缓存分区 |
 | [table-query-and-crud.md](./table-query-and-crud.md) | 表格 URL 参数与 CRUD：nuqs 状态管理、编译期严格 Query 类型函数、Mock 增删改查闭环 |
 | [form-architecture.md](./form-architecture.md) | 表单架构与人机协同：单表单组件、URL 驱动状态、弹窗/分屏/独立路由三态自适应、AI 表单桥闭环 |
+| [i18n-translation-pipeline.md](./i18n-translation-pipeline.md) | **加/改用户可见文案之前**：只写 `zh-CN`、其它语言交给 `pnpm i18n`（缓存/按模块/CI 流水线）、键类型的编译期校验、为什么不用 i18next 内置 `resources` |
 
 ## 业务模块
 

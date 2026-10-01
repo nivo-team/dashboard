@@ -224,7 +224,7 @@ export function useFeatureColumns(options?: {
   const renderers = useFeatureColumnRenderers(options?.onOpenNode)
 
   return useSchemaColumns<MenuNode>(MenuNodeSchema, {
-    ns: 'features',
+    ns: 'menus',
     columns: options?.columns ?? FEATURE_COLUMN_SPECS,
     baseMeta: { headerClassName: FEATURE_MIN_COLUMN_WIDTH },
     renderers,

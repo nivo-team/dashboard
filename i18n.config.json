@@ -1,0 +1,70 @@
+{
+  "sourceLocale": "zh-CN",
+  "targetLocales": ["en-US", "ja-JP", "ar-SA", "hi-IN", "es-ES", "tr-TR"],
+  "messagesDir": "apps/web/src/messages",
+  "generatedTypesFile": "apps/web/src/i18n-keys.gen.ts",
+  "glossaryFile": "i18n.glossary.json",
+  "modules": {
+    "ai": { "enabled": true },
+    "auth": { "enabled": true },
+    "common": { "enabled": true },
+    "dashboard": { "enabled": true },
+    "dataDict": { "enabled": true },
+    "langs": { "enabled": false, "reason": "仅 zh-CN 的遗留命名空间，待确认后删除" },
+    "menus": { "enabled": true },
+    "roles": { "enabled": true },
+    "system": { "enabled": true },
+    "users": { "enabled": true }
+  },
+  "cache": {
+    "dir": ".cache/i18n",
+    "ttlDays": 30,
+    "version": 1
+  },
+  "limits": {
+    "maxKeysPerRun": 2000,
+    "concurrency": 4,
+    "batchSize": 40
+  },
+  "check": {
+    "dynamicKeyPrefixes": [
+      "cards.version.",
+      "cards.metrics.",
+      "apps.",
+      "columns.",
+      "tools.",
+      "sessionGroups.",
+      "greetings.",
+      "menuType.",
+      "status.",
+      "visible.",
+      "isFrame.",
+      "noCache.",
+      "valueType.",
+      "profile.settings.aiToolNames.",
+      "profile.settings.aiToolGroups.",
+      "profile.settings.aiToolGroupHints.",
+      "profile.settings.aiProviderKinds.",
+      "profile.settings.aiOpenAiFormats.",
+      "profile.settings.aiReasoningLevels."
+    ],
+    "untranslatedAllowlist": [
+      "ID",
+      "UUID",
+      "URL",
+      "URI",
+      "API",
+      "JSON",
+      "HTTP",
+      "HTTPS",
+      "HTML",
+      "CSS",
+      "SQL",
+      "Token",
+      "Name",
+      "Email",
+      "IP",
+      "OK"
+    ]
+  }
+}

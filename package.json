@@ -16,6 +16,11 @@
     "ai:deploy": "pnpm -C apps/ai deploy",
     "contract": "node packages/api-client/scripts/sync.mjs",
     "api": "pnpm contract && pnpm -C packages/api-client api",
-    "guardrails": "node scripts/ai/check-guardrails.mjs"
+    "guardrails": "node scripts/ai/check-guardrails.mjs",
+    "i18n:types": "node scripts/i18n/gen-types.mjs",
+    "i18n:check-keys": "node scripts/i18n/check-keys.mjs",
+    "i18n:check": "node scripts/i18n/check-keys.mjs --strict && node scripts/i18n/translate.mjs --check && node scripts/i18n/gen-types.mjs --check",
+    "i18n:dry": "node scripts/i18n/translate.mjs --dry --stats",
+    "i18n": "node scripts/i18n/translate.mjs"
   }
 }

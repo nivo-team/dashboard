@@ -1,6 +1,5 @@
 import {
   Badge,
-  Button,
   LayerDialog,
   Tabs,
   Textarea,
@@ -14,18 +13,13 @@ import {
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  isAiProviderKind,
   useAiConfigStore,
-  type AiModelConfig,
   type AiOpenAiFormat,
   type AiProviderConfig,
   type AiProviderKind,
   type AiReasoningLevel,
 } from '#/lib/store'
-import {
-  decodeUtf8Base64,
-  type ExportedAiProviderPackage,
-} from './ai-provider-export-dialog'
+import { decodeUtf8Base64 } from './ai-provider-export-dialog'
 
 export interface AiProviderImportDialogProps {
   open: boolean

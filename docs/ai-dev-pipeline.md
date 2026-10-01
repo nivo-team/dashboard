@@ -70,7 +70,7 @@ L2 门控层   .github/workflows/ci.yml
 | [`ai/run-agent.sh`](../.github/ai/run-agent.sh) | CLI 适配层：**默认 `dsh`**，可切 `claude` / `omp`；换 CLI 或换 flag 只改这一个文件 |
 | [`workflows/ci.yml`](../.github/workflows/ci.yml) | 门控：铁律门控 + typecheck + build + 生成物同步 |
 | [`scripts/ai/check-guardrails.mjs`](../scripts/ai/check-guardrails.mjs) | 把铁律变成机器可判定的检查 |
-| [`ai/i18n-baseline.json`](../.github/ai/i18n-baseline.json) | i18n 存量欠债的显式基线（见 §9） |
+| [`workflows/translate.yml`](../.github/workflows/translate.yml) | i18n 翻译流水线：把 `zh-CN` 的增量翻到目标语言，推分支由人开 PR（见 [.agents/docs/i18n-translation-pipeline.md](../.agents/docs/i18n-translation-pipeline.md)） |
 | [`workflows/labels.yml`](../.github/workflows/labels.yml) + [`labels.yml`](../.github/labels.yml) | 标签体系的唯一真值，自动同步到 GitHub |
 
 ---
@@ -260,7 +260,7 @@ apps/web/src/features/home/metrics-card.tsx
 
 | 铁律 | 机器门控 | 强度 |
 | --- | --- | --- |
-| 1. 文案 7 语言齐 | `check-guardrails.mjs` 键树比对（全量） | **ERROR**（存量走基线） |
+| 1. 只写 `zh-CN`，其它语言由流水线补 | `check-keys.mjs`（代码↔源语言，**ERROR**）+ `translate.mjs --check`（译文等齐，**ERROR**）；`check-guardrails.mjs` 对「缺译文」只报 WARN（新契约下缺译文是正常中间态） | **ERROR** |
 | 2. 禁 `dark:` / `tracking-*` / `font-bold` | 同上，扫 diff 新增行 | **ERROR** |
 | 3. 名单只有一个真值 | 无（语义级，机器判不了） | 靠提示词 + 人工 review |
 | 4. 给模型的内容过函数、过滤集中 | 无（同上） | 靠提示词 + 人工 review |
@@ -281,14 +281,14 @@ apps/web/src/features/home/metrics-card.tsx
    - `clipboard.*`（复制按钮）
    → 影响：非中文使用者在这三处会看到**中文**（或 key）。
 
-   **处置**：存量写进 [`i18n-baseline.json`](../.github/ai/i18n-baseline.json) 豁免，
-   新增违规一律挡住。修好之后跑 `node scripts/ai/check-guardrails.mjs --write-baseline`
-   收窄基线（脚本会主动提醒，防止基线腐化成永久豁免）。
+   **处置（2026-10 已更新）**：原先是写进 `i18n-baseline.json` 豁免。**该机制已移除** ——
+   新契约下「缺译文」只报 WARN、不再阻塞开发，而「源语言缺键」本就是错误、不该豁免。
+   这 54 条后续已补齐；剩下的缺口交给 `translate.mjs --check` 在 CI 拦住。
 
-2. **`langs` 命名空间只有 `zh-CN.json`**（1/7 语言），而它是真 UI 命名空间
-   （`useTranslation('langs')`，语言包管理页在用）。
-   **处置**：脚本报 warning 不报 error —— 无法由机器判定它是「遗漏」还是「刻意单语言」。
-   若确认是遗漏，应补 6 个语言文件；若刻意，把理由写进脚本的例外清单。
+2. **`langs` 命名空间只有 `zh-CN.json`**（1/7 语言）。
+   **处置**：脚本报 WARN 不报 ERROR（无法由机器判定是「遗漏」还是「刻意单语言」）。
+   排查后确认**全仓零引用**（`useTranslation('langs')` 已不存在），
+   已在 `i18n.config.json` 标 `enabled: false`，待确认后连同文件一起删除。
 
 ---
 

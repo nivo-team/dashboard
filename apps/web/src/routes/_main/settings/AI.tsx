@@ -231,7 +231,7 @@ function AiPageWidthPreview({
   accentColor: string
 }) {
   const resolved = mode === 'follow' ? followMode : mode
-  const layout = usePreviewAnimation(
+  const layout = usePreviewAnimation<AppShellPreviewLayout>(
     {
       content: 'list',
       panel: 'none',

@@ -75,7 +75,8 @@
       "nickname": "उपनाम",
       "createtime": "पंजीकरण तिथि",
       "id": "आईडी",
-      "email": "ईमेल"
+      "email": "ईमेल",
+      "logintime": "अंतिम लॉगिन"
     }
   },
   "actions": {

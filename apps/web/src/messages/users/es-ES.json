@@ -75,7 +75,8 @@
       "nickname": "Alias",
       "createtime": "Registro",
       "id": "ID",
-      "email": "Correo"
+      "email": "Correo",
+      "logintime": "Último inicio de sesión"
     }
   },
   "actions": {

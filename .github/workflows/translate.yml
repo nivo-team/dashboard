@@ -1,0 +1,159 @@
+name: i18n 翻译
+
+# 把源语言（zh-CN）的新增/变更文案翻到目标语言，产出分支由人开 PR。
+#
+# 为什么不是「开发者顺手补翻译」：新契约下开发阶段只写 zh-CN
+# （见 AGENTS.md 铁律 1），其它语言统一由这里补齐 —— 缓存命中时零 token，
+# 只有真正变更的键才会调用模型。
+#
+# 与 ai-implement.yml 的分工：那边是「issue → 写代码」，这边是「代码 → 补翻译」。
+# 两者共用同一套网关凭据（DSH_GATEWAY_*），不新增 Secret。
+#
+# 三个触发入口：
+#   1. 给 issue 打 `i18n:ready` 标签（人打的，天然可信）；
+#   2. Actions 页面手动 Run workflow（可指定语言/模块）；
+#   3. 被别的 workflow 调用（workflow_call）。
+#
+# 默认**不自动开 PR**：用 GITHUB_TOKEN 开的 PR 不会触发 CI（防递归），
+# 反而制造「门控在工作」的错觉 —— 与 ai-implement 的取舍一致（见 docs/ai-dev-pipeline.md §14.3）。
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      locales:
+        description: '目标语言（逗号分隔，短码也行如 en,ar；留空=全部）'
+        required: false
+        default: ''
+      modules:
+        description: '模块（逗号分隔，如 users,roles；留空=全部）'
+        required: false
+        default: ''
+      force:
+        description: '忽略缓存重翻（true/false）'
+        required: false
+        default: 'false'
+
+concurrency:
+  group: i18n-translate
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  translate:
+    # 只有 `i18n:ready` 标签才触发（issues.labeled 对任何标签都会触发）
+    if: github.event_name != 'issues' || github.event.label.name == 'i18n:ready'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 翻译脚本只依赖 Node 内置模块，因此**不需要 pnpm install** —— 起跑更快
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: 检查配置
+        env:
+          DSH_GATEWAY_KEY: ${{ secrets.DSH_GATEWAY_KEY }}
+          DSH_GATEWAY_BASE_URL: ${{ vars.DSH_GATEWAY_BASE_URL }}
+          DSH_GATEWAY_MODEL: ${{ vars.DSH_GATEWAY_MODEL }}
+          DSH_GATEWAY_API: ${{ vars.DSH_GATEWAY_API }}
+        run: |
+          missing=0
+          for name in DSH_GATEWAY_KEY DSH_GATEWAY_BASE_URL DSH_GATEWAY_MODEL; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::$name 未配置（Settings → Secrets and variables → Actions）"
+              missing=1
+            fi
+          done
+          exit $missing
+
+      - name: i18n 现状报告（翻译前）
+        run: node scripts/i18n/translate.mjs --dry --stats
+
+      # 缓存译文：同一段源文 + 同一目标语言只翻一次。
+      # 缓存本身不进仓库（.cache 已被 .gitignore 忽略），而是走 Actions cache。
+      - name: 恢复翻译缓存
+        uses: actions/cache@v4
+        with:
+          path: .cache/i18n
+          key: i18n-cache-${{ github.run_id }}
+          restore-keys: |
+            i18n-cache-
+
+      - name: 运行翻译
+        env:
+          DSH_GATEWAY_KEY: ${{ secrets.DSH_GATEWAY_KEY }}
+          DSH_GATEWAY_BASE_URL: ${{ vars.DSH_GATEWAY_BASE_URL }}
+          DSH_GATEWAY_MODEL: ${{ vars.DSH_GATEWAY_MODEL }}
+          DSH_GATEWAY_API: ${{ vars.DSH_GATEWAY_API }}
+          I18N_TARGET_LOCALES: ${{ github.event.inputs.locales }}
+          I18N_MODULES: ${{ github.event.inputs.modules }}
+        run: |
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+            node scripts/i18n/translate.mjs --force
+          else
+            node scripts/i18n/translate.mjs
+          fi
+
+      - name: 校验（不允许有漏翻）
+        run: node scripts/i18n/translate.mjs --check
+
+      - name: 是否有改动
+        id: diff
+        run: |
+          if git diff --quiet -- apps/web/src/messages; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "没有需要提交的翻译改动。"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --stat -- apps/web/src/messages
+          fi
+
+      - name: 提交并推分支
+        if: steps.diff.outputs.changed == 'true'
+        id: push
+        env:
+          GH_TOKEN: ${{ secrets.AI_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="i18n/translate-${GITHUB_RUN_ID}"
+          git config user.name "i18n-bot"
+          git config user.email "i18n-bot@users.noreply.github.com"
+          git add apps/web/src/messages
+          git commit -m "chore(i18n): 补齐目标语言译文（run ${GITHUB_RUN_ID}）"
+          git push origin "HEAD:refs/heads/$BRANCH"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: 回写到 issue（打 i18n:ready 触发时）
+        if: steps.diff.outputs.changed == 'true' && github.event_name == 'issues'
+        env:
+          GH_TOKEN: ${{ secrets.AI_PAT || secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ steps.push.outputs.branch }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --body "$(cat <<EOF
+          🌐 译文已生成并推到分支 \`$BRANCH\`。
+
+          一键创建 PR：
+          https://github.com/${{ github.repository }}/compare/${{ github.event.repository.default_branch }}...$BRANCH?expand=1
+
+          合并前请抽查译文（尤其是新增的键）。
+          EOF
+          )"
+
+      - name: 没有改动时也在 issue 留个回执
+        if: steps.diff.outputs.changed == 'false' && github.event_name == 'issues'
+        env:
+          GH_TOKEN: ${{ secrets.AI_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --body "✔ 所有目标语言的译文都是最新的，无需翻译。"
