@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { deleteDataDictById, deleteDataDictTypeById, deleteSystemMenuById, deleteUserById, getApi, getApps, getDataDict, getDataDictOptions, getDataDictTypeTree, getProfile, getSystemMenuTree, getUser, getUserById, type Options, postDataDict, postDataDictType, postLogin, postLogout, postSystemMenu, postUser, postUserBatchDelete, putDataDict, putDataDictType, putSystemMenu, putUser } from '../sdk.gen';
-import type { DeleteDataDictByIdData, DeleteDataDictByIdResponse, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponse, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponse, DeleteUserByIdData, DeleteUserByIdResponse, GetApiData, GetApiResponse, GetAppsData, GetAppsResponse, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponse, GetDataDictResponse, GetDataDictTypeTreeData, GetDataDictTypeTreeResponse, GetProfileData, GetProfileResponse, GetSystemMenuTreeData, GetSystemMenuTreeResponse, GetUserByIdData, GetUserByIdResponse, GetUserData, GetUserResponse, PostDataDictData, PostDataDictResponse, PostDataDictTypeData, PostDataDictTypeResponse, PostLoginData, PostLoginResponse, PostLogoutData, PostLogoutResponse, PostSystemMenuData, PostSystemMenuResponse, PostUserBatchDeleteData, PostUserBatchDeleteResponse, PostUserData, PostUserResponse, PutDataDictData, PutDataDictResponse, PutDataDictTypeData, PutDataDictTypeResponse, PutSystemMenuData, PutSystemMenuResponse, PutUserData, PutUserResponse } from '../types.gen';
+import { deleteDataDictById, deleteDataDictTypeById, deleteSystemMenuById, deleteUserById, getApi, getApps, getDataDict, getDataDictOptions, getDataDictTypeTree, getPermissions, getProfile, getSystemMenuTree, getUser, getUserById, type Options, postDataDict, postDataDictType, postLogin, postLogout, postSystemMenu, postUser, postUserBatchDelete, putDataDict, putDataDictType, putSystemMenu, putUser } from '../sdk.gen';
+import type { DeleteDataDictByIdData, DeleteDataDictByIdResponse, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponse, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponse, DeleteUserByIdData, DeleteUserByIdResponse, GetApiData, GetApiResponse, GetAppsData, GetAppsResponse, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponse, GetDataDictResponse, GetDataDictTypeTreeData, GetDataDictTypeTreeResponse, GetPermissionsData, GetPermissionsResponse, GetProfileData, GetProfileResponse, GetSystemMenuTreeData, GetSystemMenuTreeResponse, GetUserByIdData, GetUserByIdResponse, GetUserData, GetUserResponse, PostDataDictData, PostDataDictResponse, PostDataDictTypeData, PostDataDictTypeResponse, PostLoginData, PostLoginResponse, PostLogoutData, PostLogoutResponse, PostSystemMenuData, PostSystemMenuResponse, PostUserBatchDeleteData, PostUserBatchDeleteResponse, PostUserData, PostUserResponse, PutDataDictData, PutDataDictResponse, PutDataDictTypeData, PutDataDictTypeResponse, PutSystemMenuData, PutSystemMenuResponse, PutUserData, PutUserResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -323,6 +323,24 @@ export const postLogoutMutation = (options?: Partial<Options<PostLogoutData>>): 
     };
     return mutationOptions;
 };
+
+export const getPermissionsQueryKey = (options?: Options<GetPermissionsData>) => createQueryKey('getPermissions', options);
+
+/**
+ * 获取当前用户的权限点清单（细到按钮级），供前端在把 AI 工具交给模型前过滤
+ */
+export const getPermissionsQueryOptions = (options?: Options<GetPermissionsData>) => queryOptions<GetPermissionsResponse, DefaultError, GetPermissionsResponse, ReturnType<typeof getPermissionsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPermissions({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPermissionsQueryKey(options)
+});
 
 export const getProfileQueryKey = (options?: Options<GetProfileData>) => createQueryKey('getProfile', options);
 

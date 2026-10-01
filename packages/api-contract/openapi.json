@@ -581,6 +581,37 @@
         "description": "退出登录"
       }
     },
+    "/permissions": {
+      "get": {
+        "tags": [
+          "认证"
+        ],
+        "parameters": [
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "description": "Mock 专用：模拟不同角色（super / editor / viewer），不传等价于 super",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "权限点清单",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionsResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "获取当前用户的权限点清单（细到按钮级），供前端在把 AI 工具交给模型前过滤"
+      }
+    },
     "/profile": {
       "get": {
         "tags": [
@@ -1533,6 +1564,42 @@
             "required": [
               "token",
               "uid"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "PermissionsResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "description": "角色标识"
+              },
+              "permissions": {
+                "type": "array",
+                "description": "权限点，形如 user:delete",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "role",
+              "permissions"
             ]
           }
         },

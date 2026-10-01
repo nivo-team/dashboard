@@ -468,6 +468,43 @@ export const LoginResultSchema = {
     ]
 } as const;
 
+export const PermissionsResultSchema = {
+    type: 'object',
+    properties: {
+        code: {
+            type: 'integer',
+            description: '0 表示成功'
+        },
+        message: {
+            type: 'string'
+        },
+        result: {
+            type: 'object',
+            properties: {
+                role: {
+                    type: 'string',
+                    description: '角色标识'
+                },
+                permissions: {
+                    type: 'array',
+                    description: '权限点，形如 user:delete',
+                    items: {
+                        type: 'string'
+                    }
+                }
+            },
+            required: [
+                'role',
+                'permissions'
+            ]
+        }
+    },
+    required: [
+        'code',
+        'result'
+    ]
+} as const;
+
 export const ProfileResultSchema = {
     type: 'object',
     properties: {

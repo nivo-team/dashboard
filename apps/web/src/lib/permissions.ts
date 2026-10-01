@@ -1,6 +1,6 @@
-import { queryOptions } from '@tanstack/react-query'
 import type { QueryClient } from '@tanstack/react-query'
-import { client } from '#/api'
+import { getPermissionsQueryOptions } from '#/api'
+import type { GetPermissionsResponse } from '#/api'
 
 /**
  * 当前用户的**权限点清单**（细到按钮级，来自后端）。
@@ -21,14 +21,15 @@ import { client } from '#/api'
  * - `sendAiMessage`（`chat.ts`）是**模块函数**，不在 React 树里 —— 用
  *   `ensureQueryData` 同步拿到（首次会自动拉一次），不必自己造缓存；
  * - 权限变更不频繁，`staleTime` 给 5 分钟，避免每次发消息都打接口。
+ *
+ * ## 字段从哪来
+ *
+ * 请求与类型都直接用**契约生成物**（`apps/web/src/api/generated`）：后端改字段时
+ * 这里跟着报错，而不是静默漂移。所以本文件**不再另写一份 `interface`**。
  */
 
-export interface UserPermissions {
-  /** 角色标识（给人看 / 排查用） */
-  role: string
-  /** 权限点，形如 `user:delete` */
-  permissions: readonly string[]
-}
+/** 当前用户的权限点清单（= 契约里 `GET /permissions` 的 `result`）。 */
+export type UserPermissions = GetPermissionsResponse['result']
 
 /** 权限点匹配：`*` 可通配模块或动作（`*:read` = 任一模块的读权限）。 */
 export function matchesPermission(owned: string, pattern: string): boolean {
@@ -49,26 +50,16 @@ export function hasPermission(
   return permissions.some((owned) => matchesPermission(owned, pattern))
 }
 
-export const USER_PERMISSIONS_QUERY_KEY = ['user-permissions'] as const
-
+/**
+ * 权限清单的查询选项 —— 直接用契约生成的那一份（它自带 `throwOnError`，
+ * 失败会抛给下面的 `ensureUserPermissions`），只覆盖 `staleTime`。
+ */
 export function userPermissionsQueryOptions() {
-  return queryOptions({
-    queryKey: USER_PERMISSIONS_QUERY_KEY,
-    queryFn: async (): Promise<UserPermissions> => {
-      const result = await client.get({ url: '/permissions' })
-      if (result.error) {
-        const message =
-          typeof result.error === 'string' ? result.error : JSON.stringify(result.error)
-        throw new Error(`读取权限清单失败：${message}`)
-      }
-      const data = result.data as { result?: UserPermissions } | undefined
-      return {
-        role: data?.result?.role ?? '',
-        permissions: data?.result?.permissions ?? [],
-      }
-    },
+  return {
+    ...getPermissionsQueryOptions(),
+    // 权限不常变：5 分钟内复用，避免每次发消息都打接口
     staleTime: 5 * 60 * 1000,
-  })
+  }
 }
 
 /**
@@ -82,7 +73,12 @@ export async function ensureUserPermissions(
   queryClient: QueryClient,
 ): Promise<UserPermissions> {
   try {
-    return await queryClient.ensureQueryData(userPermissionsQueryOptions())
+    const data = await queryClient.ensureQueryData(userPermissionsQueryOptions())
+    // 结构缺失时退回空清单（与接口失败同样是"降级成更保守"）
+    return {
+      role: data.result?.role ?? '',
+      permissions: data.result?.permissions ?? [],
+    }
   } catch {
     return { role: '', permissions: [] }
   }

@@ -159,6 +159,17 @@ export const ENDPOINT_SPECS: Record<string, EndpointSpec> = {
   "POST /logout": {
     "summary": "退出登录"
   },
+  "GET /permissions": {
+    "summary": "获取当前用户的权限点清单（细到按钮级），供前端在把 AI 工具交给模型前过滤",
+    "params": [
+      {
+        "name": "role",
+        "in": "query",
+        "required": false,
+        "description": "Mock 专用：模拟不同角色（super / editor / viewer），不传等价于 super"
+      }
+    ]
+  },
   "GET /profile": {
     "summary": "获取当前登录用户信息"
   },

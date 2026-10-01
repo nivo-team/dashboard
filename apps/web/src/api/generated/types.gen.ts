@@ -316,6 +316,24 @@ export type LoginResult = {
     };
 };
 
+export type PermissionsResult = {
+    /**
+     * 0 表示成功
+     */
+    code: number;
+    message?: string;
+    result: {
+        /**
+         * 角色标识
+         */
+        role: string;
+        /**
+         * 权限点，形如 user:delete
+         */
+        permissions: Array<string>;
+    };
+};
+
 export type ProfileResult = {
     /**
      * 0 表示成功
@@ -950,6 +968,27 @@ export type PostLogoutResponses = {
 };
 
 export type PostLogoutResponse = PostLogoutResponses[keyof PostLogoutResponses];
+
+export type GetPermissionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Mock 专用：模拟不同角色（super / editor / viewer），不传等价于 super
+         */
+        role?: string;
+    };
+    url: '/permissions';
+};
+
+export type GetPermissionsResponses = {
+    /**
+     * 权限点清单
+     */
+    200: PermissionsResult;
+};
+
+export type GetPermissionsResponse = GetPermissionsResponses[keyof GetPermissionsResponses];
 
 export type GetProfileData = {
     body?: never;

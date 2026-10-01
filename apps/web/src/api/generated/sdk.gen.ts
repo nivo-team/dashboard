@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteDataDictByIdData, DeleteDataDictByIdResponses, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponses, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponses, DeleteUserByIdData, DeleteUserByIdResponses, GetApiData, GetApiResponses, GetAppsData, GetAppsResponses, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponses, GetDataDictResponses, GetDataDictTypeTreeData, GetDataDictTypeTreeResponses, GetProfileData, GetProfileResponses, GetSystemMenuTreeData, GetSystemMenuTreeResponses, GetUserByIdData, GetUserByIdResponses, GetUserData, GetUserResponses, PostDataDictData, PostDataDictResponses, PostDataDictTypeData, PostDataDictTypeResponses, PostLoginData, PostLoginResponses, PostLogoutData, PostLogoutResponses, PostSystemMenuData, PostSystemMenuResponses, PostUserBatchDeleteData, PostUserBatchDeleteResponses, PostUserData, PostUserResponses, PutDataDictData, PutDataDictResponses, PutDataDictTypeData, PutDataDictTypeResponses, PutSystemMenuData, PutSystemMenuResponses, PutUserData, PutUserResponses } from './types.gen';
+import type { DeleteDataDictByIdData, DeleteDataDictByIdResponses, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponses, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponses, DeleteUserByIdData, DeleteUserByIdResponses, GetApiData, GetApiResponses, GetAppsData, GetAppsResponses, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponses, GetDataDictResponses, GetDataDictTypeTreeData, GetDataDictTypeTreeResponses, GetPermissionsData, GetPermissionsResponses, GetProfileData, GetProfileResponses, GetSystemMenuTreeData, GetSystemMenuTreeResponses, GetUserByIdData, GetUserByIdResponses, GetUserData, GetUserResponses, PostDataDictData, PostDataDictResponses, PostDataDictTypeData, PostDataDictTypeResponses, PostLoginData, PostLoginResponses, PostLogoutData, PostLogoutResponses, PostSystemMenuData, PostSystemMenuResponses, PostUserBatchDeleteData, PostUserBatchDeleteResponses, PostUserData, PostUserResponses, PutDataDictData, PutDataDictResponses, PutDataDictTypeData, PutDataDictTypeResponses, PutSystemMenuData, PutSystemMenuResponses, PutUserData, PutUserResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -117,6 +117,11 @@ export const postLogin = <ThrowOnError extends boolean = false>(options: Options
  * 退出登录
  */
 export const postLogout = <ThrowOnError extends boolean = false>(options?: Options<PostLogoutData, ThrowOnError>): RequestResult<PostLogoutResponses, unknown, ThrowOnError> => (options?.client ?? client).post<PostLogoutResponses, unknown, ThrowOnError>({ url: '/logout', ...options });
+
+/**
+ * 获取当前用户的权限点清单（细到按钮级），供前端在把 AI 工具交给模型前过滤
+ */
+export const getPermissions = <ThrowOnError extends boolean = false>(options?: Options<GetPermissionsData, ThrowOnError>): RequestResult<GetPermissionsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetPermissionsResponses, unknown, ThrowOnError>({ url: '/permissions', ...options });
 
 /**
  * 获取当前登录用户信息
