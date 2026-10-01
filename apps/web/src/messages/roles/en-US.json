@@ -1,0 +1,78 @@
+{
+  "title": "Role Management",
+  "description": "Manage roles and the menus they can see; accounts map to a role by its code",
+  "searchPlaceholder": "Search role name or code…",
+  "quota": "<b>{{total}}</b> total",
+  "menuTree": {
+    "action": "Action",
+    "loading": "Loading…"
+  },
+  "actions": {
+    "create": "New role"
+  },
+  "empty": {
+    "title": "No roles yet",
+    "description": "No roles yet — use “New role” to create one"
+  },
+  "columns": {
+    "id": "ID",
+    "name": "Name",
+    "code": "Code",
+    "description": "Description",
+    "status": "Status",
+    "menu_count": "Granted menus",
+    "created_at": "Created",
+    "updated_at": "Updated",
+    "actions": "Actions"
+  },
+  "status": {
+    "enabled": "Enabled",
+    "disabled": "Disabled"
+  },
+  "rowActions": {
+    "label": "More actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "messages": {
+    "fetchFailed": "Failed to load roles"
+  },
+  "form": {
+    "name": "Role name",
+    "nameDescription": "Display name, 2–50 characters",
+    "nameRequired": "Please enter a role name",
+    "nameTooLong": "Name cannot exceed 50 characters",
+    "code": "Role code",
+    "codeDescription": "Starts with a lowercase letter; accounts map to the role by it",
+    "codeLocked": "Built-in role codes cannot be changed",
+    "codeRequired": "Please enter a role code",
+    "codeInvalid": "Code must start with a lowercase letter, then lowercase letters, digits, _ or -",
+    "description": "Description",
+    "sort": "Sort",
+    "sortDescription": "Ascending within the same level",
+    "statusEnabled": "Enabled",
+    "statusDisabled": "Disabled",
+    "save": "Save",
+    "cancel": "Cancel",
+    "create": "Create",
+    "createTitle": "New role",
+    "createDescription": "After creating, open the detail page to grant visible menus",
+    "successCreate": "Role created",
+    "successUpdate": "Saved",
+    "failed": "Operation failed, please try again",
+    "deleteFailed": "Delete failed, please try again"
+  },
+  "detail": {
+    "basicInfo": "Basic information",
+    "menuGrant": "Visible menus",
+    "menuGrantHint": "Checked menus appear in this role's navigation; checking a child also selects its parents.",
+    "loading": "Loading…",
+    "details": "Details",
+    "id": "Role ID",
+    "menuCount": "Granted menus",
+    "notFound": "Role not found",
+    "deleteTitle": "Delete role",
+    "deleteConfirm": "This cannot be undone. Role <b>{{name}}</b> and its menu grants will be permanently deleted.",
+    "deleteSuccess": "Role deleted"
+  }
+}

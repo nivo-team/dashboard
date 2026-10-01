@@ -1,12 +1,32 @@
-# 功能（Features）模块
+# 菜单管理 / 角色管理模块
 
 > 面向「接手继续开发」的现状说明：读完这篇不必再翻会话历史。
-> 业务代码位于 `apps/web/src/features/system/features/`（薄路由在 `apps/web/src/routes/$appId/system/features/`）；仓库级规范见 [AGENTS.md](../AGENTS.md) 第 6 节与 skill `table-development`。
-> 最后更新：2026-09-25。
+> 业务代码：菜单管理在 `apps/web/src/features/system/menus/`（薄路由 `.../routes/$appId/system/menus/`），
+> 角色管理在 `apps/web/src/features/system/roles/`（薄路由 `.../routes/$appId/system/roles/`）。
+> 仓库级规范见 [AGENTS.md](../AGENTS.md) 与 skill `table-development` / `editable-detail`。
+> 最后更新：2026-10（**模块已从「功能（Features）」更名为「菜单管理」**）。
 
-把后台原本的「菜单管理」按 Clerk 的 **Features** 概念重新呈现：**功能组（分组）→ 功能（最小交付单元）→ 权限（功能下的权限点，绑定具体接口）**。
+## 0. 术语变更（2026-10）——先读这一段
 
-**命名边界（重要）**：路由、组件、文案、i18n 命名空间一律用 Feature 语义；**数据层保持后端的 menus 命名**（`ModelSysMenu`、`getSystemMenuTree`、`postSystemMenu`、`MENU_TYPE`），因为后端资源就叫 menus —— 不要跟着重命名生成产物。
+| 旧称 | 现在叫 | 代码标识 |
+| --- | --- | --- |
+| 功能组（`menu_type=1`） | **目录** | `MENU_TYPE.directory` |
+| 功能（`menu_type=2`） | **菜单** | `MENU_TYPE.menu` |
+| 权限（`menu_type=3`） | **操作**（权限点） | `MENU_TYPE.action` |
+| ——（新增概念） | **路由地址 `path`** | 目录 / 菜单**必填**，操作留空 |
+
+**改名的边界（重要，别改错方向）**：
+
+- **已改**：UI 文案（「菜单管理」）、路由 `/system/menus`、代码目录 `features → menus`、
+  i18n 命名空间 `messages/menus`、导航键 `nav.systemMenus`；
+- **故意未改**：权限点仍是 `feature:*`（判定体系刚理顺，不动它）；
+  模块内的**文件与组件名**仍是 `feature-*`（`FeatureForm` / `useFeatureColumns`）——
+  `feature` 在此模块内是「菜单项」的代码术语，与权限点 `feature:*` 保持一致；
+  数据层继续沿用后端 `menus` 命名（`getSystemMenuTree`、`postSystemMenu`、`MENU_TYPE`），
+  **不要跟着重命名生成产物**。
+- 旧路径 `/$appId/system/features` **已不存在**，不要再引用或复活。
+
+> 本文下面出现的「功能组 / 功能 / 权限」都是**改名前的旧称**，按上表对应理解即可。
 
 ---
 
@@ -14,19 +34,19 @@
 
 | 路径 | 视图 |
 | --- | --- |
-| `/$appId/system/features` | 根容器视图：渲染 `MENU_ROOT_ID`（482）的直接子项 |
-| `/$appId/system/features/$featureId` | **同路由按 `menu_type` 分流**：功能组 → 容器视图（继续下钻）；功能/操作 → 详情视图 |
-| `/$appId/system/features/new?pid=<父id>&type=group\|button` | 创建表单（`type=group` → 功能组、`type=button` → 权限、缺省 → 功能） |
+| `/$appId/system/menus` | 根容器视图：渲染 `MENU_ROOT_ID`（482）的直接子项 |
+| `/$appId/system/menus/$featureId` | **同路由按 `menu_type` 分流**：目录 → 容器视图（继续下钻）；菜单 / 操作 → 详情视图 |
+| `/$appId/system/menus/new?pid=<父id>&type=group\|button` | 创建表单（`type=group` → 目录、`type=button` → 操作、缺省 → 菜单） |
+| `/$appId/system/roles` | 角色列表（分页 + 关键词 + 新建 / 编辑 / 删除） |
+| `/$appId/system/roles/$roleId` | 角色详情：基本信息表单 + **菜单授权树**，改动经底部浮条统一保存 |
 
-- 路由整体位于 `$appId/system/features/`：旧的 `$appId/system/menu/*` 已随本次重构**整体删除**，不要再引用或复活。
+`menu_type` 的语义：
 
-`menu_type` 的语义（后端 `model.SysMenu`）：
-
-| 值 | 含义 | 有详情页 | 表单字段差异 |
-| --- | --- | --- | --- |
-| 1 | 功能组 | 否，落在容器视图 | 无权限标识、无绑定接口 |
-| 2 | 功能 | 是（表单 + 权限表） | 全字段 |
-| 3 | 权限（功能下的权限点） | 是（弹窗增删改） | 无「显示」开关 |
+| 值 | 含义 | 有详情页 | 路由地址 `path` | 表单字段差异 |
+| --- | --- | --- | --- | --- |
+| 1 | 目录 | 否，落在容器视图 | **必填**（该目录的落地路由，如 `/system`） | 无权限标识、无绑定接口 |
+| 2 | 菜单 | 是（表单 + 操作表） | **必填**（页面路由，如 `/system/menus`） | 全字段 |
+| 3 | 操作（权限点） | 是（弹窗增删改） | 留空（按钮级权限点没有落点） | 无「显示」开关 |
 
 ## 2. 数据源：全模块只有一棵树
 
@@ -156,3 +176,37 @@ apps/web/src/routes/$appId/system/features/
 - skill `.agents/skills/table-development/SKILL.md`：表格（含「简洁表格」例外）规范
 - [路由与布局架构](./routing-architecture.md)：模块目录化约定
 - [UI 与样式设计规范](./ui-and-styling.md)：Kumo 语义令牌与设计准则
+
+---
+
+## 12. 角色管理（2026-10 新增）
+
+模块：`apps/web/src/features/system/roles/`（列表 `list/`、详情 `detail/`），路由 `.../system/roles`。
+权限点 `role:read / create / edit / delete`（已加进 mock 权限清单与 `GET /api` 白名单）。
+
+数据模型（mock，`apps/mock/server/utils/db.ts`）：
+
+- `RoleRow`：`id / name / code / description / status / sort / created_at / updated_at`；
+- `RoleMenuRow`：**独立的关联表** `role_menus`（`role_id` + `menu_id` 多对多）——
+  菜单授权不是角色上的一个数组字段，`PUT /role/menus` 是**全量覆盖**语义；
+- 身份链：`token → 账号 → 账号的 role 码 → 角色 → role_menus → 菜单树`
+  （见 `apps/mock/server/routes/menus/navigation.get.ts`）。
+
+mock 里强制的两条硬约束：
+
+1. **内置角色（`code` ∈ `super` / `editor` / `viewer`）不可删、`code` 不可改** ——
+   它们是三个测试账号的登录身份，改掉导航就空了；
+2. 删除角色时**连带清理 `role_menus`**，不留孤儿授权。
+
+两条交互约定：
+
+- 详情页把「基本信息」与「菜单授权」放进**同一个底部浮条**保存：表单走 `PUT /role`、
+  授权走 `PUT /role/menus`，任一脏了浮条就出现；表单校验仍只在 `validateRoleForm` 一处
+  （浮条保存不经过 `<form>` 的 submit，见 skill `editable-detail` 坑 1）；
+- 授权树 `MenuTreeSelection`（`role-menu-tree.tsx`）是**扁平渲染 + 缩进**（不是嵌套 DOM），
+  勾选子项会**自动补齐祖先** —— 父节点没被授权时，后端 `visibleMenuTree` 不会返回它的子节点。
+
+> ⚠️ 导航目前仍由 `NAV_GROUPS` + 权限点过滤驱动，**还没接 `GET /menus/navigation`**。
+> 新接口已备好（按角色裁剪、节点带 `path`）；下一轮把侧边栏切成树驱动时，
+> 过滤口径要从「权限点」换成「菜单授权」，否则两层数据会各说各话
+> （见 [permissions-architecture.md](./permissions-architecture.md) §7.1）。

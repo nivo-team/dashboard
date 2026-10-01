@@ -2,20 +2,20 @@
  * 顶栏面包屑的「动态层级名称」注册表。
  *
  * 背景：`AppHeader` 的面包屑由 `NAV_GROUPS` 最长前缀匹配 + 剩余路径段拼成，
- * 对 `/$appId/system/features/483` 这类**扁平动态段**只能显示原始段（也就是 `483`）。
+ * 对 `/$appId/system/menus/483` 这类**扁平动态段**只能显示原始段（也就是 `483`）。
  * 而业务模块在数据到达后其实是知道层级的（483 的祖先是 484，名称是 `menus`）。
  *
  * 于是这里提供一个极轻的注册机制，让业务模块把「自身路径 → { 名称, 父级路径 }」
  * 注册进来，`AppHeader` 命中后即可把扁平 URL 还原成可点的层级链：
  *
  * ```text
- * /console/system/features/483  →  首页 / 系统 / 功能 / system / menus
+ * /console/system/menus/483  →  首页 / 系统 / 功能 / system / menus
  *                                                      ↑ 可点，回到 484
  * ```
  *
  * 约定：
- * - key 是**含 appId 的完整路径**（如 `/console/system/features/483`），避免跨应用 id 冲突；
- * - `parent` 指向上一级路径，追溯到没有注册项的路径（如 `/console/system/features`）为止；
+ * - key 是**含 appId 的完整路径**（如 `/console/system/menus/483`），避免跨应用 id 冲突；
+ * - `parent` 指向上一级路径，追溯到没有注册项的路径（如 `/console/system/menus`）为止；
  * - 按 `owner` 分组注册，owner 卸载时整体清除，模块之间互不干扰。
  *
  * 未注册任何层级时行为完全不变，仍走原来的「原始段」兜底。

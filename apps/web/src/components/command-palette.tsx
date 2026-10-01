@@ -10,7 +10,13 @@ import { useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
-import { ALL_NAV_TARGETS, ALL_SHELL_NAV_TARGETS } from '#/lib/navigation'
+import {
+  ALL_NAV_TARGETS,
+  ALL_SHELL_NAV_TARGETS,
+  filterNavTargets,
+  filterShellNavItems,
+} from '#/lib/navigation'
+import { usePermissionContext } from '#/lib/permissions'
 import { useColorMode } from '#/lib/use-color-mode'
 import type { ColorMode } from '#/lib/use-color-mode'
 
@@ -69,13 +75,18 @@ export function CommandPaletteDialog({
   const { mode, setMode } = useColorMode()
   const [query, setQuery] = useState('')
 
+  // 权限上下文与过滤都走 `#/lib/navigation` 的统一管道（与侧边栏同一份判定）
+  const permissionContext = usePermissionContext()
+
   const groups = useMemo<PaletteGroup[]>(() => {
     const q = query.trim().toLowerCase()
     const matches = (item: PaletteItem) =>
       q.length === 0 || `${item.label} ${item.keywords}`.toLowerCase().includes(q)
 
-    // 业务页面：`to` 相对 appId，需要拼前缀；二级项展示为「父级 · 子级」
-    const pageItems: PaletteItem[] = ALL_NAV_TARGETS.map((item) => {
+    // 业务页面：`to` 相对 appId，需要拼前缀；二级项展示为「父级 · 子级」；过滤无权限的目标项
+    const pageItems: PaletteItem[] = filterNavTargets(ALL_NAV_TARGETS, {
+      context: permissionContext,
+    }).map((item) => {
       const selfLabel = item.labelKey ? t(item.labelKey, item.label) : item.label
       const parentLabel = item.parentLabelKey
         ? t(item.parentLabelKey, {
@@ -94,7 +105,9 @@ export function CommandPaletteDialog({
     })
 
     // 外壳页面（应用选择 / 个人资料 / 设置）：`to` 已是绝对路径，不能再拼 appId
-    const shellItems: PaletteItem[] = ALL_SHELL_NAV_TARGETS.map((item) => {
+    const shellItems: PaletteItem[] = filterShellNavItems(ALL_SHELL_NAV_TARGETS, {
+      context: permissionContext,
+    }).map((item) => {
       const label = item.labelKey ? t(item.labelKey, item.label) : item.label
       return {
         id: `shell:${item.to}`,
@@ -125,7 +138,7 @@ export function CommandPaletteDialog({
         items: themeItems.filter(matches),
       },
     ].filter((group) => group.items.length > 0)
-  }, [query, navigate, setMode, t, appId])
+  }, [query, navigate, setMode, t, appId, permissionContext])
 
   const complete = () => {
     onOpenChange(false)

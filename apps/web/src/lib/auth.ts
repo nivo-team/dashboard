@@ -21,6 +21,7 @@ import { isMultiAppEnabled } from './app-config'
 import { clearAllQueryCaches } from './query-client'
 import { setAppScope } from './store/app-scope'
 import { enableCrossTabSync } from './store/cross-tab-sync'
+import { usePermissionStore } from './store/permission-store'
 
 export type { AppItem, UserInfo }
 export { DEFAULT_APP_ID, getDefaultApp, isMultiAppEnabled }
@@ -188,6 +189,7 @@ export const useAuthStore = create<AuthStore>()(
       currentApp: !isMultiAppEnabled() ? getDefaultApp() : null,
 
       setAuthenticatedSession: ({ token, user, apps }) => {
+        usePermissionStore.getState().resetPermissions()
         set({
           isAuthenticated: true,
           token,
@@ -226,6 +228,8 @@ export const useAuthStore = create<AuthStore>()(
       completeLoginWithApp: ({ token, user, apps }, selectedAppId) => {
         const chosenApp = apps.find((app) => app.id === selectedAppId) ?? apps[0]
         if (!chosenApp) return
+
+        usePermissionStore.getState().resetPermissions()
 
         set({
           isAuthenticated: true,
@@ -291,6 +295,8 @@ export const useAuthStore = create<AuthStore>()(
 
           // 退出登录：清空所有应用的查询缓存，避免下一个账号看到上一个账号的数据
           clearAllQueryCaches()
+
+          usePermissionStore.getState().resetPermissions()
 
           loggingOut = false
         }
@@ -385,11 +391,28 @@ export async function apiLogin(credentials: {
     throw new Error('登录响应未包含授权 Token')
   }
 
+  /*
+    登录瞬间的**临时**角色展示名。
+    真实角色以 `GET /permissions` / `GET /profile` 为准（`UserInfo.role` 只用于
+    个人资料页拿到 profile 之前的那一帧展示）。
+
+    用**精确匹配**而不是 `includes('super')` / `includes('user')`：后者会把真实
+    项目里的 `superuser`、`useradmin` 之类账号判成超管或访客 —— 这是权限语义，
+    宁可回落到 `Admin` 也不能猜。
+  */
+  const previewRoleByUsername: Record<string, string> = {
+    'super admin': 'Super Admin',
+    superadmin: 'Super Admin',
+    admin: 'Admin',
+    user: 'Viewer',
+  }
+  const role = previewRoleByUsername[cleanUsername.toLowerCase()] ?? 'Admin'
+
   // 纯账号登录，暂不获取额外 profile 接口，不拼接或伪造邮箱
   const user: UserInfo = {
     username: cleanUsername,
     name: cleanUsername,
-    role: 'Admin',
+    role,
     uid: result.uid,
   }
 

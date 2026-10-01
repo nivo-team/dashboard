@@ -49,6 +49,7 @@ import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
 import type { DictOptionEntry } from '#/lib/dict-options'
 import i18n from '#/lib/i18n'
 import { defineFilterParsers, useTableQuery } from '#/lib/list-query'
+import { useHasPermission } from '#/lib/permissions'
 import { appToastManager } from '#/lib/toast'
 import { DEMO_USERS } from '../demo-users'
 import { useFormatTimestamp } from '../user-display'
@@ -108,6 +109,10 @@ export function UserListPage() {
 
   const formOpenMode = usePreferencesStore((s) => s.formOpenMode)
   const isMobile = useIsMobileViewport()
+
+  const canCreate = useHasPermission('user:create')
+  const canEdit = useHasPermission('user:edit')
+  const canDelete = useHasPermission('user:delete')
 
   // 1. 使用通用 useTableQuery 托管查询驱动状态（URL State，nuqs 驱动 + 类型严格推导）
   const {
@@ -593,30 +598,36 @@ export function UserListPage() {
                   >
                     {t('rowActions.view', '查看')}
                   </DropdownMenu.Item>
-                  <DropdownMenu.Item
-                    icon={PencilSimple}
-                    onClick={() => handleOpenEditForm(user)}
-                  >
-                    {t('rowActions.edit', '编辑')}
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Separator />
-                  <DropdownMenu.Item
-                    icon={Trash}
-                    variant="danger"
-                    onClick={() => {
-                      setDeletingUser(user)
-                      setSingleDeleteOpen(true)
-                    }}
-                  >
-                    {t('rowActions.delete', '删除')}
-                  </DropdownMenu.Item>
+                  {canEdit ? (
+                    <DropdownMenu.Item
+                      icon={PencilSimple}
+                      onClick={() => handleOpenEditForm(user)}
+                    >
+                      {t('rowActions.edit', '编辑')}
+                    </DropdownMenu.Item>
+                  ) : null}
+                  {canDelete ? (
+                    <>
+                      <DropdownMenu.Separator />
+                      <DropdownMenu.Item
+                        icon={Trash}
+                        variant="danger"
+                        onClick={() => {
+                          setDeletingUser(user)
+                          setSingleDeleteOpen(true)
+                        }}
+                      >
+                        {t('rowActions.delete', '删除')}
+                      </DropdownMenu.Item>
+                    </>
+                  ) : null}
                 </DropdownMenu.Content>
               </DropdownMenu>
             )
           },
         }),
       ]),
-    [openUserDetail, schemaColumns, handleOpenEditForm, t],
+    [openUserDetail, schemaColumns, handleOpenEditForm, canEdit, canDelete, t],
   )
 
   /*
@@ -761,7 +772,7 @@ export function UserListPage() {
         }}
         table={table}
         actions={{
-          onAddRecord: handleOpenCreateForm,
+          onAddRecord: canCreate ? handleOpenCreateForm : undefined,
           addRecordLabel: t('actions.create', '新建用户'),
           onExport: handleExportCSV,
           onRefresh: () => {
@@ -774,7 +785,7 @@ export function UserListPage() {
       <DataTable
         table={table}
         onRowClick={openUserDetail}
-        onBatchDelete={() => setBatchDeleteOpen(true)}
+        onBatchDelete={canDelete ? () => setBatchDeleteOpen(true) : undefined}
         loading={loading}
         error={errorMsg}
         onRetry={fetchUsers}

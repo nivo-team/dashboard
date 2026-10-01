@@ -1,0 +1,78 @@
+{
+  "title": "角色管理",
+  "description": "维护角色及其可见菜单，登录账号按角色码关联角色",
+  "searchPlaceholder": "搜索角色名称 / 角色码…",
+  "quota": "共 <b>{{total}}</b> 项",
+  "menuTree": {
+    "action": "操作",
+    "loading": "加载中…"
+  },
+  "actions": {
+    "create": "新建角色"
+  },
+  "empty": {
+    "title": "暂无角色",
+    "description": "还没有角色，可用「新建角色」创建"
+  },
+  "columns": {
+    "id": "ID",
+    "name": "角色名称",
+    "code": "角色码",
+    "description": "描述",
+    "status": "状态",
+    "menu_count": "已授权菜单",
+    "created_at": "创建时间",
+    "updated_at": "更新时间",
+    "actions": "操作"
+  },
+  "status": {
+    "enabled": "启用",
+    "disabled": "禁用"
+  },
+  "rowActions": {
+    "label": "更多操作",
+    "edit": "编辑",
+    "delete": "删除"
+  },
+  "messages": {
+    "fetchFailed": "获取角色列表失败"
+  },
+  "form": {
+    "name": "角色名称",
+    "nameDescription": "用于展示的名称，2–50 个字符",
+    "nameRequired": "请输入角色名称",
+    "nameTooLong": "名称不能超过 50 个字符",
+    "code": "角色码",
+    "codeDescription": "小写字母开头，登录账号按它关联角色",
+    "codeLocked": "内置角色的角色码不可修改",
+    "codeRequired": "请输入角色码",
+    "codeInvalid": "角色码只允许小写字母开头，后接小写字母 / 数字 / 下划线 / 连字符",
+    "description": "描述",
+    "sort": "排序",
+    "sortDescription": "同级内从小到大排列",
+    "statusEnabled": "启用",
+    "statusDisabled": "禁用",
+    "save": "保存",
+    "cancel": "取消",
+    "create": "创建",
+    "createTitle": "新建角色",
+    "createDescription": "创建后到详情页为它分配可见菜单",
+    "successCreate": "角色创建成功",
+    "successUpdate": "保存成功",
+    "failed": "操作失败，请稍后重试",
+    "deleteFailed": "删除失败，请稍后重试"
+  },
+  "detail": {
+    "basicInfo": "基本信息",
+    "menuGrant": "可见菜单",
+    "menuGrantHint": "勾选后该角色能在导航里看到这些菜单；勾选子项会自动带上它的上级。",
+    "loading": "加载中…",
+    "details": "详细信息",
+    "id": "角色 ID",
+    "menuCount": "已授权菜单",
+    "notFound": "未找到该角色",
+    "deleteTitle": "删除角色",
+    "deleteConfirm": "该操作不可撤销。将永久删除角色 <b>{{name}}</b> 及其菜单授权。",
+    "deleteSuccess": "角色删除成功"
+  }
+}

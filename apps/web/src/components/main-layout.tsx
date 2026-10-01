@@ -5,7 +5,7 @@ import {
   MagnifyingGlassIcon,
 } from '@phosphor-icons/react'
 import { Outlet, useNavigate, useRouterState } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CommandPaletteDialog } from '#/components/command-palette'
 import { HeaderActions } from '#/components/header-actions'
@@ -15,11 +15,13 @@ import { ShellSidebarProvider } from '#/components/shell-sidebar-provider'
 import { cn } from '#/lib/cn'
 import { DEFAULT_APP_ID, isMultiAppEnabled, useAuth } from '#/lib/auth'
 import {
+  filterShellNavItems,
   MAIN_NAV_ITEMS,
   SETTINGS_NAV_ITEMS,
   type ShellNavItem,
 } from '#/lib/navigation'
 import { pageContentWidthClass } from '#/lib/page-width'
+import { usePermissionContext } from '#/lib/permissions'
 import { usePreferencesStore } from '#/lib/store'
 
 /** 归一化尾斜杠：`/settings` 与 `/settings/` 是同一个 index 路由，不能因此丢掉高亮。 */
@@ -169,6 +171,12 @@ function MainSidebar({ onOpenCommandPalette }: { onOpenCommandPalette: () => voi
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const navigate = useNavigate()
   const { isMobile, setOpenMobile } = useSidebar()
+  const permissionContext = usePermissionContext()
+
+  const items = useMemo(
+    () => filterShellNavItems(MAIN_NAV_ITEMS, { context: permissionContext }),
+    [permissionContext],
+  )
 
   const handleNav = (to: string) => {
     navigate({ to: to as any })
@@ -186,7 +194,7 @@ function MainSidebar({ onOpenCommandPalette }: { onOpenCommandPalette: () => voi
 
         <Sidebar.Group>
           <Sidebar.Menu>
-            {MAIN_NAV_ITEMS.map((item) => (
+            {items.map((item) => (
               <ShellNavButton
                 key={item.to}
                 item={item}
@@ -218,6 +226,12 @@ function SettingsSidebar({ onOpenCommandPalette }: { onOpenCommandPalette: () =>
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const navigate = useNavigate()
   const { isMobile, setOpenMobile } = useSidebar()
+  const permissionContext = usePermissionContext()
+
+  const items = useMemo(
+    () => filterShellNavItems(SETTINGS_NAV_ITEMS, { context: permissionContext }),
+    [permissionContext],
+  )
 
   const handleNav = (to: string) => {
     navigate({ to: to as any })
@@ -236,7 +250,7 @@ function SettingsSidebar({ onOpenCommandPalette }: { onOpenCommandPalette: () =>
 
         <Sidebar.Group>
           <Sidebar.Menu>
-            {SETTINGS_NAV_ITEMS.map((item) => (
+            {items.map((item) => (
               <ShellNavButton
                 key={item.to}
                 item={item}

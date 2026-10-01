@@ -468,6 +468,109 @@ export const LoginResultSchema = {
     ]
 } as const;
 
+export const NavigationNodeSchema = {
+    type: 'object',
+    description: '导航节点（目录 / 菜单，可嵌套）',
+    properties: {
+        menu_id: {
+            type: 'integer',
+            description: '菜单 ID'
+        },
+        parent_id: {
+            type: 'integer',
+            description: '上级菜单 ID，顶级为 0'
+        },
+        menu_name: {
+            type: 'string',
+            description: '菜单名称'
+        },
+        menu_type: {
+            type: 'integer',
+            description: '1 目录 / 2 菜单'
+        },
+        path: {
+            type: 'string',
+            description: '路由地址（相对 appId），打开该菜单落到这个前端路由'
+        },
+        icon: {
+            type: 'string',
+            description: '图标标识'
+        },
+        sort: {
+            type: 'integer',
+            description: '排序'
+        },
+        visible: {
+            type: 'integer',
+            description: '1 可见 / 2 隐藏'
+        },
+        children: {
+            type: 'array',
+            description: '子菜单',
+            items: {
+                $ref: '#/components/schemas/NavigationNode'
+            }
+        }
+    },
+    required: [
+        'menu_id',
+        'menu_name',
+        'menu_type'
+    ]
+} as const;
+
+export const NavigationResultSchema = {
+    type: 'object',
+    properties: {
+        code: {
+            type: 'integer',
+            description: '0 表示成功'
+        },
+        message: {
+            type: 'string'
+        },
+        result: {
+            type: 'object',
+            properties: {
+                role: {
+                    type: 'object',
+                    description: '解析出的当前角色（导航裁剪依据）',
+                    properties: {
+                        id: {
+                            type: 'integer'
+                        },
+                        name: {
+                            type: 'string'
+                        },
+                        code: {
+                            type: 'string'
+                        }
+                    },
+                    required: [
+                        'id',
+                        'name',
+                        'code'
+                    ]
+                },
+                items: {
+                    type: 'array',
+                    items: {
+                        $ref: '#/components/schemas/NavigationNode'
+                    }
+                }
+            },
+            required: [
+                'role',
+                'items'
+            ]
+        }
+    },
+    required: [
+        'code',
+        'result'
+    ]
+} as const;
+
 export const PermissionsResultSchema = {
     type: 'object',
     properties: {
@@ -573,6 +676,147 @@ export const ProfileResultSchema = {
             required: [
                 'uid',
                 'username'
+            ]
+        }
+    },
+    required: [
+        'code',
+        'result'
+    ]
+} as const;
+
+export const RoleItemSchema = {
+    type: 'object',
+    description: '角色',
+    properties: {
+        id: {
+            type: 'integer',
+            description: '角色 ID'
+        },
+        name: {
+            type: 'string',
+            description: '角色名称'
+        },
+        code: {
+            type: 'string',
+            description: '角色码（与登录账号的 role 对应，如 super / editor / viewer）'
+        },
+        description: {
+            type: 'string',
+            description: '角色描述'
+        },
+        status: {
+            type: 'integer',
+            description: '1 启用 / 2 禁用'
+        },
+        sort: {
+            type: 'integer',
+            description: '排序'
+        },
+        menu_count: {
+            type: 'integer',
+            description: '已授权的菜单数量'
+        },
+        created_at: {
+            type: 'string',
+            description: '创建时间'
+        },
+        updated_at: {
+            type: 'string',
+            description: '更新时间'
+        }
+    },
+    required: [
+        'id',
+        'name',
+        'code'
+    ]
+} as const;
+
+export const RoleListResultSchema = {
+    type: 'object',
+    properties: {
+        code: {
+            type: 'integer',
+            description: '0 表示成功'
+        },
+        message: {
+            type: 'string'
+        },
+        result: {
+            type: 'object',
+            properties: {
+                total: {
+                    type: 'integer',
+                    description: '总条数'
+                },
+                items: {
+                    type: 'array',
+                    items: {
+                        $ref: '#/components/schemas/RoleItem'
+                    }
+                }
+            },
+            required: [
+                'total',
+                'items'
+            ]
+        }
+    },
+    required: [
+        'code',
+        'result'
+    ]
+} as const;
+
+export const RoleResultSchema = {
+    type: 'object',
+    properties: {
+        code: {
+            type: 'integer',
+            description: '0 表示成功'
+        },
+        message: {
+            type: 'string'
+        },
+        result: {
+            $ref: '#/components/schemas/RoleItem'
+        }
+    },
+    required: [
+        'code',
+        'result'
+    ]
+} as const;
+
+export const RoleMenusResultSchema = {
+    type: 'object',
+    properties: {
+        code: {
+            type: 'integer',
+            description: '0 表示成功'
+        },
+        message: {
+            type: 'string'
+        },
+        result: {
+            type: 'object',
+            properties: {
+                role_id: {
+                    type: 'integer',
+                    description: '角色 ID'
+                },
+                menu_ids: {
+                    type: 'array',
+                    description: '该角色已授权的菜单 ID（含目录 / 菜单 / 操作）',
+                    items: {
+                        type: 'integer'
+                    }
+                }
+            },
+            required: [
+                'role_id',
+                'menu_ids'
             ]
         }
     },

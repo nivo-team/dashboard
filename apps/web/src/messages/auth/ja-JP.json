@@ -17,5 +17,8 @@
   "selectAppDesc": "このアカウントには {{count}} 個のアプリへのアクセス権限があります。選択してください：",
   "enterApp": "{{name}} を開く",
   "switchAccount": "アカウント切り替え",
-  "verified": "認証完了"
+  "verified": "認証完了",
+  "unauthorized": "このページへのアクセス権限がありません",
+  "selectAccount": "テストアカウント",
+  "selectAccountPlaceholder": "アカウントを選択…"
 }

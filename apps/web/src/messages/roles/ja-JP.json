@@ -1,0 +1,78 @@
+{
+  "title": "ロール管理",
+  "description": "ロールとその表示メニューを管理します。アカウントはロールコードで紐付きます",
+  "searchPlaceholder": "ロール名・コードで検索…",
+  "quota": "全 <b>{{total}}</b> 件",
+  "menuTree": {
+    "action": "操作",
+    "loading": "読み込み中…"
+  },
+  "actions": {
+    "create": "ロールを作成"
+  },
+  "empty": {
+    "title": "ロールがありません",
+    "description": "ロールがありません。「ロールを作成」から追加できます"
+  },
+  "columns": {
+    "id": "ID",
+    "name": "ロール名",
+    "code": "ロールコード",
+    "description": "説明",
+    "status": "ステータス",
+    "menu_count": "許可メニュー",
+    "created_at": "作成日時",
+    "updated_at": "更新日時",
+    "actions": "操作"
+  },
+  "status": {
+    "enabled": "有効",
+    "disabled": "無効"
+  },
+  "rowActions": {
+    "label": "その他の操作",
+    "edit": "編集",
+    "delete": "削除"
+  },
+  "messages": {
+    "fetchFailed": "ロール一覧の取得に失敗しました"
+  },
+  "form": {
+    "name": "ロール名",
+    "nameDescription": "表示用の名前（2〜50文字）",
+    "nameRequired": "ロール名を入力してください",
+    "nameTooLong": "名前は50文字以内で入力してください",
+    "code": "ロールコード",
+    "codeDescription": "小文字で開始。アカウントはこれでロールに紐付きます",
+    "codeLocked": "組み込みロールのコードは変更できません",
+    "codeRequired": "ロールコードを入力してください",
+    "codeInvalid": "コードは小文字で始まり、小文字・数字・_・- のみ使用できます",
+    "description": "説明",
+    "sort": "並び順",
+    "sortDescription": "同階層内で昇順",
+    "statusEnabled": "有効",
+    "statusDisabled": "無効",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "create": "作成",
+    "createTitle": "ロールを作成",
+    "createDescription": "作成後、詳細ページで表示メニューを設定します",
+    "successCreate": "ロールを作成しました",
+    "successUpdate": "保存しました",
+    "failed": "操作に失敗しました。後でもう一度お試しください",
+    "deleteFailed": "削除に失敗しました。後でもう一度お試しください"
+  },
+  "detail": {
+    "basicInfo": "基本情報",
+    "menuGrant": "表示メニュー",
+    "menuGrantHint": "チェックしたメニューがこのロールのナビに表示されます。子を選ぶと親も自動で選択されます。",
+    "loading": "読み込み中…",
+    "details": "詳細情報",
+    "id": "ロール ID",
+    "menuCount": "許可メニュー",
+    "notFound": "ロールが見つかりません",
+    "deleteTitle": "ロールを削除",
+    "deleteConfirm": "この操作は取り消せません。ロール <b>{{name}}</b> とそのメニュー許可が完全に削除されます。",
+    "deleteSuccess": "ロールを削除しました"
+  }
+}

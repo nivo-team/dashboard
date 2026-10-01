@@ -12,6 +12,7 @@
 export * from './ai-store'
 export * from './app-scope'
 export * from './dashboard-store'
+export * from './permission-store'
 export * from './preferences-store'
 export * from './scoped-storage'
 export * from './shell-ui-store'

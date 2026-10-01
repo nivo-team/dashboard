@@ -80,7 +80,7 @@ export interface AiPageContext {
   search: string
   appId: string | null
   appName: string | null
-  /** 匹配到的路由模板，如 `/$appId/system/features/$featureId` */
+  /** 匹配到的路由模板，如 `/$appId/system/menus/$featureId` */
   routePath: string | null
   /** 当前路径命中的导航项名称（最长前缀匹配），如「用户列表」 */
   navLabel: string | null

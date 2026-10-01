@@ -1,4 +1,6 @@
 import { defineHandler, defineRouteMeta } from 'nitro'
+import { getHeader } from 'nitro/h3'
+import { DEFAULT_MOCK_ACCOUNT, findAccountByToken } from '../utils/mock-accounts'
 import { ok } from '../utils/response'
 
 /** 当前登录用户信息。 */
@@ -59,19 +61,32 @@ defineRouteMeta({
   },
 })
 
-export default defineHandler(() =>
-  ok({
-    uid: 1,
-    username: 'admin',
-    nick_name: '超级管理员',
-    email: 'admin@example.com',
-    role: 'Super Admin',
+/** 有权限的语言区域（Mock 里三个账号一致，与语言清单的前三项对应）。 */
+const MOCK_REGIONS = [
+  { value: 'zh-CN', region: 'zh-CN', label: '简体中文', disabled: false },
+  { value: 'en-US', region: 'en-US', label: 'English', disabled: false },
+  { value: 'ja-JP', region: 'ja-JP', label: '日本語', disabled: false },
+]
+
+/**
+ * 按登录 token 返回对应账号的信息。
+ *
+ * 身份真值在 `../utils/mock-accounts`：这里以前用 `token.includes('user')` 之类的
+ * 子串猜测拼三份硬编码对象，加账号必漏改（而且 `mock-token-super` 恰好不含 `user`／
+ * 含 `admin`，判断全靠 token 命名巧合）。
+ */
+export default defineHandler((event) => {
+  // 无 token / 未知 token → 兜底账号（保持「零配置能进系统」）
+  const account = findAccountByToken(getHeader(event, 'authorization')) ?? DEFAULT_MOCK_ACCOUNT
+
+  return ok({
+    uid: account.uid,
+    username: account.username,
+    nick_name: account.nickName,
+    email: account.email,
+    role: account.roleName,
     status: 1,
     current_region: 'zh-CN',
-    regions: [
-      { value: 'zh-CN', region: 'zh-CN', label: '简体中文', disabled: false },
-      { value: 'en-US', region: 'en-US', label: 'English', disabled: false },
-      { value: 'ja-JP', region: 'ja-JP', label: '日本語', disabled: false },
-    ],
-  }),
-)
+    regions: MOCK_REGIONS,
+  })
+})

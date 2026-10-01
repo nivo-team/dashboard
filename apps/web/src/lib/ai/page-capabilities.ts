@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useAuthStore } from '#/lib/auth'
+import { hasPermission } from '#/lib/permissions'
 import { registerAiPageContext, clearAiPageContext } from './page-context-registry'
 
 /* -------------------------------------------------------------------------- */
@@ -154,28 +154,21 @@ export function definePageCapabilities(
  * **权限判定的唯一实现**（页面能力 / 页面指令共用）。
  *
  * 约定：
- * - `admin` / `superadmin` 放行全量；
  * - 未声明 `permission` 的能力是公开的；
- * - 还没接入权限清单（`permissions` 为空）时**默认放行** —— 宁多勿缺，
- *   等真正的权限表接进来再把这里改成"默认拒绝"。
+ * - 其余一律交给 `hasPermission`（超管判定、通配、角色、`all`/`any` 都在那里）；
+ * - `authContext` 不传时自动读权限 store，因此调用方**不需要**自己判断角色。
  *
  * 页面指令（`#/lib/features`）与页面能力走同一处判定，**不要各写一份**：
  * 两处判定一旦分叉，就会出现"能力列表里看不到、指令却能执行"这种越权缝。
+ * （这里曾经硬编码 `role === 'admin'` 直接放行全量 —— 那既与 store 的判定分叉，
+ * 又把业务管理员错当成超管，现已删除。）
  */
 export function hasPageCapabilityPermission(
   permission?: string,
   authContext?: { role?: string; permissions?: readonly string[] },
 ): boolean {
   if (!permission) return true
-
-  const role = authContext?.role ?? useAuthStore.getState().user?.role
-  if (role === 'admin' || role === 'superadmin') return true
-
-  // 预留对接未来用户权限清单：清单还没接上时放行（宁多勿缺，
-  // 接入后把这里改成默认拒绝即可，调用方一处都不用动）
-  const permissions = authContext?.permissions
-  if (!permissions) return true
-  return permissions.includes(permission)
+  return hasPermission(permission, authContext)
 }
 
 /**
@@ -192,15 +185,9 @@ export function filterPageCapabilities(
     permissions?: readonly string[]
   },
 ): FilteredPageCapabilities {
-  // 超级管理员放行全量
-  if (authContext?.role === 'admin' || authContext?.role === 'superadmin') {
-    return spec
-  }
-
-  const permissions = authContext?.permissions
-  // 未配置具体权限表时，默认放行未声明 permission 的公开能力
-  const hasPerm = (perm?: string) =>
-    hasPageCapabilityPermission(perm, { role: authContext?.role, permissions })
+  // 判定**只有一处**（`hasPageCapabilityPermission` → `hasPermission`）：
+  // 这里不再单独判角色，否则「能力列表」与「页面指令」两处判定会分叉。
+  const hasPerm = (perm?: string) => hasPageCapabilityPermission(perm, authContext)
 
   return {
     ...spec,
@@ -239,7 +226,13 @@ export function clearPageCapabilities(routeId: string): void {
 }
 
 /**
- * 获取当前页面经权限过滤后的最终可用能力
+ * 获取当前页面经权限过滤后的最终可用能力。
+ *
+ * **不传 `authContext`**：权限上下文由 `hasPermission` 统一从权限 store 读取。
+ * 这里曾经传 `{ role: authStore.user.role, permissions: undefined }` ——
+ * 那等于把「角色名」和「权限点」拆成两个真值来源：权限点恒为空，
+ * 超管靠 `filterPageCapabilities` 里一条硬编码 `role === 'admin'` 才侥幸放行，
+ * 而 `Admin`（业务管理员）也顺手被当成了超管。两个问题一起删掉。
  */
 export function resolveActivePageCapabilities(
   routeId: string | null,
@@ -248,12 +241,7 @@ export function resolveActivePageCapabilities(
   const rawSpec = capabilityRegistry.get(routeId)
   if (!rawSpec) return undefined
 
-  const user = useAuthStore.getState().user
-  return filterPageCapabilities(rawSpec, {
-    role: user?.role,
-    // 预留对接未来用户权限清单
-    permissions: undefined,
-  })
+  return filterPageCapabilities(rawSpec)
 }
 
 /**

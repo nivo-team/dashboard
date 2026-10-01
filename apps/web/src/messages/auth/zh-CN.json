@@ -17,5 +17,8 @@
   "selectAppDesc": "当前账号已获得 {{count}} 个系统空间的访问权限，请选择本次进入的目标：",
   "enterApp": "进入 {{name}}",
   "switchAccount": "更换账号",
-  "verified": "验证通过"
+  "verified": "验证通过",
+  "unauthorized": "无权访问该页面",
+  "selectAccount": "测试账号",
+  "selectAccountPlaceholder": "选择测试账号…"
 }

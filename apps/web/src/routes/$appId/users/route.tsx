@@ -1,4 +1,5 @@
 import { Outlet, createFileRoute } from '@tanstack/react-router'
+import { guardRoutePermission } from '#/lib/app-route-guard'
 
 /**
  * 用户运营模块根路由（/$appId/users）。
@@ -8,6 +9,13 @@ import { Outlet, createFileRoute } from '@tanstack/react-router'
  * 「用户运营 → 用户列表」保持一致，便于后续在这里挂载更多子模块。
  */
 export const Route = createFileRoute('/$appId/users')({
+  beforeLoad: async ({ params, location }) => {
+    await guardRoutePermission({
+      appId: params.appId,
+      permission: 'user:read',
+      href: location.href,
+    })
+  },
   component: UsersModuleLayout,
 })
 

@@ -1,0 +1,78 @@
+{
+  "title": "Gestión de roles",
+  "description": "Gestione roles y los menús que pueden ver; las cuentas se vinculan por el código del rol",
+  "searchPlaceholder": "Buscar nombre o código de rol…",
+  "quota": "<b>{{total}}</b> en total",
+  "menuTree": {
+    "action": "Acción",
+    "loading": "Cargando…"
+  },
+  "actions": {
+    "create": "Nuevo rol"
+  },
+  "empty": {
+    "title": "Aún no hay roles",
+    "description": "Aún no hay roles; use «Nuevo rol» para crear uno"
+  },
+  "columns": {
+    "id": "ID",
+    "name": "Nombre",
+    "code": "Código",
+    "description": "Descripción",
+    "status": "Estado",
+    "menu_count": "Menús concedidos",
+    "created_at": "Creado",
+    "updated_at": "Actualizado",
+    "actions": "Acciones"
+  },
+  "status": {
+    "enabled": "Habilitado",
+    "disabled": "Deshabilitado"
+  },
+  "rowActions": {
+    "label": "Más acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
+  "messages": {
+    "fetchFailed": "No se pudieron cargar los roles"
+  },
+  "form": {
+    "name": "Nombre del rol",
+    "nameDescription": "Nombre visible, 2–50 caracteres",
+    "nameRequired": "Introduzca el nombre del rol",
+    "nameTooLong": "El nombre no puede superar los 50 caracteres",
+    "code": "Código del rol",
+    "codeDescription": "Empieza con minúscula; las cuentas se vinculan por él",
+    "codeLocked": "Los códigos de roles integrados no se pueden cambiar",
+    "codeRequired": "Introduzca el código del rol",
+    "codeInvalid": "El código debe empezar con minúscula, seguido de letras, dígitos, _ o -",
+    "description": "Descripción",
+    "sort": "Orden",
+    "sortDescription": "Ascendente dentro del mismo nivel",
+    "statusEnabled": "Habilitado",
+    "statusDisabled": "Deshabilitado",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "create": "Crear",
+    "createTitle": "Nuevo rol",
+    "createDescription": "Tras crear, abra el detalle para asignar menús",
+    "successCreate": "Rol creado",
+    "successUpdate": "Guardado",
+    "failed": "La operación falló, inténtelo de nuevo",
+    "deleteFailed": "Error al eliminar, inténtelo de nuevo"
+  },
+  "detail": {
+    "basicInfo": "Información básica",
+    "menuGrant": "Menús visibles",
+    "menuGrantHint": "Los menús marcados aparecerán en la navegación de este rol; marcar un hijo selecciona sus padres.",
+    "loading": "Cargando…",
+    "details": "Detalles",
+    "id": "ID del rol",
+    "menuCount": "Menús concedidos",
+    "notFound": "Rol no encontrado",
+    "deleteTitle": "Eliminar rol",
+    "deleteConfirm": "Esta acción no se puede deshacer. El rol <b>{{name}}</b> y sus concesiones de menú se eliminarán permanentemente.",
+    "deleteSuccess": "Rol eliminado"
+  }
+}

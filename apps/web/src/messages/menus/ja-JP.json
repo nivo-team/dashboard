@@ -1,0 +1,165 @@
+{
+  "title": "メニュー管理",
+  "description": "メニューの階層とルートパスを管理。ディレクトリは階層化用、メニューはページの遷移先、操作は権限キーを保持",
+  "containerDescription": "このディレクトリ配下の内容。ディレクトリのネストやメニューの追加が可能",
+  "moduleName": "メニュー",
+  "searchPlaceholder": "メニュー名 / ルートパスを検索…",
+  "createFeature": "メニューを追加",
+  "createGroup": "ディレクトリを追加",
+  "createPermission": "権限を追加",
+  "create": {
+    "label": "作成"
+  },
+  "demoBadge": "（デモデータモード）",
+  "quota": "全 <b>{{total}}</b> 件",
+  "empty": {
+    "title": "メニューデータがありません",
+    "description": "条件に一致するメニューが見つかりません。キーワードを変更してください"
+  },
+  "columns": {
+    "menu_id": "ID",
+    "menu_name": "名前",
+    "menu_type": "タイプ",
+    "path": "ルートパス",
+    "permission": "権限キー",
+    "icon": "アイコン",
+    "sort": "並び順",
+    "status": "ステータス",
+    "visible": "表示",
+    "is_frame": "外部リンク",
+    "no_cache": "キャッシュ",
+    "api_keys": "バインドAPI",
+    "created_at": "作成日時",
+    "updated_at": "更新日時",
+    "actions": "操作"
+  },
+  "cell": {
+    "yes": "はい",
+    "no": "いいえ"
+  },
+  "menuType": {
+    "directory": "ディレクトリ",
+    "menu": "メニュー",
+    "action": "操作"
+  },
+  "status": {
+    "enabled": "有効",
+    "disabled": "無効"
+  },
+  "visible": {
+    "visible": "表示",
+    "hidden": "非表示"
+  },
+  "isFrame": {
+    "yes": "はい",
+    "no": "いいえ"
+  },
+  "noCache": {
+    "noCache": "キャッシュしない",
+    "cache": "キャッシュ"
+  },
+  "rowActions": {
+    "label": "その他の操作",
+    "editFeature": "メニューを編集",
+    "editGroup": "ディレクトリを編集",
+    "edit": "編集",
+    "delete": "削除",
+    "comingSoon": "このメニューは今後のバージョンで提供予定"
+  },
+  "messages": {
+    "fetchFailed": "メニュー一覧の取得に失敗しました"
+  },
+  "detail": {
+    "backToList": "リストに戻る",
+    "basicInfo": "基本情報",
+    "copy": "コピー",
+    "copied": "コピーしました",
+    "dangerZone": "危険な操作",
+    "deleteFeature": "メニューを削除",
+    "deleteFeatureTitle": "メニューを削除",
+    "deleteFeatureConfirm": "この操作は取り消せません。メニュー <b>{{name}}</b> とメニューツリー内の位置を完全に削除します。",
+    "deleteBlocked": "このノードには {{total}} 件の子項目があります。先に子項目を削除してください",
+    "editGroup": "ディレクトリを編集",
+    "editGroupDescription": "ディレクトリの名前、ルートパス、アイコン、並び順、表示状態を変更",
+    "deleteGroup": "ディレクトリを削除",
+    "deleteGroupConfirm": "この操作は取り消せません。ディレクトリ <b>{{name}}</b> を完全に削除します。",
+    "details": "詳細情報",
+    "parentFeature": "親 ID",
+    "rootFeature": "ルート階層",
+    "notFound": "このメニューが見つかりません",
+    "invalidId": "ID が不正です",
+    "retry": "再読み込み",
+    "childrenTitle": "操作",
+    "childrenQuota": "全 {{total}} 件",
+    "childrenEmpty": {
+      "title": "操作がありません",
+      "description": "このメニューにはまだ操作がありません。「操作を追加」から作成できます"
+    }
+  },
+  "permissionDialog": {
+    "createTitle": "操作を追加",
+    "editTitle": "操作を編集",
+    "createDescription": "現在のメニューに操作（権限ポイント）を追加",
+    "editDescription": "操作の名前、権限キー、ステータスを変更",
+    "deleteTitle": "操作を削除",
+    "deleteConfirm": "「{{name}}」を削除しますか？この操作は取り消せません。",
+    "delete": "削除"
+  },
+  "form": {
+    "createFeatureTitle": "メニューを追加",
+    "createGroupTitle": "ディレクトリを追加",
+    "createButtonTitle": "操作を追加",
+    "createFeatureDescription": "メニューを作成し、開いたときに遷移するルートパスを指定",
+    "createGroupDescription": "メニューをさらに階層化するためのディレクトリを作成",
+    "createButtonDescription": "このメニュー配下の動作を制御する操作（権限ポイント）を作成",
+    "parentHint": "作成先：{{parent}}",
+    "path": "ルートパス",
+    "pathDescription": "アプリからの相対ルート（例：/system/menus）。ディレクトリには遷移先のルートを指定",
+    "pathPlaceholder": "/system/menus",
+    "pathRequired": "ルートパスを入力してください",
+    "pathInvalid": "ルートパスは / で始まる必要があります。例：/system/menus",
+    "name": "名前",
+    "nameDescription": "2〜50 文字。表示用の名前",
+    "namePlaceholder": "名前を入力",
+    "nameLength": "名前は 2〜50 文字で入力してください",
+    "permission": "権限キー",
+    "permissionDescription": "API 権限キー。メニューと操作では必須。例：feature:read",
+    "permissionPlaceholder": "n:menus:list",
+    "permissionRequired": "権限キーを入力してください",
+    "apiKeys": "バインドAPI",
+    "apiKeysDescription": "キーワードでシステム API を検索。メニューはリスト API、操作は個別の action API をバインド",
+    "apiKeysPlaceholder": "API を検索。例：/api/guild",
+    "apiKeysRemove": "{{label}} を削除",
+    "apiKeysLoading": "API 一覧を読み込み中…",
+    "apiKeysFailed": "API 一覧の読み込みに失敗しました。後でもう一度お試しください",
+    "apiKeysNoMatch": "バインド可能な API はありません",
+    "icon": "アイコン",
+    "iconDescription": "アイコン名。例：ListDashes",
+    "iconPlaceholder": "任意",
+    "sort": "並び順",
+    "sortDescription": "同じ階層内で昇順に並ぶ",
+    "statusEnabled": "有効",
+    "statusDisabled": "無効",
+    "visibleShown": "表示",
+    "visibleHidden": "非表示",
+    "submitFeature": "メニューを作成",
+    "submitGroup": "ディレクトリを作成",
+    "submitButton": "操作を作成",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "successFeature": "メニューを作成しました",
+    "successGroup": "ディレクトリを作成しました",
+    "successButton": "操作を作成しました",
+    "successPermission": "操作を作成しました",
+    "successPermissionUpdate": "操作を更新しました",
+    "successPermissionDelete": "操作を削除しました",
+    "successFeatureUpdate": "メニューを更新しました",
+    "successFeatureDelete": "メニューを削除しました",
+    "successGroupUpdate": "ディレクトリを更新しました",
+    "successGroupDelete": "ディレクトリを削除しました",
+    "failed": "操作に失敗しました。後でもう一度お試しください",
+    "deleteFailed": "削除に失敗しました。後でもう一度お試しください",
+    "statusField": "ステータス",
+    "visibleField": "表示"
+  }
+}

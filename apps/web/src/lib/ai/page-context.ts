@@ -16,7 +16,7 @@ import type { AiPageContext } from './types'
 export interface AiShellBridge {
   /** 客户端路由跳转（TanStack Router 的 `navigate`） */
   navigate: (to: string) => void
-  /** 当前匹配到的路由模板，如 `/$appId/system/features/$featureId` */
+  /** 当前匹配到的路由模板，如 `/$appId/system/menus/$featureId` */
   getRoutePath: () => string | null
 }
 

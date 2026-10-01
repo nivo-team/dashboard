@@ -17,5 +17,8 @@
   "selectAppDesc": "This account is authorized for {{count}} workspace(s). Please choose one to proceed:",
   "enterApp": "Continue to {{name}}",
   "switchAccount": "Switch account",
-  "verified": "Verified"
+  "verified": "Verified",
+  "unauthorized": "You do not have permission to access this page",
+  "selectAccount": "Test Account",
+  "selectAccountPlaceholder": "Select account…"
 }

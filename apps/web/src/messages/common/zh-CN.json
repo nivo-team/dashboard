@@ -286,8 +286,9 @@
   },
   "nav": {
     "system": "系统",
-    "systemFeatures": "功能",
+    "systemMenus": "菜单管理",
     "systemDataDict": "数据字典",
+    "systemRoles": "角色管理",
     "config": "配置",
     "langPack": "语言包",
     "home": "仪表盘",

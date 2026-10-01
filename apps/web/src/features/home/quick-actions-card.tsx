@@ -26,8 +26,8 @@ export function QuickActionsCard() {
       icon: UsersIcon,
     },
     {
-      to: `/${appId}/system/features`,
-      label: t('nav.systemFeatures', { ns: 'common', defaultValue: '功能' }),
+      to: `/${appId}/system/menus`,
+      label: t('nav.systemMenus', { ns: 'common', defaultValue: '功能' }),
       icon: TreeStructureIcon,
     },
     {

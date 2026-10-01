@@ -11,23 +11,47 @@ pnpm mock          # 在仓库根执行，启动 http://localhost:3001
 ```
 
 浏览器打开 <http://localhost:3001> 是状态页，<http://localhost:3001/openapi.json> 是生成的契约。
-登录时**任意非空账号 + 任意非空密码**都能进入。
+
+登录只认三个预设测试账号（密码统一 `123`）—— 刻意收紧，为的是让「角色 → 权限 → 界面收敛」
+这条链可验证；账号真值表在 [`server/utils/mock-accounts.ts`](./server/utils/mock-accounts.ts)：
+
+| 账号 | 角色 | 能力 |
+| --- | --- | --- |
+| `super admin` | Super Admin | 全量读写删改 |
+| `admin` | Admin | 能建能改，**不能删**（无 `:delete`） |
+| `user` | Viewer | 只读 |
+
+> 登录成功后 mock 会按账号签发对应 token（`mock-token-super` / `mock-token-admin` /
+> `mock-token-user`），`GET /permissions` 与 `GET /profile` 都**按 token 反查**该账号 ——
+> 不再用 `token.includes('super')` 这类子串猜测。
+>
+> **`Admin` 不是超管**：前端的超管判定只认 `Super Admin`（见
+> [permissions-architecture.md](../../.agents/docs/permissions-architecture.md)）。
+> 把 `Admin` 当超管的后果是「admin 不能删」在判定第一道就被短路掉。
 
 ## 接口
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| POST | `/login` | 登录（任意非空账号密码通过） |
-| GET | `/profile` | 当前用户信息 |
+| POST | `/login` | 登录（仅三个预设测试账号，密码 `123`） |
+| GET | `/profile` | 当前用户信息（按 token 反查账号） |
+| GET | `/permissions` | 当前用户的权限点清单（按 token 反查角色；`?role=` 可覆盖，仅供调试） |
 | GET | `/apps` | 可选应用列表（每个应用带自己的 `apiBaseUrl`） |
-| GET | `/api` | 系统接口清单（功能管理关联接口权限用） |
+| GET | `/api` | 系统接口清单（菜单管理关联接口权限用，**同时是 AI 写操作白名单**） |
 | GET | `/user` | 用户分页列表（支持 `kw` 搜索） |
 | POST / PUT | `/user` | 新建 / 更新用户 |
 | DELETE | `/user/{id}` | 删除单个用户 |
 | POST | `/user/batch-delete` | 批量删除用户（body `{ ids }`） |
-| GET | `/system/menu/tree` | 功能菜单树 |
-| POST / PUT | `/system/menu` | 新建 / 更新功能 |
-| DELETE | `/system/menu/{id}` | 删除功能（连同下级） |
+| GET | `/menus/navigation` | **导航菜单树**：按当前用户角色裁剪，只含目录(1)/菜单(2)，每个节点带 `path` 路由地址 |
+| GET | `/system/menu/tree` | 菜单树（**配置视角**：全量、含操作节点，菜单管理页用） |
+| POST / PUT | `/system/menu` | 新建 / 更新菜单 |
+| DELETE | `/system/menu/{id}` | 删除菜单（连同下级） |
+| GET | `/role` | 角色分页列表（`kw` / `status`） |
+| GET | `/role/{id}` | 角色详情 |
+| POST / PUT | `/role` | 新建 / 更新角色（内置角色不可改 code、不可删） |
+| DELETE | `/role/{id}` | 删除角色（连同它的菜单授权） |
+| GET | `/role/menus` | 查询某角色已授权的菜单 ID（`?role_id=`） |
+| PUT | `/role/menus` | 替换角色的菜单授权（**全量覆盖**，body `{ role_id, menu_ids }`） |
 | GET | `/data_dict` | 字典项分页列表（`type_id` / `kw` / `status`） |
 | POST / PUT | `/data_dict` | 新建 / 更新字典项 |
 | DELETE | `/data_dict/{id}` | 删除字典项 |
@@ -41,6 +65,36 @@ pnpm mock          # 在仓库根执行，启动 http://localhost:3001
 > 页面能力（`usePageCapabilities`）里声明了某个接口、而这份清单里没有它，AI 就**完全动不了**
 > 那个模块 —— 用户模块的删除曾经就是这样：接口在、页面按钮也能删，但 AI 一调就被判"不在清单里"。
 > 所以**新增接口时顺手补 `server/routes/api.ts`**（带路径参数写成 `/user/{id}` 模板）。
+
+## 菜单树与角色
+
+菜单是**三层树**（`server/utils/db.ts` 的 `MenuRow`）：
+
+| `menu_type` | 名称 | 有路由地址？ | 说明 |
+| --- | --- | --- | --- |
+| `1` | 目录 | **有**（`path`） | 分层容器，它的 `path` 是该目录的落地路由（如 `/system`） |
+| `2` | 菜单 | **有**（`path`） | 具体页面，`path` 指定打开它落到哪个前端路由（如 `/system/menus`） |
+| `3` | 操作 | 无（空串） | 按钮级权限点，只承载 `permission`（如 `feature:read`） |
+
+`path` 是**相对 appId** 的路径，前端拼成 `/${appId}${path}` 跳转。种子里这棵树与前端真实路由逐一对齐；
+`permission` 必须与 `GET /permissions` 的权限点**逐字一致**（是 `:read` 而不是旧数据的 `:view`）。
+
+角色是独立的实体（`RoleRow`），与菜单通过**关联表** `role_menus` 建立多对多：
+
+```
+登录 token → 账号（utils/mock-accounts.ts）→ 账号的 role 码 → 角色 → role_menus → 菜单树
+```
+
+- **菜单可见性**（`role_menus`）：决定导航里有没有这一项；
+- **操作权限**（`permissions.get.ts` 的 `ALL_PERMISSIONS`）：决定进去之后按钮能不能点。
+
+两层刻意分开：Mock 里 `Viewer` 仍有 `role:read` 权限点，但它的菜单授权里没有「角色管理」——
+用来演示「有权限点 ≠ 导航里有入口」。
+
+两个菜单接口的分工：
+
+- `GET /system/menu/tree` —— **配置视角**：管理员维护菜单时看的全量树（含操作节点）；
+- `GET /menus/navigation` —— **使用视角**：当前用户能看到的导航树（按角色裁剪，已剔除操作节点）。
 
 ## 数据是内存态
 
@@ -91,10 +145,13 @@ server/
     login.post.ts            # 一个文件一个接口，文件名即路径与方法
     apps.get.ts
     user.get.ts
+    menus/navigation.get.ts  # 导航菜单树（按角色裁剪；注意是 /menus 不是 /system/menu）
     system/menu/…            # tree.get.ts / index.post.ts / index.put.ts / [id].delete.ts
+    role/…                   # index.get.post.put.ts / [id].get.delete.ts / menus.get.put.ts
     data_dict/…
   utils/
-    db.ts                    # 内存数据与树构建
+    db.ts                    # 内存数据、菜单树、角色与 role_menus 关联表
+    mock-accounts.ts         # 测试账号真值表（login / permissions / profile / navigation 共用）
     response.ts              # 统一 { code, message, result } 包装
     query.ts                 # 分页与查询参数解析
 ```

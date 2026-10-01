@@ -116,7 +116,7 @@
       "aiProviderEmpty": "अभी कोई प्रदाता नहीं है। शुरू करने के लिए एक जोड़ें।",
       "aiAddProvider": "प्रदाता जोड़ें",
       "aiEditProvider": "प्रदाता संपादित करें",
-      "aiProviderKind": "सेवा प्रकार",
+      "aiProviderKind": "प्रोटोकॉल मानक",
       "aiProviderName": "नाम",
       "aiProviderBaseUrl": "एंडपॉइंट",
       "aiProviderBaseUrlHint": "खाली छोड़ने पर इस सेवा प्रकार का आधिकारिक पता उपयोग होगा",
@@ -124,7 +124,6 @@
       "aiApiKeyHint": "कुंजी केवल इस डिवाइस के ब्राउज़र में सहेजी जाती है। साझा कंप्यूटर पर असली कुंजी न डालें।",
       "aiProviderKeySet": "कुंजी सेट है",
       "aiProviderKeyMissing": "कुंजी नहीं है",
-      "aiProviderKind": "प्रोटोकॉल मानक",
       "aiProviderKinds": {
         "openai": "OpenAI मानक",
         "anthropic": "Anthropic मानक"
@@ -286,8 +285,9 @@
   },
   "nav": {
     "system": "सिस्टम",
-    "systemFeatures": "सुविधाएँ",
+    "systemMenus": "मेनू प्रबंधन",
     "systemDataDict": "डेटा शब्दकोश",
+    "systemRoles": "भूमिका प्रबंधन",
     "config": "कॉन्फ़िगरेशन",
     "langPack": "भाषा पैक",
     "home": "डैशबोर्ड",
@@ -391,5 +391,20 @@
     "expand": "विस्तृत करें",
     "close": "पूर्वावलोकन बंद करें",
     "resize": "पूर्वावलोकन की चौड़ाई बदलें"
+  },
+  "unsavedChanges": {
+    "message": "आपके पास सहेजे न गए बदलाव हैं",
+    "reset": "रीसेट",
+    "save": "सहेजें"
+  },
+  "dangerConfirm": {
+    "hint": "दर्ज करें",
+    "suffix": " की पुष्टि के लिए:",
+    "inputAria": "पुष्टि इनपुट",
+    "cancel": "रद्द करें"
+  },
+  "clipboard": {
+    "copyAria": "{{text}} को क्लिपबोर्ड पर कॉपी करें",
+    "copied": "कॉपी किया गया"
   }
 }

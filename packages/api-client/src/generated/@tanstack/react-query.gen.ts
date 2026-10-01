@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { deleteDataDictById, deleteDataDictTypeById, deleteSystemMenuById, deleteUserById, getApi, getApps, getDataDict, getDataDictOptions, getDataDictTypeTree, getPermissions, getProfile, getSystemMenuTree, getUser, getUserById, type Options, postDataDict, postDataDictType, postLogin, postLogout, postSystemMenu, postUser, postUserBatchDelete, putDataDict, putDataDictType, putSystemMenu, putUser } from '../sdk.gen';
-import type { DeleteDataDictByIdData, DeleteDataDictByIdResponse, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponse, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponse, DeleteUserByIdData, DeleteUserByIdResponse, GetApiData, GetApiResponse, GetAppsData, GetAppsResponse, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponse, GetDataDictResponse, GetDataDictTypeTreeData, GetDataDictTypeTreeResponse, GetPermissionsData, GetPermissionsResponse, GetProfileData, GetProfileResponse, GetSystemMenuTreeData, GetSystemMenuTreeResponse, GetUserByIdData, GetUserByIdResponse, GetUserData, GetUserResponse, PostDataDictData, PostDataDictResponse, PostDataDictTypeData, PostDataDictTypeResponse, PostLoginData, PostLoginResponse, PostLogoutData, PostLogoutResponse, PostSystemMenuData, PostSystemMenuResponse, PostUserBatchDeleteData, PostUserBatchDeleteResponse, PostUserData, PostUserResponse, PutDataDictData, PutDataDictResponse, PutDataDictTypeData, PutDataDictTypeResponse, PutSystemMenuData, PutSystemMenuResponse, PutUserData, PutUserResponse } from '../types.gen';
+import { deleteDataDictById, deleteDataDictTypeById, deleteRoleById, deleteSystemMenuById, deleteUserById, getApi, getApps, getDataDict, getDataDictOptions, getDataDictTypeTree, getMenusNavigation, getPermissions, getProfile, getRole, getRoleById, getRoleMenus, getSystemMenuTree, getUser, getUserById, type Options, postDataDict, postDataDictType, postLogin, postLogout, postRole, postSystemMenu, postUser, postUserBatchDelete, putDataDict, putDataDictType, putRole, putRoleMenus, putSystemMenu, putUser } from '../sdk.gen';
+import type { DeleteDataDictByIdData, DeleteDataDictByIdResponse, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponse, DeleteRoleByIdData, DeleteRoleByIdResponse, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponse, DeleteUserByIdData, DeleteUserByIdResponse, GetApiData, GetApiResponse, GetAppsData, GetAppsResponse, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponse, GetDataDictResponse, GetDataDictTypeTreeData, GetDataDictTypeTreeResponse, GetMenusNavigationData, GetMenusNavigationResponse, GetPermissionsData, GetPermissionsResponse, GetProfileData, GetProfileResponse, GetRoleByIdData, GetRoleByIdResponse, GetRoleData, GetRoleMenusData, GetRoleMenusResponse, GetRoleResponse, GetSystemMenuTreeData, GetSystemMenuTreeResponse, GetUserByIdData, GetUserByIdResponse, GetUserData, GetUserResponse, PostDataDictData, PostDataDictResponse, PostDataDictTypeData, PostDataDictTypeResponse, PostLoginData, PostLoginResponse, PostLogoutData, PostLogoutResponse, PostRoleData, PostRoleResponse, PostSystemMenuData, PostSystemMenuResponse, PostUserBatchDeleteData, PostUserBatchDeleteResponse, PostUserData, PostUserResponse, PutDataDictData, PutDataDictResponse, PutDataDictTypeData, PutDataDictTypeResponse, PutRoleData, PutRoleMenusData, PutRoleMenusResponse, PutRoleResponse, PutSystemMenuData, PutSystemMenuResponse, PutUserData, PutUserResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -42,7 +42,7 @@ const createQueryKey = <TOptions extends Options>(id: string, options?: TOptions
 export const getApiQueryKey = (options?: Options<GetApiData>) => createQueryKey('getApi', options);
 
 /**
- * 获取系统接口清单（供功能管理关联接口权限使用）
+ * 获取系统接口清单（供菜单管理关联接口权限使用）
  */
 export const getApiQueryOptions = (options?: Options<GetApiData>) => queryOptions<GetApiResponse, DefaultError, GetApiResponse, ReturnType<typeof getApiQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -291,7 +291,7 @@ export const getDataDictTypeTreeQueryOptions = (options?: Options<GetDataDictTyp
 });
 
 /**
- * 账号密码登录（任意非空账号密码均可通过）
+ * 账号密码登录（验证预设测试账号：super admin / admin / user）
  */
 export const postLoginMutation = (options?: Partial<Options<PostLoginData>>): UseMutationOptions<PostLoginResponse, DefaultError, Options<PostLoginData>> => {
     const mutationOptions: UseMutationOptions<PostLoginResponse, DefaultError, Options<PostLoginData>> = {
@@ -323,6 +323,24 @@ export const postLogoutMutation = (options?: Partial<Options<PostLogoutData>>): 
     };
     return mutationOptions;
 };
+
+export const getMenusNavigationQueryKey = (options?: Options<GetMenusNavigationData>) => createQueryKey('getMenusNavigation', options);
+
+/**
+ * 当前登录用户可见的导航菜单树（按角色菜单授权过滤，只含目录与菜单）
+ */
+export const getMenusNavigationQueryOptions = (options?: Options<GetMenusNavigationData>) => queryOptions<GetMenusNavigationResponse, DefaultError, GetMenusNavigationResponse, ReturnType<typeof getMenusNavigationQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getMenusNavigation({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getMenusNavigationQueryKey(options)
+});
 
 export const getPermissionsQueryKey = (options?: Options<GetPermissionsData>) => createQueryKey('getPermissions', options);
 
@@ -359,6 +377,158 @@ export const getProfileQueryOptions = (options?: Options<GetProfileData>) => que
     },
     queryKey: getProfileQueryKey(options)
 });
+
+export const getRoleQueryKey = (options?: Options<GetRoleData>) => createQueryKey('getRole', options);
+
+/**
+ * 角色分页列表，支持关键词与状态筛选
+ */
+export const getRoleQueryOptions = (options?: Options<GetRoleData>) => queryOptions<GetRoleResponse, DefaultError, GetRoleResponse, ReturnType<typeof getRoleQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRole({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRoleQueryKey(options)
+});
+
+export const getRoleInfiniteQueryKey = (options?: Options<GetRoleData>): QueryKey<Options<GetRoleData>> => createQueryKey('getRole', options, true);
+
+/**
+ * 角色分页列表，支持关键词与状态筛选
+ */
+export const getRoleInfiniteOptions = (options?: Options<GetRoleData>) => {
+    const opts = infiniteQueryOptions<GetRoleResponse, DefaultError, InfiniteData<GetRoleResponse>, QueryKey<Options<GetRoleData>>, number | Pick<QueryKey<Options<GetRoleData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<GetRoleData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await getRole({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: getRoleInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * 新建角色
+ */
+export const postRoleMutation = (options?: Partial<Options<PostRoleData>>): UseMutationOptions<PostRoleResponse, DefaultError, Options<PostRoleData>> => {
+    const mutationOptions: UseMutationOptions<PostRoleResponse, DefaultError, Options<PostRoleData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await postRole({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 更新角色（按 id 定位，只更新传入的字段）
+ */
+export const putRoleMutation = (options?: Partial<Options<PutRoleData>>): UseMutationOptions<PutRoleResponse, DefaultError, Options<PutRoleData>> => {
+    const mutationOptions: UseMutationOptions<PutRoleResponse, DefaultError, Options<PutRoleData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putRole({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 根据 ID 删除角色，同时清理该角色的菜单授权
+ */
+export const deleteRoleByIdMutation = (options?: Partial<Options<DeleteRoleByIdData>>): UseMutationOptions<DeleteRoleByIdResponse, DefaultError, Options<DeleteRoleByIdData>> => {
+    const mutationOptions: UseMutationOptions<DeleteRoleByIdResponse, DefaultError, Options<DeleteRoleByIdData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteRoleById({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getRoleByIdQueryKey = (options: Options<GetRoleByIdData>) => createQueryKey('getRoleById', options);
+
+/**
+ * 根据 ID 查询角色详情
+ */
+export const getRoleByIdQueryOptions = (options: Options<GetRoleByIdData>) => queryOptions<GetRoleByIdResponse, DefaultError, GetRoleByIdResponse, ReturnType<typeof getRoleByIdQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRoleById({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRoleByIdQueryKey(options)
+});
+
+export const getRoleMenusQueryKey = (options: Options<GetRoleMenusData>) => createQueryKey('getRoleMenus', options);
+
+/**
+ * 查询角色已授权的菜单 ID 列表
+ */
+export const getRoleMenusQueryOptions = (options: Options<GetRoleMenusData>) => queryOptions<GetRoleMenusResponse, DefaultError, GetRoleMenusResponse, ReturnType<typeof getRoleMenusQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRoleMenus({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRoleMenusQueryKey(options)
+});
+
+/**
+ * 替换角色的菜单授权（全量覆盖）
+ */
+export const putRoleMenusMutation = (options?: Partial<Options<PutRoleMenusData>>): UseMutationOptions<PutRoleMenusResponse, DefaultError, Options<PutRoleMenusData>> => {
+    const mutationOptions: UseMutationOptions<PutRoleMenusResponse, DefaultError, Options<PutRoleMenusData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putRoleMenus({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 /**
  * 删除功能（其下级一并删除）

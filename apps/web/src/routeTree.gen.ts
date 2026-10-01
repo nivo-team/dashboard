@@ -25,7 +25,8 @@ import { Route as MainSettingsRouteRouteImport } from './routes/_main/settings/r
 import { Route as AppIdHomeIndexRouteImport } from './routes/$appId/home/index'
 import { Route as AppIdSystemIndexRouteImport } from './routes/$appId/system/index'
 import { Route as AppIdSystemDataDictRouteRouteImport } from './routes/$appId/system/data-dict/route'
-import { Route as AppIdSystemFeaturesRouteRouteImport } from './routes/$appId/system/features/route'
+import { Route as AppIdSystemMenusRouteRouteImport } from './routes/$appId/system/menus/route'
+import { Route as AppIdSystemRolesRouteRouteImport } from './routes/$appId/system/roles/route'
 import { Route as AppIdUsersIndexRouteImport } from './routes/$appId/users/index'
 import { Route as AppIdSphereIndexRouteImport } from './routes/$appId_.sphere/index'
 import { Route as MainSettingsIndexRouteImport } from './routes/_main/settings/index'
@@ -35,9 +36,11 @@ import { Route as MainSettingsAppearanceRouteImport } from './routes/_main/setti
 import { Route as MainSettingsProfileRouteImport } from './routes/_main/settings/profile'
 import { Route as AppIdSystemDataDictIndexRouteImport } from './routes/$appId/system/data-dict/index'
 import { Route as AppIdSystemDataDictTypeIdRouteImport } from './routes/$appId/system/data-dict/$typeId'
-import { Route as AppIdSystemFeaturesIndexRouteImport } from './routes/$appId/system/features/index'
-import { Route as AppIdSystemFeaturesFeatureIdRouteImport } from './routes/$appId/system/features/$featureId'
-import { Route as AppIdSystemFeaturesNewRouteImport } from './routes/$appId/system/features/new'
+import { Route as AppIdSystemMenusIndexRouteImport } from './routes/$appId/system/menus/index'
+import { Route as AppIdSystemMenusFeatureIdRouteImport } from './routes/$appId/system/menus/$featureId'
+import { Route as AppIdSystemMenusNewRouteImport } from './routes/$appId/system/menus/new'
+import { Route as AppIdSystemRolesIndexRouteImport } from './routes/$appId/system/roles/index'
+import { Route as AppIdSystemRolesRoleIdRouteImport } from './routes/$appId/system/roles/$roleId'
 import { Route as AppIdUsersUserIndexRouteImport } from './routes/$appId/users/user/index'
 import { Route as AppIdUsersUserIdRouteImport } from './routes/$appId/users/user/$id'
 import { Route as AppIdUsersUserNewRouteImport } from './routes/$appId/users/user/new'
@@ -123,12 +126,16 @@ const AppIdSystemDataDictRouteRoute =
     path: '/data-dict',
     getParentRoute: () => AppIdSystemRouteRoute,
   } as any)
-const AppIdSystemFeaturesRouteRoute =
-  AppIdSystemFeaturesRouteRouteImport.update({
-    id: '/features',
-    path: '/features',
-    getParentRoute: () => AppIdSystemRouteRoute,
-  } as any)
+const AppIdSystemMenusRouteRoute = AppIdSystemMenusRouteRouteImport.update({
+  id: '/menus',
+  path: '/menus',
+  getParentRoute: () => AppIdSystemRouteRoute,
+} as any)
+const AppIdSystemRolesRouteRoute = AppIdSystemRolesRouteRouteImport.update({
+  id: '/roles',
+  path: '/roles',
+  getParentRoute: () => AppIdSystemRouteRoute,
+} as any)
 const AppIdUsersIndexRoute = AppIdUsersIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -176,22 +183,31 @@ const AppIdSystemDataDictTypeIdRoute =
     path: '/$typeId',
     getParentRoute: () => AppIdSystemDataDictRouteRoute,
   } as any)
-const AppIdSystemFeaturesIndexRoute =
-  AppIdSystemFeaturesIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AppIdSystemFeaturesRouteRoute,
-  } as any)
-const AppIdSystemFeaturesFeatureIdRoute =
-  AppIdSystemFeaturesFeatureIdRouteImport.update({
+const AppIdSystemMenusIndexRoute = AppIdSystemMenusIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppIdSystemMenusRouteRoute,
+} as any)
+const AppIdSystemMenusFeatureIdRoute =
+  AppIdSystemMenusFeatureIdRouteImport.update({
     id: '/$featureId',
     path: '/$featureId',
-    getParentRoute: () => AppIdSystemFeaturesRouteRoute,
+    getParentRoute: () => AppIdSystemMenusRouteRoute,
   } as any)
-const AppIdSystemFeaturesNewRoute = AppIdSystemFeaturesNewRouteImport.update({
+const AppIdSystemMenusNewRoute = AppIdSystemMenusNewRouteImport.update({
   id: '/new',
   path: '/new',
-  getParentRoute: () => AppIdSystemFeaturesRouteRoute,
+  getParentRoute: () => AppIdSystemMenusRouteRoute,
+} as any)
+const AppIdSystemRolesIndexRoute = AppIdSystemRolesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppIdSystemRolesRouteRoute,
+} as any)
+const AppIdSystemRolesRoleIdRoute = AppIdSystemRolesRoleIdRouteImport.update({
+  id: '/$roleId',
+  path: '/$roleId',
+  getParentRoute: () => AppIdSystemRolesRouteRoute,
 } as any)
 const AppIdUsersUserIndexRoute = AppIdUsersUserIndexRouteImport.update({
   id: '/user/',
@@ -232,7 +248,8 @@ export interface FileRoutesByFullPath {
   '/select-app': typeof MainSelectAppRoute
   '/$appId/': typeof AppIdIndexRoute
   '/$appId/system/data-dict': typeof AppIdSystemDataDictRouteRouteWithChildren
-  '/$appId/system/features': typeof AppIdSystemFeaturesRouteRouteWithChildren
+  '/$appId/system/menus': typeof AppIdSystemMenusRouteRouteWithChildren
+  '/$appId/system/roles': typeof AppIdSystemRolesRouteRouteWithChildren
   '/settings/AI': typeof MainSettingsAIRoute
   '/settings/about': typeof MainSettingsAboutRoute
   '/settings/appearance': typeof MainSettingsAppearanceRoute
@@ -243,13 +260,15 @@ export interface FileRoutesByFullPath {
   '/$appId/sphere/': typeof AppIdSphereIndexRoute
   '/settings/': typeof MainSettingsIndexRoute
   '/$appId/system/data-dict/$typeId': typeof AppIdSystemDataDictTypeIdRoute
-  '/$appId/system/features/$featureId': typeof AppIdSystemFeaturesFeatureIdRoute
-  '/$appId/system/features/new': typeof AppIdSystemFeaturesNewRoute
+  '/$appId/system/menus/$featureId': typeof AppIdSystemMenusFeatureIdRoute
+  '/$appId/system/menus/new': typeof AppIdSystemMenusNewRoute
+  '/$appId/system/roles/$roleId': typeof AppIdSystemRolesRoleIdRoute
   '/$appId/users/user/$id': typeof AppIdUsersUserIdRouteWithChildren
   '/$appId/users/user/new': typeof AppIdUsersUserNewRoute
   '/$appId/sphere/chat/$chatId': typeof AppIdSphereChatChatIdRoute
   '/$appId/system/data-dict/': typeof AppIdSystemDataDictIndexRoute
-  '/$appId/system/features/': typeof AppIdSystemFeaturesIndexRoute
+  '/$appId/system/menus/': typeof AppIdSystemMenusIndexRoute
+  '/$appId/system/roles/': typeof AppIdSystemRolesIndexRoute
   '/$appId/users/user/': typeof AppIdUsersUserIndexRoute
   '/$appId/users/user/$id/edit': typeof AppIdUsersUserIdEditRoute
 }
@@ -270,13 +289,15 @@ export interface FileRoutesByTo {
   '/$appId/sphere': typeof AppIdSphereIndexRoute
   '/settings': typeof MainSettingsIndexRoute
   '/$appId/system/data-dict/$typeId': typeof AppIdSystemDataDictTypeIdRoute
-  '/$appId/system/features/$featureId': typeof AppIdSystemFeaturesFeatureIdRoute
-  '/$appId/system/features/new': typeof AppIdSystemFeaturesNewRoute
+  '/$appId/system/menus/$featureId': typeof AppIdSystemMenusFeatureIdRoute
+  '/$appId/system/menus/new': typeof AppIdSystemMenusNewRoute
+  '/$appId/system/roles/$roleId': typeof AppIdSystemRolesRoleIdRoute
   '/$appId/users/user/$id': typeof AppIdUsersUserIdRouteWithChildren
   '/$appId/users/user/new': typeof AppIdUsersUserNewRoute
   '/$appId/sphere/chat/$chatId': typeof AppIdSphereChatChatIdRoute
   '/$appId/system/data-dict': typeof AppIdSystemDataDictIndexRoute
-  '/$appId/system/features': typeof AppIdSystemFeaturesIndexRoute
+  '/$appId/system/menus': typeof AppIdSystemMenusIndexRoute
+  '/$appId/system/roles': typeof AppIdSystemRolesIndexRoute
   '/$appId/users/user': typeof AppIdUsersUserIndexRoute
   '/$appId/users/user/$id/edit': typeof AppIdUsersUserIdEditRoute
 }
@@ -296,7 +317,8 @@ export interface FileRoutesById {
   '/$appId/': typeof AppIdIndexRoute
   '/_main/': typeof MainIndexRoute
   '/$appId/system/data-dict': typeof AppIdSystemDataDictRouteRouteWithChildren
-  '/$appId/system/features': typeof AppIdSystemFeaturesRouteRouteWithChildren
+  '/$appId/system/menus': typeof AppIdSystemMenusRouteRouteWithChildren
+  '/$appId/system/roles': typeof AppIdSystemRolesRouteRouteWithChildren
   '/_main/settings/AI': typeof MainSettingsAIRoute
   '/_main/settings/about': typeof MainSettingsAboutRoute
   '/_main/settings/appearance': typeof MainSettingsAppearanceRoute
@@ -307,13 +329,15 @@ export interface FileRoutesById {
   '/$appId_/sphere/': typeof AppIdSphereIndexRoute
   '/_main/settings/': typeof MainSettingsIndexRoute
   '/$appId/system/data-dict/$typeId': typeof AppIdSystemDataDictTypeIdRoute
-  '/$appId/system/features/$featureId': typeof AppIdSystemFeaturesFeatureIdRoute
-  '/$appId/system/features/new': typeof AppIdSystemFeaturesNewRoute
+  '/$appId/system/menus/$featureId': typeof AppIdSystemMenusFeatureIdRoute
+  '/$appId/system/menus/new': typeof AppIdSystemMenusNewRoute
+  '/$appId/system/roles/$roleId': typeof AppIdSystemRolesRoleIdRoute
   '/$appId/users/user/$id': typeof AppIdUsersUserIdRouteWithChildren
   '/$appId/users/user/new': typeof AppIdUsersUserNewRoute
   '/$appId_/sphere/chat/$chatId': typeof AppIdSphereChatChatIdRoute
   '/$appId/system/data-dict/': typeof AppIdSystemDataDictIndexRoute
-  '/$appId/system/features/': typeof AppIdSystemFeaturesIndexRoute
+  '/$appId/system/menus/': typeof AppIdSystemMenusIndexRoute
+  '/$appId/system/roles/': typeof AppIdSystemRolesIndexRoute
   '/$appId/users/user/': typeof AppIdUsersUserIndexRoute
   '/$appId/users/user/$id/edit': typeof AppIdUsersUserIdEditRoute
 }
@@ -332,7 +356,8 @@ export interface FileRouteTypes {
     | '/select-app'
     | '/$appId/'
     | '/$appId/system/data-dict'
-    | '/$appId/system/features'
+    | '/$appId/system/menus'
+    | '/$appId/system/roles'
     | '/settings/AI'
     | '/settings/about'
     | '/settings/appearance'
@@ -343,13 +368,15 @@ export interface FileRouteTypes {
     | '/$appId/sphere/'
     | '/settings/'
     | '/$appId/system/data-dict/$typeId'
-    | '/$appId/system/features/$featureId'
-    | '/$appId/system/features/new'
+    | '/$appId/system/menus/$featureId'
+    | '/$appId/system/menus/new'
+    | '/$appId/system/roles/$roleId'
     | '/$appId/users/user/$id'
     | '/$appId/users/user/new'
     | '/$appId/sphere/chat/$chatId'
     | '/$appId/system/data-dict/'
-    | '/$appId/system/features/'
+    | '/$appId/system/menus/'
+    | '/$appId/system/roles/'
     | '/$appId/users/user/'
     | '/$appId/users/user/$id/edit'
   fileRoutesByTo: FileRoutesByTo
@@ -370,13 +397,15 @@ export interface FileRouteTypes {
     | '/$appId/sphere'
     | '/settings'
     | '/$appId/system/data-dict/$typeId'
-    | '/$appId/system/features/$featureId'
-    | '/$appId/system/features/new'
+    | '/$appId/system/menus/$featureId'
+    | '/$appId/system/menus/new'
+    | '/$appId/system/roles/$roleId'
     | '/$appId/users/user/$id'
     | '/$appId/users/user/new'
     | '/$appId/sphere/chat/$chatId'
     | '/$appId/system/data-dict'
-    | '/$appId/system/features'
+    | '/$appId/system/menus'
+    | '/$appId/system/roles'
     | '/$appId/users/user'
     | '/$appId/users/user/$id/edit'
   id:
@@ -395,7 +424,8 @@ export interface FileRouteTypes {
     | '/$appId/'
     | '/_main/'
     | '/$appId/system/data-dict'
-    | '/$appId/system/features'
+    | '/$appId/system/menus'
+    | '/$appId/system/roles'
     | '/_main/settings/AI'
     | '/_main/settings/about'
     | '/_main/settings/appearance'
@@ -406,13 +436,15 @@ export interface FileRouteTypes {
     | '/$appId_/sphere/'
     | '/_main/settings/'
     | '/$appId/system/data-dict/$typeId'
-    | '/$appId/system/features/$featureId'
-    | '/$appId/system/features/new'
+    | '/$appId/system/menus/$featureId'
+    | '/$appId/system/menus/new'
+    | '/$appId/system/roles/$roleId'
     | '/$appId/users/user/$id'
     | '/$appId/users/user/new'
     | '/$appId_/sphere/chat/$chatId'
     | '/$appId/system/data-dict/'
-    | '/$appId/system/features/'
+    | '/$appId/system/menus/'
+    | '/$appId/system/roles/'
     | '/$appId/users/user/'
     | '/$appId/users/user/$id/edit'
   fileRoutesById: FileRoutesById
@@ -538,11 +570,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIdSystemDataDictRouteRouteImport
       parentRoute: typeof AppIdSystemRouteRoute
     }
-    '/$appId/system/features': {
-      id: '/$appId/system/features'
-      path: '/features'
-      fullPath: '/$appId/system/features'
-      preLoaderRoute: typeof AppIdSystemFeaturesRouteRouteImport
+    '/$appId/system/menus': {
+      id: '/$appId/system/menus'
+      path: '/menus'
+      fullPath: '/$appId/system/menus'
+      preLoaderRoute: typeof AppIdSystemMenusRouteRouteImport
+      parentRoute: typeof AppIdSystemRouteRoute
+    }
+    '/$appId/system/roles': {
+      id: '/$appId/system/roles'
+      path: '/roles'
+      fullPath: '/$appId/system/roles'
+      preLoaderRoute: typeof AppIdSystemRolesRouteRouteImport
       parentRoute: typeof AppIdSystemRouteRoute
     }
     '/$appId/users/': {
@@ -608,26 +647,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIdSystemDataDictTypeIdRouteImport
       parentRoute: typeof AppIdSystemDataDictRouteRoute
     }
-    '/$appId/system/features/': {
-      id: '/$appId/system/features/'
+    '/$appId/system/menus/': {
+      id: '/$appId/system/menus/'
       path: '/'
-      fullPath: '/$appId/system/features/'
-      preLoaderRoute: typeof AppIdSystemFeaturesIndexRouteImport
-      parentRoute: typeof AppIdSystemFeaturesRouteRoute
+      fullPath: '/$appId/system/menus/'
+      preLoaderRoute: typeof AppIdSystemMenusIndexRouteImport
+      parentRoute: typeof AppIdSystemMenusRouteRoute
     }
-    '/$appId/system/features/$featureId': {
-      id: '/$appId/system/features/$featureId'
+    '/$appId/system/menus/$featureId': {
+      id: '/$appId/system/menus/$featureId'
       path: '/$featureId'
-      fullPath: '/$appId/system/features/$featureId'
-      preLoaderRoute: typeof AppIdSystemFeaturesFeatureIdRouteImport
-      parentRoute: typeof AppIdSystemFeaturesRouteRoute
+      fullPath: '/$appId/system/menus/$featureId'
+      preLoaderRoute: typeof AppIdSystemMenusFeatureIdRouteImport
+      parentRoute: typeof AppIdSystemMenusRouteRoute
     }
-    '/$appId/system/features/new': {
-      id: '/$appId/system/features/new'
+    '/$appId/system/menus/new': {
+      id: '/$appId/system/menus/new'
       path: '/new'
-      fullPath: '/$appId/system/features/new'
-      preLoaderRoute: typeof AppIdSystemFeaturesNewRouteImport
-      parentRoute: typeof AppIdSystemFeaturesRouteRoute
+      fullPath: '/$appId/system/menus/new'
+      preLoaderRoute: typeof AppIdSystemMenusNewRouteImport
+      parentRoute: typeof AppIdSystemMenusRouteRoute
+    }
+    '/$appId/system/roles/': {
+      id: '/$appId/system/roles/'
+      path: '/'
+      fullPath: '/$appId/system/roles/'
+      preLoaderRoute: typeof AppIdSystemRolesIndexRouteImport
+      parentRoute: typeof AppIdSystemRolesRouteRoute
+    }
+    '/$appId/system/roles/$roleId': {
+      id: '/$appId/system/roles/$roleId'
+      path: '/$roleId'
+      fullPath: '/$appId/system/roles/$roleId'
+      preLoaderRoute: typeof AppIdSystemRolesRoleIdRouteImport
+      parentRoute: typeof AppIdSystemRolesRouteRoute
     }
     '/$appId/users/user/': {
       id: '/$appId/users/user/'
@@ -683,33 +736,49 @@ const AppIdSystemDataDictRouteRouteWithChildren =
     AppIdSystemDataDictRouteRouteChildren,
   )
 
-interface AppIdSystemFeaturesRouteRouteChildren {
-  AppIdSystemFeaturesFeatureIdRoute: typeof AppIdSystemFeaturesFeatureIdRoute
-  AppIdSystemFeaturesNewRoute: typeof AppIdSystemFeaturesNewRoute
-  AppIdSystemFeaturesIndexRoute: typeof AppIdSystemFeaturesIndexRoute
+interface AppIdSystemMenusRouteRouteChildren {
+  AppIdSystemMenusFeatureIdRoute: typeof AppIdSystemMenusFeatureIdRoute
+  AppIdSystemMenusNewRoute: typeof AppIdSystemMenusNewRoute
+  AppIdSystemMenusIndexRoute: typeof AppIdSystemMenusIndexRoute
 }
 
-const AppIdSystemFeaturesRouteRouteChildren: AppIdSystemFeaturesRouteRouteChildren =
-  {
-    AppIdSystemFeaturesFeatureIdRoute: AppIdSystemFeaturesFeatureIdRoute,
-    AppIdSystemFeaturesNewRoute: AppIdSystemFeaturesNewRoute,
-    AppIdSystemFeaturesIndexRoute: AppIdSystemFeaturesIndexRoute,
-  }
+const AppIdSystemMenusRouteRouteChildren: AppIdSystemMenusRouteRouteChildren = {
+  AppIdSystemMenusFeatureIdRoute: AppIdSystemMenusFeatureIdRoute,
+  AppIdSystemMenusNewRoute: AppIdSystemMenusNewRoute,
+  AppIdSystemMenusIndexRoute: AppIdSystemMenusIndexRoute,
+}
 
-const AppIdSystemFeaturesRouteRouteWithChildren =
-  AppIdSystemFeaturesRouteRoute._addFileChildren(
-    AppIdSystemFeaturesRouteRouteChildren,
+const AppIdSystemMenusRouteRouteWithChildren =
+  AppIdSystemMenusRouteRoute._addFileChildren(
+    AppIdSystemMenusRouteRouteChildren,
+  )
+
+interface AppIdSystemRolesRouteRouteChildren {
+  AppIdSystemRolesRoleIdRoute: typeof AppIdSystemRolesRoleIdRoute
+  AppIdSystemRolesIndexRoute: typeof AppIdSystemRolesIndexRoute
+}
+
+const AppIdSystemRolesRouteRouteChildren: AppIdSystemRolesRouteRouteChildren = {
+  AppIdSystemRolesRoleIdRoute: AppIdSystemRolesRoleIdRoute,
+  AppIdSystemRolesIndexRoute: AppIdSystemRolesIndexRoute,
+}
+
+const AppIdSystemRolesRouteRouteWithChildren =
+  AppIdSystemRolesRouteRoute._addFileChildren(
+    AppIdSystemRolesRouteRouteChildren,
   )
 
 interface AppIdSystemRouteRouteChildren {
   AppIdSystemDataDictRouteRoute: typeof AppIdSystemDataDictRouteRouteWithChildren
-  AppIdSystemFeaturesRouteRoute: typeof AppIdSystemFeaturesRouteRouteWithChildren
+  AppIdSystemMenusRouteRoute: typeof AppIdSystemMenusRouteRouteWithChildren
+  AppIdSystemRolesRouteRoute: typeof AppIdSystemRolesRouteRouteWithChildren
   AppIdSystemIndexRoute: typeof AppIdSystemIndexRoute
 }
 
 const AppIdSystemRouteRouteChildren: AppIdSystemRouteRouteChildren = {
   AppIdSystemDataDictRouteRoute: AppIdSystemDataDictRouteRouteWithChildren,
-  AppIdSystemFeaturesRouteRoute: AppIdSystemFeaturesRouteRouteWithChildren,
+  AppIdSystemMenusRouteRoute: AppIdSystemMenusRouteRouteWithChildren,
+  AppIdSystemRolesRouteRoute: AppIdSystemRolesRouteRouteWithChildren,
   AppIdSystemIndexRoute: AppIdSystemIndexRoute,
 }
 

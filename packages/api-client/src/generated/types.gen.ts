@@ -316,6 +316,67 @@ export type LoginResult = {
     };
 };
 
+/**
+ * 导航节点（目录 / 菜单，可嵌套）
+ */
+export type NavigationNode = {
+    /**
+     * 菜单 ID
+     */
+    menu_id: number;
+    /**
+     * 上级菜单 ID，顶级为 0
+     */
+    parent_id?: number;
+    /**
+     * 菜单名称
+     */
+    menu_name: string;
+    /**
+     * 1 目录 / 2 菜单
+     */
+    menu_type: number;
+    /**
+     * 路由地址（相对 appId），打开该菜单落到这个前端路由
+     */
+    path?: string;
+    /**
+     * 图标标识
+     */
+    icon?: string;
+    /**
+     * 排序
+     */
+    sort?: number;
+    /**
+     * 1 可见 / 2 隐藏
+     */
+    visible?: number;
+    /**
+     * 子菜单
+     */
+    children?: Array<NavigationNode>;
+};
+
+export type NavigationResult = {
+    /**
+     * 0 表示成功
+     */
+    code: number;
+    message?: string;
+    result: {
+        /**
+         * 解析出的当前角色（导航裁剪依据）
+         */
+        role: {
+            id: number;
+            name: string;
+            code: string;
+        };
+        items: Array<NavigationNode>;
+    };
+};
+
 export type PermissionsResult = {
     /**
      * 0 表示成功
@@ -384,6 +445,90 @@ export type ProfileResult = {
              */
             disabled?: boolean;
         }>;
+    };
+};
+
+/**
+ * 角色
+ */
+export type RoleItem = {
+    /**
+     * 角色 ID
+     */
+    id: number;
+    /**
+     * 角色名称
+     */
+    name: string;
+    /**
+     * 角色码（与登录账号的 role 对应，如 super / editor / viewer）
+     */
+    code: string;
+    /**
+     * 角色描述
+     */
+    description?: string;
+    /**
+     * 1 启用 / 2 禁用
+     */
+    status?: number;
+    /**
+     * 排序
+     */
+    sort?: number;
+    /**
+     * 已授权的菜单数量
+     */
+    menu_count?: number;
+    /**
+     * 创建时间
+     */
+    created_at?: string;
+    /**
+     * 更新时间
+     */
+    updated_at?: string;
+};
+
+export type RoleListResult = {
+    /**
+     * 0 表示成功
+     */
+    code: number;
+    message?: string;
+    result: {
+        /**
+         * 总条数
+         */
+        total: number;
+        items: Array<RoleItem>;
+    };
+};
+
+export type RoleResult = {
+    /**
+     * 0 表示成功
+     */
+    code: number;
+    message?: string;
+    result: RoleItem;
+};
+
+export type RoleMenusResult = {
+    /**
+     * 0 表示成功
+     */
+    code: number;
+    message?: string;
+    result: {
+        /**
+         * 角色 ID
+         */
+        role_id: number;
+        /**
+         * 该角色已授权的菜单 ID（含目录 / 菜单 / 操作）
+         */
+        menu_ids: Array<number>;
     };
 };
 
@@ -969,12 +1114,28 @@ export type PostLogoutResponses = {
 
 export type PostLogoutResponse = PostLogoutResponses[keyof PostLogoutResponses];
 
+export type GetMenusNavigationData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/menus/navigation';
+};
+
+export type GetMenusNavigationResponses = {
+    /**
+     * 导航菜单树
+     */
+    200: NavigationResult;
+};
+
+export type GetMenusNavigationResponse = GetMenusNavigationResponses[keyof GetMenusNavigationResponses];
+
 export type GetPermissionsData = {
     body?: never;
     path?: never;
     query?: {
         /**
-         * Mock 专用：模拟不同角色（super / editor / viewer），不传等价于 super
+         * Mock 专用：模拟不同角色（super / editor / viewer），不传优先根据登录 Token 判断
          */
         role?: string;
     };
@@ -1005,6 +1166,215 @@ export type GetProfileResponses = {
 };
 
 export type GetProfileResponse = GetProfileResponses[keyof GetProfileResponses];
+
+export type GetRoleData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 页码，从 1 开始
+         */
+        page?: number;
+        /**
+         * 每页条数
+         */
+        page_size?: number;
+        /**
+         * 关键词（名称 / 角色码 / 描述模糊匹配）
+         */
+        kw?: string;
+        /**
+         * 状态：1 启用 / 2 禁用
+         */
+        status?: 1 | 2;
+    };
+    url: '/role';
+};
+
+export type GetRoleResponses = {
+    /**
+     * 角色分页结果
+     */
+    200: RoleListResult;
+};
+
+export type GetRoleResponse = GetRoleResponses[keyof GetRoleResponses];
+
+export type PostRoleData = {
+    body: {
+        /**
+         * 角色名称
+         */
+        name: string;
+        /**
+         * 角色码（小写字母 / 数字 / _ / -）
+         */
+        code: string;
+        /**
+         * 角色描述
+         */
+        description?: string;
+        /**
+         * 1 启用 / 2 禁用，默认 1
+         */
+        status?: number;
+        /**
+         * 排序
+         */
+        sort?: number;
+    };
+    path?: never;
+    query?: never;
+    url: '/role';
+};
+
+export type PostRoleResponses = {
+    /**
+     * 新建的角色
+     */
+    200: RoleResult;
+};
+
+export type PostRoleResponse = PostRoleResponses[keyof PostRoleResponses];
+
+export type PutRoleData = {
+    body: {
+        /**
+         * 角色 ID
+         */
+        id: number;
+        /**
+         * 角色名称
+         */
+        name?: string;
+        /**
+         * 角色码
+         */
+        code?: string;
+        /**
+         * 角色描述
+         */
+        description?: string;
+        /**
+         * 1 启用 / 2 禁用
+         */
+        status?: number;
+        /**
+         * 排序
+         */
+        sort?: number;
+    };
+    path?: never;
+    query?: never;
+    url: '/role';
+};
+
+export type PutRoleResponses = {
+    /**
+     * 更新后的角色
+     */
+    200: RoleResult;
+};
+
+export type PutRoleResponse = PutRoleResponses[keyof PutRoleResponses];
+
+export type DeleteRoleByIdData = {
+    body?: never;
+    path: {
+        /**
+         * 角色 ID
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/role/{id}';
+};
+
+export type DeleteRoleByIdResponses = {
+    /**
+     * 删除结果
+     */
+    200: {
+        /**
+         * 0 表示成功
+         */
+        code: number;
+        message?: string;
+        /**
+         * 成功时为空
+         */
+        result?: null;
+    };
+};
+
+export type DeleteRoleByIdResponse = DeleteRoleByIdResponses[keyof DeleteRoleByIdResponses];
+
+export type GetRoleByIdData = {
+    body?: never;
+    path: {
+        /**
+         * 角色 ID
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/role/{id}';
+};
+
+export type GetRoleByIdResponses = {
+    /**
+     * 角色详情
+     */
+    200: RoleResult;
+};
+
+export type GetRoleByIdResponse = GetRoleByIdResponses[keyof GetRoleByIdResponses];
+
+export type GetRoleMenusData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * 角色 ID
+         */
+        role_id: number;
+    };
+    url: '/role/menus';
+};
+
+export type GetRoleMenusResponses = {
+    /**
+     * 该角色的菜单授权
+     */
+    200: RoleMenusResult;
+};
+
+export type GetRoleMenusResponse = GetRoleMenusResponses[keyof GetRoleMenusResponses];
+
+export type PutRoleMenusData = {
+    body: {
+        /**
+         * 角色 ID
+         */
+        role_id: number;
+        /**
+         * 该角色可见的全部菜单 ID（含目录 / 菜单 / 操作）
+         */
+        menu_ids: Array<number>;
+    };
+    path?: never;
+    query?: never;
+    url: '/role/menus';
+};
+
+export type PutRoleMenusResponses = {
+    /**
+     * 替换后的菜单授权
+     */
+    200: RoleMenusResult;
+};
+
+export type PutRoleMenusResponse = PutRoleMenusResponses[keyof PutRoleMenusResponses];
 
 export type DeleteSystemMenuByIdData = {
     body?: never;

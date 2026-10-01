@@ -31,7 +31,7 @@
             }
           }
         },
-        "description": "获取系统接口清单（供功能管理关联接口权限使用）"
+        "description": "获取系统接口清单（供菜单管理关联接口权限使用）"
       }
     },
     "/apps": {
@@ -513,7 +513,7 @@
             }
           }
         },
-        "description": "账号密码登录（任意非空账号密码均可通过）",
+        "description": "账号密码登录（验证预设测试账号：super admin / admin / user）",
         "requestBody": {
           "required": true,
           "content": {
@@ -581,6 +581,27 @@
         "description": "退出登录"
       }
     },
+    "/menus/navigation": {
+      "get": {
+        "tags": [
+          "菜单"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "导航菜单树",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NavigationResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "当前登录用户可见的导航菜单树（按角色菜单授权过滤，只含目录与菜单）"
+      }
+    },
     "/permissions": {
       "get": {
         "tags": [
@@ -591,7 +612,7 @@
             "name": "role",
             "in": "query",
             "required": false,
-            "description": "Mock 专用：模拟不同角色（super / editor / viewer），不传等价于 super",
+            "description": "Mock 专用：模拟不同角色（super / editor / viewer），不传优先根据登录 Token 判断",
             "schema": {
               "type": "string"
             }
@@ -631,6 +652,330 @@
           }
         },
         "description": "获取当前登录用户信息"
+      }
+    },
+    "/role": {
+      "get": {
+        "tags": [
+          "角色"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "页码，从 1 开始"
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "每页条数"
+          },
+          {
+            "in": "query",
+            "name": "kw",
+            "schema": {
+              "type": "string"
+            },
+            "description": "关键词（名称 / 角色码 / 描述模糊匹配）"
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                1,
+                2
+              ]
+            },
+            "description": "状态：1 启用 / 2 禁用"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "角色分页结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleListResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "角色分页列表，支持关键词与状态筛选"
+      },
+      "post": {
+        "tags": [
+          "角色"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "新建的角色",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "新建角色",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "角色名称"
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "角色码（小写字母 / 数字 / _ / -）"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "角色描述"
+                  },
+                  "status": {
+                    "type": "integer",
+                    "description": "1 启用 / 2 禁用，默认 1"
+                  },
+                  "sort": {
+                    "type": "integer",
+                    "description": "排序"
+                  }
+                },
+                "required": [
+                  "name",
+                  "code"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "角色"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "更新后的角色",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "更新角色（按 id 定位，只更新传入的字段）",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "角色 ID"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "角色名称"
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "角色码"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "角色描述"
+                  },
+                  "status": {
+                    "type": "integer",
+                    "description": "1 启用 / 2 禁用"
+                  },
+                  "sort": {
+                    "type": "integer",
+                    "description": "排序"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/role/{id}": {
+      "delete": {
+        "tags": [
+          "角色"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "角色 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "0 表示成功"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "null",
+                      "description": "成功时为空"
+                    }
+                  },
+                  "required": [
+                    "code"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "根据 ID 删除角色，同时清理该角色的菜单授权"
+      },
+      "get": {
+        "tags": [
+          "角色"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "角色 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "角色详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "根据 ID 查询角色详情"
+      }
+    },
+    "/role/menus": {
+      "get": {
+        "tags": [
+          "角色"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "role_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "角色 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "该角色的菜单授权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleMenusResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "查询角色已授权的菜单 ID 列表"
+      },
+      "put": {
+        "tags": [
+          "角色"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "替换后的菜单授权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleMenusResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "替换角色的菜单授权（全量覆盖）",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role_id": {
+                    "type": "integer",
+                    "description": "角色 ID"
+                  },
+                  "menu_ids": {
+                    "type": "array",
+                    "description": "该角色可见的全部菜单 ID（含目录 / 菜单 / 操作）",
+                    "items": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "required": [
+                  "role_id",
+                  "menu_ids"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/system/menu/{id}": {
@@ -1572,6 +1917,107 @@
           "result"
         ]
       },
+      "NavigationNode": {
+        "type": "object",
+        "description": "导航节点（目录 / 菜单，可嵌套）",
+        "properties": {
+          "menu_id": {
+            "type": "integer",
+            "description": "菜单 ID"
+          },
+          "parent_id": {
+            "type": "integer",
+            "description": "上级菜单 ID，顶级为 0"
+          },
+          "menu_name": {
+            "type": "string",
+            "description": "菜单名称"
+          },
+          "menu_type": {
+            "type": "integer",
+            "description": "1 目录 / 2 菜单"
+          },
+          "path": {
+            "type": "string",
+            "description": "路由地址（相对 appId），打开该菜单落到这个前端路由"
+          },
+          "icon": {
+            "type": "string",
+            "description": "图标标识"
+          },
+          "sort": {
+            "type": "integer",
+            "description": "排序"
+          },
+          "visible": {
+            "type": "integer",
+            "description": "1 可见 / 2 隐藏"
+          },
+          "children": {
+            "type": "array",
+            "description": "子菜单",
+            "items": {
+              "$ref": "#/components/schemas/NavigationNode"
+            }
+          }
+        },
+        "required": [
+          "menu_id",
+          "menu_name",
+          "menu_type"
+        ]
+      },
+      "NavigationResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "object",
+                "description": "解析出的当前角色（导航裁剪依据）",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "code": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "code"
+                ]
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/NavigationNode"
+                }
+              }
+            },
+            "required": [
+              "role",
+              "items"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
       "PermissionsResult": {
         "type": "object",
         "properties": {
@@ -1676,6 +2122,143 @@
             "required": [
               "uid",
               "username"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "RoleItem": {
+        "type": "object",
+        "description": "角色",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "角色 ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "角色名称"
+          },
+          "code": {
+            "type": "string",
+            "description": "角色码（与登录账号的 role 对应，如 super / editor / viewer）"
+          },
+          "description": {
+            "type": "string",
+            "description": "角色描述"
+          },
+          "status": {
+            "type": "integer",
+            "description": "1 启用 / 2 禁用"
+          },
+          "sort": {
+            "type": "integer",
+            "description": "排序"
+          },
+          "menu_count": {
+            "type": "integer",
+            "description": "已授权的菜单数量"
+          },
+          "created_at": {
+            "type": "string",
+            "description": "创建时间"
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "更新时间"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "code"
+        ]
+      },
+      "RoleListResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "description": "总条数"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RoleItem"
+                }
+              }
+            },
+            "required": [
+              "total",
+              "items"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "RoleResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/RoleItem"
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "RoleMenusResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "role_id": {
+                "type": "integer",
+                "description": "角色 ID"
+              },
+              "menu_ids": {
+                "type": "array",
+                "description": "该角色已授权的菜单 ID（含目录 / 菜单 / 操作）",
+                "items": {
+                  "type": "integer"
+                }
+              }
+            },
+            "required": [
+              "role_id",
+              "menu_ids"
             ]
           }
         },

@@ -17,6 +17,7 @@ import {
   rememberMaximizeOrigin,
   useAiSessionStore,
 } from '#/lib/ai'
+import { useUserPermissions } from '#/lib/permissions'
 import { usePreferencesStore } from '#/lib/store'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 
@@ -61,6 +62,16 @@ export function AppShell() {
    * 就放在两者共同的上层。**不持久化**（折叠是「这一次不想看」，与开关本身不同）。
    */
   const [aiFloatCollapsed, setAiFloatCollapsed] = useState(false)
+  /**
+   * 权限清单同步挂在**外壳**上，而不是某个子组件（原先挂在 `AppSidebar`）。
+   *
+   * 原因：`hasPageCapabilityPermission` / 路由守卫 / 命令面板都读同一个权限 store；
+   * 只要有一个入口没经过 `AppSidebar`（比如 `/sphere`、`_main` 外壳、直接粘贴深链），
+   * 权限就是空的 —— 严格判定下会表现为「这页的能力全没了」。
+   * 外壳是所有业务页的公共祖先，放这里一处即可覆盖全部子路由。
+   */
+  useUserPermissions()
+
   const aiEnabled = usePreferencesStore((state) => state.aiEnabled)
   const aiPanelMode = usePreferencesStore((state) => state.aiPanelMode)
   /** 「最大化」跳哪个路由要看有没有当前会话（见 `handleMaximizeAi`） */

@@ -1,18 +1,25 @@
 import { defineHandler, defineRouteMeta } from 'nitro'
 import { readBody } from 'nitro/h3'
+import { findAccountByUsername } from '../utils/mock-accounts'
 import { fail, ok } from '../utils/response'
 
 /**
- * 登录。
+ * 登录（Mock）。
  *
- * 任意「非空账号 + 非空密码」都通过 —— 开源模板要的是**零配置能进系统**，
- * 而不是复刻真实的账号体系。返回结构与真实后端一致（`result.token` /
- * `result.uid`），因此前端登录逻辑一行都不用改。
+ * 只认三个预设测试账号，密码统一 `123`（真实项目里当然不是这样，这里是
+ * **为了让「角色 → 权限」的收敛链可验证**才刻意收紧的）：
+ * 1. `super admin`：最高权限（全量读写删改）；
+ * 2. `admin`：业务管理员（能建能改，**不能删**）；
+ * 3. `user`：普通访客（只读）。
+ *
+ * 账号清单本身在 `../utils/mock-accounts`：`permissions.get.ts` 与 `profile.get.ts`
+ * 也按同一份清单反查身份，避免三处各写一份角色表而漂移。
  */
+
 defineRouteMeta({
   openAPI: {
     tags: ['认证'],
-    description: '账号密码登录（任意非空账号密码均可通过）',
+    description: '账号密码登录（验证预设测试账号：super admin / admin / user）',
     requestBody: {
       required: true,
       content: {
@@ -75,15 +82,33 @@ interface LoginBody {
 export default defineHandler(async (event) => {
   const body = await readBody<LoginBody>(event).catch(() => ({}) as LoginBody)
 
-  if (!body?.username?.trim()) return fail(400, '请输入账号')
-  if (!body?.password?.trim()) return fail(400, '请输入密码')
+  const rawUsername = body?.username?.trim()
+  const rawPassword = body?.password?.trim()
+
+  if (!rawUsername) return fail(400, '请输入账号')
+  if (!rawPassword) return fail(400, '请输入密码')
+
+  const matched = findAccountByUsername(rawUsername)
+
+  if (!matched) {
+    return fail(400, '账号不存在（测试账号：super admin / admin / user）')
+  }
+
+  /*
+    密码**只与账号自己的 password 比**。
+    这里以前还接受「账号名当密码」「别名当密码」等一堆兜底 —— 那些既让「密码错误」
+    这条分支永远测不到，也把 `aliases`（登录名）误当成密码来源，属于纯粹的语义错误。
+  */
+  if (rawPassword !== matched.password) {
+    return fail(400, `密码错误（测试账号默认密码：${matched.password}）`)
+  }
 
   return ok({
-    token: 'mock-token',
-    refresh_token: 'mock-refresh-token',
+    token: matched.token,
+    refresh_token: `${matched.token}-refresh`,
     // 给一个远期时间，避免演示到一半 token 过期
     token_expire: 4102444800,
     refresh_token_expire: 4102444800,
-    uid: 1,
+    uid: matched.uid,
   })
 })

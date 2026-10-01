@@ -20,7 +20,7 @@ export interface EndpointSpec {
 
 export const ENDPOINT_SPECS: Record<string, EndpointSpec> = {
   "GET /api": {
-    "summary": "获取系统接口清单（供功能管理关联接口权限使用）"
+    "summary": "获取系统接口清单（供菜单管理关联接口权限使用）"
   },
   "GET /apps": {
     "summary": "获取可选应用列表（含各自的接口根地址）"
@@ -142,7 +142,7 @@ export const ENDPOINT_SPECS: Record<string, EndpointSpec> = {
     "summary": "获取字典分类树（顶层节点数组）"
   },
   "POST /login": {
-    "summary": "账号密码登录（任意非空账号密码均可通过）",
+    "summary": "账号密码登录（验证预设测试账号：super admin / admin / user）",
     "params": [
       {
         "name": "username",
@@ -159,6 +159,9 @@ export const ENDPOINT_SPECS: Record<string, EndpointSpec> = {
   "POST /logout": {
     "summary": "退出登录"
   },
+  "GET /menus/navigation": {
+    "summary": "当前登录用户可见的导航菜单树（按角色菜单授权过滤，只含目录与菜单）"
+  },
   "GET /permissions": {
     "summary": "获取当前用户的权限点清单（细到按钮级），供前端在把 AI 工具交给模型前过滤",
     "params": [
@@ -166,12 +169,114 @@ export const ENDPOINT_SPECS: Record<string, EndpointSpec> = {
         "name": "role",
         "in": "query",
         "required": false,
-        "description": "Mock 专用：模拟不同角色（super / editor / viewer），不传等价于 super"
+        "description": "Mock 专用：模拟不同角色（super / editor / viewer），不传优先根据登录 Token 判断"
       }
     ]
   },
   "GET /profile": {
     "summary": "获取当前登录用户信息"
+  },
+  "GET /role": {
+    "summary": "角色分页列表，支持关键词与状态筛选",
+    "params": [
+      {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "description": "页码，从 1 开始"
+      },
+      {
+        "name": "page_size",
+        "in": "query",
+        "required": false,
+        "description": "每页条数"
+      },
+      {
+        "name": "kw",
+        "in": "query",
+        "required": false,
+        "description": "关键词（名称 / 角色码 / 描述模糊匹配）"
+      },
+      {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "description": "状态：1 启用 / 2 禁用"
+      }
+    ]
+  },
+  "POST /role": {
+    "summary": "新建角色",
+    "params": [
+      {
+        "name": "name",
+        "in": "body",
+        "required": true
+      },
+      {
+        "name": "code",
+        "in": "body",
+        "required": true
+      }
+    ]
+  },
+  "PUT /role": {
+    "summary": "更新角色（按 id 定位，只更新传入的字段）",
+    "params": [
+      {
+        "name": "id",
+        "in": "body",
+        "required": true
+      }
+    ]
+  },
+  "DELETE /role/{id}": {
+    "summary": "根据 ID 删除角色，同时清理该角色的菜单授权",
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "角色 ID"
+      }
+    ]
+  },
+  "GET /role/{id}": {
+    "summary": "根据 ID 查询角色详情",
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "角色 ID"
+      }
+    ]
+  },
+  "GET /role/menus": {
+    "summary": "查询角色已授权的菜单 ID 列表",
+    "params": [
+      {
+        "name": "role_id",
+        "in": "query",
+        "required": true,
+        "description": "角色 ID"
+      }
+    ]
+  },
+  "PUT /role/menus": {
+    "summary": "替换角色的菜单授权（全量覆盖）",
+    "params": [
+      {
+        "name": "role_id",
+        "in": "body",
+        "required": true
+      },
+      {
+        "name": "menu_ids",
+        "in": "body",
+        "required": true
+      }
+    ]
   },
   "DELETE /system/menu/{id}": {
     "summary": "删除功能（其下级一并删除）",

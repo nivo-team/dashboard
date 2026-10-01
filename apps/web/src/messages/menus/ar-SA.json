@@ -1,0 +1,165 @@
+{
+  "title": "إدارة القوائم",
+  "description": "إدارة تسلسل القوائم الهرمي ومسارات التوجيه: تُستخدم الأدلة للتصنيف الهرمي، والقائمة هي وجهة الصفحة، والعملية تحمل رمز الصلاحية",
+  "containerDescription": "محتوى هذا الدليل، ويمكن متابعة تضمين أدلة أو إضافة قوائم",
+  "moduleName": "القوائم",
+  "searchPlaceholder": "ابحث عن اسم القائمة / مسار التوجيه…",
+  "createFeature": "إضافة قائمة",
+  "createGroup": "إضافة دليل",
+  "createPermission": "إضافة صلاحية",
+  "create": {
+    "label": "إنشاء"
+  },
+  "demoBadge": "（وضع البيانات التجريبية）",
+  "quota": "إجمالي <b>{{total}}</b> عنصر",
+  "empty": {
+    "title": "لا توجد بيانات قوائم",
+    "description": "لم يتم العثور على قوائم مطابقة، حاول تغيير كلمة البحث"
+  },
+  "columns": {
+    "menu_id": "ID",
+    "menu_name": "الاسم",
+    "menu_type": "النوع",
+    "path": "مسار التوجيه",
+    "permission": "رمز الصلاحية",
+    "icon": "الأيقونة",
+    "sort": "الترتيب",
+    "status": "الحالة",
+    "visible": "الظهور",
+    "is_frame": "رابط خارجي",
+    "no_cache": "التخزين المؤقت",
+    "api_keys": "واجهات مرتبطة",
+    "created_at": "وقت الإنشاء",
+    "updated_at": "وقت التحديث",
+    "actions": "الإجراءات"
+  },
+  "cell": {
+    "yes": "نعم",
+    "no": "لا"
+  },
+  "menuType": {
+    "directory": "دليل",
+    "menu": "قائمة",
+    "action": "عملية"
+  },
+  "status": {
+    "enabled": "مفعّل",
+    "disabled": "معطّل"
+  },
+  "visible": {
+    "visible": "ظاهر",
+    "hidden": "مخفي"
+  },
+  "isFrame": {
+    "yes": "نعم",
+    "no": "لا"
+  },
+  "noCache": {
+    "noCache": "بدون تخزين مؤقت",
+    "cache": "تخزين مؤقت"
+  },
+  "rowActions": {
+    "label": "مزيد من الإجراءات",
+    "editFeature": "تعديل القائمة",
+    "editGroup": "تعديل الدليل",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "comingSoon": "ستتوفر هذه القائمة في إصدار لاحق"
+  },
+  "messages": {
+    "fetchFailed": "تعذّر تحميل القوائم"
+  },
+  "detail": {
+    "backToList": "العودة إلى القائمة",
+    "basicInfo": "المعلومات الأساسية",
+    "copy": "نسخ",
+    "copied": "تم النسخ",
+    "dangerZone": "إجراءات خطرة",
+    "deleteFeature": "حذف القائمة",
+    "deleteFeatureTitle": "حذف القائمة",
+    "deleteFeatureConfirm": "لا يمكن التراجع عن هذا الإجراء. سيتم حذف القائمة <b>{{name}}</b> نهائيًا، وموضعها في شجرة القوائم.",
+    "deleteBlocked": "لا يزال هناك {{total}} عنصر فرعي ضمن هذه العقدة، يُرجى حذف العناصر الفرعية أولاً",
+    "editGroup": "تعديل الدليل",
+    "editGroupDescription": "تعديل اسم الدليل ومسار التوجيه والأيقونة والترتيب وحالة الظهور",
+    "deleteGroup": "حذف الدليل",
+    "deleteGroupConfirm": "لا يمكن التراجع عن هذا الإجراء. سيتم حذف الدليل <b>{{name}}</b> نهائيًا.",
+    "details": "التفاصيل",
+    "parentFeature": "معرّف الأصل",
+    "rootFeature": "المستوى الجذر",
+    "notFound": "لم يتم العثور على هذه القائمة",
+    "invalidId": "المعرّف غير صالح",
+    "retry": "إعادة المحاولة",
+    "childrenTitle": "العمليات",
+    "childrenQuota": "إجمالي {{total}} عنصر",
+    "childrenEmpty": {
+      "title": "لا توجد عمليات",
+      "description": "لا توجد عمليات ضمن هذه القائمة بعد، يمكنك استخدام «إضافة عملية» للمتابعة"
+    }
+  },
+  "permissionDialog": {
+    "createTitle": "إضافة عملية",
+    "editTitle": "تعديل العملية",
+    "createDescription": "إضافة عملية جديدة (نقطة صلاحية) ضمن القائمة الحالية",
+    "editDescription": "تعديل اسم العملية ورمز الصلاحية وحالتها",
+    "deleteTitle": "حذف العملية",
+    "deleteConfirm": "هل أنت متأكد من حذف «{{name}}»؟ لا يمكن التراجع عن هذا الإجراء.",
+    "delete": "حذف"
+  },
+  "form": {
+    "createFeatureTitle": "إضافة قائمة",
+    "createGroupTitle": "إضافة دليل",
+    "createButtonTitle": "إضافة عملية",
+    "createFeatureDescription": "إنشاء قائمة وتحديد مسار التوجيه الذي تنتقل إليه عند فتحها",
+    "createGroupDescription": "إنشاء دليل لمواصلة تصنيف القوائم هرميًا",
+    "createButtonDescription": "إنشاء عملية (نقطة صلاحية) للتحكم في السلوك ضمن هذه القائمة",
+    "parentHint": "سيتم الإنشاء ضمن: {{parent}}",
+    "path": "مسار التوجيه",
+    "pathDescription": "مسار نسبي للتطبيق، مثل /system/menus؛ ويُحدَّد للدليل المسار الذي ينتقل إليه",
+    "pathPlaceholder": "/system/menus",
+    "pathRequired": "يُرجى إدخال مسار التوجيه",
+    "pathInvalid": "يجب أن يبدأ مسار التوجيه بـ /، مثل /system/menus",
+    "name": "الاسم",
+    "nameDescription": "من 2 إلى 50 حرفًا، الاسم المعروض",
+    "namePlaceholder": "أدخل الاسم",
+    "nameLength": "يجب أن يتراوح طول الاسم بين 2 و50 حرفًا",
+    "permission": "رمز الصلاحية",
+    "permissionDescription": "رمز صلاحية الواجهة، مطلوب للقوائم والعمليات، على سبيل المثال feature:read",
+    "permissionPlaceholder": "n:menus:list",
+    "permissionRequired": "يُرجى إدخال رمز الصلاحية",
+    "apiKeys": "واجهات مرتبطة",
+    "apiKeysDescription": "أدخل كلمات مفتاحية للبحث في واجهات النظام؛ ترتبط القائمة بواجهة القائمة، وترتبط العملية بواجهة action محددة",
+    "apiKeysPlaceholder": "ابحث عن واجهة، على سبيل المثال /api/guild",
+    "apiKeysRemove": "إزالة {{label}}",
+    "apiKeysLoading": "جارٍ تحميل قائمة الواجهات…",
+    "apiKeysFailed": "تعذّر تحميل قائمة الواجهات، يُرجى المحاولة لاحقًا",
+    "apiKeysNoMatch": "لا توجد واجهات متاحة للربط",
+    "icon": "الأيقونة",
+    "iconDescription": "اسم الأيقونة، على سبيل المثال ListDashes",
+    "iconPlaceholder": "اختياري",
+    "sort": "الترتيب",
+    "sortDescription": "ترتيب تصاعدي ضمن المستوى نفسه",
+    "statusEnabled": "مفعّل",
+    "statusDisabled": "معطّل",
+    "visibleShown": "ظاهر",
+    "visibleHidden": "مخفي",
+    "submitFeature": "إنشاء قائمة",
+    "submitGroup": "إنشاء دليل",
+    "submitButton": "إنشاء عملية",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "successFeature": "تم إنشاء القائمة بنجاح",
+    "successGroup": "تم إنشاء الدليل بنجاح",
+    "successButton": "تم إنشاء العملية بنجاح",
+    "successPermission": "تم إنشاء العملية بنجاح",
+    "successPermissionUpdate": "تم تحديث العملية بنجاح",
+    "successPermissionDelete": "تم حذف العملية بنجاح",
+    "successFeatureUpdate": "تم تحديث القائمة بنجاح",
+    "successFeatureDelete": "تم حذف القائمة بنجاح",
+    "successGroupUpdate": "تم تحديث الدليل بنجاح",
+    "successGroupDelete": "تم حذف الدليل بنجاح",
+    "failed": "فشلت العملية، يُرجى المحاولة لاحقًا",
+    "deleteFailed": "فشل الحذف، يُرجى المحاولة لاحقًا",
+    "statusField": "الحالة",
+    "visibleField": "الظهور"
+  }
+}

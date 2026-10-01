@@ -17,5 +17,8 @@
   "selectAppDesc": "Bu hesap {{count}} çalışma alanı için yetkilendirilmiştir. Devam etmek için lütfen birini seçin:",
   "enterApp": "{{name}} uygulamasına devam et",
   "switchAccount": "Hesap değiştir",
-  "verified": "Doğrulandı"
+  "verified": "Doğrulandı",
+  "unauthorized": "Bu sayfaya erişim izniniz yok",
+  "selectAccount": "Test Hesabı",
+  "selectAccountPlaceholder": "Hesap seçin…"
 }

@@ -17,5 +17,8 @@
   "selectAppDesc": "Esta cuenta está autorizada para {{count}} espacio(s) de trabajo. Elija uno para continuar:",
   "enterApp": "Continuar a {{name}}",
   "switchAccount": "Cambiar de cuenta",
-  "verified": "Verificado"
+  "verified": "Verificado",
+  "unauthorized": "No tienes permiso para acceder a esta página",
+  "selectAccount": "Cuenta de prueba",
+  "selectAccountPlaceholder": "Seleccionar cuenta…"
 }

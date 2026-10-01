@@ -17,11 +17,23 @@ export interface MenuRow {
   menu_id: number
   parent_id: number
   menu_name: string
-  /** 1 功能组（目录）/ 2 功能（菜单）/ 3 操作（权限点） */
+  /** 1 目录 / 2 菜单 / 3 操作（权限点） */
   menu_type: number
+  /**
+   * **路由地址（相对 appId）**：`menu_type` 1 / 2 使用，指定打开该菜单落到哪个前端路由。
+   *
+   * - 1 目录：该目录的落地路由（如 `/system`）；
+   * - 2 菜单：具体页面（如 `/system/menus`）；
+   * - 3 操作：没有路由，留空。
+   *
+   * 旧数据把它一律写成 `/ignore`（占位垃圾值），前端拿它渲染导航会直接 404。
+   */
   path: string
+  /** 前端组件路径（保留字段，当前架构不使用）。 */
   component: string
+  /** 路由名称（保留字段，新架构用 `path` 表达落点）。 */
   route_name: string
+  /** 权限标识：仅 `menu_type` 3 使用，必须与 `permissions.get.ts` 的权限点逐字一致。 */
   permission: string
   icon: string
   sort: number
@@ -36,6 +48,38 @@ export interface MenuRow {
   api_keys: string[]
   created_at: string
   updated_at: string
+}
+
+export interface RoleRow {
+  id: number
+  /** 角色名（展示用）。 */
+  name: string
+  /**
+   * 角色码：与 `mock-accounts.ts` 的 `MockRole` 一一对应（super / editor / viewer）。
+   *
+   * 导航接口按「登录 token → 账号 → 账号的 role 码 → 角色的菜单关联」这条链过滤菜单，
+   * 三个测试账号因此天然对应三个角色。
+   */
+  code: string
+  description: string
+  /** 1 启用 / 2 禁用 */
+  status: number
+  sort: number
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * 角色 ↔ 菜单关联（多对多，独立的关联表）。
+ *
+ * **菜单可见性（这里）与操作权限（`permissions.get.ts` 的权限点）是两个层次**：
+ * - 关联表决定「导航里有没有这一项」；
+ * - 权限点决定「进去之后按钮能不能点」。
+ * 真实后端的 RBAC 通常也是这样两层（菜单授权 + 操作授权）。
+ */
+export interface RoleMenuRow {
+  role_id: number
+  menu_id: number
 }
 
 export interface DictTypeRow {
@@ -114,31 +158,61 @@ const stamp = (n: number) => {
   return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}`
 }
 
-/** 功能菜单：一棵干净的三层功能树（功能组 → 功能 → 操作）。 */
+/**
+ * 菜单树种子：**三层结构**（目录 → 菜单 → 操作），与前端真实路由对齐。
+ *
+ * - `menu_type` 1 目录 / 2 菜单 / 3 操作（权限点）；
+ * - **1 与 2 都带 `path`**（相对 appId 的路由地址）：目录是它的落地路由（`/system`），
+ *   菜单是具体页面（`/system/menus`）；
+ * - 3（操作）没有路由，只承载权限点，`permission` 必须与 `permissions.get.ts`
+ *   的权限清单**逐字一致**（`:read`，不是旧数据的 `:view`）。
+ *
+ * 之前这份数据有两处失真：`path` 一律写成 `/ignore`、`permission` 用了
+ * `:view` 这套与权限清单不同的后缀 —— 谁拿它渲染导航都会 404 / 判定不到权限。
+ */
 function seedMenus(): MenuRow[] {
-  const rows: Array<Partial<MenuRow> & { menu_id: number; parent_id: number; menu_name: string; menu_type: number }> = [
-    { menu_id: 1, parent_id: 0, menu_name: '工作台', menu_type: 1, icon: 'GaugeIcon', sort: 1 },
-    { menu_id: 2, parent_id: 1, menu_name: '概览', menu_type: 2, route_name: 'dashboard', sort: 1 },
+  const rows: Array<
+    Partial<MenuRow> & {
+      menu_id: number
+      parent_id: number
+      menu_name: string
+      menu_type: number
+      path: string
+    }
+  > = [
+    // 顶层菜单：对应前端「Overview」那个无标题分组
+    { menu_id: 1, parent_id: 0, menu_name: '仪表盘', menu_type: 2, path: '/home', icon: 'HouseIcon', sort: 1 },
 
-    { menu_id: 10, parent_id: 0, menu_name: '系统管理', menu_type: 1, icon: 'GearSixIcon', sort: 2 },
+    // 用户运营
+    { menu_id: 10, parent_id: 0, menu_name: '用户运营', menu_type: 1, path: '/users', icon: 'UsersIcon', sort: 2 },
+    { menu_id: 11, parent_id: 10, menu_name: '用户列表', menu_type: 2, path: '/users/user', sort: 1 },
+    { menu_id: 12, parent_id: 11, menu_name: '查看用户', menu_type: 3, path: '', permission: 'user:read', sort: 1 },
+    { menu_id: 13, parent_id: 11, menu_name: '新建用户', menu_type: 3, path: '', permission: 'user:create', sort: 2 },
+    { menu_id: 14, parent_id: 11, menu_name: '编辑用户', menu_type: 3, path: '', permission: 'user:edit', sort: 3 },
+    { menu_id: 15, parent_id: 11, menu_name: '删除用户', menu_type: 3, path: '', permission: 'user:delete', sort: 4 },
 
-    { menu_id: 11, parent_id: 10, menu_name: '用户管理', menu_type: 2, route_name: 'users', sort: 1 },
-    { menu_id: 12, parent_id: 11, menu_name: '查看用户', menu_type: 3, permission: 'user:view', sort: 1 },
-    { menu_id: 13, parent_id: 11, menu_name: '编辑用户', menu_type: 3, permission: 'user:edit', sort: 2 },
-    { menu_id: 14, parent_id: 11, menu_name: '导出用户', menu_type: 3, permission: 'user:export', sort: 3 },
-
-    { menu_id: 20, parent_id: 10, menu_name: '数据字典', menu_type: 2, route_name: 'data-dict', sort: 2 },
-    { menu_id: 21, parent_id: 20, menu_name: '查看字典', menu_type: 3, permission: 'dict:view', sort: 1 },
-    { menu_id: 22, parent_id: 20, menu_name: '编辑字典', menu_type: 3, permission: 'dict:edit', sort: 2 },
-
-    { menu_id: 30, parent_id: 10, menu_name: '功能管理', menu_type: 2, route_name: 'features', sort: 3 },
-    { menu_id: 31, parent_id: 30, menu_name: '查看功能', menu_type: 3, permission: 'feature:view', sort: 1 },
-    { menu_id: 32, parent_id: 30, menu_name: '编辑功能', menu_type: 3, permission: 'feature:edit', sort: 2 },
+    // 系统管理
+    { menu_id: 20, parent_id: 0, menu_name: '系统管理', menu_type: 1, path: '/system', icon: 'GearSixIcon', sort: 3 },
+    { menu_id: 21, parent_id: 20, menu_name: '菜单管理', menu_type: 2, path: '/system/menus', sort: 1 },
+    { menu_id: 22, parent_id: 21, menu_name: '查看菜单', menu_type: 3, path: '', permission: 'feature:read', sort: 1 },
+    { menu_id: 23, parent_id: 21, menu_name: '新建菜单', menu_type: 3, path: '', permission: 'feature:create', sort: 2 },
+    { menu_id: 24, parent_id: 21, menu_name: '编辑菜单', menu_type: 3, path: '', permission: 'feature:edit', sort: 3 },
+    { menu_id: 25, parent_id: 21, menu_name: '删除菜单', menu_type: 3, path: '', permission: 'feature:delete', sort: 4 },
+    { menu_id: 30, parent_id: 20, menu_name: '数据字典', menu_type: 2, path: '/system/data-dict', sort: 2 },
+    { menu_id: 31, parent_id: 30, menu_name: '查看字典', menu_type: 3, path: '', permission: 'dict:read', sort: 1 },
+    { menu_id: 32, parent_id: 30, menu_name: '新建字典', menu_type: 3, path: '', permission: 'dict:create', sort: 2 },
+    { menu_id: 33, parent_id: 30, menu_name: '编辑字典', menu_type: 3, path: '', permission: 'dict:edit', sort: 3 },
+    { menu_id: 34, parent_id: 30, menu_name: '删除字典', menu_type: 3, path: '', permission: 'dict:delete', sort: 4 },
+    { menu_id: 40, parent_id: 20, menu_name: '角色管理', menu_type: 2, path: '/system/roles', sort: 3 },
+    { menu_id: 41, parent_id: 40, menu_name: '查看角色', menu_type: 3, path: '', permission: 'role:read', sort: 1 },
+    { menu_id: 42, parent_id: 40, menu_name: '新建角色', menu_type: 3, path: '', permission: 'role:create', sort: 2 },
+    { menu_id: 43, parent_id: 40, menu_name: '编辑角色', menu_type: 3, path: '', permission: 'role:edit', sort: 3 },
+    { menu_id: 44, parent_id: 40, menu_name: '删除角色', menu_type: 3, path: '', permission: 'role:delete', sort: 4 },
   ]
 
   return rows.map((row, index) => ({
-    path: '/ignore',
-    component: '/ignore',
+    path: '',
+    component: '',
     route_name: '',
     permission: '',
     icon: '',
@@ -152,6 +226,59 @@ function seedMenus(): MenuRow[] {
     updated_at: stamp(index),
     ...row,
   })) as MenuRow[]
+}
+
+/** 角色种子：`code` 与 `mock-accounts.ts` 的 `MockRole` 一一对应。 */
+function seedRoles(): RoleRow[] {
+  const rows: Array<Omit<RoleRow, 'created_at' | 'updated_at'>> = [
+    {
+      id: 1,
+      name: 'Super Admin',
+      code: 'super',
+      description: '超级管理员：全部菜单与全部操作',
+      status: 1,
+      sort: 1,
+    },
+    {
+      id: 2,
+      name: 'Admin',
+      code: 'editor',
+      description: '业务管理员：可新建与编辑，不可删除',
+      status: 1,
+      sort: 2,
+    },
+    {
+      id: 3,
+      name: 'Viewer',
+      code: 'viewer',
+      description: '访客：仅可查看',
+      status: 1,
+      sort: 3,
+    },
+  ]
+
+  return rows.map((row) => ({ ...row, created_at: stamp(0), updated_at: stamp(0) }))
+}
+
+/**
+ * 角色 ↔ 菜单初始关联。
+ *
+ * Viewer 刻意**看不到「角色管理」**（40 及其操作 41–44）：用来演示
+ * 「菜单可见性」与「操作权限」这两层的差异 —— 它在权限清单里仍有 `role:read`，
+ * 但导航不会给这个入口。
+ */
+function seedRoleMenus(): RoleMenuRow[] {
+  const allMenuIds = seedMenus().map((m) => m.menu_id)
+  const viewerHidden = new Set([40, 41, 42, 43, 44])
+
+  const grantAll = (role_id: number, ids: number[]): RoleMenuRow[] =>
+    ids.map((menu_id) => ({ role_id, menu_id }))
+
+  return [
+    ...grantAll(1, allMenuIds),
+    ...grantAll(2, allMenuIds),
+    ...grantAll(3, allMenuIds.filter((id) => !viewerHidden.has(id))),
+  ]
 }
 
 /**
@@ -275,6 +402,9 @@ function seedApps(): AppRow[] {
 
 export const db = {
   menus: seedMenus(),
+  roles: seedRoles(),
+  /** 角色 ↔ 菜单关联：独立的关联表（真实后端 RBAC 的常见形态）。 */
+  roleMenus: seedRoleMenus(),
   dictTypes: seedDictTypes(),
   dictItems: seedDictItems(),
   users: seedUsers(),
@@ -284,6 +414,7 @@ export const db = {
 /** 内存自增 id（分开计数，避免不同实体互相干扰）。 */
 export const seq = {
   menu: 100,
+  role: 100,
   dictType: 100,
   dictItem: 2000,
   user: 20000,
@@ -323,6 +454,30 @@ export function menuTree(rootId = 0): Array<MenuRow & { children: unknown[] }> {
       .map((m) => ({ ...m, children: build(m.menu_id) }))
 
   return build(rootId)
+}
+
+/** 某角色被授权的菜单 id 集合（`role_menus` 关联表的读取封装）。 */
+export function menuIdsOfRole(roleId: number): Set<number> {
+  return new Set(db.roleMenus.filter((rm) => rm.role_id === roleId).map((rm) => rm.menu_id))
+}
+
+/**
+ * 按「可见菜单 id 集合」裁剪出的菜单树。
+ *
+ * 导航接口用它把 `role_menus` 的授权结果变成树。注意**不改变层级语义**：
+ * 父节点被授权、子节点没被授权时，子节点会被剔除；
+ * 父节点没被授权时，它整支都不出现（即使子节点在授权列表里）。
+ */
+export function visibleMenuTree(
+  visibleIds: Set<number>,
+): Array<MenuRow & { children: unknown[] }> {
+  const build = (parentId: number): Array<MenuRow & { children: unknown[] }> =>
+    db.menus
+      .filter((m) => m.parent_id === parentId && visibleIds.has(m.menu_id))
+      .sort((a, b) => a.sort - b.sort || a.menu_id - b.menu_id)
+      .map((m) => ({ ...m, children: build(m.menu_id) }))
+
+  return build(0)
 }
 
 /** 分类树（`/data_dict/type/tree` 返回整棵树的顶层数组）。 */

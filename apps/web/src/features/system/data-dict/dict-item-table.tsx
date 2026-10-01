@@ -24,6 +24,7 @@ import type { ColumnVisibilityState, StockFeatures } from '#/components/data-tab
 import { useAppTableState } from '#/lib/store'
 import { TableControls } from '#/components/table-controls'
 import { extractApiErrorMessage } from '#/lib/api-error'
+import { useHasPermission } from '#/lib/permissions'
 import {
   DICT_ITEM_DEFAULT_HIDDEN_COLUMNS,
   useDictItemColumns,
@@ -182,66 +183,85 @@ export function DictItemTable({ typeId, typeName }: DictItemTableProps) {
     }
   }, [deleteItemMutation, deleteTarget, invalidateItems, t, toast])
 
+  /*
+    按钮级权限收口：与字典分类表、侧边栏、路由守卫共用同一套判定
+    （`useHasPermission` → `hasPermission` → 权限 store）。
+  */
+  const canCreate = useHasPermission('dict:create')
+  const canEdit = useHasPermission('dict:edit')
+  const canDelete = useHasPermission('dict:delete')
+  const canOperate = canEdit || canDelete
+
   const columns = useMemo(
     () =>
       columnHelper.columns([
         ...itemColumns,
 
-        // 操作列
-        columnHelper.display({
-          id: 'actions',
-          header: () => <span className="sr-only">{t('columns.actions', '操作')}</span>,
-          enableHiding: false,
-          meta: {
-            sticky: 'right',
-            // 操作列吸「行尾」：LTR 靠右、RTL 靠左；对齐用逻辑属性 text-end 跟随同侧
-            cellClassName: 'text-end',
-          },
-          cell: ({ row }) => (
-            <DropdownMenu>
-              <DropdownMenu.Trigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    shape="square"
-                    aria-label={t('rowActions.label', '更多操作')}
-                  >
-                    <DotsThree weight="bold" size={16} />
-                  </Button>
-                }
-              />
-              <DropdownMenu.Content align="end">
-                <DropdownMenu.Item
-                  className="gap-2"
-                  onClick={() => {
-                    setEditTarget(row.original)
-                    setFormError(null)
-                    setEditOpen(true)
-                  }}
-                >
-                  <PencilSimple size={16} />
-                  <span>{t('rowActions.editItem', '编辑字典')}</span>
-                </DropdownMenu.Item>
-                <DropdownMenu.Separator />
-                <DropdownMenu.Item
-                  className="gap-2"
-                  variant="danger"
-                  onClick={() => {
-                    setDeleteTarget(row.original)
-                    setDeleteError(null)
-                    setDeleteOpen(true)
-                  }}
-                >
-                  <Trash size={16} />
-                  <span>{t('rowActions.deleteItem', '删除字典')}</span>
-                </DropdownMenu.Item>
-              </DropdownMenu.Content>
-            </DropdownMenu>
-          ),
-        }),
+        // 操作列：没有任何行内操作权限时整列不渲染
+        ...(canOperate
+          ? [
+              columnHelper.display({
+                id: 'actions',
+                header: () => <span className="sr-only">{t('columns.actions', '操作')}</span>,
+                enableHiding: false,
+                meta: {
+                  sticky: 'right',
+                  // 操作列吸「行尾」：LTR 靠右、RTL 靠左；对齐用逻辑属性 text-end 跟随同侧
+                  cellClassName: 'text-end',
+                },
+                cell: ({ row }) => (
+                  <DropdownMenu>
+                    <DropdownMenu.Trigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          shape="square"
+                          aria-label={t('rowActions.label', '更多操作')}
+                        >
+                          <DotsThree weight="bold" size={16} />
+                        </Button>
+                      }
+                    />
+                    <DropdownMenu.Content align="end">
+                      {canEdit ? (
+                        <DropdownMenu.Item
+                          className="gap-2"
+                          onClick={() => {
+                            setEditTarget(row.original)
+                            setFormError(null)
+                            setEditOpen(true)
+                          }}
+                        >
+                          <PencilSimple size={16} />
+                          <span>{t('rowActions.editItem', '编辑字典')}</span>
+                        </DropdownMenu.Item>
+                      ) : null}
+                      {canDelete ? (
+                        <>
+                          <DropdownMenu.Separator />
+                          <DropdownMenu.Item
+                            className="gap-2"
+                            variant="danger"
+                            onClick={() => {
+                              setDeleteTarget(row.original)
+                              setDeleteError(null)
+                              setDeleteOpen(true)
+                            }}
+                          >
+                            <Trash size={16} />
+                            <span>{t('rowActions.deleteItem', '删除字典')}</span>
+                          </DropdownMenu.Item>
+                        </>
+                      ) : null}
+                    </DropdownMenu.Content>
+                  </DropdownMenu>
+                ),
+              }),
+            ]
+          : []),
       ]),
-    [itemColumns, t],
+    [canDelete, canEdit, canOperate, itemColumns, t],
   )
 
   const table = useTable({
@@ -308,7 +328,7 @@ export function DictItemTable({ typeId, typeName }: DictItemTableProps) {
             void refetch()
           },
           refreshLoading: isFetching,
-          afterRefresh: (
+          afterRefresh: canCreate ? (
             <Button
               variant="primary"
               icon={<PlusIcon size={16} />}
@@ -319,7 +339,7 @@ export function DictItemTable({ typeId, typeName }: DictItemTableProps) {
             >
               {t('actions.addItem', '新增字典')}
             </Button>
-          ),
+          ) : undefined,
         }}
       />
 

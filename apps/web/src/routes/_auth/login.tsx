@@ -1,6 +1,7 @@
 import {
   Button,
   Input,
+  Select,
   useKumoToastManager,
 } from '@cloudflare/kumo'
 import {
@@ -70,6 +71,27 @@ export const Route = createFileRoute('/_auth/login')({
   component: LoginPage,
 })
 
+/**
+ * ============================================================================
+ * DEMO ONLY: 快捷填充测试账号配置
+ * 生产环境/真实项目中需完全删除此配置及相关 UI 交互
+ * ============================================================================
+ */
+const DEMO_ACCOUNTS = [
+  {
+    username: 'super admin',
+    password: '123',
+  },
+  {
+    username: 'admin',
+    password: '123',
+  },
+  {
+    username: 'user',
+    password: '123',
+  },
+] as const
+
 function LoginPage() {
   const navigate = useNavigate()
   const router = useRouter()
@@ -78,6 +100,7 @@ function LoginPage() {
   const toast = useKumoToastManager()
 
   // 表单状态
+  const [selectedAccount, setSelectedAccount] = useState<string | null>(null)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -169,8 +192,39 @@ function LoginPage() {
               {t('signIn')}
             </h1>
 
-            {/* 核心登录表单：只包含账号和密码 */}
+            {/* 核心登录表单 */}
             <form onSubmit={handleLoginSubmit} className="mt-8 flex flex-col gap-5">
+              {/* ====================================================================== */}
+              {/* DEMO ONLY: 快捷选择测试账号（生产环境/真实项目中需完全删除此区域及相关配置） */}
+              {/* ====================================================================== */}
+              <div className="flex flex-col gap-1.5">
+                <Select<string>
+                  label={t('selectAccount', '测试账号')}
+                  placeholder={t('selectAccountPlaceholder', '选择测试账号…')}
+                  aria-label={t('selectAccount', '测试账号')}
+                  className="min-w-0 w-full"
+                  value={selectedAccount}
+                  onValueChange={(next) => {
+                    const accUsername = next ? String(next) : null
+                    setSelectedAccount(accUsername)
+                    if (accUsername) {
+                      const acc = DEMO_ACCOUNTS.find((a) => a.username === accUsername)
+                      if (acc) {
+                        setUsername(acc.username)
+                        setPassword(acc.password)
+                      }
+                    }
+                  }}
+                  items={DEMO_ACCOUNTS.map((acc) => ({
+                    value: acc.username,
+                    label: acc.username,
+                  }))}
+                />
+              </div>
+              {/* ====================================================================== */}
+              {/* DEMO ONLY END                                                          */}
+              {/* ====================================================================== */}
+
               {/* 账号输入框 */}
               <div className="flex flex-col gap-1.5">
                 <Input
@@ -179,7 +233,12 @@ function LoginPage() {
                   aria-label={t('account', '账号')}
                   placeholder=""
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e) => {
+                    setUsername(e.target.value)
+                    if (selectedAccount !== null && e.target.value !== selectedAccount) {
+                      setSelectedAccount(null)
+                    }
+                  }}
                   disabled={isLoading}
                   autoComplete="username"
                   autoFocus
@@ -204,7 +263,15 @@ function LoginPage() {
                     aria-label={t('password')}
                     type={showPassword ? 'text' : 'password'}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      if (selectedAccount !== null) {
+                        const acc = DEMO_ACCOUNTS.find((a) => a.username === selectedAccount)
+                        if (acc && e.target.value !== acc.password) {
+                          setSelectedAccount(null)
+                        }
+                      }
+                    }}
                     disabled={isLoading}
                     autoComplete="current-password"
                     required

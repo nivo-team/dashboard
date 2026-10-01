@@ -30,6 +30,7 @@ import { DangerConfirmDialog } from '#/components/danger-confirm-dialog'
 import { TableControls } from '#/components/table-controls'
 import { extractApiErrorMessage } from '#/lib/api-error'
 import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
+import { useHasPermission } from '#/lib/permissions'
 import { countTreeNodes } from '#/lib/tree-search'
 import {
   DICT_TYPE_DEFAULT_HIDDEN_COLUMNS,
@@ -284,69 +285,91 @@ export function DictTypeTable({
     }
   }, [deleteTarget, deleteTypeMutation, invalidateItems, invalidateTypeTree, t, toast])
 
+  /*
+    按钮级权限收口：三个操作各自绑定权限点，判定走 `useHasPermission`
+    （→ `hasPermission` → 权限 store），与侧边栏、路由守卫、AI 能力过滤
+    用的是**同一套**判定 —— 这里不再另写 `if (role === ...)`。
+  */
+  const canCreate = useHasPermission('dict:create')
+  const canEdit = useHasPermission('dict:edit')
+  const canDelete = useHasPermission('dict:delete')
+  const canOperate = canCreate || canEdit || canDelete
+
   const columns = useMemo(
     () =>
       columnHelper.columns([
         ...typeColumns,
 
-        // 操作列
-        columnHelper.display({
-          id: 'actions',
-          header: () => <span className="sr-only">{t('columns.actions', '操作')}</span>,
-          enableHiding: false,
-          meta: {
-            sticky: 'right',
-            // 操作列吸「行尾」：LTR 靠右、RTL 靠左；对齐用逻辑属性 text-end 跟随同侧
-            cellClassName: 'text-end',
-          },
-          cell: ({ row }) => (
-            <DropdownMenu>
-              <DropdownMenu.Trigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    shape="square"
-                    aria-label={t('rowActions.label', '更多操作')}
-                  >
-                    <DotsThree weight="bold" size={16} />
-                  </Button>
-                }
-              />
-              <DropdownMenu.Content align="end">
-                <DropdownMenu.Item
-                  className="gap-2"
-                  onClick={() => {
-                    setCreateParentId(row.original.id)
-                    setFormError(null)
-                    setCreateOpen(true)
-                  }}
-                >
-                  <FolderPlusIcon size={16} />
-                  <span>{t('rowActions.addChildType', '新增子分类')}</span>
-                </DropdownMenu.Item>
-                <DropdownMenu.Item
-                  className="gap-2"
-                  onClick={() => openType(row.original)}
-                >
-                  <PencilSimple size={16} />
-                  <span>{t('rowActions.editType', '编辑分类')}</span>
-                </DropdownMenu.Item>
-                <DropdownMenu.Separator />
-                <DropdownMenu.Item
-                  className="gap-2"
-                  variant="danger"
-                  onClick={() => handleDeleteClick(row.original)}
-                >
-                  <Trash size={16} />
-                  <span>{t('rowActions.deleteType', '删除分类')}</span>
-                </DropdownMenu.Item>
-              </DropdownMenu.Content>
-            </DropdownMenu>
-          ),
-        }),
+        // 操作列：一项操作都没有权限时整列不渲染 —— 空菜单比没有菜单更糟
+        ...(canOperate
+          ? [
+              columnHelper.display({
+                id: 'actions',
+                header: () => <span className="sr-only">{t('columns.actions', '操作')}</span>,
+                enableHiding: false,
+                meta: {
+                  sticky: 'right',
+                  // 操作列吸「行尾」：LTR 靠右、RTL 靠左；对齐用逻辑属性 text-end 跟随同侧
+                  cellClassName: 'text-end',
+                },
+                cell: ({ row }) => (
+                  <DropdownMenu>
+                    <DropdownMenu.Trigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          shape="square"
+                          aria-label={t('rowActions.label', '更多操作')}
+                        >
+                          <DotsThree weight="bold" size={16} />
+                        </Button>
+                      }
+                    />
+                    <DropdownMenu.Content align="end">
+                      {canCreate ? (
+                        <DropdownMenu.Item
+                          className="gap-2"
+                          onClick={() => {
+                            setCreateParentId(row.original.id)
+                            setFormError(null)
+                            setCreateOpen(true)
+                          }}
+                        >
+                          <FolderPlusIcon size={16} />
+                          <span>{t('rowActions.addChildType', '新增子分类')}</span>
+                        </DropdownMenu.Item>
+                      ) : null}
+                      {canEdit ? (
+                        <DropdownMenu.Item
+                          className="gap-2"
+                          onClick={() => openType(row.original)}
+                        >
+                          <PencilSimple size={16} />
+                          <span>{t('rowActions.editType', '编辑分类')}</span>
+                        </DropdownMenu.Item>
+                      ) : null}
+                      {canDelete ? (
+                        <>
+                          <DropdownMenu.Separator />
+                          <DropdownMenu.Item
+                            className="gap-2"
+                            variant="danger"
+                            onClick={() => handleDeleteClick(row.original)}
+                          >
+                            <Trash size={16} />
+                            <span>{t('rowActions.deleteType', '删除分类')}</span>
+                          </DropdownMenu.Item>
+                        </>
+                      ) : null}
+                    </DropdownMenu.Content>
+                  </DropdownMenu>
+                ),
+              }),
+            ]
+          : []),
       ]),
-    [handleDeleteClick, openType, t, typeColumns],
+    [canCreate, canDelete, canEdit, canOperate, handleDeleteClick, openType, t, typeColumns],
   )
 
   const table = useTable({
@@ -397,7 +420,8 @@ export function DictTypeTable({
           actions={{
             onRefresh: onRetry,
             refreshLoading: loading,
-            extra: (
+            // 无 `dict:create` 权限时不渲染入口（与行内菜单、路由守卫同一套判定）
+            extra: canCreate ? (
               <Button
                 variant="primary"
                 icon={<FolderPlusIcon size={16} />}
@@ -411,7 +435,7 @@ export function DictTypeTable({
               >
                 {t('actions.addTopType', '新增分类')}
               </Button>
-            ),
+            ) : undefined,
           }}
         />
       ) : null}

@@ -1,0 +1,165 @@
+{
+  "title": "菜单管理",
+  "description": "维护菜单层级与路由地址：目录用于分层，菜单是页面的落点，操作承载权限标识",
+  "containerDescription": "该目录下的内容，可继续嵌套目录或添加菜单",
+  "moduleName": "菜单",
+  "searchPlaceholder": "搜索菜单名称 / 路由地址…",
+  "createFeature": "添加菜单",
+  "createGroup": "添加目录",
+  "createPermission": "添加权限",
+  "create": {
+    "label": "创建"
+  },
+  "demoBadge": "（演示数据模式）",
+  "quota": "共 <b>{{total}}</b> 项",
+  "empty": {
+    "title": "暂无菜单数据",
+    "description": "未找到符合条件的菜单，请尝试更换关键词"
+  },
+  "columns": {
+    "menu_id": "ID",
+    "menu_name": "名称",
+    "menu_type": "类型",
+    "path": "路由地址",
+    "permission": "权限标识",
+    "icon": "图标",
+    "sort": "排序",
+    "status": "状态",
+    "visible": "显示",
+    "is_frame": "外链",
+    "no_cache": "缓存",
+    "api_keys": "绑定接口",
+    "created_at": "创建时间",
+    "updated_at": "更新时间",
+    "actions": "操作"
+  },
+  "cell": {
+    "yes": "是",
+    "no": "否"
+  },
+  "menuType": {
+    "directory": "目录",
+    "menu": "菜单",
+    "action": "操作"
+  },
+  "status": {
+    "enabled": "启用",
+    "disabled": "禁用"
+  },
+  "visible": {
+    "visible": "显示",
+    "hidden": "隐藏"
+  },
+  "isFrame": {
+    "yes": "是",
+    "no": "否"
+  },
+  "noCache": {
+    "noCache": "不缓存",
+    "cache": "缓存"
+  },
+  "rowActions": {
+    "label": "更多操作",
+    "editFeature": "编辑菜单",
+    "editGroup": "编辑目录",
+    "edit": "编辑",
+    "delete": "删除",
+    "comingSoon": "该菜单将在后续版本开放"
+  },
+  "messages": {
+    "fetchFailed": "获取菜单列表失败"
+  },
+  "detail": {
+    "backToList": "返回列表",
+    "basicInfo": "基本信息",
+    "copy": "复制",
+    "copied": "已复制",
+    "dangerZone": "危险操作",
+    "deleteFeature": "删除菜单",
+    "deleteFeatureTitle": "删除菜单",
+    "deleteFeatureConfirm": "该操作不可撤销。将永久删除菜单 <b>{{name}}</b>，以及它在菜单树中的位置。",
+    "deleteBlocked": "该节点下还有 {{total}} 个子项，请先删除子项",
+    "editGroup": "编辑目录",
+    "editGroupDescription": "修改目录的名称、路由地址、图标、排序与显示状态",
+    "deleteGroup": "删除目录",
+    "deleteGroupConfirm": "该操作不可撤销。将永久删除目录 <b>{{name}}</b>。",
+    "details": "详细信息",
+    "parentFeature": "上级 ID",
+    "rootFeature": "根层级",
+    "notFound": "未找到该菜单",
+    "invalidId": "ID 不合法",
+    "retry": "重试加载",
+    "childrenTitle": "操作",
+    "childrenQuota": "共 {{total}} 项",
+    "childrenEmpty": {
+      "title": "暂无操作",
+      "description": "该菜单下还没有操作，可用「添加操作」继续创建"
+    }
+  },
+  "permissionDialog": {
+    "createTitle": "添加操作",
+    "editTitle": "编辑操作",
+    "createDescription": "在当前菜单下新增一个操作（权限点）",
+    "editDescription": "修改该操作的名称、权限标识与状态",
+    "deleteTitle": "删除操作",
+    "deleteConfirm": "确定要删除「{{name}}」吗？该操作不可撤销。",
+    "delete": "删除"
+  },
+  "form": {
+    "createFeatureTitle": "添加菜单",
+    "createGroupTitle": "添加目录",
+    "createButtonTitle": "添加操作",
+    "createFeatureDescription": "创建一个菜单，并指定它打开时落到哪个路由地址",
+    "createGroupDescription": "创建一个目录，用于对菜单继续分层",
+    "createButtonDescription": "创建一个操作（权限点），用于控制该菜单下的行为",
+    "parentHint": "将创建在：{{parent}}",
+    "path": "路由地址",
+    "pathDescription": "相对应用的路由，如 /system/menus；目录填它的落地路由",
+    "pathPlaceholder": "/system/menus",
+    "pathRequired": "请填写路由地址",
+    "pathInvalid": "路由地址需以 / 开头，如 /system/menus",
+    "name": "名称",
+    "nameDescription": "2–50 个字符，用于展示的名称",
+    "namePlaceholder": "请输入名称",
+    "nameLength": "名称长度需在 2–50 个字符之间",
+    "permission": "权限标识",
+    "permissionDescription": "接口权限标识，菜单与操作必填，例如 feature:read",
+    "permissionPlaceholder": "n:menus:list",
+    "permissionRequired": "请填写权限标识",
+    "apiKeys": "绑定接口",
+    "apiKeysDescription": "输入关键词搜索系统接口，菜单绑定列表接口，操作绑定具体的 action 接口",
+    "apiKeysPlaceholder": "搜索接口，例如 /api/guild",
+    "apiKeysRemove": "移除 {{label}}",
+    "apiKeysLoading": "正在加载接口清单…",
+    "apiKeysFailed": "接口清单加载失败，请稍后重试",
+    "apiKeysNoMatch": "没有可绑定的接口了",
+    "icon": "图标",
+    "iconDescription": "图标名称，例如 ListDashes",
+    "iconPlaceholder": "可选",
+    "sort": "排序",
+    "sortDescription": "同级内从小到大排列",
+    "statusEnabled": "启用",
+    "statusDisabled": "禁用",
+    "visibleShown": "显示",
+    "visibleHidden": "隐藏",
+    "submitFeature": "创建菜单",
+    "submitGroup": "创建目录",
+    "submitButton": "创建操作",
+    "save": "保存",
+    "cancel": "取消",
+    "successFeature": "菜单创建成功",
+    "successGroup": "目录创建成功",
+    "successButton": "操作创建成功",
+    "successPermission": "操作创建成功",
+    "successPermissionUpdate": "操作更新成功",
+    "successPermissionDelete": "操作删除成功",
+    "successFeatureUpdate": "菜单更新成功",
+    "successFeatureDelete": "菜单删除成功",
+    "successGroupUpdate": "目录更新成功",
+    "successGroupDelete": "目录删除成功",
+    "failed": "操作失败，请稍后重试",
+    "deleteFailed": "删除失败，请稍后重试",
+    "statusField": "状态",
+    "visibleField": "显示"
+  }
+}

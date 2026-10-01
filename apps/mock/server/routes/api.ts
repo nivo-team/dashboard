@@ -5,13 +5,17 @@ import { ok } from '../utils/response'
  * 系统接口清单。
  *
  * 路径是 `GET /api` —— 是清单里的普通一员，没有特殊前缀。
- * 用途：功能管理里的「API Keys」字段靠它列出可选接口。
+ * 用途：菜单管理里的「API Keys」字段靠它列出可选接口。
  * 这里返回**本 Mock 自己的**接口清单，而不是原公司后端那 468 个。
+ *
+ * ⚠️ **本清单同时是 AI 写操作的白名单**（`call_write_api` 按它校验 method + 路径模板）。
+ * 新增/删除接口时**必须同步这里**，否则页面上能操作的接口，AI 一调就被判「不在清单里」。
  */
 const API_ITEMS = [
   { label: '账号登录', method: 'POST', path: '/login' },
   { label: '退出登录', method: 'POST', path: '/logout' },
   { label: '当前用户信息', method: 'GET', path: '/profile' },
+  { label: '当前用户权限点', method: 'GET', path: '/permissions' },
   { label: '可选应用列表', method: 'GET', path: '/apps' },
   { label: '系统接口清单', method: 'GET', path: '/api' },
   { label: '用户列表', method: 'GET', path: '/user' },
@@ -22,10 +26,20 @@ const API_ITEMS = [
   // 应当保持一致（见 .agents/docs/ai-architecture.md §8.1 的"清单即边界"）。
   { label: '删除用户', method: 'DELETE', path: '/user/{id}' },
   { label: '批量删除用户', method: 'POST', path: '/user/batch-delete' },
-  { label: '功能树', method: 'GET', path: '/system/menu/tree' },
-  { label: '新建功能', method: 'POST', path: '/system/menu' },
-  { label: '更新功能', method: 'PUT', path: '/system/menu' },
-  { label: '删除功能', method: 'DELETE', path: '/system/menu/{id}' },
+  // 导航：按当前用户角色裁剪后的菜单树（只含目录与菜单，不含操作）
+  { label: '导航菜单树', method: 'GET', path: '/menus/navigation' },
+  { label: '菜单树', method: 'GET', path: '/system/menu/tree' },
+  { label: '新建菜单', method: 'POST', path: '/system/menu' },
+  { label: '更新菜单', method: 'PUT', path: '/system/menu' },
+  { label: '删除菜单', method: 'DELETE', path: '/system/menu/{id}' },
+  // 角色管理：菜单授权是独立的关联资源（`role_menus`），所以单独一对接口
+  { label: '角色列表', method: 'GET', path: '/role' },
+  { label: '角色详情', method: 'GET', path: '/role/{id}' },
+  { label: '新建角色', method: 'POST', path: '/role' },
+  { label: '更新角色', method: 'PUT', path: '/role' },
+  { label: '删除角色', method: 'DELETE', path: '/role/{id}' },
+  { label: '角色菜单授权', method: 'GET', path: '/role/menus' },
+  { label: '更新角色菜单授权', method: 'PUT', path: '/role/menus' },
   { label: '字典项列表', method: 'GET', path: '/data_dict' },
   { label: '新建字典项', method: 'POST', path: '/data_dict' },
   { label: '更新字典项', method: 'PUT', path: '/data_dict' },
@@ -40,7 +54,7 @@ const API_ITEMS = [
 defineRouteMeta({
   openAPI: {
     tags: ['系统'],
-    description: '获取系统接口清单（供功能管理关联接口权限使用）',
+    description: '获取系统接口清单（供菜单管理关联接口权限使用）',
     responses: {
       200: {
         description: '接口清单',

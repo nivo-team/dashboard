@@ -116,7 +116,7 @@
       "aiProviderEmpty": "Aún no hay proveedores. Añade uno para empezar.",
       "aiAddProvider": "Añadir proveedor",
       "aiEditProvider": "Editar proveedor",
-      "aiProviderKind": "Tipo de servicio",
+      "aiProviderKind": "Estándar de protocolo",
       "aiProviderName": "Nombre",
       "aiProviderBaseUrl": "Dirección de la API",
       "aiProviderBaseUrlHint": "Si lo dejas vacío se usa la dirección oficial de este tipo de servicio",
@@ -124,7 +124,6 @@
       "aiApiKeyHint": "La clave solo se guarda en el navegador de este dispositivo. No introduzcas una clave real en un equipo compartido.",
       "aiProviderKeySet": "Clave configurada",
       "aiProviderKeyMissing": "Falta la clave",
-      "aiProviderKind": "Estándar de protocolo",
       "aiProviderKinds": {
         "openai": "Estándar OpenAI",
         "anthropic": "Estándar Anthropic"
@@ -286,8 +285,9 @@
   },
   "nav": {
     "system": "Sistema",
-    "systemFeatures": "Funciones",
+    "systemMenus": "Gestión de menús",
     "systemDataDict": "Diccionario de datos",
+    "systemRoles": "Gestión de roles",
     "config": "Configuración",
     "langPack": "Paquete de idiomas",
     "home": "Panel",
@@ -391,5 +391,20 @@
     "expand": "Ampliar",
     "close": "Cerrar vista previa",
     "resize": "Ajustar ancho de la vista previa"
+  },
+  "unsavedChanges": {
+    "message": "Tienes cambios sin guardar",
+    "reset": "Restablecer",
+    "save": "Guardar"
+  },
+  "dangerConfirm": {
+    "hint": "Escriba",
+    "suffix": " para confirmar:",
+    "inputAria": "Entrada de confirmación",
+    "cancel": "Cancelar"
+  },
+  "clipboard": {
+    "copyAria": "Copiar {{text}} al portapapeles",
+    "copied": "Copiado"
   }
 }

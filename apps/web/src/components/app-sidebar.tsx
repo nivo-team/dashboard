@@ -1,15 +1,22 @@
 import { Sidebar, useSidebar } from '@cloudflare/kumo'
 import { MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { useRouterState } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AppSwitcher } from '#/components/app-switcher'
 import { ShortcutKbd } from '#/components/kbd'
 import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
-import { NAV_GROUPS } from '#/lib/navigation'
-import type { NavItem } from '#/lib/navigation'
+import {
+  filterNavGroups,
+  NAV_GROUPS,
+  type NavGroup,
+  type NavGroupFilter,
+  type NavItem,
+  type NavItemFilter,
+} from '#/lib/navigation'
+import { usePermissionContext } from '#/lib/permissions'
 
-interface AppSidebarProps {
+export interface AppSidebarProps {
   /**
    * 导航数据（路由/权限）尚未就绪时，用 `Sidebar.Loading` 渲染骨架行，
    * 避免骨架屏突变造成视觉跳动。配合外部 loader / query 使用：
@@ -18,6 +25,17 @@ interface AppSidebarProps {
   isLoading?: boolean
   /** 点击搜索按钮直接打开全局命令面板 */
   onOpenCommandPalette?: () => void
+  /**
+   * 侧边栏菜单分组数据对象配置，默认读取 `NAV_GROUPS`。
+   * 完全由配置对象驱动渲染。
+   */
+  navGroups?: NavGroup[]
+  /** 额外的菜单项过滤谓词列表，支持外界动态添加过滤条件 */
+  filters?: NavItemFilter[]
+  /** 额外的分组过滤谓词列表 */
+  groupFilters?: NavGroupFilter[]
+  /** 是否启用基于当前用户权限的菜单过滤，默认为 true */
+  enablePermissionFilter?: boolean
 }
 
 function isItemActive(pathname: string, targetPath: string, appPrefix: string): boolean {
@@ -124,13 +142,22 @@ function CollapsibleNavItem({
  * 侧边栏导航。
  *
  * 结构遵循 Kumo Sidebar 的约定：
+ * - 菜单完全由配置对象（`NavGroup[]`）驱动，支持灵活配置和多重管道过滤；
+ * - 集成权限过滤与自定义过滤谓词，无权访问或过滤剔除的分组/菜单项自动收敛隐藏；
  * - `Provider`（在 app-shell.tsx 中）负责状态，`Sidebar` 是容器本身；
  * - `Content` 是可滚动区，`Header` / `Footer` 固定在其上下方；
  * - `MenuButton` / `MenuSubButton` 会自动包一层 `<li>`，
  *   只有需要包住 `Collapsible` 时才显式使用 `MenuItem`；
  * - 折叠态下由 `tooltip` 提供标签，`itemId` 供 `useSidebar().scrollToItem()` 定位。
  */
-export function AppSidebar({ isLoading = false, onOpenCommandPalette }: AppSidebarProps) {
+export function AppSidebar({
+  isLoading = false,
+  onOpenCommandPalette,
+  navGroups,
+  filters,
+  groupFilters,
+  enablePermissionFilter = true,
+}: AppSidebarProps) {
   const { t } = useTranslation()
   const resolveLabel = useNavLabel()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
@@ -138,6 +165,19 @@ export function AppSidebar({ isLoading = false, onOpenCommandPalette }: AppSideb
   const { currentApp } = useAuth()
   const appId = currentApp?.id || DEFAULT_APP_ID
   const appPrefix = `/${appId}`
+
+  // 权限上下文统一由 `usePermissionContext` 提供（权限同步的时机在 `AppShell` 层）
+  const permissionContext = usePermissionContext()
+
+  // 菜单对象过滤管道：执行权限过滤与自定义过滤
+  const displayGroups = useMemo(() => {
+    return filterNavGroups(navGroups ?? NAV_GROUPS, {
+      context: permissionContext,
+      itemFilters: filters,
+      groupFilters,
+      enablePermissionFilter,
+    })
+  }, [navGroups, filters, groupFilters, enablePermissionFilter, permissionContext])
 
   const handleItemClick = () => {
     if (isMobile) {
@@ -238,10 +278,12 @@ export function AppSidebar({ isLoading = false, onOpenCommandPalette }: AppSideb
             </Sidebar.Menu>
           </Sidebar.Group>
 
-          {NAV_GROUPS.map((group, index) => (
-            <Sidebar.Group key={group.label ?? `group-${index}`}>
-              {group.label ? (
-                <Sidebar.GroupLabel>{group.label}</Sidebar.GroupLabel>
+          {displayGroups.map((group, index) => (
+            <Sidebar.Group key={group.labelKey ?? group.label ?? `group-${index}`}>
+              {group.label || group.labelKey ? (
+                <Sidebar.GroupLabel>
+                  {group.labelKey ? t(group.labelKey, group.label ?? '') : group.label}
+                </Sidebar.GroupLabel>
               ) : null}
               <Sidebar.Menu>{group.items.map(renderItem)}</Sidebar.Menu>
             </Sidebar.Group>

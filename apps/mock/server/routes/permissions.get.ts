@@ -1,5 +1,11 @@
 import { defineHandler, defineRouteMeta } from 'nitro'
-import { getQuery } from 'nitro/h3'
+import { getHeader, getQuery } from 'nitro/h3'
+import {
+  DEFAULT_MOCK_ACCOUNT,
+  findAccountByToken,
+  MOCK_ACCOUNTS,
+  type MockRole,
+} from '../utils/mock-accounts'
 import { ok } from '../utils/response'
 
 /**
@@ -17,13 +23,17 @@ import { ok } from '../utils/response'
  * 模块名与 `feature.ts` 里声明的一致（`user` / `dict` / `feature`），
  * 这样「页面能力、页面指令、AI 工具」三处说的是同一套语言。
  *
- * ## Mock 的三种角色（`?role=`）
+ * ## Mock 的三种角色
  *
- * 真实后端会按登录身份返回；这里用查询参数模拟不同角色，方便验证「权限收窄后 AI
- * 真的拿不到那些工具」：
- * - 不传 / `super`：全量
- * - `editor`：能建能改、**不能删**
- * - `viewer`：只读
+ * 角色**由登录 token 反查**（账号清单在 `../utils/mock-accounts`），
+ * 另外支持 `?role=super|editor|viewer` 覆盖 —— 那个口子只给手工验证用：
+ * - `super`（`super admin`）：全量读写删改；
+ * - `editor`（`admin`）：能建能改、**不能删**；
+ * - `viewer`（`user`）：只读。
+ *
+ * 注意 `Admin` **不是**超管 —— 前端的超管判定只认 `Super Admin`
+ * （见 `#/lib/store/permission-store` 的 `computePermissions`），
+ * 否则「admin 不能删」会在判定第一道就被短路掉。
  */
 const ALL_PERMISSIONS = [
   // 用户运营
@@ -48,16 +58,24 @@ const ALL_PERMISSIONS = [
   'feature:edit',
   'feature:update',
   'feature:delete',
+  /*
+    角色管理。
+    注意与**菜单可见性**是两层：这里决定「按钮能不能点」，
+    角色能看到哪些菜单由 `role_menus` 关联表决定（见 `menus/navigation.get.ts`）。
+    Mock 里 Viewer 仍有 `role:read`，但它的菜单授权里没有「角色管理」这一项。
+  */
+  'role:read',
+  'role:create',
+  'role:edit',
+  'role:delete',
 ] as const
 
 /** 角色 → 权限点。真实后端由 RBAC 计算，这里只是 Mock 的替身。 */
-const ROLE_PERMISSIONS: Record<string, readonly string[]> = {
+const ROLE_PERMISSIONS: Record<MockRole, readonly string[]> = {
   super: ALL_PERMISSIONS,
   editor: ALL_PERMISSIONS.filter((p) => !p.endsWith(':delete')),
   viewer: ALL_PERMISSIONS.filter((p) => p.endsWith(':read')),
 }
-
-export type MockRole = keyof typeof ROLE_PERMISSIONS
 
 defineRouteMeta({
   openAPI: {
@@ -68,7 +86,7 @@ defineRouteMeta({
         name: 'role',
         in: 'query',
         required: false,
-        description: 'Mock 专用：模拟不同角色（super / editor / viewer），不传等价于 super',
+        description: 'Mock 专用：模拟不同角色（super / editor / viewer），不传优先根据登录 Token 判断',
         schema: { type: 'string' },
       },
     ],
@@ -113,11 +131,27 @@ defineRouteMeta({
 
 export default defineHandler((event) => {
   const query = getQuery(event)
+  const account = findAccountByToken(getHeader(event, 'authorization'))
   const requested = typeof query.role === 'string' ? query.role : ''
-  const role: MockRole = requested in ROLE_PERMISSIONS ? (requested as MockRole) : 'super'
+
+  /*
+    角色来源优先级：
+    1. 登录 token 反查出的账号角色（正常路径 —— 用户是谁，角色就是谁）；
+    2. `?role=` 显式覆盖（**只用于手工验证**「换成 viewer 后菜单/工具真的收窄」，
+       因为正常情况下前端不会带这个参数）；
+    3. 兜底为默认账号的角色（无 token 时保持零配置可进）。
+  */
+  const role: MockRole =
+    account?.role ??
+    (requested in ROLE_PERMISSIONS
+      ? (requested as MockRole)
+      : DEFAULT_MOCK_ACCOUNT.role)
+
+  // 角色展示名从账号清单派生（`role → roleName` 只有一份定义，见 mock-accounts）
+  const roleOwner = MOCK_ACCOUNTS.find((item) => item.role === role)
 
   return ok({
-    role: role === 'super' ? 'Super Admin' : role,
+    role: roleOwner?.roleName ?? role,
     permissions: [...ROLE_PERMISSIONS[role]],
   })
 })

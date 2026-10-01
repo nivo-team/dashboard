@@ -9,13 +9,22 @@ const BASE = process.argv[2] || 'http://localhost:3001'
 let passed = 0
 let failed = 0
 
-async function call(method, path, body) {
+/**
+ * 当前请求使用的授权 token。
+ *
+ * 默认值是一个**真实存在的**账号 token（`admin`）—— 旧值 `mock-token` 已不再签发，
+ * 用它会让所有接口按「未知 token → 兜底账号」处理，测出来的身份与断言无关。
+ * 登录小节会用**登录返回的 token** 覆盖它，因此「登录签发 → 后续按 token 识别身份」
+ * 这条链也在冒烟范围内。
+ */
+let authToken = 'mock-token-admin'
+
+async function call(method, path, body, token = authToken) {
   const res = await fetch(BASE + path, {
     method,
     headers: {
       'content-type': 'application/json',
-      authorization: 'Bearer mock-token',
-      undefined,
+      authorization: `Bearer ${token}`,
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
@@ -66,14 +75,104 @@ check('带 Vary: Origin', (preflight.headers.get('vary') ?? '').includes('Origin
 
 /* ---------------------------------------------------------------- 认证 */
 console.log('认证')
-const login = await call('POST', '/login', { username: 'admin', password: 'x' })
+// 只认三个预设测试账号，密码统一 123（见 server/utils/mock-accounts.ts）
+const login = await call('POST', '/login', { username: 'admin', password: '123' })
 check('POST /login', login.json?.code === 0 && !!login.json?.result?.token, `token=${login.json?.result?.token}`)
 
 const loginBad = await call('POST', '/login', { username: '', password: '' })
 check('空账号被拒绝', loginBad.json?.code === 400, loginBad.json?.message)
 
+const loginWrongPwd = await call('POST', '/login', { username: 'admin', password: 'wrong' })
+check('错误密码被拒绝', loginWrongPwd.json?.code === 400, loginWrongPwd.json?.message)
+
+const loginUnknown = await call('POST', '/login', { username: 'nobody', password: '123' })
+check('未知账号被拒绝', loginUnknown.json?.code === 400, loginUnknown.json?.message)
+
+// 后续请求改用登录签发的 token（不再依赖默认值）
+if (login.json?.result?.token) authToken = login.json.result.token
+
 const profile = await call('GET', '/profile')
 check('GET /profile', profile.json?.code === 0 && profile.json?.result?.username === 'admin')
+
+/* ------------------------------------------------------------ 权限角色 */
+// 「角色 → 权限点 → 界面收敛」这条链的真值在 mock 侧：逐个账号登录，
+// 确认签发的 token 能被 /permissions 反查成对应角色，且删除权限的有无符合设计。
+console.log('\n权限角色')
+for (const row of [
+  { username: 'super admin', role: 'Super Admin', canDelete: true },
+  { username: 'admin', role: 'Admin', canDelete: false },
+  { username: 'user', role: 'Viewer', canDelete: false },
+]) {
+  const signIn = await call('POST', '/login', { username: row.username, password: '123' })
+  const token = signIn.json?.result?.token
+  check(`登录 ${row.username} 拿到 token`, !!token, token)
+
+  const perms = await call('GET', '/permissions', undefined, token)
+  check(`${row.username} → role ${row.role}`, perms.json?.result?.role === row.role, perms.json?.result?.role)
+
+  const list = perms.json?.result?.permissions ?? []
+  const hasDelete = list.some((p) => p.endsWith(':delete'))
+  check(`${row.username} 删除权限 = ${row.canDelete}`, hasDelete === row.canDelete, `${list.length} 个权限点`)
+
+  const prof = await call('GET', '/profile', undefined, token)
+  check(`${row.username} 的 profile 与角色一致`, prof.json?.result?.role === row.role, prof.json?.result?.username)
+}
+
+// 还原成 admin 身份，后面的接口测试沿用
+authToken = login.json?.result?.token ?? authToken
+
+/* ------------------------------------------------------------ 导航菜单 */
+// 身份链：token → 账号 → role 码 → 角色 → role_menus 授权 → 菜单树。
+// 导航接口只返回能落地的目录(1)/菜单(2)，且节点必须带路由地址。
+console.log('\n导航菜单')
+const collectNavIds = (nodes) => nodes.flatMap((n) => [n.menu_id, ...collectNavIds(n.children ?? [])])
+const flattenNav = (nodes) => nodes.flatMap((n) => [n, ...flattenNav(n.children ?? [])])
+for (const row of [
+  { token: 'mock-token-super', code: 'super', hasRoleMenu: true },
+  { token: 'mock-token-admin', code: 'editor', hasRoleMenu: true },
+  { token: 'mock-token-user', code: 'viewer', hasRoleMenu: false },
+]) {
+  const nav = await call('GET', '/menus/navigation', undefined, row.token)
+  check(`${row.code} 导航可达`, nav.json?.code === 0)
+  check(`${row.code} 角色解析`, nav.json?.result?.role?.code === row.code, nav.json?.result?.role?.code)
+  const nodes = flattenNav(nav.json?.result?.items ?? [])
+  check(`${row.code} 导航不含操作节点`, nodes.every((n) => n.menu_type !== 3))
+  check(`${row.code} 目录/菜单都有路由地址`, nodes.every((n) => typeof n.path === 'string' && n.path.startsWith('/')))
+  check(
+    `${row.code} 菜单授权生效（角色管理 = ${row.hasRoleMenu}）`,
+    collectNavIds(nav.json?.result?.items ?? []).includes(40) === row.hasRoleMenu,
+  )
+}
+
+/* ------------------------------------------------------------ 角色管理 */
+console.log('\n角色管理')
+const roles = await call('GET', '/role')
+check('GET /role', roles.json?.code === 0 && (roles.json?.result?.total ?? 0) >= 3, `total=${roles.json?.result?.total}`)
+check('列表带 menu_count', (roles.json?.result?.items ?? []).every((r) => typeof r.menu_count === 'number'))
+
+// 幂等：清掉上一次跑残留的同名角色，否则「重复角色码被拒」那条会因为 POST 失败而误报
+const staleRoles = (await call('GET', '/role?kw=smoke_role')).json?.result?.items ?? []
+for (const stale of staleRoles) {
+  await call('DELETE', `/role/${stale.id}`)
+}
+
+const newRole = await call('POST', '/role', { name: '冒烟角色', code: 'smoke_role' })
+check('POST /role', newRole.json?.code === 0 && newRole.json?.result?.code === 'smoke_role', `id=${newRole.json?.result?.id}`)
+check('重复角色码被拒', (await call('POST', '/role', { name: 'x', code: 'smoke_role' })).json?.code === 400)
+
+const roleId = newRole.json?.result?.id
+if (roleId) {
+  check('PUT /role', (await call('PUT', '/role', { id: roleId, name: '冒烟角色2' })).json?.result?.name === '冒烟角色2')
+  check('内置角色不可删', (await call('DELETE', '/role/3')).json?.code === 400)
+
+  const before = (await call('GET', '/role/menus?role_id=1')).json?.result?.menu_ids?.length
+  const granted = await call('PUT', '/role/menus', { role_id: roleId, menu_ids: [1, 10, 11, 999999] })
+  check('PUT /role/menus 忽略未知菜单 id', JSON.stringify(granted.json?.result?.menu_ids) === JSON.stringify([1, 10, 11]), JSON.stringify(granted.json?.result?.menu_ids))
+  check('角色授权互不影响', (await call('GET', '/role/menus?role_id=1')).json?.result?.menu_ids?.length === before)
+
+  check('DELETE /role/{id}', (await call('DELETE', `/role/${roleId}`)).json?.code === 0)
+  check('删除后授权已清理', (await call('GET', `/role/menus?role_id=${roleId}`)).json?.code === 404)
+}
 
 /* ------------------------------------------------------------ 应用列表 */
 console.log('\n应用列表')
@@ -241,7 +340,8 @@ const paths = Object.keys(spec.json?.paths ?? {}).filter(
   (p) => !p.startsWith('/_') && p !== '/openapi.json',
 )
 const expected = [
-  '/login', '/profile', '/apps', '/api', '/user',
+  '/login', '/profile', '/permissions', '/apps', '/api', '/user',
+  '/menus/navigation', '/role', '/role/{id}', '/role/menus',
   '/system/menu/tree', '/system/menu', '/system/menu/{id}',
   '/data_dict', '/data_dict/{id}', '/data_dict/options',
   '/data_dict/type/tree', '/data_dict/type', '/data_dict/type/{id}',

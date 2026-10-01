@@ -116,7 +116,7 @@
       "aiProviderEmpty": "Henüz sağlayıcı yok. Başlamak için bir tane ekleyin.",
       "aiAddProvider": "Sağlayıcı ekle",
       "aiEditProvider": "Sağlayıcıyı düzenle",
-      "aiProviderKind": "Servis türü",
+      "aiProviderKind": "Protokol standardı",
       "aiProviderName": "Ad",
       "aiProviderBaseUrl": "Uç nokta adresi",
       "aiProviderBaseUrlHint": "Boş bırakırsanız bu servis türünün resmî adresi kullanılır",
@@ -124,7 +124,6 @@
       "aiApiKeyHint": "Anahtar yalnızca bu cihazın tarayıcısında saklanır. Ortak kullanılan bir bilgisayarda gerçek anahtar girmeyin.",
       "aiProviderKeySet": "Anahtar tanımlı",
       "aiProviderKeyMissing": "Anahtar yok",
-      "aiProviderKind": "Protokol standardı",
       "aiProviderKinds": {
         "openai": "OpenAI standardı",
         "anthropic": "Anthropic standardı"
@@ -286,8 +285,9 @@
   },
   "nav": {
     "system": "Sistem",
-    "systemFeatures": "Özellikler",
+    "systemMenus": "Menü Yönetimi",
     "systemDataDict": "Veri sözlüğü",
+    "systemRoles": "Rol Yönetimi",
     "config": "Yapılandırma",
     "langPack": "Dil paketi",
     "home": "Gösterge paneli",
@@ -391,5 +391,20 @@
     "expand": "Genişlet",
     "close": "Önizlemeyi kapat",
     "resize": "Önizleme genişliğini ayarla"
+  },
+  "unsavedChanges": {
+    "message": "Kaydedilmemiş değişiklikleriniz var",
+    "reset": "Sıfırla",
+    "save": "Kaydet"
+  },
+  "dangerConfirm": {
+    "hint": "Yazın",
+    "suffix": " onaylamak için:",
+    "inputAria": "Onay girişi",
+    "cancel": "İptal"
+  },
+  "clipboard": {
+    "copyAria": "{{text}} öğesini panoya kopyala",
+    "copied": "Kopyalandı"
   }
 }

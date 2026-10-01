@@ -17,5 +17,8 @@
   "selectAppDesc": "यह खाता {{count}} कार्यस्थान(स्थानों) के लिए अधिकृत है। कृपया जारी रखने के लिए एक चुनें:",
   "enterApp": "{{name}} पर जारी रखें",
   "switchAccount": "खाता बदलें",
-  "verified": "सत्यापित"
+  "verified": "सत्यापित",
+  "unauthorized": "आपको इस पृष्ठ तक पहुँचने की अनुमति नहीं है",
+  "selectAccount": "परीक्षण खाता",
+  "selectAccountPlaceholder": "खाता चुनें…"
 }

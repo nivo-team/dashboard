@@ -51,6 +51,7 @@ pnpm guardrails       # 铁律的机器检查（CI 用，scripts/ai/check-guardr
 | 改样式 / 用 Kumo 组件 / RTL 适配 | [ui-and-styling.md](./.agents/docs/ui-and-styling.md) |
 | 加 store / 改持久化 / 切应用作用域 | [store.md](./.agents/docs/store.md) |
 | 改登录登出 / 加 UI 文案 / 字典枚举 | [auth-and-i18n.md](./.agents/docs/auth-and-i18n.md) · [dict-i18n.md](./.agents/docs/dict-i18n.md) · [dict-options.md](./.agents/docs/dict-options.md) |
+| **加需要权限的页面 / 按钮 / 菜单 / AI 工具** | [permissions-architecture.md](./.agents/docs/permissions-architecture.md)（唯一判定点 `hasPermission`、`Admin` 不是超管、三个导航过滤入口、守卫与按钮级收口） |
 | 改接口调用 / 生成产物 / 缓存策略 | [api-client.md](./.agents/docs/api-client.md) |
 | **改 Mock 接口 / 加一个接口** | [apps/mock/README.md](./apps/mock/README.md) —— 接口定义即契约 |
 | **换后端 / 改契约来源 / 改 API 生成** | [packages/api-client/README.md](./packages/api-client/README.md) |
@@ -60,7 +61,7 @@ pnpm guardrails       # 铁律的机器检查（CI 用，scripts/ai/check-guardr
 | **详情页表单 / 保存浮条 / 状态开关** | skill **`editable-detail`** ← 先加载它 |
 | 列表点行看详情（分屏 / 抽屉） | [detail-preview.md](./.agents/docs/detail-preview.md) |
 | 加仪表盘卡片 / 改栅格 | [dashboard-module.md](./.agents/docs/dashboard-module.md) |
-| 改功能菜单树 | [features-module.md](./.agents/docs/features-module.md) |
+| 改菜单管理（菜单树）/ 角色管理 | [features-module.md](./.agents/docs/features-module.md)（术语已从「功能」改为**目录 / 菜单 / 操作**；菜单与角色数据模型见 [apps/mock/README.md](./apps/mock/README.md)） |
 | 改数据字典分类 | [data-dict-module.md](./.agents/docs/data-dict-module.md) |
 | **改任何 AI 代码** | [ai-architecture.md](./.agents/docs/ai-architecture.md)（架构 / 数据流 / 扩展点 / 踩过的坑）· [ai-integration.md](./.agents/docs/ai-integration.md)（设计蓝图） |
 | **改 AI 开发流水线 / issue 模板 / CI 门控** | [docs/ai-dev-pipeline.md](./docs/ai-dev-pipeline.md)（触发层 + 执行层 + 门控层，含标签状态机与铁律对应表） |

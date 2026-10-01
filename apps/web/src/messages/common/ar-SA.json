@@ -116,7 +116,7 @@
       "aiProviderEmpty": "لا يوجد مزوّد بعد. أضف واحدًا للبدء.",
       "aiAddProvider": "إضافة مزوّد",
       "aiEditProvider": "تعديل المزوّد",
-      "aiProviderKind": "نوع الخدمة",
+      "aiProviderKind": "معيار البروتوكول",
       "aiProviderName": "الاسم",
       "aiProviderBaseUrl": "عنوان الواجهة",
       "aiProviderBaseUrlHint": "اتركه فارغًا لاستخدام العنوان الرسمي لهذا النوع",
@@ -124,7 +124,6 @@
       "aiApiKeyHint": "يُحفظ المفتاح في متصفح هذا الجهاز فقط. لا تُدخل مفتاحًا حقيقيًا على جهاز مشترك.",
       "aiProviderKeySet": "المفتاح مُعدّ",
       "aiProviderKeyMissing": "المفتاح مفقود",
-      "aiProviderKind": "معيار البروتوكول",
       "aiProviderKinds": {
         "openai": "معيار OpenAI",
         "anthropic": "معيار Anthropic"
@@ -286,8 +285,9 @@
   },
   "nav": {
     "system": "النظام",
-    "systemFeatures": "الميزات",
+    "systemMenus": "إدارة القوائم",
     "systemDataDict": "قاموس البيانات",
+    "systemRoles": "إدارة الأدوار",
     "config": "الإعدادات",
     "langPack": "حزمة اللغات",
     "home": "لوحة المعلومات",
@@ -391,5 +391,20 @@
     "expand": "توسيع",
     "close": "إغلاق المعاينة",
     "resize": "تغيير عرض المعاينة"
+  },
+  "unsavedChanges": {
+    "message": "لديك تغييرات غير محفوظة",
+    "reset": "إعادة تعيين",
+    "save": "حفظ"
+  },
+  "dangerConfirm": {
+    "hint": "اكتب",
+    "suffix": " للتأكيد:",
+    "inputAria": "إدخال التأكيد",
+    "cancel": "إلغاء"
+  },
+  "clipboard": {
+    "copyAria": "نسخ {{text}} إلى الحافظة",
+    "copied": "تم النسخ"
   }
 }

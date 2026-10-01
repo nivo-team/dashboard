@@ -116,7 +116,7 @@
       "aiProviderEmpty": "プロバイダーがまだありません。追加すると使い始められます。",
       "aiAddProvider": "プロバイダーを追加",
       "aiEditProvider": "プロバイダーを編集",
-      "aiProviderKind": "サービスの種類",
+      "aiProviderKind": "プロトコル仕様",
       "aiProviderName": "名前",
       "aiProviderBaseUrl": "エンドポイント",
       "aiProviderBaseUrlHint": "空欄の場合はこのサービスの公式アドレスを使用します",
@@ -124,7 +124,6 @@
       "aiApiKeyHint": "キーはこの端末のブラウザーにのみ保存されます。共用のパソコンでは実際のキーを入力しないでください。",
       "aiProviderKeySet": "キー設定済み",
       "aiProviderKeyMissing": "キー未設定",
-      "aiProviderKind": "プロトコル仕様",
       "aiProviderKinds": {
         "openai": "OpenAI 仕様",
         "anthropic": "Anthropic 仕様"
@@ -286,8 +285,9 @@
   },
   "nav": {
     "system": "システム",
-    "systemFeatures": "機能",
+    "systemMenus": "メニュー管理",
     "systemDataDict": "データ辞書",
+    "systemRoles": "ロール管理",
     "config": "設定",
     "langPack": "言語パック",
     "home": "ダッシュボード",
@@ -391,5 +391,20 @@
     "expand": "展開",
     "close": "プレビューを閉じる",
     "resize": "プレビューの幅を変更"
+  },
+  "unsavedChanges": {
+    "message": "未保存の変更があります",
+    "reset": "リセット",
+    "save": "保存"
+  },
+  "dangerConfirm": {
+    "hint": "入力してください",
+    "suffix": " と入力して確認",
+    "inputAria": "確認入力",
+    "cancel": "キャンセル"
+  },
+  "clipboard": {
+    "copyAria": "{{text}} をクリップボードにコピー",
+    "copied": "コピーしました"
   }
 }

@@ -27,6 +27,7 @@
 | [ui-and-styling.md](./ui-and-styling.md) | 改样式 / 用 Kumo 组件：令牌与主题、悬浮预览接法、RTL 处理 |
 | [store.md](./store.md) | 加 store、改作用域：三类状态的存储键、per-app 分区、迁移与踩坑 |
 | [auth-and-i18n.md](./auth-and-i18n.md) | 改登录 / 加文案：双阶段认证、拦截器注入、登出的三个坑、i18n 加载 |
+| [permissions-architecture.md](./permissions-architecture.md) | **加需要权限的页面 / 按钮 / 菜单 / AI 工具之前，或改「谁能看到什么」时**：真值链、唯一判定点 `hasPermission`、超管判定的坑（`Admin` 不是超管）、三个导航过滤入口、路由守卫、按钮级收口现状 |
 | [api-client.md](./api-client.md) | 改接口调用 / 生成产物：生成链路、响应拦截、Query 缓存分区 |
 | [table-query-and-crud.md](./table-query-and-crud.md) | 表格 URL 参数与 CRUD：nuqs 状态管理、编译期严格 Query 类型函数、Mock 增删改查闭环 |
 | [form-architecture.md](./form-architecture.md) | 表单架构与人机协同：单表单组件、URL 驱动状态、弹窗/分屏/独立路由三态自适应、AI 表单桥闭环 |
@@ -35,7 +36,7 @@
 
 | 文档 | 什么时候读 |
 |---|---|
-| [features-module.md](./features-module.md) | 改功能菜单树（`menu_type` 分流、临时 id 清单） |
+| [features-module.md](./features-module.md) | 改**菜单管理**（`menu_type` 目录 / 菜单 / 操作、`path` 路由地址）与**角色管理**（`role_menus` 菜单授权、内置角色约束） |
 | [data-dict-module.md](./data-dict-module.md) | 改字典分类（树表、双数据源、待确认项结论） |
 | [dict-i18n.md](./dict-i18n.md) | 给枚举值补多语言（`messages/dict/*` 的目录与回落链） |
 | [dict-options.md](./dict-options.md) | 用字典驱动下拉 / 筛选（值域来源、`new.` 适配层） |

@@ -116,7 +116,7 @@
       "aiProviderEmpty": "No providers yet. Add one to get started.",
       "aiAddProvider": "Add provider",
       "aiEditProvider": "Edit provider",
-      "aiProviderKind": "Service type",
+      "aiProviderKind": "Protocol standard",
       "aiProviderName": "Name",
       "aiProviderBaseUrl": "Base URL",
       "aiProviderBaseUrlHint": "Leave empty to use the official endpoint for this service type",
@@ -124,7 +124,6 @@
       "aiApiKeyHint": "The key is stored only in this browser on this device. Do not enter a real key on a shared computer.",
       "aiProviderKeySet": "Key set",
       "aiProviderKeyMissing": "Key missing",
-      "aiProviderKind": "Protocol standard",
       "aiProviderKinds": {
         "openai": "OpenAI standard",
         "anthropic": "Anthropic standard"
@@ -286,8 +285,9 @@
   },
   "nav": {
     "system": "System",
-    "systemFeatures": "Features",
+    "systemMenus": "Menu Management",
     "systemDataDict": "Data dictionary",
+    "systemRoles": "Role Management",
     "config": "Configuration",
     "langPack": "Language pack",
     "home": "Dashboard",
@@ -391,5 +391,20 @@
     "expand": "Expand",
     "close": "Close preview",
     "resize": "Resize preview"
+  },
+  "unsavedChanges": {
+    "message": "You have unsaved changes",
+    "reset": "Reset",
+    "save": "Save"
+  },
+  "dangerConfirm": {
+    "hint": "Type",
+    "suffix": " to confirm:",
+    "inputAria": "Confirmation input",
+    "cancel": "Cancel"
+  },
+  "clipboard": {
+    "copyAria": "Copy {{text}} to clipboard",
+    "copied": "Copied"
   }
 }

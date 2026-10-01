@@ -17,5 +17,8 @@
   "selectAppDesc": "هذا الحساب مصرح له بالوصول إلى {{count}} مساحة عمل. يرجى اختيار واحدة للمتابعة:",
   "enterApp": "المتابعة إلى {{name}}",
   "switchAccount": "تبديل الحساب",
-  "verified": "تم التحقق"
+  "verified": "تم التحقق",
+  "unauthorized": "ليس لديك إذن للوصول إلى هذه الصفحة",
+  "selectAccount": "حساب تجريبي",
+  "selectAccountPlaceholder": "اختر حساباً…"
 }

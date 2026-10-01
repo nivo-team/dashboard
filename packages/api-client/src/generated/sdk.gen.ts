@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteDataDictByIdData, DeleteDataDictByIdResponses, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponses, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponses, DeleteUserByIdData, DeleteUserByIdResponses, GetApiData, GetApiResponses, GetAppsData, GetAppsResponses, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponses, GetDataDictResponses, GetDataDictTypeTreeData, GetDataDictTypeTreeResponses, GetPermissionsData, GetPermissionsResponses, GetProfileData, GetProfileResponses, GetSystemMenuTreeData, GetSystemMenuTreeResponses, GetUserByIdData, GetUserByIdResponses, GetUserData, GetUserResponses, PostDataDictData, PostDataDictResponses, PostDataDictTypeData, PostDataDictTypeResponses, PostLoginData, PostLoginResponses, PostLogoutData, PostLogoutResponses, PostSystemMenuData, PostSystemMenuResponses, PostUserBatchDeleteData, PostUserBatchDeleteResponses, PostUserData, PostUserResponses, PutDataDictData, PutDataDictResponses, PutDataDictTypeData, PutDataDictTypeResponses, PutSystemMenuData, PutSystemMenuResponses, PutUserData, PutUserResponses } from './types.gen';
+import type { DeleteDataDictByIdData, DeleteDataDictByIdResponses, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponses, DeleteRoleByIdData, DeleteRoleByIdResponses, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponses, DeleteUserByIdData, DeleteUserByIdResponses, GetApiData, GetApiResponses, GetAppsData, GetAppsResponses, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponses, GetDataDictResponses, GetDataDictTypeTreeData, GetDataDictTypeTreeResponses, GetMenusNavigationData, GetMenusNavigationResponses, GetPermissionsData, GetPermissionsResponses, GetProfileData, GetProfileResponses, GetRoleByIdData, GetRoleByIdResponses, GetRoleData, GetRoleMenusData, GetRoleMenusResponses, GetRoleResponses, GetSystemMenuTreeData, GetSystemMenuTreeResponses, GetUserByIdData, GetUserByIdResponses, GetUserData, GetUserResponses, PostDataDictData, PostDataDictResponses, PostDataDictTypeData, PostDataDictTypeResponses, PostLoginData, PostLoginResponses, PostLogoutData, PostLogoutResponses, PostRoleData, PostRoleResponses, PostSystemMenuData, PostSystemMenuResponses, PostUserBatchDeleteData, PostUserBatchDeleteResponses, PostUserData, PostUserResponses, PutDataDictData, PutDataDictResponses, PutDataDictTypeData, PutDataDictTypeResponses, PutRoleData, PutRoleMenusData, PutRoleMenusResponses, PutRoleResponses, PutSystemMenuData, PutSystemMenuResponses, PutUserData, PutUserResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -19,7 +19,7 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 /**
- * 获取系统接口清单（供功能管理关联接口权限使用）
+ * 获取系统接口清单（供菜单管理关联接口权限使用）
  */
 export const getApi = <ThrowOnError extends boolean = false>(options?: Options<GetApiData, ThrowOnError>): RequestResult<GetApiResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiResponses, unknown, ThrowOnError>({ url: '/api', ...options });
 
@@ -102,7 +102,7 @@ export const putDataDictType = <ThrowOnError extends boolean = false>(options: O
 export const getDataDictTypeTree = <ThrowOnError extends boolean = false>(options?: Options<GetDataDictTypeTreeData, ThrowOnError>): RequestResult<GetDataDictTypeTreeResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetDataDictTypeTreeResponses, unknown, ThrowOnError>({ url: '/data_dict/type/tree', ...options });
 
 /**
- * 账号密码登录（任意非空账号密码均可通过）
+ * 账号密码登录（验证预设测试账号：super admin / admin / user）
  */
 export const postLogin = <ThrowOnError extends boolean = false>(options: Options<PostLoginData, ThrowOnError>): RequestResult<PostLoginResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostLoginResponses, unknown, ThrowOnError>({
     url: '/login',
@@ -119,6 +119,11 @@ export const postLogin = <ThrowOnError extends boolean = false>(options: Options
 export const postLogout = <ThrowOnError extends boolean = false>(options?: Options<PostLogoutData, ThrowOnError>): RequestResult<PostLogoutResponses, unknown, ThrowOnError> => (options?.client ?? client).post<PostLogoutResponses, unknown, ThrowOnError>({ url: '/logout', ...options });
 
 /**
+ * 当前登录用户可见的导航菜单树（按角色菜单授权过滤，只含目录与菜单）
+ */
+export const getMenusNavigation = <ThrowOnError extends boolean = false>(options?: Options<GetMenusNavigationData, ThrowOnError>): RequestResult<GetMenusNavigationResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetMenusNavigationResponses, unknown, ThrowOnError>({ url: '/menus/navigation', ...options });
+
+/**
  * 获取当前用户的权限点清单（细到按钮级），供前端在把 AI 工具交给模型前过滤
  */
 export const getPermissions = <ThrowOnError extends boolean = false>(options?: Options<GetPermissionsData, ThrowOnError>): RequestResult<GetPermissionsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetPermissionsResponses, unknown, ThrowOnError>({ url: '/permissions', ...options });
@@ -127,6 +132,62 @@ export const getPermissions = <ThrowOnError extends boolean = false>(options?: O
  * 获取当前登录用户信息
  */
 export const getProfile = <ThrowOnError extends boolean = false>(options?: Options<GetProfileData, ThrowOnError>): RequestResult<GetProfileResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetProfileResponses, unknown, ThrowOnError>({ url: '/profile', ...options });
+
+/**
+ * 角色分页列表，支持关键词与状态筛选
+ */
+export const getRole = <ThrowOnError extends boolean = false>(options?: Options<GetRoleData, ThrowOnError>): RequestResult<GetRoleResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetRoleResponses, unknown, ThrowOnError>({ url: '/role', ...options });
+
+/**
+ * 新建角色
+ */
+export const postRole = <ThrowOnError extends boolean = false>(options: Options<PostRoleData, ThrowOnError>): RequestResult<PostRoleResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostRoleResponses, unknown, ThrowOnError>({
+    url: '/role',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 更新角色（按 id 定位，只更新传入的字段）
+ */
+export const putRole = <ThrowOnError extends boolean = false>(options: Options<PutRoleData, ThrowOnError>): RequestResult<PutRoleResponses, unknown, ThrowOnError> => (options.client ?? client).put<PutRoleResponses, unknown, ThrowOnError>({
+    url: '/role',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 根据 ID 删除角色，同时清理该角色的菜单授权
+ */
+export const deleteRoleById = <ThrowOnError extends boolean = false>(options: Options<DeleteRoleByIdData, ThrowOnError>): RequestResult<DeleteRoleByIdResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteRoleByIdResponses, unknown, ThrowOnError>({ url: '/role/{id}', ...options });
+
+/**
+ * 根据 ID 查询角色详情
+ */
+export const getRoleById = <ThrowOnError extends boolean = false>(options: Options<GetRoleByIdData, ThrowOnError>): RequestResult<GetRoleByIdResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetRoleByIdResponses, unknown, ThrowOnError>({ url: '/role/{id}', ...options });
+
+/**
+ * 查询角色已授权的菜单 ID 列表
+ */
+export const getRoleMenus = <ThrowOnError extends boolean = false>(options: Options<GetRoleMenusData, ThrowOnError>): RequestResult<GetRoleMenusResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetRoleMenusResponses, unknown, ThrowOnError>({ url: '/role/menus', ...options });
+
+/**
+ * 替换角色的菜单授权（全量覆盖）
+ */
+export const putRoleMenus = <ThrowOnError extends boolean = false>(options: Options<PutRoleMenusData, ThrowOnError>): RequestResult<PutRoleMenusResponses, unknown, ThrowOnError> => (options.client ?? client).put<PutRoleMenusResponses, unknown, ThrowOnError>({
+    url: '/role/menus',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * 删除功能（其下级一并删除）
