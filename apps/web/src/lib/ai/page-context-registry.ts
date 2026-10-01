@@ -20,7 +20,7 @@ import { useEffect } from 'react'
  *
  * ```tsx
  * useAiPageContext({
- *   description: '用户列表：分页浏览、按账号与状态筛选',
+ *   description: '表格示例：分页浏览、按账号与状态筛选',
  *   endpoints: [
  *     { method: 'GET', path: '/user', purpose: '分页查询用户' },
  *     { method: 'GET', path: '/user/info', purpose: '按 ID 查单个用户' },

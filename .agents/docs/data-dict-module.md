@@ -54,7 +54,7 @@
   - `code` = **局部码**（`channel`）；
   - `p_code` = **从根到自身的完整 code 链**（`common.channel`）；
   - `id_path` = **祖先 id 链、不含自身**（`/0/38/`，与 features 的 `id_path` 语义一致）。
-- 时间字段是**秒级数字**，且存在脏值（曾见到 `created_at: 54353`）→ 渲染走容错解析（`src/features/system/data-dict/data-dict-options.ts` 的 `toEpochMs`）。
+- 时间字段是**秒级数字**，且存在脏值（曾见到 `created_at: 54353`）→ 渲染走容错解析（`src/features/data-dict/data-dict-options.ts` 的 `toEpochMs`）。
 - `parent_id` 用 `0` 表示后端视角的顶级；自本模块收窄到根分类 `DICT_ROOT_TYPE_ID` 之后，前端不再直接使用 `0`。
 
 ### 2.2 字典项：独立资源 + 服务端分页
@@ -90,7 +90,7 @@
 
 1. **openapi 里这两个接口的 response schema 是错的。**
    `/data_dict/type/tree` 与 `/data_dict` 都被声明为 `v1.DataOptions`（`{ options, total }`，其实是 `/data_dict/options` 的类型），与实际返回完全不同。
-   → 本模块在 `src/features/system/data-dict/data-dict-types.ts` 自行声明响应类型与运行时 schema（实际分别是 `DictType[]` 与 `{ total, items }`），
+   → 本模块在 `src/features/data-dict/data-dict-types.ts` 自行声明响应类型与运行时 schema（实际分别是 `DictType[]` 与 `{ total, items }`），
    **请求参数与请求体仍用生成类型**（那些是正确的）。
    断言的落点只有两处（各 hook 的取值点，注释都打了 `⏳`，附删除条件）。
    这是**本仓库唯一一处**自声明响应类型的地方（其余模块的响应类型都以 openapi 生成为准）。
@@ -125,7 +125,7 @@
 ### 4.2 目录
 
 ```
-apps/web/src/features/system/data-dict/      # 业务代码（一个业务一个文件夹，扁平）
+apps/web/src/features/data-dict/      # 业务代码（一个业务一个文件夹，扁平）
 ├── list/index.tsx                  # /data-dict：分类列表（导出 DataDictTypeListPage）
 ├── list/feature.ts                 # ★ 对 AI 的声明：分类数据源 + reload（无 commands，见文件注释）
 ├── detail/index.tsx                # 选中分类：子分类卡片 + 字典项表格 + 侧栏信息卡片
@@ -202,7 +202,7 @@ apps/web/src/routes/$appId/system/data-dict/
 | --- | --- |
 | 不可逆操作二次确认（输入名称 + 一键复制） | `#/components/danger-confirm-dialog`（分类删除） |
 | 轻量删除确认（叶子节点） | `LayerDialog.Alert`（字典项删除，参照 features 的权限删除） |
-| 弹窗表单（`LayerDialog` + `form` 属性提交） | 参照 `src/features/system/data-dict/dict-type-form-dialog.tsx`，本模块另写两份 |
+| 弹窗表单（`LayerDialog` + `form` 属性提交） | 参照 `src/features/data-dict/dict-type-form-dialog.tsx`，本模块另写两份 |
 | 表格能力 | `TableControls`（搜索 / 刷新 / 列设置）+ `DataTable`（列设置、服务端分页、sticky 操作列、树表 `tree`：层级列固定第一列） |
 | 顶栏面包屑层级注册 | `#/lib/breadcrumb-trail`（分类树拍平成「路径 → 名称 + 父级路径」） |
 | 可复制值 / 一键复制 | `#/components/copyable-value` |
@@ -228,7 +228,7 @@ apps/web/src/routes/$appId/system/data-dict/
 | `DICT_ROOT_TYPE_ID = 67` | ⏳ **临时值**：架构升级期由后端指定的字典**根分类 id**。接口 `GET /data_dict/type/tree` 是无参全量（一次给全部 13 个历史顶层、60 个节点），本模块靠这个常量**在本地把范围收窄**到它的子树。删除条件：后端提供「当前应用的字典根分类」查询、或由 App 配置下发根 id 后改为运行时获取 |
 | 响应类型与断言 | ⏳ 后端修正两个接口的 Apifox 定义后，删掉 `data-dict-types.ts` 的自声明类型/schema 与两处断言 |
 | 时间容错 | 秒级数字 + 脏值，`toEpochMs` 容错解析 |
-| 分页默认值 | `DEFAULT_PAGE_SIZE = 15`（与用户列表 / 功能列表一致） |
+| 分页默认值 | `DEFAULT_PAGE_SIZE = 15`（与表格示例 / 功能列表一致） |
 
 > **清理入口：全局搜索 `⏳`。** 本模块的临时项只有两处：「响应 schema 错误」（3 个文件的说明与断言）与「根分类 id 67」。
 

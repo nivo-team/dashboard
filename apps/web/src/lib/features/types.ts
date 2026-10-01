@@ -56,7 +56,7 @@ export interface FeatureCommandSpec {
   approval?: 'auto' | 'always'
   /** 不可撤销（删除类）：审批卡上会标明 */
   destructive?: boolean
-  /** 需要的权限点（如 `user:delete`）；判定在 `hasPageCapabilityPermission` 一处 */
+  /** 需要的权限点（如 `table-example:delete`）；判定在 `hasPageCapabilityPermission` 一处 */
   permission?: string
   /** 在页面能力的 `actions` 里怎么归类（缺省 `custom`）；只影响展示分组 */
   actionType?: CapabilityAction['type']
@@ -101,7 +101,7 @@ export interface FeatureDataFieldSpec {
 export interface FeatureDataSourceSpec {
   /** 数据源 id（如 `users`），`get_page_data` 按它返回 */
   id: string
-  /** 给模型看的名字，如「用户列表（当前页）」 */
+  /** 给模型看的名字，如「表格示例（当前页）」 */
   title: string
   description?: string
   /** 数据形状说明（纯文本，比 JSON Schema 更适合描述"一行有哪些字段"） */
@@ -121,7 +121,7 @@ export interface FeatureDataSourceSpec {
 
 /** 页面特性声明 —— `defineFeature({...})` 的输入。 */
 export interface FeatureSpec {
-  /** 页面标题（如「用户列表」） */
+  /** 页面标题（如「表格示例」） */
   title: string
   /** 这一页是干什么的（一两句话，给模型看） */
   description: string

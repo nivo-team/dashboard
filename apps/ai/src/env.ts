@@ -5,15 +5,15 @@
  * - **vars**（`wrangler.toml` 的 `[vars]`）：非敏感配置，可进 git，部署时随代码走；
  * - **secrets**（`wrangler secret put` / 本地 `.dev.vars`）：密钥，**绝不进 git、绝不进 vars**。
  *
- * 本轮（只拼提示词）只用到 `ALLOWED_ORIGINS`；其余三项是「服务端固定单一模型」与
- * 将来「模型流量经 AI Gateway 出站」的落点，见 `model-config.ts`。
+ * 配置分两块：CORS 白名单（`ALLOWED_ORIGINS`）与上游出站
+ * （网关地址 / 鉴权方式 / 模型覆盖），后者的解析集中在 `model-config.ts`。
  */
 export interface AiEnv {
   /** 允许的前端来源，逗号分隔。留空时只放行本地开发来源（见 `cors.ts`）。 */
   ALLOWED_ORIGINS?: string
-  /** 固定使用的厂商规范：`openai` | `anthropic`（本轮不调用，只声明） */
+  /** 声明用的厂商规范：`openai` | `anthropic`（实际 provider 路由在 AI Gateway，这里只回显） */
   AI_PROVIDER_KIND?: string
-  /** 固定使用的模型 id（本轮不调用，只声明） */
+  /** 固定使用的模型 id；配了就用它覆盖请求体里的 `model`（见 `routes/chat.ts`） */
   AI_MODEL_ID?: string
   /**
    * AI Gateway 的鉴权方式（决定请求头上怎么带凭证）：

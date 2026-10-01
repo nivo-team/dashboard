@@ -7,9 +7,9 @@ import { getPageContext, resolveNavLabel } from './page-context'
  * `@` 引用 —— 用一条**极短的语法**说清「这一轮在讲哪一块」：
  *
  * ```
- * @user        模块（用户运营 · 目录页）
- * @user:list   模块里的某个页面（用户列表）
- * @user:1234   模块里的某条记录（用户详情 #1234）
+ * @table-example        模块（示例 · 目录页）
+ * @table-example:list   模块里的某个页面（表格示例）
+ * @table-example:1234   模块里的某条记录（表格示例详情 #1234）
  * ```
  *
  * 它是**给模型看的**：输入框里打的字会原样进会话（用户看到的还是自己打的那串），
@@ -26,7 +26,7 @@ import { getPageContext, resolveNavLabel } from './page-context'
  * 2. **详情路由必须单独登记**（`record`）：导航清单里只有列表页，详情页是「列表页 + `/id`」，
  *    不在导航里 —— 所以这是本文件**唯一**允许出现路径字面量的地方。
  *    加一个能按记录引用的模块 = 在 `AI_ROUTE_REF_SPECS` 里加一项。
- * 3. **匹配靠导航的 `keywords`**：所以 `@user` / `@users` / `@用户` / `@用户运营` 都指向同一个模块 ——
+ * 3. **匹配靠导航的 `keywords`**：所以 `@table-example` / `@example` / `@示例` / `@表格示例` 都指向同一个模块 ——
  *    英文键只是「插入到文本里的标准写法」，不是唯一能打的东西。
  *
  * 认不出来的 `@foo` **原样留着**（可能是邮箱后缀、也可能是别的工具的约定），
@@ -42,14 +42,14 @@ import { getPageContext, resolveNavLabel } from './page-context'
 export type AiRouteRefKind = 'add' | 'module' | 'page' | 'record'
 
 export interface AiRouteRefItem {
-  /** 键：模块 `user`、页面 `user:list`、记录模板 `user:`（等用户补 ID） */
+  /** 键：模块 `table-example`、页面 `table-example:list`、记录模板 `table-example:`（等用户补 ID） */
   id: string
   kind: AiRouteRefKind
   /** 插进输入框的那段（**不含** `@`） */
   token: string
-  /** 展示用的完整语法，灰色小字：`@user` / `@user:list` / `@user:<id>` */
+  /** 展示用的完整语法，灰色小字：`@table-example` / `@table-example:list` / `@table-example:<id>` */
   syntax: string
-  /** 菜单主行 —— **名字**（`用户列表`），不是语法；语法在右边的 `syntax` 里 */
+  /** 菜单主行 —— **名字**（`表格示例`），不是语法；语法在右边的 `syntax` 里 */
   name: string
   /** 菜单右侧的一句说明：这一行指向哪儿 */
   description: string
@@ -90,19 +90,19 @@ interface AiRouteRefModuleSpec {
 /**
  * `@` 引用的**模块规范表** —— 这张表就是「哪些模块可以被 @」的唯一真值。
  *
- * 目前只有 `user`（用户运营）作为样板：它是「目录 + 列表 + 详情」三段式最典型的模块，
+ * 目前只有 `table-example`（示例）作为样板：它是「目录 + 列表 + 详情」三段式最典型的模块，
  * 后续模块（功能 / 数据字典 / …）照它的形状抄一行即可。
  */
 const AI_ROUTE_REF_SPECS: readonly AiRouteRefModuleSpec[] = [
   {
-    key: 'user',
-    to: '/users',
-    pages: [{ key: 'list', to: '/users/user' }],
+    key: 'table-example',
+    to: '/example',
+    pages: [{ key: 'list', to: '/example/user' }],
     record: {
       param: 'id',
-      template: '/users/user/{id}',
-      nameKey: 'nav.userDetail',
-      name: '用户详情',
+      template: '/example/user/{id}',
+      nameKey: 'nav.tableExampleDetail',
+      name: '表格示例详情',
     },
   },
 ]
@@ -136,9 +136,9 @@ function aiText(key: string, fallback: string): string {
  *
  * **不在渲染处再拼一份名单**：菜单、匹配、展开都读这一份规范表（铁律：名单只有一个真值）。
  *
- * 每行给三样：**名字**（取自导航清单）、**语法**（`@user:list`，用户要打的那串）、
+ * 每行给三样：**名字**（取自导航清单）、**语法**（`@table-example:list`，用户要打的那串）、
  * **说明**（它指向哪儿）。命令面板那种「名字 + 灰键 + 右侧说明」的写法要求名字与语法分开，
- * 所以这里不再把 `@user:list` 当主行 —— 主行是「用户列表」，看名字找东西比看语法快。
+ * 所以这里不再把 `@table-example:list` 当主行 —— 主行是「表格示例」，看名字找东西比看语法快。
  */
 export function listRouteRefItems(): AiRouteRefItem[] {
   const items: AiRouteRefItem[] = []
@@ -204,7 +204,7 @@ export function listRouteRefItems(): AiRouteRefItem[] {
  * `(行首或空白)@键[:目标]`。
  *
  * 前面必须紧跟行首或空白：`zhang@example.com` 里的 `@example` 因此不会被当成引用。
- * 目标段不收空白与冒号（`user:list` / `user:1234` 都吃，`user:` 也吃 —— 表示还没补完）。
+ * 目标段不收空白与冒号（`table-example:list` / `table-example:1234` 都吃，`table-example:` 也吃 —— 表示还没补完）。
  */
 const ROUTE_REF_PATTERN = /(^|\s)@([a-z][a-z0-9-]*)(?::([^\s:]*))?/gi
 
@@ -242,7 +242,7 @@ function resolveRouteRef(
 /**
  * 把用户消息里的 `@` 引用展开成一段**模型能直接用**的说明，追加在原文之后。
  *
- * 刻意加在**原文后面**而不是替换掉 `@user:1234`：原文保持原样，模型既看得到用户的写法，
+ * 刻意加在**原文后面**而不是替换掉 `@table-example:1234`：原文保持原样，模型既看得到用户的写法，
  * 也看得到解析结果 —— 万一解析错了（比如模块换过名字），它还有原文可对照。
  *
  * 没有 appId（不在某个应用里）、没有 `@`、或者一条都没认出来时**原样返回**：不产生任何多余内容。

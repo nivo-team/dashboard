@@ -40,7 +40,7 @@ export interface CapabilityForm {
   title: string
   action: 'create' | 'edit'
   description?: string
-  /** 权限标识（如 'user:edit' / 'user:create'）。将来根据当前用户权限过滤给 AI 的表单 */
+  /** 权限标识（如 'table-example:edit' / 'table-example:create'）。将来根据当前用户权限过滤给 AI 的表单 */
   permission?: string
   /** AI 填写这张表单需要的权限点（只改页面状态、不落库） */
   fillPermission?: string
@@ -67,7 +67,7 @@ export interface CapabilityAction {
     | 'refresh'
     | 'custom'
   description?: string
-  /** 权限标识（如 'user:delete' / 'user:export'） */
+  /** 权限标识（如 'table-example:delete' / 'table-example:export'） */
   permission?: string
   endpoint?: {
     method: string
@@ -117,7 +117,7 @@ export interface CapabilitySearchParams {
  * 统一页面能力规格声明（标准 JSON 结构）
  */
 export interface PageCapabilitiesSpec {
-  /** 页面唯一路由标识或模板，如 '/$appId/users/user/' */
+  /** 页面唯一路由标识或模板，如 '/$appId/example/user/' */
   routeId: string
   /** 页面中文业务名称，如「用户管理」 */
   title: string
@@ -175,7 +175,7 @@ export function hasPageCapabilityPermission(
  * 权限过滤中心（集中过滤点，遵循铁律 4）：
  *
  * 任何给模型的页面能力（表单、接口、动作）都必须统一流经本函数。
- * 当用户不具备某项权限时（如无 'user:edit' 权限），
+ * 当用户不具备某项权限时（如无 'table-example:edit' 权限），
  * 对应的表单与动作将被就地裁剪，模型完全不可见该能力，杜绝越权猜测。
  */
 export function filterPageCapabilities(

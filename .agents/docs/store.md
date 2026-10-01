@@ -103,7 +103,7 @@ const auth = getAuthSnapshot()                                  // 非 React（�
 import { useAppTableState } from '#/lib/store'
 
 const [columnVisibility, setColumnVisibility] = useAppTableState<ColumnVisibilityState>(
-  'users/user',        // 表格 key：全局唯一、稳定（同表在 Console / Analytics 下各存一份）
+  'example/user',        // 表格 key：全局唯一、稳定（同表在 Console / Analytics 下各存一份）
   'columnVisibility',  // 状态片段名，见 TableUiState
   () => getDefaultColumns(),   // 惰性初始值，只在没有持久化值时使用
 )
@@ -113,7 +113,7 @@ API 与 `useState` 一致（支持函数式更新）。想恢复默认：
 
 ```ts
 import { useTableUiStore } from '#/lib/store'
-useTableUiStore.getState().resetTable('users/user')
+useTableUiStore.getState().resetTable('example/user')
 ```
 
 ### 5.3 新增一个任意 per-app 状态

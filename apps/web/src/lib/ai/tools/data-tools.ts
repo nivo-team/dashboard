@@ -134,7 +134,7 @@ export const searchApiTool: AiToolDefinition = {
 export const callReadApiTool: AiToolDefinition = {
   name: 'call_read_api',
   description:
-    '调用只读（GET）业务接口取回真实数据。**取数还是带用户去页面，按当前容器的行事策略**（见系统提示）：全屏对话页就用它在对话里以 Markdown 表格 / 摘要给出结果；面板里单模块单页面的列表浏览与搜索过滤（如 @user:list、查看用户）应优先 navigate_to 带用户去页面、再用 update_search_params 让表格呈现，只有跨模块的综合统计/对比才在这里输出表格。**路径里的 `{id}` 这类占位符**：可以传模板路径并用 `pathParams` 填值（例如 `path: "/user/{id}", pathParams: { id: 10001 }`），也可以直接给替换好的真实路径。无论哪种情况，**都不要凭印象编数据、不要猜参数名**。',
+    '调用只读（GET）业务接口取回真实数据。**取数还是带用户去页面，按当前容器的行事策略**（见系统提示）：全屏对话页就用它在对话里以 Markdown 表格 / 摘要给出结果；面板里单模块单页面的列表浏览与搜索过滤（如 @table-example:list、查看表格示例）应优先 navigate_to 带用户去页面、再用 update_search_params 让表格呈现，只有跨模块的综合统计/对比才在这里输出表格。**路径里的 `{id}` 这类占位符**：可以传模板路径并用 `pathParams` 填值（例如 `path: "/user/{id}", pathParams: { id: 10001 }`），也可以直接给替换好的真实路径。无论哪种情况，**都不要凭印象编数据、不要猜参数名**。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -420,7 +420,7 @@ export const callWriteApiTool: AiToolDefinition = {
     /*
       写成功后**刷新页面数据**，两条路：
       1. **页面自己登记过的重载**（`page-reload-bridge`）：走页面自己的取数语义
-         （保留筛选 / 分页 / 排序）。列表页常把数据放在 React state 里（用户列表页就是），
+         （保留筛选 / 分页 / 排序）。列表页常把数据放在 React state 里（表格示例页就是），
          react-query 那条路对它完全无效 —— 不刷新的话用户会看到"删了但还在"，与 AI 的回答矛盾；
       2. **react-query 兜底**：页面没登记时整体失效一次（工具拿不到页面的 query key）。
       ⚠️ 这是通用通道的兜底；页面自己声明的动作（capabilities.actions）才拥有精确的

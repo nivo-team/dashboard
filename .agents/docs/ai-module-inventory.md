@@ -188,7 +188,7 @@ L7 上下文    page-context / page-context-registry / page-capabilities / endpo
 `useAiFormFields` + `useAiFormSubmit`（表单两半）、`useAiFormOpener`、`useAiPageReload`。
 `useFeature` 内部会把能力同步给旧注册表，**新页面只写 `feature.ts`**。
 
-已有 10 份 `feature.ts`：`home`、`users/user/{list,create,detail,edit}`、
+已有 10 份 `feature.ts`：`home`、`table-example`（list / detail / create / edit 全平铺）、
 `system/features/{list,create,node}`、`system/data-dict/{list,detail}`。
 
 ### 3.5 会话、持久化与授权
@@ -290,7 +290,7 @@ L7 上下文    page-context / page-context-registry / page-capabilities / endpo
 | `lib/features/use-feature.ts` | 61 | `useFeature(spec)`：注册特性、同步能力、接表单桥与重载桥 |
 | `lib/features/convert.ts` | 67 | `PageCapabilitiesSpec` / `AiPageContextSpec` 转换 |
 | `lib/features/index.ts` | 27 | barrel |
-| `src/features/**/feature.ts` | 10 份 | 各页面声明（参考实现：`users/user/list/feature.ts`，279 行） |
+| `src/features/**/feature.ts` | 10 份 | 各页面声明（参考实现：`table-example/feature.ts`，279 行） |
 
 ### 4.3 UI 组件（`components/ai-*.tsx`，11 个，4411 行）
 

@@ -183,13 +183,14 @@ function seedMenus(): MenuRow[] {
     // 顶层菜单：对应前端「Overview」那个无标题分组
     { menu_id: 1, parent_id: 0, menu_name: '仪表盘', menu_type: 2, path: '/home', icon: 'HouseIcon', sort: 1 },
 
-    // 用户运营
-    { menu_id: 10, parent_id: 0, menu_name: '用户运营', menu_type: 1, path: '/users', icon: 'UsersIcon', sort: 2 },
-    { menu_id: 11, parent_id: 10, menu_name: '用户列表', menu_type: 2, path: '/users/user', sort: 1 },
-    { menu_id: 12, parent_id: 11, menu_name: '查看用户', menu_type: 3, path: '', permission: 'user:read', sort: 1 },
-    { menu_id: 13, parent_id: 11, menu_name: '新建用户', menu_type: 3, path: '', permission: 'user:create', sort: 2 },
-    { menu_id: 14, parent_id: 11, menu_name: '编辑用户', menu_type: 3, path: '', permission: 'user:edit', sort: 3 },
-    { menu_id: 15, parent_id: 11, menu_name: '删除用户', menu_type: 3, path: '', permission: 'user:delete', sort: 4 },
+    // 示例（表格示例 / 复杂表格）—— 权限 key 与模块名统一为 `table-example`
+    { menu_id: 10, parent_id: 0, menu_name: '示例', menu_type: 1, path: '/example', icon: 'SquaresFourIcon', sort: 2 },
+    { menu_id: 11, parent_id: 10, menu_name: '表格示例', menu_type: 2, path: '/example/user', sort: 1 },
+    { menu_id: 12, parent_id: 11, menu_name: '查看表格示例', menu_type: 3, path: '', permission: 'table-example:read', sort: 1 },
+    { menu_id: 13, parent_id: 11, menu_name: '新建记录', menu_type: 3, path: '', permission: 'table-example:create', sort: 2 },
+    { menu_id: 14, parent_id: 11, menu_name: '编辑记录', menu_type: 3, path: '', permission: 'table-example:edit', sort: 3 },
+    { menu_id: 15, parent_id: 11, menu_name: '删除记录', menu_type: 3, path: '', permission: 'table-example:delete', sort: 4 },
+    { menu_id: 16, parent_id: 10, menu_name: '复杂表格', menu_type: 2, path: '/example/complex-table', sort: 2 },
 
     // 系统管理
     { menu_id: 20, parent_id: 0, menu_name: '系统管理', menu_type: 1, path: '/system', icon: 'GearSixIcon', sort: 3 },

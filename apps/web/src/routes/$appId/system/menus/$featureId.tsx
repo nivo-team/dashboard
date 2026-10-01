@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { FeatureNodePage } from '#/features/system/menus/node'
-import { MENU_ROOT_ID } from '#/features/system/menus/feature-options'
+import { FeatureNodePage } from '#/features/menus/node'
+import { MENU_ROOT_ID } from '#/features/menus/feature-options'
 
 /**
  * 功能 / 功能组节点路由（`/$appId/system/menus/$featureId`）—— **薄适配层**。

@@ -103,7 +103,7 @@ export const DICT_NAMESPACE = 'new.'   // ⏳ 正式版改成 ''（或删掉前�
 ```
 
 组件里统一用 `pickDictOptionText(accountTypeOptions, type, pickDictTextWithFallback(...))`
-（参考实现：`apps/web/src/routes/$appId/users/user/-data/user-display.tsx`）。
+（参考实现：`apps/web/src/routes/$appId/example/user/-data/user-display.tsx`）。
 
 - 想加**新角色**：后台加字典项 → 徽章自动出现（文案先用 options.label）；
 - 想加**多语言**：在 `messages/dict/<模块>/<locale>.json` 补 key 即可，业务代码不动。
@@ -133,15 +133,15 @@ const resolveFilterFieldOptions = useCallback<ResolveFilterFieldOptions>(
 - 已应用条件的 chip 文案通过 `describeFilterCondition(condition, field, labels, optionLabelOf)` 的**第 4 个参数**传入，
   否则会显示 `账号类型 normal` 而不是 `账号类型 普通用户`；
 - `disabled: true` 的字典项不会出现在候选里；
-- 参考实现：`apps/web/src/features/users/user/list/index.tsx`（用户列表的 `account_type`）。
+- 参考实现：`apps/web/src/features/table-example/list/index.tsx`（表格示例的 `account_type`）。
 
 ## 8. 已接入
 
 | 位置 | 用法 |
 | --- | --- |
 | `$appId` 外壳（所有应用） | `useDictOptions()` 预取 |
-| 用户列表 / 详情的账号角色徽章 | `useDictOptionList('user.account-type')` + 字典文案覆盖 |
-| 用户列表的高级筛选（`account_type`） | `useDictOptionEntries('user.account-type')` → `FilterBuilder.resolveFieldOptions` + chip 文案（第 7.1 节） |
+| 表格示例 / 详情的账号角色徽章 | `useDictOptionList('user.account-type')` + 字典文案覆盖 |
+| 表格示例的高级筛选（`account_type`） | `useDictOptionEntries('user.account-type')` → `FilterBuilder.resolveFieldOptions` + chip 文案（第 7.1 节） |
 | 数据字典的编码列 / 「完整编码」卡片 / 面包屑回退 | `displayDictCode()` 剥掉 `new.`，显示与复制都是逻辑 code |
 
 ## 9. 待收敛（搜 `⏳`）

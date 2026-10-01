@@ -57,8 +57,8 @@ console.log(m.buildSystemPrompt({ mode:'ask', surface:'panel', appName:'Nivo', a
 "
 ```
 
-## ⚠️ 前端暂时还有一份
+## 规则只有这一份
 
-前端 `apps/web/src/lib/ai/prompt/**` 本轮**刻意未切换**（行为不变），所以仓库里短期有两份文本。
-用 `node scripts/ai/check-prompt-drift.mjs` 做漂移门控（当前两侧 115 条文案指纹完全一致）；
-切换步骤与回收动作见 [`.agents/docs/ai-server-layer.md`](../../.agents/docs/ai-server-layer.md) §5。
+前端 `apps/web/src/lib/ai/prompt/**` 与漂移门控 `scripts/ai/check-prompt-drift.mjs` 都已删除：
+规则文本**只在本包**（`src/layers/**`），前端只上报事实（`PromptFacts`）。
+历史迁移步骤与边界见 [`.agents/docs/ai-server-layer.md`](../../.agents/docs/ai-server-layer.md) §5。

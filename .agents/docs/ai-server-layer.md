@@ -82,7 +82,7 @@ Cloudflare AI Gateway（provider 路由 / 模型 / 重试回退 / 缓存 / 限�
 | `apps/ai/src/cors.ts` | 来源白名单（**不是鉴权**） |
 | `apps/ai/src/redact.ts` | 出站脱敏预留钩子（恒等占位） |
 | `apps/ai/src/env.ts` · `wrangler.toml` · `.dev.vars.example` | 绑定类型与部署配置（vars vs secrets 的边界） |
-| `scripts/ai/check-prompt-drift.mjs` | 漂移门控（§4） |
+| ~~`scripts/ai/check-prompt-drift.mjs`~~ | **已删除**：前端 `prompt/**` 与漂移门控随切换一并移除（见 §5） |
 
 ---
 
@@ -600,7 +600,7 @@ REST API 提供**四个**端点（都走同一份 Cloudflare 账单与网关能�
 |---|---|---|
 | 1 | **公网无鉴权** | 与后端统一 token：落点 `src/auth.ts` + 前端带 `Authorization`/`X-App-Id`（§8） |
 | 2 | **脱敏未启用** | 请求侧在 Worker 内替换 + 网关 DLP 只查 Request（§9），规则待业务方给 |
-| 3 | **前端两份提示词** | 靠 `pnpm guardrails:prompt` 门控；切换后删脚本与前端 `prompt/**`（§5） |
+| 3 | ~~**前端两份提示词**~~ | ✅ 已收敛：前端 `prompt/**` 与 `scripts/ai/check-prompt-drift.mjs` / `pnpm guardrails:prompt` 均已删除，规则只在 `packages/ai-prompt` 一处 |
 | 4 | **`identity.ts` 措辞** | 「运行在用户自己的浏览器里」在流量经服务端后需改（§5 第 6 条） |
 | 5 | **DLP 不是脱敏** | 只能 Flag/Block；Response 检查会破坏 SSE 增量（§10.7） |
 | 6 | **AI Gateway 令牌是账户级** | 无法按 gateway 收窄；多租户靠分账户或 Worker binding（§10.6） |
@@ -609,5 +609,5 @@ REST API 提供**四个**端点（都走同一份 Cloudflare 账单与网关能�
 
 ---
 
-> **改这个中间层时**：规则改动 → 只动 `packages/ai-prompt/src/layers/**`，再跑 `pnpm guardrails:prompt`；
+> **改这个中间层时**：规则改动 → 只动 `packages/ai-prompt/src/layers/**`（规则唯一真值就在这里）；
 > 接口或管道行为改动 → 同步本文 §3 / §5，并重跑 §6 的两组验证。

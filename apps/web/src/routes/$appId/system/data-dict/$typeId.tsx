@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { DataDictTypeDetailPage } from '#/features/system/data-dict/detail'
-import { DICT_ROOT_TYPE_ID } from '#/features/system/data-dict/data-dict-options'
+import { DataDictTypeDetailPage } from '#/features/data-dict/detail'
+import { DICT_ROOT_TYPE_ID } from '#/features/data-dict/data-dict-options'
 
 /**
  * 分类详情路由（`/$appId/system/data-dict/$typeId`）—— **薄适配层**。
