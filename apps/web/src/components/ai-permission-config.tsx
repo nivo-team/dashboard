@@ -17,6 +17,11 @@ interface AiPermissionOption {
   key: AiPermissionMode
   labelKey: string
   fallback: string
+  /**
+   * 该档位的说明 —— **不常显**，挂在档位文字的 tooltip 上（见 `renderTabs`）。
+   * 三档只说名字没人知道边界在哪：「只读」到底能不能填表？悬停看一眼就有答案。
+   */
+  hintFallback: string
   icon: Icon
 }
 
@@ -29,18 +34,21 @@ const AI_PERMISSION_OPTIONS: AiPermissionOption[] = [
     key: 'readonly',
     labelKey: 'profile.settings.aiPermissionModes.readonly',
     fallback: '只读',
+    hintFallback: '只能查看与读取：看页面数据、查接口、列导航；不能填表、提交或调用写接口',
     icon: EyeIcon,
   },
   {
     key: 'full',
     labelKey: 'profile.settings.aiPermissionModes.full',
     fallback: '完全访问',
+    hintFallback: '可以使用全部工具：填表、提交、调用写接口；写操作每一次仍会请你确认',
     icon: ShieldCheckIcon,
   },
   {
     key: 'custom',
     labelKey: 'profile.settings.aiPermissionModes.custom',
     fallback: '自定义',
+    hintFallback: '逐项勾选 AI 能用的工具。只读与完全访问由上方档位决定，切到「自定义」才能逐项调整',
     icon: SlidersHorizontalIcon,
   },
 ]
@@ -93,7 +101,11 @@ export interface AiPermissionConfigProps {
  *
  * 两处共用同一份状态联动逻辑（预设切换继承、工具分组与勾选计算），但视觉上做出区分：
  * - 设置页（`variant="settings"`）：标准的设置卡片行布局；
- * - AI 面板（`variant="panel"`）：Tabs 居中凸显、页面/数据/表单三组工具各自独立包裹 LayerCard（标题与说明写在卡内）。
+ * - AI 面板（`variant="panel"`）：Tabs 居中凸显、页面/数据/表单三组工具各自独立包裹 LayerCard
+ *   （标题后一枚 Info 图标，说明走它的 tooltip）。
+ *
+ * 两处的**档位 tooltip** 共用（`renderTabs`）：三档各自说明自己放行到哪一步；
+ * **分组的说明一律不常显**（走标题上的 tooltip），把版面留给清单本身。
  */
 export function AiPermissionConfig({
   permission,
@@ -119,6 +131,13 @@ export function AiPermissionConfig({
   /** 只有「自定义」能勾：preset 档的勾选由档位决定，点它没有意义 */
   const locked = permission !== 'custom'
 
+  /**
+   * 三档权限的公共 Tabs —— 设置页与 AI 面板共用同一份（含每档的 tooltip 说明）。
+   *
+   * **每一档都有自己的 tooltip**（挂在档位文字上、悬停才出）：说明文字常显会把
+   * 这一屏撑得很吵，而三档的差别（能不能填表 / 提交 / 调写接口）恰恰是需要解释的那部分 ——
+   * 放在 tooltip 里，既不占版面，又能逐档单独查看。
+   */
   const renderTabs = () => (
     <Tabs
       value={permission}
@@ -137,12 +156,24 @@ export function AiPermissionConfig({
       activateOnFocus
       tabs={AI_PERMISSION_OPTIONS.map((item) => {
         const ItemIcon = item.icon
+        const label = t(item.labelKey, item.fallback)
+        const hint = t(
+          `profile.settings.aiPermissionModeHints.${item.key}`,
+          item.hintFallback,
+        )
         return {
           value: item.key,
           label: (
             <span className="flex items-center gap-2">
               <ItemIcon size={16} className="text-kumo-subtle" />
-              <span>{t(item.labelKey, item.fallback)}</span>
+              {/*
+                触发元素是**文字本身**（不是整颗 tab）：悬停文字看说明、点 tab 切换档位互不打扰。
+                说明只是「补充」——档位名本身就是可访问名，所以这里不放 `sr-only`
+                （那会把 tab 的读屏名撑成一句话）。
+              */}
+              <Tooltip content={hint} delay={120}>
+                <span className="cursor-default">{label}</span>
+              </Tooltip>
             </span>
           ),
         }
@@ -185,13 +216,6 @@ export function AiPermissionConfig({
         >
           {renderTabs()}
         </div>
-
-        <p className="px-1 text-center text-xs leading-snug text-kumo-subtle">
-          {t(
-            'profile.settings.aiToolListHint',
-            '只读与完全访问由上方档位决定；想逐项调整就切到「自定义」',
-          )}
-        </p>
 
         {/* 页面、数据、表单 三组工具单独用 LayerCard 包裹：标题后附带 Info 图标，悬停 Tooltip 查看说明 */}
         <div className="flex flex-col gap-3">
@@ -249,25 +273,26 @@ export function AiPermissionConfig({
         每个分组一个 `Checkbox.Group`（它渲染成 fieldset + legend，读屏能听出分组），
         但 `onValueChange` 拿到的是**该组自己**的勾选值 —— 所以合并时要先把这一组原有的
         成员摘掉、再并上新的，否则组与组之间会互相覆盖。
+
+        **分组的说明不常显**：走 `Checkbox.Legend` 子元素（`legend` 字符串属性放不下
+        图标与 tooltip），标题后挂一枚 Info 图标、悬停才出说明 —— 与 AI 面板那个形态同一套。
+        （ListHint 那句「想逐项调整就切到自定义」也已并入「自定义」档的 tooltip。）
       */}
       <div className="flex flex-col gap-4 px-4 py-3.5">
-        <p className="text-xs leading-snug text-kumo-subtle">
-          {t(
-            'profile.settings.aiToolListHint',
-            '只读与完全访问由上方档位决定；想逐项调整就切到「自定义」',
-          )}
-        </p>
-
         {TOOL_GROUPS.map((group) => {
           const names = group.tools.map((tool) => tool.name)
+          const GroupIcon = group.icon
+          const groupLabel = t(
+            `profile.settings.aiToolGroups.${group.key}`,
+            group.fallback,
+          )
+          const groupHint = t(
+            `profile.settings.aiToolGroupHints.${group.key}`,
+            group.hintFallback,
+          )
           return (
             <Checkbox.Group
               key={group.key}
-              legend={t(`profile.settings.aiToolGroups.${group.key}`, group.fallback)}
-              description={t(
-                `profile.settings.aiToolGroupHints.${group.key}`,
-                group.hintFallback,
-              )}
               value={checkedTools}
               disabled={locked}
               onValueChange={(next) =>
@@ -277,6 +302,19 @@ export function AiPermissionConfig({
                 ])
               }
             >
+              <Checkbox.Legend className="flex items-center gap-2">
+                <GroupIcon size={16} className="text-kumo-subtle" />
+                <span className="text-sm font-medium text-kumo-default">
+                  {groupLabel}
+                </span>
+                <Tooltip content={groupHint} delay={120}>
+                  <span className="flex cursor-pointer text-kumo-subtle transition-colors hover:text-kumo-default">
+                    <InfoIcon size={14} />
+                    <span className="sr-only">{groupHint}</span>
+                  </span>
+                </Tooltip>
+              </Checkbox.Legend>
+
               {group.tools.map((tool) => (
                 <Checkbox.Item
                   key={tool.name}

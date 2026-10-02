@@ -83,7 +83,7 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
 **两条硬边界**：
 
 - **L4 不能被静态 import**：`chat.ts` 用 `await import('./runtime')` 首次发送时才加载它
-  （SDK + 三个 provider 几百 KB，静态引入会进主 bundle）。`lib/ai/index.ts` 也**不要**
+  （SDK + `@ai-sdk/openai-compatible` 几百 KB，静态引入会进主 bundle）。`lib/ai/index.ts` 也**不要**
   导出 `runtime`。
 - **L6 的接口索引是懒加载的**：`endpoint-specs.gen.ts` 有 363 KB，只允许 `import type`
   与动态 `import()` 引用它，别改成静态 import。
@@ -100,7 +100,7 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
        ├─ toModelMessages(messages)                                ← 历史衰减 + 图片转 FilePart
        └─ streamAssistantTurn({ messages, mode, outputLocale, tools, toolContext })
             ├─ buildSystemPrompt(facts)               ← 每轮重算（服务端 packages/ai-prompt，分层见 §8）
-            └─ streamText({ …, reasoning: resolveReasoning(model) })  ← 思考程度在这里落地
+            └─ streamText({ … })                        ← 不再传顶层 reasoning / supportsTools
   └─ for await (event of stream) → StreamEventBatcher (~25ms 缓冲) → session-store.applyEvent
        └─ UI 随之平滑重渲染（PretextStreamText 段落隔离 + 滚动容器 RAF 调度，规避 Layout Thrashing）
   └─ endTurn() → 落盘
@@ -123,15 +123,13 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
   `kind: 'text'`（md / txt，内容已由客户端解析）→ 用 `<file name="…">…</file>` 拼进**同一条**
   user 消息的文本。图片上限 4 MB、文本 256 KB、一次最多 4 个；发送前在**附件预览区**可见、
   可逐个删除；
-- **思考程度与思考链流式展示**：输入时通过 AI SDK v7 的**顶层可移植参数** `reasoning`
-  传递思考等级；生成时 `streamAssistantTurn` 监听 `fullStream` 的 `reasoning-delta`，
+- **思考链流式展示**：生成时 `streamAssistantTurn` 监听 `fullStream` 的 `reasoning-delta`，
   派发 `{ type: 'reasoning' }` 流式事件，在 store 沉淀为 `{ type: 'reasoning', state: 'streaming' | 'done' }`
   part。UI 侧（`ai-conversation`）通过 Kumo `Collapsible` 折叠卡片实时呈现思考中脉冲与思考完成态，
   兼顾过程可见性与回答主文排版；
-- **思考程度只有一条通路**：AI SDK v7 的**顶层可移植参数** `reasoning`，传不传由
-  `resolveReasoning(model)` 决定（没声明档位、或选了 `provider-default` 就不传）。
-  档位清单由模型自己声明（`reasoningLevels`），输入区的设置菜单只列这些档。
-  **别改用 `providerOptions`** —— 两者不合并，那边一旦出现推理选项，顶层参数会被完全忽略。
+- **前端不再有「思考程度」这个设置**：`runtime.ts` 的 `resolveReasoning()` 与顶层 `reasoning`
+  参数已随模型配置清理一并删除（模型与思考档位由 `apps/ai` / AI Gateway 决定）。
+  **别自己把 `providerOptions` 加回来** —— 它与顶层参数不合并，一旦出现推理选项，顶层参数会被完全忽略。
 
 ## 3. 两个正交维度：权限与模式
 
@@ -223,7 +221,10 @@ endpoints })` 声明「我是干什么的、我用了哪些接口」。动机是
    `inputSchema` / `access` / **`group`** / `execute`）；
 2. 加进 `tools/index.ts` 的 `AI_TOOLS`；
 3. 需要确认的话在 `execute` 里读 `ctx.mode` 决定要不要 `await ctx.requestApproval(...)`；
-4. 补 7 语言的工具名（`profile.settings.aiToolNames.<name>`）。
+4. 补工具名：`common:profile.settings.aiToolNames.<name>`（权限清单里的名字）与
+   `ai:tools.<name>`（工具调用卡片标题）**两处都要**，且两处都**只写 zh-CN** ——
+   其它 6 种语言由 `pnpm i18n` 流水线补齐（铁律 1）。
+   两处都走 `t(key, tool.name)` 兜底：少写一个就会在中文界面露出英文蛇形原名。
 
 **别做**：在 UI 或运行时里另维护一份工具名单；把过滤散到工具内部（权限过滤只在
 `getAllowedTools` 一处）。
@@ -531,9 +532,8 @@ useAiPageContext(Route.id, {
     用户只觉得多选的文件凭空少了几个 —— 有副作用的 updater 别再写第二个。
     选完或直接粘贴（`onPaste` 挂在外层框上、事件从 textarea 冒泡上来）都会进**附件预览区**：
     图片是缩略图、文本文件是卡片（文件名 + 体积），**每个附件右上角都有删除按钮** ——
-    发出去之前随时能撤。模型没声明 `supportsVision` 时该项**禁用**（粘贴进来的图片也不收，
-    文本文件不受影响），原因走原生 `title`（悬停可见、不占版面）—— 入口本身不藏：突然消失比
-    灰着更困惑。
+    发出去之前随时能撤。**图片 / 文件入口不按模型能力置灰 —— 始终可用**（前端不再声明模型能力，
+    一律按支持处理；原先按 `supportsVision` 禁用的逻辑已删）。
     **⚠️ 文件选择器 `<input>` 必须挂在菜单外面**（根节点下常驻）：放进 `DropdownMenu.Content`
     会随菜单关闭一起卸载，而点菜单项正是「先关菜单、再开系统文件选择器」—— 元素没了，选完文件
     回来的 `change` 就没人接，表现是「选了一张图但附件区什么都没出现」（踩过这个坑）。
@@ -554,13 +554,10 @@ useAiPageContext(Route.id, {
     不压住的话每敲一个数字菜单都会弹回来；反过来，手打 `@user:1234` 时按普通文案匹配一条都命不中，
     所以过滤器对「带冒号但一条都没匹配上」的情况特意保留了该模块的**记录行**；
   - **行尾设置按钮**（滑杆 `SlidersHorizontalIcon`，`size="sm"` = `compactSize.sm` 26px，
-    与提交位同档才齐平；`models.length > 0 || onConfigurePermissions` 时才渲染）：
-    **选择模型**（子菜单 `DropdownMenu.Sub` / `.SubTrigger` / `.SubContent`，列表来自
-    `#/lib/store/ai-store` 的 `models`，点一项 `setActiveModel`；触发项是**一行**：标签在左、
-    当前模型名在右；一个模型都没配时换成一条「去设置」的引导项）
-    + **思考程度**（子菜单，只列该模型声明的 `reasoningLevels`，档位名复用
-    `common:profile.settings.aiReasoningLevels`）+ **配置权限**（齿轮 `GearSixIcon`，
-    只有面板给 —— 权限视图是「整块替换面板内容」的，全屏对话页没有承载它的地方）；
+    与提交位同档才齐平；**只在面板给** —— 传了 `onConfigurePermissions` 时才渲染）：
+    只有 **配置权限**（齿轮 `GearSixIcon`）一项 —— 权限视图是「整块替换面板内容」的，
+    全屏对话页没有承载它的地方，因此**全屏对话页行尾没有设置按钮**。
+    （「选择模型」「思考程度」子菜单、模型未配置时的「去设置」引导均已随前端模型配置清理删除。）
   - **提交位**：发送 / 停止。
   `ms-auto` 归行尾组**最左边**那一颗（有设置按钮时是它，否则是提交位）—— 两颗都挂会把剩余
   空隙平分、按钮跑到中间（全屏页踩过一次）。Kumo 的 `SubTrigger` 自带行尾右向箭头，
@@ -628,9 +625,7 @@ useAiPageContext(Route.id, {
   `resizeFloat` / `resizeFloatWidth` / `resizeFloatHeight`（浮窗三个拖柄）；输入区
   `inputLabel` / `inputPlaceholder` / `send` / `mode*` / `aiSettings`（行尾设置按钮）/
   `compose` / `addPhotoAndFiles` / `aiActions` / `actionMention*` / `actionNewChatDesc` /
-  `visionUnsupported`（行首「+」动作菜单）/
-  `selectModel` / `modelNone` / `modelEmpty`（模型子菜单与未配置引导）/
-  `reasoning`（思考程度）+ `attachmentPreview` / `attachmentRemove` / `attachmentTooLarge`
+  `attachmentPreview` / `attachmentRemove` / `attachmentTooLarge`
   （带 `{{size}}` 插值）/ `attachmentReadFailed` / `attachmentLimit` / `attachmentUnsupported`
   （附件预览卡片与 toast 提醒）/ `promptMentionAttachDesc` / `promptMentionHint` / `promptMentionNoMatch`
   （带 `{{query}}` 插值，`@` 引用面板）/ `mentionSection*`（添加 / 模块 / 页面 / 记录 四段标题）/
@@ -639,16 +634,18 @@ useAiPageContext(Route.id, {
   `configurePermissions*`（配置权限那一项）/ `permissions*`（面板权限视图：标题 / 返回 / 保存 / 未保存提示；
   配置体自身的档位与工具名复用 `common:profile.settings.aiPermission*`）；会话区 `greetings.*` / `greetingPrompt` /
   `thinking` / `tool*` / `tools.*`），7 语言齐。设置项在 `common:profile.settings` 下（卡片标题复用 `general`）：
-  `aiDisplayMode` / `aiDisplayModeHint` / `aiModes.*` / `aiModelReasoning*` /
-  `aiModelSupportsVision*` / `aiReasoningLevels.*`（思考程度档位名只有这一份，输入区也复用）——
+  `aiDisplayMode` / `aiDisplayModeHint` / `aiModes.*` ——
   **必须挂 `profile.settings` 下**
   （曾误挂到 `profile` 顶层，各语言一律回落成中文默认值）。「Ask AI」是**产品入口名**、
   各语言保留原文；而 `aiModes.split` / `aiModes.float` 是**形态名、必须本地化**。
-- **工具调用卡片默认隐藏**（`aiShowToolCalls`，默认 `false`）：普通用户只关心回答内容，
-  不关心中间调了哪个工具。关掉时 `AssistantPart` 对工具类 part 直接 `return null`。
-  **两件事刻意不受它影响**：**审批卡**（写操作的确认是必须的交互，在 `AiConversation` 里
-  独立渲染，不是可以隐藏的"输出"）、以及**「正在思考…」**（工具执行期间 `status` 仍是
-  `streaming`，所以看不到工具卡片也不会显得卡死）。
+- **详细信息默认隐藏**（`aiShowDetails`，默认 `false`，设置 → AI 的「显示详细信息」）：
+  它同时管**两样**东西 —— 工具调用卡片与助手消息下方那行 token 用量
+  （「缓存命中 X · 输入 Y · 输出 Z」）。普通用户只关心回答内容，不关心中间调了哪个工具、
+  更不关心 token 账。关掉时 `AssistantPart` 对工具类 part 直接 `return null`，
+  `AiMessageView` 里的用量行同样不渲染。
+  **三件事刻意不受它影响**：**审批卡**（写操作的确认是必须的交互，在 `AiConversation` 里
+  独立渲染，不是可以隐藏的"输出"）、**任务规划卡（manage_tasks）**、以及**「正在思考…」**
+  （工具执行期间 `status` 仍是 `streaming`，所以看不到工具卡片也不会显得卡死）。
   **打开后每张卡片可点击展开**：用 Kumo `Collapsible` **非受控**（会话里可能有几十条卡片，
   不该各挂一个 React state），展开显示**参数 / 错误 / 结果**三段 —— 尤其是失败时，
   不展开就完全不知道错在哪。输出用 `JSON.stringify(…, null, 2)` 缩进展示（给人排查用）
@@ -713,16 +710,18 @@ useAiPageContext(Route.id, {
   包会进**主 bundle**（运行态这层挂在 AppShell 上，路由级懒加载兜不住）：dist 约 99 KB、gzip 14 KB。
   用户可在 **设置 → AI** 里关掉它（`aiActivityGlow`，落在 `admin.preferences:<appId>`、默认开）。
 
-## 10. AI 接入：厂商配置 / 运行时 / 工具层
+## 10. AI 接入：运行时 / 工具层
 
 > 设计蓝图 [./ai-integration.md](./ai-integration.md)，选型调研
 > [../../docs/ai-stack-research.md](../../../../docs/ai-stack-research.md)（fx.sh 与 WebMCP 均已排除）。
 
-- **配置在 `admin.ai`（全局一份、不按应用隔离）**：厂商与模型是两张表，删厂商要**连带删它的模型**
-  并清理 `activeModelId`。**API Key 明文存 localStorage**（用户已确认）：输入框 `type="password"`、
-  **编辑也不回显**、列表只报「已配置 / 缺少密钥」，**任何日志 / toast / 错误都不许回显它**。
+- **前端不配置厂商 / 模型（原 `admin.ai` 已删）**：具体模型与上游凭证由 `apps/ai`（Hono Worker，
+  **`AI_MODEL_ID` 覆盖客户端的 model**）与 AI Gateway 决定；前端不再持有 API Key，也不再读
+  `getActiveModel()` / 计算 `supportsTools` —— 工具是否随请求发出**只由权限决定**
+  （`chat.ts` 的 `getAllowedTools`）。`runtime.ts` 的 `WORKER_MODEL_ID = 'nivo-ai-server-fixed'`
+  只是占位（真实模型由服务端覆盖）。
 - **`#/lib/ai/runtime.ts` 是全仓唯一 import `ai`（Vercel AI SDK v7）的地方，且不要从
-  `#/lib/ai/index.ts` 静态导出它**（SDK + 三个 provider 几百 KB 会进主 bundle）；
+  `#/lib/ai/index.ts` 静态导出它**（SDK + `@ai-sdk/openai-compatible` 几百 KB 会进主 bundle）；
   `chat.ts` 用 `await import('./runtime')` 首次发送时才加载。
 - **v7 的 API 名与 v5 不同，别凭记忆写**：`stopWhen: isStepCount(n)`（不是 `maxSteps`）、
   `inputSchema`（不是 `parameters`）、`jsonSchema()` 免 zod、`toolApproval` 是审批入口；
@@ -814,8 +813,9 @@ useAiPageContext(Route.id, {
   **输入法组字中的回车要让开**（`event.nativeEvent.isComposing`）。
 - **「权限」与「模式」是两个正交维度**（详见第 10 节）：`aiPermission` 管**能不能用**，
   `aiComposerMode` 管**要不要问**。**别再把两者揉成一个开关。**
-- **工具调用卡片默认隐藏**（`aiShowToolCalls`）；打开后每张**可点击展开**看参数 / 错误 / 结果。
-  **两件事刻意不受它影响**：审批卡、以及「正在思考…」。
+- **详细信息默认隐藏**（`aiShowDetails`，管工具卡片 + 本轮用量两样）；打开后每张工具卡片
+  **可点击展开**看参数 / 错误 / 结果。
+  **三件事刻意不受它影响**：审批卡、任务规划卡、以及「正在思考…」。
 - **助手头像是 `bot-avatars` 包**：**`theme` 必须由我们传** —— 包读祖先 `data-theme` 或 `dark` class，
   而本项目用 `data-mode` 驱动，交给它在「跟随系统」那档会读错。
 - **设置项文案挂在 `common:profile.settings` 下**（曾误挂到 `profile` 顶层，各语言一律回落成中文）：
@@ -823,19 +823,20 @@ useAiPageContext(Route.id, {
 
 ## 附：契约速查 —— AI 接入（运行时与工具层）
 
-## 10. AI 接入：厂商配置 / 运行时 / 工具层
+## 10. AI 接入：运行时 / 工具层
 
 > 设计蓝图 [.agents/docs/ai-integration.md](./.agents/docs/ai-integration.md)、选型调研
 > [docs/ai-stack-research.md](./docs/ai-stack-research.md)；**架构总览、一轮消息的数据流、
 > 上下文预算、扩展点与 9 条踩过的坑见 [.agents/docs/ai-architecture.md](./.agents/docs/ai-architecture.md)**。
 > 下面只留**改错了会出事**的契约。
 
-- **配置在 `admin.ai`（全局一份、不按应用隔离）**：厂商与模型是两张表，删厂商要**连带删它的模型**
-  并清理 `activeModelId`。**API Key 明文存 localStorage**：输入框 `type="password"`、**编辑不回显**、
-  **任何日志 / toast / 错误都不许回显它**。
-- **厂商协议收敛为 OpenAI 规范与 Anthropic 规范两大通用体系**：允许接入任意遵循对应规范的厂商（如 DeepSeek、月之暗面、Ollama、SiliconFlow 等）；OpenAI 规范下支持「Chat Completions 通用兼容格式（原生解析 reasoning_content）」与「Responses 官方标准格式」两种请求格式。
+- **前端不配置厂商 / 模型（原 `admin.ai` 已删）**：模型与凭证由 `apps/ai`（`AI_MODEL_ID` 覆盖
+  客户端 model）与 AI Gateway 决定，前端不再持有 API Key。不再声明模型能力 —— 是否支持工具调用 /
+  视觉 / 思考档位**一律按支持处理**（图片与文件入口始终可用）。
+- **厂商协议收敛为 OpenAI 规范与 Anthropic 规范两大通用体系**（**历史：前端已不再配置厂商**，
+  协议细节现由 AI Gateway 负责，此处仅存档）：允许接入任意遵循对应规范的厂商（如 DeepSeek、月之暗面、Ollama、SiliconFlow 等）；OpenAI 规范下支持「Chat Completions 通用兼容格式（原生解析 reasoning_content）」与「Responses 官方标准格式」两种请求格式。
 - **`#/lib/ai/runtime.ts` 是全仓唯一 import `ai`（Vercel AI SDK v7）的地方，不要静态导出它**
-  （SDK + 三个 provider 几百 KB 会进主 bundle）；`chat.ts` 用 `await import('./runtime')` 首次发送才加载。
+  （SDK + `@ai-sdk/openai-compatible` 几百 KB 会进主 bundle）；`chat.ts` 用 `await import('./runtime')` 首次发送才加载。
 - **v7 的 API 名与 v5 不同，别凭记忆写**：`stopWhen: isStepCount(n)`（不是 `maxSteps`）、
   `inputSchema`（不是 `parameters`）、`jsonSchema()` 免 zod、`toolApproval` 是审批入口。
 - **`access` 三档只描述风险等级**，**不再决定工具可用性**（那归 `getAllowedTools`）。`commit` 工具

@@ -1,6 +1,6 @@
 import { ensureUserPermissions } from '#/lib/permissions'
 import { getQueryClient } from '#/lib/query-client'
-import { getActiveModel, usePreferencesStore } from '#/lib/store'
+import { usePreferencesStore } from '#/lib/store'
 import { hasPageFormCapability } from './form-bridge'
 import { getAiShellBridge, getPageContext } from './page-context'
 import { resolveAiPageContext } from './page-context-registry'
@@ -248,13 +248,6 @@ export async function sendAiMessage(
   const store = useAiSessionStore.getState()
   if (store.status === 'streaming') return
 
-  /*
-    走中间层后**不再要求前端配置模型**：真实模型与凭证都在服务端（AI Gateway + Worker secret）。
-    前端那份 `admin.ai` 配置只剩「能力声明」用途（是否支持工具调用 / 思考档位 / 图片支持），
-    缺失时按「支持」处理 —— 这里原来会直接 failTurn，那个前提已经不成立了。
-  */
-  const capabilities = getActiveModel()?.model
-
   const assistantId = store.beginTurn(trimmed, attachments)
   /*
     用户的问题**立刻落盘**：助手回复到一半刷新页面，问题也不该丢。
@@ -324,7 +317,6 @@ export async function sendAiMessage(
         permissions,
       }),
       toolContext: buildToolContext(mode, surface, trimmed),
-      supportsTools: capabilities?.supportsTools ?? true,
       abortSignal: controller.signal,
     })
 

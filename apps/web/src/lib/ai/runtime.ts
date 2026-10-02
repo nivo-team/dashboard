@@ -2,7 +2,6 @@ import type { PromptFacts } from '@admin/ai-prompt'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { isStepCount, jsonSchema, streamText, tool } from 'ai'
 import type { ModelMessage, ToolSet } from 'ai'
-import { getActiveModel, type AiModelConfig, type AiReasoningLevel } from '#/lib/store'
 import { expandRouteRefs } from './route-refs'
 import { resolveRecentBoundary } from './history-boundary'
 import type {
@@ -32,8 +31,9 @@ import type {
  *   schema 同一套描述方式，也少一个依赖。
  * - **不引 `@ai-sdk/react`**：面板的 UI 是自定义的（工具卡片、审批卡），
  *   自己消费 `fullStream` 比套 `useChat` 的消息模型更直接。
- * - **模型声明不支持工具调用时**（`supportsTools === false`）不注册任何工具，
- *   退化成纯对话 —— 管理后台常见的推理 / 小模型会因为 `tools` 参数直接报错。
+ * - **不问模型能力**：具体模型（以及它支不支持工具调用 / 思考）由 `apps/ai` 与 AI Gateway
+ *   决定，前端不配、也拿不到；工具是否随请求发出只由**权限**决定（见 `chat.ts` 的
+ *   `getAllowedTools`），不再有第二道「模型不支持」的收窄。
  */
 
 /** 一次用户提问最多允许几轮工具调用（提高至 30 轮以支持多任务连续推进与规划执行）。 */
@@ -115,22 +115,6 @@ function toSdkTools(
   return Object.fromEntries(entries) as ToolSet
 }
 
-/**
- * 把模型配置里的思考程度翻成传给 `streamText` 的值。
- *
- * 返回 `undefined` 的两种情况都表示**别传这个参数**：
- * - 模型没声明任何档位（`reasoningLevels` 为空）—— 它不支持推理；
- * - 选的是 `'provider-default'` —— 那正是省略参数时的行为。
- * 最后再兜一次「必须落在声明的档位里」，避免存档被手改后发出一个厂商会拒掉的值。
- */
-function resolveReasoning(model: AiModelConfig | undefined): AiReasoningLevel | undefined {
-  // 走中间层后前端可以完全不配模型，所以这里必须容忍 undefined
-  if (!model) return undefined
-  if (model.reasoningLevels.length === 0) return undefined
-  if (model.reasoning === 'provider-default') return undefined
-  return model.reasoningLevels.includes(model.reasoning) ? model.reasoning : undefined
-}
-
 export interface StreamAssistantTurnOptions {
   /** 对话历史（不含本轮用户消息时，请先把它 append 进去再调用） */
   messages: readonly ModelMessage[]
@@ -142,8 +126,6 @@ export interface StreamAssistantTurnOptions {
   promptFacts: PromptFacts
   tools: readonly AiToolDefinition[]
   toolContext: AiToolContext
-  /** 模型是否支持工具调用（来自前端的能力声明） */
-  supportsTools: boolean
   abortSignal?: AbortSignal
 }
 
@@ -266,22 +248,19 @@ class ThinkTagStreamParser {
 export async function* streamAssistantTurn(
   options: StreamAssistantTurnOptions,
 ): AsyncGenerator<AiStreamEvent> {
-  const useTools = options.supportsTools && options.tools.length > 0
-
   /*
-    思考程度仍按前端声明的「模型能力」来传 —— 服务端不知道用户勾了哪个档位；
-    没配模型就不传（走中间层后，**前端配置缺失不再阻断发请求**：模型与凭证都在服务端）。
+    工具是否随请求发出**只由权限决定**（`chat.ts` 已按权限 / 容器 / 表单能力过滤过一遍）。
+    前端不再声明「模型能力」—— 具体模型与它支持的参数由 `apps/ai` 与 AI Gateway 决定。
 
-    厂商专属参数（例如 Anthropic 的 `thinking.budgetTokens`）一律不在这里设置：
+    厂商专属参数（例如 Anthropic 的 `thinking.budgetTokens`）同样不在这里设置：
     provider 细节归 AI Gateway，前端不该假装知道自己连的是哪家。
   */
-  const reasoning = resolveReasoning(getActiveModel()?.model)
+  const useTools = options.tools.length > 0
 
   const result = streamText({
     model: createWorkerModel(options.promptFacts),
     messages: [...options.messages],
-    ...(reasoning ? { reasoning } : {}),
-    // 模型不支持工具调用时传空集：既不发工具定义，也不会触发 SDK 的多步循环
+    // 没有工具定义时传空集：不发工具定义，也不会触发 SDK 的多步循环
     tools: useTools ? toSdkTools(options.tools, options.toolContext) : {},
     stopWhen: isStepCount(MAX_TOOL_STEPS),
     abortSignal: options.abortSignal,

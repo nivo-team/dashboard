@@ -45,8 +45,6 @@ import {
   type PageWidthMode,
 } from '#/lib/store'
 import { useColorMode } from '#/lib/use-color-mode'
-import { AiModelCard } from './ai-model-card'
-import { AiProviderCard } from './ai-provider-card'
 
 interface AiModeOption {
   key: AiPanelMode
@@ -293,14 +291,15 @@ function AiActivityGlowPreview({ accentColor }: { accentColor: string }) {
 }
 
 /**
- * 工具调用卡片的预览：演一遍**把它关掉之后长什么样**（工具行收起、只剩问答）。
+ * 「显示详细信息」的预览：演一遍**把它关掉之后长什么样**（工具行与用量行一起收起、只剩问答）。
  *
  * 刻意演"关掉"而不是"打开"：这个开关默认就是关的，人更需要知道的是
- * 「那行东西能去掉」，而不是「打开会多出什么」。收起用 `max-h` + `opacity` 过渡，
+ * 「那些行能去掉」，而不是「打开会多出什么」。两行**共用一个信号** —— 它们本来就被
+ * 同一个开关控制，演成两段时序反而误导。整块用 `max-h` + `opacity` 过渡，
  * 而不是直接不渲染 —— 浮层里要看清高度的变化，不然只是少了一行、看不出来。
  */
-function AiToolCallsPreview() {
-  const showToolCard = usePreviewAnimation(true, false)
+function AiDetailsPreview() {
+  const showDetails = usePreviewAnimation(true, false)
 
   return (
     <div className="w-72 space-y-1.5 rounded-lg border border-kumo-line bg-kumo-base p-3">
@@ -310,16 +309,27 @@ function AiToolCallsPreview() {
         </span>
       </div>
 
-      {/* 这一行就是开关控制的东西：关掉后它收起，下面的回答照常 */}
+      {/*
+        这两行就是开关控制的东西：关掉后一起收起，下面的回答照常。
+        包在同一个容器里过渡（而不是各自过渡）：收起时只留**一个** `space-y` 间隙，
+        与原来单行时的观感一致，不会平白多出一段空白。
+      */}
       <div
         className={cn(
-          'flex items-center gap-2 overflow-hidden rounded-lg border border-kumo-line px-2 text-xs transition-all motion-safe:duration-300',
-          showToolCard ? 'max-h-8 py-1 opacity-100' : 'max-h-0 py-0 opacity-0',
+          'space-y-1.5 overflow-hidden transition-all motion-safe:duration-300',
+          showDetails ? 'max-h-24 opacity-100' : 'max-h-0 opacity-0',
         )}
       >
-        <CheckCircleIcon size={12} className="shrink-0 text-kumo-success" />
-        <span className="min-w-0 truncate text-kumo-default">{"查询订单"}</span>
-        <span className="ms-auto shrink-0 text-kumo-subtle">{"完成"}</span>
+        <div className="flex items-center gap-2 rounded-lg border border-kumo-line px-2 py-1 text-xs">
+          <CheckCircleIcon size={12} className="shrink-0 text-kumo-success" />
+          <span className="min-w-0 truncate text-kumo-default">{"查询订单"}</span>
+          <span className="ms-auto shrink-0 text-kumo-subtle">{"完成"}</span>
+        </div>
+
+        {/* 本轮用量那一行（缓存命中 / 输入 / 输出）—— 信息密度低，所以不做卡片、只有一行灰字 */}
+        <p className="truncate text-xs text-kumo-subtle">
+          {"缓存命中 3.2K · 输入 4.1K · 输出 128"}
+        </p>
       </div>
 
       <div className="rounded-lg bg-kumo-tint px-2 py-1.5 text-xs text-kumo-default">
@@ -380,8 +390,8 @@ export function AiSettingsPage() {
   const pageWidth = usePreferencesStore((state) => state.pageWidth)
   const aiActivityGlow = usePreferencesStore((state) => state.aiActivityGlow)
   const setAiActivityGlow = usePreferencesStore((state) => state.setAiActivityGlow)
-  const aiShowToolCalls = usePreferencesStore((state) => state.aiShowToolCalls)
-  const setAiShowToolCalls = usePreferencesStore((state) => state.setAiShowToolCalls)
+  const aiShowDetails = usePreferencesStore((state) => state.aiShowDetails)
+  const setAiShowDetails = usePreferencesStore((state) => state.setAiShowDetails)
   const aiBotAvatar = usePreferencesStore((state) => state.aiBotAvatar)
   const setAiBotAvatar = usePreferencesStore((state) => state.setAiBotAvatar)
   const aiOutputMode = usePreferencesStore((state) => state.aiOutputMode)
@@ -686,30 +696,30 @@ export function AiSettingsPage() {
         </SettingRow>
 
         {/*
-          工具调用的可见性：同样是开关型偏好，**默认关**（普通用户只看内容）。
+          详细信息的可见性：工具卡片 + 本轮用量由同一个开关控制，**默认关**（普通用户只看内容）。
           热区同样挂在 label 文字上，理由见上面那条 —— 包在开关外层会吞掉点击。
         */}
         <SettingRow
           label={
             <span className="relative">
-              {t('profile.settings.aiShowToolCalls', '显示工具调用')}
+              {t('profile.settings.aiShowDetails', '显示详细信息')}
               <SettingChoicePreview
-                label={t('profile.settings.aiShowToolCalls', '显示工具调用')}
-                triggerId="ai-show-tool-calls-preview"
+                label={t('profile.settings.aiShowDetails', '显示详细信息')}
+                triggerId="ai-show-details-preview"
               >
-                <AiToolCallsPreview />
+                <AiDetailsPreview />
               </SettingChoicePreview>
             </span>
           }
           hint={t(
-            'profile.settings.aiShowToolCallsHint',
-            '在回答里显示 AI 调用了哪些工具；关闭后只显示回答内容',
+            'profile.settings.aiShowDetailsHint',
+            '在回答里显示 AI 调用了哪些工具、以及本轮的用量（缓存命中 / 输入 / 输出）；关闭后只显示回答内容',
           )}
         >
           <Switch
-            checked={aiShowToolCalls}
-            onCheckedChange={setAiShowToolCalls}
-            aria-label={t('profile.settings.aiShowToolCalls', '显示工具调用')}
+            checked={aiShowDetails}
+            onCheckedChange={setAiShowDetails}
+            aria-label={t('profile.settings.aiShowDetails', '显示详细信息')}
           />
         </SettingRow>
 
@@ -822,13 +832,6 @@ export function AiSettingsPage() {
           onAllowedToolsChange={setAiAllowedTools}
         />
       </SettingsCard>
-
-      {/*
-        下面两张卡片不再属于「本机偏好」：它们是**模型服务配置**（厂商 + 模型），
-        同样即时生效、但不按应用隔离 —— 全局一份 `admin.ai`（理由见 #/lib/store/ai-store）。
-      */}
-      <AiProviderCard />
-      <AiModelCard />
     </div>
   )
 }

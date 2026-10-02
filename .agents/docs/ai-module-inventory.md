@@ -9,7 +9,7 @@
 > | [ai-integration.md](./ai-integration.md) | 设计蓝图与选型依据（给人看） | 追溯「当初为什么这么设计」 |
 >
 > 覆盖面：`apps/web/src/lib/ai/**`（32 个文件）、`lib/features/**`、`components/ai-*.tsx`、
-> `routes/$appId_.sphere/**`、`settings/AI.tsx`、两个 store、`messages/ai/*`、生成脚本与依赖。
+> `routes/$appId_.sphere/**`、`settings/AI.tsx`、`lib/store/preferences-store.ts`、`messages/ai/*`、生成脚本与依赖。
 > 本文只描述**当前代码事实**；与旧文档不一致处以本文 + 代码为准（差异见 [§5](#5-现状与文档--代码不一致待修)）。
 
 > ⚠️ **2026-09 迁移**：系统提示词的**规则**已迁到服务端 —— 真值在 `packages/ai-prompt`，
@@ -28,9 +28,9 @@
 | 运行容器 | 2 个：`panel`（分屏 / 浮窗）、`sphere`（全屏对话页）；**由渲染处显式传入**，不靠路由字符串反推 |
 | 正交维度 | **权限**（能不能用） × **模式**（用起来要不要问） × **容器**（策略与工具清单） |
 | 运行时 | `lib/ai/runtime.ts` 是全仓唯一 `import 'ai'`（Vercel AI SDK v7）之处，**动态加载** |
-| 持久化 | 会话在 IndexedDB（按 app 分区）；配置在 localStorage（`admin.ai` 全局 / `admin.preferences:<appId>` 按 app） |
+| 持久化 | 会话在 IndexedDB（按 app 分区）；本机偏好与 AI 设置项在 localStorage（`admin.preferences:<appId>` 按 app）。**原 `admin.ai`（厂商 / 模型）已删除**，该键不再被写入或读取 |
 | 接入面 | 10 份 `feature.ts`（新）+ 5 处 AI 表单桥（旧路径仍可用） |
-| 7 语言 | `ai` 命名空间 126 个叶键，**7 语言完全一致**（`pnpm guardrails` 全量门控） |
+| 7 语言 | `ai` 命名空间 121 个叶键，**7 语言完全一致**（`pnpm guardrails` 全量门控） |
 
 ---
 
@@ -58,7 +58,7 @@ L7 上下文    page-context / page-context-registry / page-capabilities / endpo
              form-bridge / page-reload-bridge / search-params-bridge / route-refs / session-db
 ```
 
-**两条硬边界**：L4 不能被静态 import（SDK + 三个 provider 几百 KB）；`endpoint-specs.gen` 只准
+**两条硬边界**：L4 不能被静态 import（SDK + `@ai-sdk/openai-compatible` 几百 KB）；`endpoint-specs.gen` 只准
 `import type` + 动态 `import()`。
 
 ---
@@ -211,7 +211,7 @@ L7 上下文    page-context / page-context-registry / page-capabilities / endpo
 | `aiComposerMode` | `ask \| auto` | `ask` | **模式**（要不要问） |
 | `aiPageWidth` | `follow \| full \| boxed` | `follow` | 内容区宽档（面板/全屏共用） |
 | `aiActivityGlow` | boolean | `true` | 进行中页面光晕 |
-| `aiShowToolCalls` | boolean | `false` | 工具调用卡片可见性（审批卡与「正在思考…」不受影响） |
+| `aiShowDetails` | boolean | `false` | 详细信息可见性：工具调用卡片 + 本轮 token 用量（审批卡 / 任务卡 / 「正在思考…」不受影响） |
 | `aiBotAvatar` | 18 个字面量 | `clover` | 助手头像形状 |
 | `aiOutputMode` | `stream \| wait` | `wait` | 流式 vs 整段呈现 |
 | `aiAutoScroll` | boolean | `true` | 默认跟随滚动（运行时「暂停」是另一件事） |
@@ -222,20 +222,24 @@ L7 上下文    page-context / page-context-registry / page-capabilities / endpo
 
 另有两个**外壳级**（`admin.shell-ui`，同样不持久化展开态）：`aiPanelWidth`、`aiFloatWidth` / `aiFloatHeight`。
 
-### 3.7 厂商与模型（`admin.ai`，全局一份、不按应用隔离）
+### 3.7 厂商与模型（`admin.ai`，**已删除**）
 
-- 两张表：`providers: AiProviderConfig[]` + `models: AiModelConfig[]` + `activeModelId`。
-  删厂商**连带删它的模型**并清理 `activeModelId`。
-- 协议收敛为**两大规范**：`kind: 'openai' | 'anthropic'`；OpenAI 规范下再分
-  `openAiFormat: 'compatible'`（Chat Completions，默认，兼容 DeepSeek / Ollama / SiliconFlow 等）
-  与 `'official'`（Responses）。
-- **API Key 明文存 localStorage**（用户已确认）：密码框、编辑不回显、**任何日志 / toast / 错误都不许回显**。
-- `AiModelConfig`：`supportsTools` / `reasoningLevels`（用户声明，7 档可选）/
-  `reasoning` / `supportsVision`。
-- **思考程度只有一条通路**：AI SDK v7 顶层 `reasoning` 参数；Anthropic 额外补
-  `providerOptions.anthropic.thinking.budgetTokens`（1024 / 2048 / 4096 / 8192 / 16384）。
-  **别改成只用 `providerOptions`**（会覆盖顶层参数）。
-- 兼容：`ThinkTagStreamParser` 把普通文本流里的 `<think>…</think>` 提升为 `reasoning` 事件。
+原 `admin.ai`（全局一份、不按应用隔离）里的 `providers: AiProviderConfig[]` + `models: AiModelConfig[]`
++ `activeModelId`，以及模型「能力声明」（`supportsTools` / `reasoningLevels` / `reasoning` /
+`supportsVision`）**均已随前端模型配置清理删除**：
+
+- `lib/store/ai-store.ts` 移除，`lib/store/index.ts` 不再导出；`admin.ai` 键不再被写入或读取
+  （旧存档残留没有任何读取方）。
+- 设置页只剩「通用设置」与「AI 权限」两张卡片；`ai-provider-card` / `ai-model-card` /
+  两个导入导出弹窗一并删除。
+- 输入区不再有「选择模型 / 思考程度」子菜单；图片 / 文件入口**始终可用**（不按模型能力置灰）。
+- 模型与凭证改由 `apps/ai`（Hono Worker，**`AI_MODEL_ID` 覆盖客户端的 model**）与 AI Gateway
+  决定；`runtime.ts` 的 `WORKER_MODEL_ID = 'nivo-ai-server-fixed'` 只是占位。
+- 工具是否随请求发出**只由权限决定**（`chat.ts` 的 `getAllowedTools`）；`runtime.ts` 已删
+  `resolveReasoning()` 与 `StreamAssistantTurnOptions.supportsTools`。
+- 兼容：`ThinkTagStreamParser` 把普通文本流里的 `<think>…</think>` 提升为 `reasoning` 事件（保留）。
+- 依赖：`@ai-sdk/anthropic` / `@ai-sdk/openai` **仍在 `apps/web/package.json`，仍待移除**
+  （已不再被 import）。
 
 ### 3.8 `@` 引用
 
@@ -248,12 +252,12 @@ L7 上下文    page-context / page-context-registry / page-capabilities / endpo
 
 ## 4. 代码地图（Code）
 
-### 4.1 `lib/ai/**`（27 个文件）
+### 4.1 `lib/ai/**`（32 个文件；下表列主要 27 个）
 
 | 文件 | 行数 | 职责 |
 |---|---:|---|
-| `chat.ts` | 345 | 一轮消息驱动：读偏好 → 挑工具 → 拼消息 → 消费事件流；审批 Promise 通道；`StreamEventBatcher`；`stopAiMessage` |
-| `runtime.ts` | 569 | 唯一 `import 'ai'`：建 provider 模型、`toSdkTools`、`streamText`、`fullStream` → `AiStreamEvent`、`ThinkTagStreamParser`、`toModelMessages`（历史衰减 3 轮 + 附件转 part + `@` 展开） |
+| `chat.ts` | 360 | 一轮消息驱动：读偏好 → 挑工具 → 拼消息 → 消费事件流；审批 Promise 通道；`StreamEventBatcher`；`stopAiMessage` |
+| `runtime.ts` | 531 | 唯一 `import 'ai'`：建 provider 模型、`toSdkTools`、`streamText`、`fullStream` → `AiStreamEvent`、`ThinkTagStreamParser`、`toModelMessages`（历史衰减 3 轮 + 附件转 part + `@` 展开） |
 | `types.ts` | 312 | 公共类型：`AiToolAccess` / `AiToolGroup` / `AiMode` / `AiSurface` / `AiPermissionMode` / `AiApprovalDecision` / `AiToolContext` / `AiToolDefinition` / `AiMessage(Part)` / `AiStreamEvent` |
 | `index.ts` | 31 | 能力出口 barrel；**刻意不导出 `runtime`**（避免 SDK 进主 bundle） |
 | `prompt-facts.ts` | ~70 | **事实采集**（页面上下文 / 导航 / 任务 / 语言）—— 随请求上报给中间层；**规则不在这里**（在服务端） |
@@ -296,10 +300,10 @@ L7 上下文    page-context / page-context-registry / page-capabilities / endpo
 
 | 文件 | 行数 | 职责 |
 |---|---:|---|
-| `ai-composer.tsx` | 1313 | 输入区：文本、附件（`AI_MAX_ATTACHMENTS=4` / 图片 4MB / 文本 256KB）、模型与思考程度、模式菜单、`@` mention、任务卡 |
+| `ai-composer.tsx` | 1150 | 输入区：文本、附件（`AI_MAX_ATTACHMENTS=4` / 图片 4MB / 文本 256KB）、模式菜单、`@` mention、任务卡（行尾设置按钮只剩「配置权限」，仅面板给） |
 | `ai-panel.tsx` | 1120 | 面板本体：split / float 两形态、头行、权限视图（整块替换内容）、拖拽与折叠动画 |
-| `ai-conversation.tsx` | 830 | 消息渲染：Markdown、工具卡片（默认隐藏）、审批卡、导航建议卡、空态 |
-| `ai-permission-config.tsx` | 293 | 权限三档 + 工具勾选（名单取自 `AI_TOOLS`）；`settings` / `panel` 两形态 |
+| `ai-conversation.tsx` | 831 | 消息渲染：Markdown、工具卡片（默认隐藏）、审批卡、导航建议卡、空态 |
+| `ai-permission-config.tsx` | 331 | 权限三档 + 工具勾选（名单取自 `AI_TOOLS`）；`settings` / `panel` 两形态。三档各有 tooltip 说明、分组说明挂在标题的 Info 图标上（不常显） |
 | `ai-task-card.tsx` | 202 | 任务清单卡片（会话内 + 悬浮） |
 | `ai-activity-glow.tsx` | 178 | 进行中页面光晕（`border-beam`） |
 | `ai-session-list.tsx` | 145 | 浮层会话列表（搜索 + 分组 + 删除） |
@@ -318,22 +322,26 @@ L7 上下文    page-context / page-context-registry / page-capabilities / endpo
 `sphere-header`(95)、`sphere-sidebar`(211)、`sphere-not-found`(52)、`sphere-transition`(175)、
 `session-search-dialog`(154)、`use-sphere-collapse`(46)。
 
-### 4.5 设置页（5 个文件，2247 行）
+### 4.5 设置页（1 个文件）
 
-`settings/AI.tsx`(839，通用设置 + AI 权限 + 厂商 + 模型 + 5 个预览组件)、
-`-components/ai-provider-card.tsx`(372)、`ai-model-card.tsx`(351)、
-`ai-provider-export-dialog.tsx`(409)、`ai-provider-import-dialog.tsx`(276)。
+`settings/AI.tsx`(825)：通用设置 + AI 权限两张卡片 + 5 个预览组件。
+（`-components/ai-provider-card.tsx`、`ai-model-card.tsx`、`ai-provider-export-dialog.tsx`、
+`ai-provider-import-dialog.tsx` **已删除**。）
 
-### 4.6 Store（2 个，1067 行）
+### 4.6 Store（1 个）
 
-`lib/store/ai-store.ts`(346，`admin.ai`) 与 `lib/store/preferences-store.ts`(721，AI 字段见 §3.6)。
+`lib/store/preferences-store.ts`(721，AI 字段见 §3.6)。
+（原 `lib/store/ai-store.ts`(346，`admin.ai`) **已删除**。）
 
 ### 4.7 i18n
 
-- `messages/ai/*.json`：7 语言各 **126 个叶键**（100 个顶层键 = 95 直接键 + 5 分组：
+- `messages/ai/*.json`：7 语言各 **121 个叶键**（95 个顶层键 = 90 直接键 + 5 分组：
   `tools` 15 / `sessionGroups` 5 / `greetings` 3 / `toolDetail` 3 / `taskCard` 5）。
   **7 语言键集合完全一致**（`pnpm guardrails` 全量校验）。
-- `common` 命名空间 `profile.settings.ai*` 约 86 个键（通用设置 / 枚举项 / 权限 / 厂商模型 / 导入导出）；
+  （模型相关的 `selectModel` / `modelNone` / `modelEmpty` / `goToSettings` / `visionUnsupported` /
+  `reasoning` 已删；`aiSettings` / `reasoningTitle` / `reasoningThinking` 仍在用。）
+- `common` 命名空间 `profile.settings.ai*`（通用设置 / 枚举项 / 权限）；**厂商模型与导入导出的
+  66 个直接键（含分组展开共 74 个叶键）已随本次清理删除**（7 语言一致）；
   入口名 `profileNav.ai` / `askAi`（「Ask AI」是产品名，各语言保留原文；`aiModes.split/float` 必须本地化）。
 - AI 引用的 `nav.*` 只有 `nav.userDetail`（`@` 引用的详情页名字）。
 
@@ -344,7 +352,7 @@ L7 上下文    page-context / page-context-registry / page-capabilities / endpo
   产物当前 **7.5 KB / 25 条**，应用侧经 `@admin/api-client/endpoint-specs` 子路径懒加载。
 - `packages/api-client/scripts/gen-query-params.js`（`USER_FILTER_FIELDS` 等编译期查询参数）。
 - 门控：`scripts/ai/check-guardrails.mjs`（`pnpm guardrails`：i18n 键树全量一致 + diff 内禁用样式）。
-- 依赖：`ai@^7.0.116`、`@ai-sdk/anthropic@^4.0.65`、`@ai-sdk/openai@^4.0.77`、
+- 依赖：`ai@^7.0.116`、`@ai-sdk/anthropic@^4.0.65`（**仍待移除**）、`@ai-sdk/openai@^4.0.77`（**仍待移除**）、
   `@ai-sdk/openai-compatible@^3.0.57`、`bot-avatars@^0.1.1`、`border-beam@^1.4.1`、
   `react-markdown@^10.1.0`、`remark-gfm@^4.0.1`、`motion@^13.4.4`。
 - 被 `#/lib/ai` 引用的**非内部文件共 23 个**：11 个 AI 组件、7 个 sphere 文件、
@@ -365,7 +373,7 @@ L7 上下文    page-context / page-context-registry / page-capabilities / endpo
 | 4 | `lib/ai/chat.ts:159` | 使用 `AiStreamEvent` 但**顶部没有 import 它**（`import type` 列表缺一项）→ `tsc --noEmit` 会报 `Cannot find name` | 补一个 `import type` 即可（用 `verify` skill 确认） |
 | 5 | `lib/ai/tools/form-tools.ts:287` | `formSpec?.submission?.requireApproval ?? (ctx.mode === 'ask' \|\| true)` —— 右侧**恒为 true**，于是 `submit_form` 在 `auto` 模式**仍然弹审批**，与工具描述、`ai-architecture.md` §3 表格（auto 下 `canSubmit()` 通过即提交）矛盾 | 去掉 `\|\| true`，改为按 `ctx.mode` / 声明判定 |
 | 6 | `lib/ai/route-refs.ts:276` | `expandRouteRefs` 追加的说明**硬编码面板策略**（「必须优先 `navigate_to` … 配合 `update_search_params` … 切勿直接调用只读接口」），与 §8.1「策略由提示词按容器给、工具描述保持容器中立」冲突；**全屏容器**里 `update_search_params` 根本不下发，模型会被引向一个不存在的工具 | 改为容器中立的表述（或按 `surface` 分策略，与 `workflow.ts` 同源） |
-| 7 | i18n | `common:profile.settings.aiToolNames.*` 只覆盖 **10 / 16** 个工具（缺 `open_form`、`get_page_data`、`run_page_command`、`manage_tasks`、`request_permission`、`update_search_params`）；`ai:tools.*` 覆盖 15 / 16（缺 `request_permission`）。组件有 `t(key, tool.name)` 兜底，因此**权限界面与工具卡片会显示英文蛇形原名** | 补 7 语言的 6 个工具名（铁律 1：7 语言齐） |
+| 7 | i18n | ~~`common:profile.settings.aiToolNames.*` 只覆盖 10 / 16 个工具…权限界面与工具卡片会显示英文蛇形原名~~ **已修复**：`AI_TOOLS` 现有 **18** 个工具，zh-CN 的 `aiToolNames.*` 与 `ai:tools.*` **各 18 / 18 全齐**；另补了权限三档的 tooltip 说明（`aiPermissionModeHints.*`）、删掉了常显的 `aiToolListHint` | 只剩流水线：跑 `pnpm i18n` 把新增键补到其它 6 语言（铁律 1） |
 
 ---
 

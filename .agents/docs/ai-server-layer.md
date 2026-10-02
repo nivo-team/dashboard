@@ -173,7 +173,7 @@ Cloudflare AI Gateway（provider 路由 / 模型 / 重试回退 / 缓存 / 限�
 > 本仓库已落地：`runtime.ts` 的出站端点改为中间层（`createOpenAICompatible` + 自定义 `fetch`
 > 注入 `promptFacts`），`streamText` **不再传 `system`**；前端 `lib/ai/prompt/**` 与漂移门控脚本
 > 已删除；事实改由 `apps/web/src/lib/ai/prompt-facts.ts` 采集上报。
-> 设置页的厂商 / 模型 / Key 卡片属**待清理的过渡态** —— 见 §5.3。
+> 设置页的厂商 / 模型 / Key 卡片**已随本次清理删除** —— 见 §5.3。
 
 ### 5.1 唯一的技术难点：怎么把 `promptFacts` 带上
 
@@ -201,7 +201,7 @@ const provider = createOpenAICompatible({
 |---|---|
 | 1 | `runtime.ts`：provider 换成上面那个；`streamText` **不再传 `system`**（Worker 注入） |
 | 2 | 删掉 `apps/web/src/lib/ai/prompt/**`（切完并核对输出一致之后） |
-| 3 | 删掉设置页的厂商 / 模型卡片与 `ai-store` 的 `providers`/`models`/Key（`admin.ai` 只剩 UI 偏好） |
+| 3 | 删掉设置页的厂商 / 模型卡片（含导入导出弹窗）与 `ai-store`：`admin.ai` 键不再被写入或读取，输入区不再有「选择模型 / 思考程度」子菜单，图片 / 文件入口不再按模型能力置灰（**已完成**） |
 | 4 | 删 `scripts/ai/check-prompt-drift.mjs` 与 `pnpm guardrails:prompt` |
 | 5 | 环境变量加 `VITE_AI_SERVICE_BASE_URL`；`ALLOWED_ORIGINS` 加真实域名 |
 | 6 | **必审措辞**：`identity.ts` 末句「运行在用户自己的浏览器里」在流量经服务端后不再准确 |
@@ -211,19 +211,30 @@ const provider = createOpenAICompatible({
 
 **工具与审批完全不用动**：`tools` 随请求透传，tool-call 回前端执行，`stopWhen` 循环仍在 SDK 侧。
 
-### 5.3 遗留的过渡态（下一步清理）
+### 5.3 过渡态的清理进度
+
+**已完成**（前端彻底不再持有厂商 / 模型 / API Key / 能力声明 —— 具体模型与凭证由 `apps/ai`
+（`AI_MODEL_ID` 覆盖客户端的 model）与 AI Gateway 决定）：
+
+| 项 | 结果 |
+|---|---|
+| 设置页「模型服务 / 模型」卡片、导入导出 | **已删**：`ai-provider-card` / `ai-model-card` / `ai-provider-export-dialog` / `ai-provider-import-dialog` 一并移除；设置 → AI 只剩「通用设置」与「AI 权限」两张卡片 |
+| `admin.ai`（`ai-store` 的 providers / models / Key） | **已删**：`lib/store/ai-store.ts` 移除、`lib/store/index.ts` 不再导出；该 localStorage 键不再被写入或读取（旧存档残留没有任何代码读取） |
+| 前端模型能力声明（`supportsTools` / `reasoningLevels` / `supportsVision`） | **已删**：输入区不再选模型 / 思考程度，图片 / 文件入口**始终可用**；工具是否随请求发出**只由权限决定**（`chat.ts` 的 `getAllowedTools`） |
+
+**仍未完成**：
 
 | 项 | 现状 | 目标 |
 |---|---|---|
-| 设置页「模型服务 / 模型」卡片、导入导出 | 仍可编辑，但**不再影响调用**（凭证改由 Worker 注入、model 被 `AI_MODEL_ID` 覆盖） | 删掉；模型能力改由服务端下发（如 `GET /v1/model-info`） |
-| `admin.ai`（`ai-store` 的 providers / models / Key） | 仅剩「能力声明」用途（`supportsTools` / `reasoningLevels` / `supportsVision`） | 同上 |
-| `apps/web/package.json` 的 `@ai-sdk/anthropic`、`@ai-sdk/openai` | 已不再被 import（provider 细节归 AI Gateway） | 从依赖里移除 |
+| `apps/web/package.json` 的 `@ai-sdk/anthropic`、`@ai-sdk/openai` | 已不再被 import（provider 细节归 AI Gateway），但**依赖仍在** | 从依赖里移除（**仍待移除**） |
 | **方案 B**：环境说明随消息持久化 | Worker 每轮**插入**环境说明、不进历史 → 命中率卡在 **~61%**（实测见 §7.7） | 前端把它存进消息的隐藏字段（UI 不渲染）→ 命中率预期 **~87%** |
 
-**为什么这些不能一次删干净**：模型「能力声明」（是否支持工具调用 / 思考档位 / 图片）目前仍由
-前端提供给输入区与 `streamAssistantTurn`；等它改由服务端下发后，前端就真的不需要任何模型配置了。
+**为什么当初不能一次删干净**：模型「能力声明」（是否支持工具调用 / 思考档位 / 图片）曾由前端
+提供给输入区与 `streamAssistantTurn`。清理时前端改为**不声明能力、一律按支持处理** —— 因此
+**不需要**服务端再下发能力（也**没有**新增 `GET /v1/model-info` 之类的接口），前端从此不持有
+任何模型配置。
 
-**方案 B 是这里性价比最高的一项**：它**不需要余额就能验证**（离线看"与前一轮的共同前缀"，
+**方案 B 仍是这里性价比最高的一项**：它**不需要余额就能验证**（离线看"与前一轮的共同前缀"，
 §7.7 的 A 组实验就是这么测的），而且是唯一能把那 61% 明显推高的改动。
 
 ---
@@ -373,7 +384,8 @@ return new Response(upstream.body, { status: upstream.status, headers })   // �
 
 **指标怎么看**：`AiStreamEvent` 的 `finish` 事件带上 token 用量（取 AI SDK 归一化后的
 `inputTokenDetails.{cacheReadTokens, noCacheTokens}` —— 各厂商原始字段名不同，SDK 已统一），
-存进 `AiMessage.usage`，并在助手消息下方显示一行「缓存命中 X · 输入 Y · 输出 Z」。
+存进 `AiMessage.usage`，并在助手消息下方显示一行「缓存命中 X · 输入 Y · 输出 Z」
+（与工具调用卡片同属**设置 → AI 的「显示详细信息」**开关，默认关 —— 排查缓存命中率时打开它）。
 
 **`cache` 长期偏低、或明明在同一页面连续对话却几乎为 0，就是拼接没对齐的信号** ——
 优先查：历史是否被改写、拼接里是否混进了时间戳 / 随机顺序、稳定内容是否被挪到了可变区之后。

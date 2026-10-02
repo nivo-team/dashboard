@@ -293,7 +293,7 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
         case 'nav-proposal': {
           /*
             全屏容器里 `navigate_to` 返回的建议（运行时翻成这条事件）→ 落成一张卡片。
-            它**不是**工具卡片：工具卡片默认隐藏（`aiShowToolCalls`），而这张卡是
+            它**不是**工具卡片：工具卡片默认隐藏（`aiShowDetails`），而这张卡是
             用户唯一能"去页面"的入口，必须始终可见。
           */
           const part: Extract<AiMessagePart, { type: 'nav-proposal' }> = {

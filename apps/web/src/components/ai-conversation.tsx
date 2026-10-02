@@ -27,16 +27,17 @@ import { useTimezone } from '#/lib/timezone'
 import { TaskCardView, type TaskItemData } from '#/components/ai-task-card'
 
 /**
- * 会话区：把 store 里的消息渲染出来，并处理三种「还没内容」的状态。
+ * 会话区：把 store 里的消息渲染出来，并处理「还没内容」的状态。
  *
- * 三种空态依次是：
- * - **没配模型** → 一枚睡着的头像 + 去设置页的入口（这是唯一一条正确的下一步，
- *   不要写成「暂无数据」）；
- * - **配好了但还没聊** → 一枚放大的头像 + 一句按时段变的问候；
+ * 两种空态依次是：
+ * - **还没聊** → 一枚放大的头像 + 一句按时段变的问候；
  * - **正在跑** → 底部一行「正在思考…」，工具执行态则由消息里的工具卡片如实表达。
  *
- * 前两种空态用的是**同一枚头像**（跟着同一个设置走），只有状态与尺寸不同 ——
- * 于是「还没配好」与「刚打开」看到的是同一个角色，而不像两个不同的功能。
+ * 早先还有第三种「还没配置模型服务」的空态（配一个「去设置」按钮）—— 走中间层后
+ * **前端不再需要配置模型**（模型与凭证都在 `apps/ai`），它只会挡住本来能用的用户，已删除。
+ *
+ * 两种空态用的是**同一枚头像**（跟着同一个设置走），只有状态与尺寸不同 ——
+ * 于是「刚打开」与「跑起来了」看到的是同一个角色，而不像两个不同的功能。
  *
  * 工具卡片的状态**来自真实事件**（`tool-call` / `tool-result` / `tool-error`），
  * 不是计时器演的动画 —— 这样「卡在某个工具上」一眼就能看出来。
@@ -244,7 +245,7 @@ function AiMessageView({
   pendingApproval?: boolean
 }) {
   const outputMode = usePreferencesStore((state) => state.aiOutputMode)
-  const showToolCalls = usePreferencesStore((state) => state.aiShowToolCalls)
+  const showDetails = usePreferencesStore((state) => state.aiShowDetails)
   const { t } = useTranslation('ai')
 
   if (message.role === 'user') {
@@ -310,7 +311,7 @@ function AiMessageView({
     1. 判断是否有可见的文字输出：
        - `stream` 模式下，检查是否已有非空的 text part；
        - `wait` 模式下，流式期间文字一律隐藏（直到流式结束再一次性展示）。
-    2. 判断是否有任何可见内容（文字，或在开启「显示工具调用」时的工具卡片）。
+    2. 判断是否有任何可见内容（文字，或在开启「显示详细信息」时的工具卡片）。
     3. 「正在思考…」：当处于流式传输中（streaming）、尚未产出可见文字、且没有等待审批卡时，
        直接在**本条助手消息右侧**呈现 —— 头像在左、思考在右，浑然一体。
        不再在消息列表底部用单独的 20px 小头像重复渲染第二遍（彻底解决出现两个头像：
@@ -361,14 +362,14 @@ function AiMessageView({
     }
     /*
       全屏的跳转建议卡**永远算可见内容**：它是用户"去页面"的唯一入口，
-      不能被「显示工具调用」这个偏好关掉；也只有它在的消息不该因为"没有文字"而整条不渲染。
+      不能被「显示详细信息」这个偏好关掉；也只有它在的消息不该因为"没有文字"而整条不渲染。
     */
     if (part.type === 'nav-proposal') return true
     if (part.type === 'tool-call') {
       if (part.toolName === 'manage_tasks') {
         return index === lastManageTasksIndex && !isTaskFloatingNow(part)
       }
-      return showToolCalls
+      return showDetails
     }
     return false
   })
@@ -412,11 +413,13 @@ function AiMessageView({
         ) : null}
 
         {/*
-          本轮 token 用量（定稿后才有，流式期间拿不到）。
+          本轮 token 用量（定稿后才有，流式期间拿不到）—— 它属于「详细信息」，
+          与工具卡片**同一个开关**（默认关）：普通用户不关心 token 账，
+          要看"缓存命中率"的人本来就在排查问题，那时自然会把这个开关打开。
           **`cache` 是「提示词拼接是否对齐」的唯一客观证据**：它偏低就说明前缀被改动了
           （时间戳、历史被改写、拼接顺序抖动…）—— 见 .agents/docs/ai-server-layer.md §7.5 / §7.6。
         */}
-        {!streaming && message.usage ? (
+        {showDetails && !streaming && message.usage ? (
           <p className="text-xs text-kumo-subtle">
             {t('usageStats', {
               cache: formatTokenCount(message.usage.cacheReadTokens),
@@ -443,16 +446,17 @@ function AssistantPart({
 }) {
   const { t } = useTranslation('ai')
   /*
-    工具调用的可见性由 设置 → AI 控制、**默认关**：普通用户只关心回答内容，
-    不需要知道中间调了哪个工具。关掉时整张卡片都不渲染。
+    详细信息的可见性由 设置 → AI 控制、**默认关**：普通用户只关心回答内容，
+    不需要知道中间调了哪个工具、更不关心 token 账。关掉时工具卡片整张不渲染，
+    用量那一行同样不渲染（见 `AiMessageView`）。
 
-    两件事刻意**不受它影响**：
+    三件事刻意**不受它影响**：
     - **审批卡**：写操作的确认是必须的交互（在 `AiConversation` 里独立渲染），不是"输出"；
     - **任务规划卡（manage_tasks）**：多任务推进的核心进度回显，始终展示；
     - **「正在思考…」**：工具执行期间 `status` 仍是 `streaming`，所以即使看不到工具卡片，
       页面也仍在动，不会显得卡死。
   */
-  const showToolCalls = usePreferencesStore((state) => state.aiShowToolCalls)
+  const showDetails = usePreferencesStore((state) => state.aiShowDetails)
 
   if (part.type === 'text') {
     if (!part.text.trim()) return null
@@ -464,8 +468,8 @@ function AssistantPart({
   }
 
   /*
-    全屏的跳转建议卡：与审批卡一样**不受「显示工具调用」影响** —— 它是一次交互，
-    不是"输出"。放在 `showToolCalls` 那道门之前，正是为了别被它拦掉。
+    全屏的跳转建议卡：与审批卡一样**不受「显示详细信息」影响** —— 它是一次交互，
+    不是"输出"。放在 `showDetails` 那道门之前，正是为了别被它拦掉。
   */
   if (part.type === 'nav-proposal') {
     return <NavProposalCard part={part} />
@@ -485,7 +489,7 @@ function AssistantPart({
     return <TaskCardView tasks={tasks} variant="settled" />
   }
 
-  if (part.type !== 'tool-call' || !showToolCalls) return null
+  if (part.type !== 'tool-call' || !showDetails) return null
 
   const Icon =
     part.state === 'running'

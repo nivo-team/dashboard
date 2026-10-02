@@ -8,11 +8,9 @@ import {
 import {
   ArrowUpIcon,
   AtIcon,
-  BrainIcon,
   CaretDoubleRightIcon,
   ChatCircleDotsIcon,
   CheckIcon,
-  CpuIcon,
   FileIcon,
   GearSixIcon,
   ImageIcon,
@@ -23,7 +21,6 @@ import {
   XIcon,
   type Icon,
 } from '@phosphor-icons/react'
-import { useRouter } from '@tanstack/react-router'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ClipboardEvent, KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -44,10 +41,8 @@ import type {
 import { cn } from '#/lib/cn'
 import {
   isAiComposerMode,
-  useAiConfigStore,
   usePreferencesStore,
   type AiComposerMode,
-  type AiReasoningLevel,
 } from '#/lib/store'
 import { AiFloatingTaskCard } from '#/components/ai-task-card'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
@@ -68,9 +63,11 @@ export interface AiComposerProps {
    * 「配置权限」入口：**传了才在设置菜单里放这一项**（与头行的折叠按钮同一个约定 ——
    * 用回调的有无表达「这个形态有没有入口」，不再另加一个布尔 prop）。
    *
-   * 它与「选择模型」共享行尾同一颗设置按钮、同一个下拉（模型是子菜单，见组件注释）。
    * 全屏对话页不传：那一页没有可替换的面板内容，权限仍走设置页 ——
-   * 于是那里的下拉只剩「选择模型」一项。
+   * 于是那里的行尾不再有设置按钮。
+   *
+   * 模型不再由前端选择（真实模型与凭证都在 `apps/ai`），所以这颗按钮里
+   * **只剩「配置权限」一项**。
    */
   onConfigurePermissions?: () => void
 }
@@ -211,7 +208,7 @@ function parseMentionQuery(draft: string): { query: string; start: number } | nu
  * 面板被拖窄 / 拉宽时 `ResizeObserver` 会重算换行后的高度，不需要外部传宽度。
  *
  * 工具行分两段：行首是**「+」= 一小组 AI 动作**（添加附件 / 引用位置 / 新对话），行尾是**设置按钮**
- * （滑杆：选择模型 + 思考程度 + 只有面板才有的配置权限，见 `#/components/ai-panel` 的权限视图）
+ * （滑杆：里面只有面板才有的「配置权限」，见 `#/components/ai-panel` 的权限视图）
  * 与发送按钮。面板与全屏对话页共用这一个组件，差别只在传不传 `onConfigurePermissions`。
  *
  * 两块浮层都**贴着整块输入区的上沿**浮出来（`anchor={composerRef}` + `w-[var(--anchor-width)]`）：
@@ -236,7 +233,6 @@ export function AiComposer({
   onConfigurePermissions,
 }: AiComposerProps) {
   const { t } = useTranslation('ai')
-  const router = useRouter()
   const [value, setValue] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const isMobile = useIsMobileViewport()
@@ -253,16 +249,6 @@ export function AiComposer({
   const startNewSession = useAiSessionStore((state) => state.startNewSession)
   const composerMode = usePreferencesStore((state) => state.aiComposerMode)
   const setComposerMode = usePreferencesStore((state) => state.setAiComposerMode)
-
-  /*
-    模型是**全局配置**（`admin.ai`，不按应用隔离 —— 见 `#/lib/store/ai-store`）：
-    这里只读当前模型列表 / 选中项与切换动作，配置本身仍归 设置 → AI。
-  */
-  const models = useAiConfigStore((state) => state.models)
-  const providers = useAiConfigStore((state) => state.providers)
-  const activeModelId = useAiConfigStore((state) => state.activeModelId)
-  const setActiveModel = useAiConfigStore((state) => state.setActiveModel)
-  const updateModel = useAiConfigStore((state) => state.updateModel)
 
   /*
     待发送的**附件**（图片与普通文件同一条路：data URL）。只活在输入区里：
@@ -335,10 +321,6 @@ export function AiComposer({
     { kind: 'page', labelKey: 'mentionSectionPage', fallback: '页面' },
     { kind: 'record', labelKey: 'mentionSectionRecord', fallback: '记录' },
   ]
-
-  /** 「添加照片和文件」这一行是否可用：模型没声明视觉就置灰（与「+」菜单同一条规矩） */
-  const mentionRowDisabled = (row: AiRouteRefItem) =>
-    row.kind === 'add' && !supportsVision
 
   /** 一行的匹配规则：名字 / 语法 / 说明 / 导航关键词四处都能命中（所以 `@示例` 与 `@table-example` 一样好使） */
   const mentionRowMatches = (row: AiRouteRefItem) => {
@@ -418,27 +400,14 @@ export function AiComposer({
   /** 触发按钮上的图标跟着当前模式走（询问 = 眼睛，自动 = 右向双箭头） */
   const ActiveIcon = activeMode.icon
 
-  /** 当前模型。`activeModelId` 可能悬空（模型刚被删），store 的 `merge` 会兜，这里再兜一次 */
-  const activeModel = models.find((model) => model.id === activeModelId) ?? null
-
-  /** 模型条目第二行里的厂商标注；厂商名取不到就只留模型名 */
-  const providerName = (providerId: string) =>
-    providers.find((provider) => provider.id === providerId)?.name ?? ''
-
-  /** 图片入口只在模型声明支持视觉时才给：发给不支持的模型会被厂商直接拒掉 */
-  const supportsVision = activeModel?.supportsVision === true
-  /** 可切换的思考程度档位；空数组 = 这个模型没声明支持推理，菜单里不出现这一项 */
-  const reasoningLevels = activeModel?.reasoningLevels ?? []
-
   /*
-    行尾那颗**设置按钮**什么时候渲染、里面有什么 —— 面板与全屏对话页共用这一个输入区，
-    只靠参数区分：
-    - 两处都给「选择模型」（没配模型时换成一条「去设置」的引导）；
-    - 只有面板给「配置权限」（`onConfigurePermissions`）—— 权限视图是「整块替换面板内容」
-      的，全屏对话页没有承载它的地方。
-    一个模型都没配、又没有权限入口时整颗不渲染（没有可选项的空菜单不如不给）。
+    行尾那颗**设置按钮**什么时候渲染 —— 面板与全屏对话页共用这一个输入区，只靠参数区分：
+    只有面板给「配置权限」（`onConfigurePermissions`）—— 权限视图是「整块替换面板内容」的，
+    全屏对话页没有承载它的地方；没有入口时整颗不渲染（没有可选项的空菜单不如不给）。
+
+    模型不在菜单里：真实模型与凭证都在 `apps/ai`，前端不选、也不需要知道。
   */
-  const showSettingsMenu = models.length > 0 || onConfigurePermissions !== undefined
+  const showSettingsMenu = onConfigurePermissions !== undefined
   // 正在跑一轮时禁用提交；文字与附件**有其一**就能发（截图直接问「这是什么」很常见）
   const canSubmit =
     (value.trim().length > 0 || attachments.length > 0) && !isStreaming
@@ -484,7 +453,6 @@ export function AiComposer({
 
   /** 选中一行：附件行去开系统文件框，其余把 `@…` 写进输入框 */
   const pickMentionRow = (row: AiRouteRefItem) => {
-    if (mentionRowDisabled(row)) return
     // 把打了一半的那段（`@use`）整段换掉，而不是接在后面
     const head = mentionToken ? value.slice(0, mentionToken.start) : value
 
@@ -664,25 +632,11 @@ export function AiComposer({
     const files = Array.from(event.clipboardData?.files ?? [])
     if (files.length === 0) return
     event.preventDefault()
-    /*
-      模型没声明视觉时，**粘贴进来的图片不收**（与菜单里那条命令被禁用是同一条规矩）；
-      文本文件不受影响 —— 它走的是文本，跟模型能不能看图无关。
-    */
-    const accepted = supportsVision
-      ? files
-      : files.filter((file) => !file.type.startsWith('image/'))
-    if (accepted.length === 0) return
-    void addAttachments(accepted)
+    void addAttachments(files)
   }
 
   const removeAttachment = (index: number) => {
     setAttachments((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  /** 切思考程度：写回**该模型**的配置（按模型记住），与设置页声明的是同一份数据 */
-  const selectReasoning = (level: AiReasoningLevel) => {
-    if (!activeModel) return
-    updateModel(activeModel.id, { reasoning: level })
   }
 
   return (
@@ -933,13 +887,11 @@ export function AiComposer({
                 </DropdownMenu.Label>
                 {section.rows.map((row) => {
                   const RowIcon = row.icon
-                  const disabled = mentionRowDisabled(row)
                   const index = mentionRowIndex.get(row.id) ?? 0
                   const active = index === mentionActive
                   return (
                     <DropdownMenu.Item
                       key={row.id}
-                      disabled={disabled}
                       /*
                         键盘选中的那一行由**我们自己**标（焦点始终留在输入框里，Base UI 内部那份高亮
                         跟不到我们的键盘游标），所以用 `bg-kumo-tint` 显式画出来 ——
@@ -954,11 +906,6 @@ export function AiComposer({
                       onClick={() => pickMentionRow(row)}
                       // 鼠标扫过也同步给键盘用的那份「当前行」，两种输入方式不会各记一份
                       onMouseMove={() => setMentionActive(index)}
-                      title={
-                        disabled
-                          ? t('visionUnsupported', '当前模型未声明支持图像识别')
-                          : undefined
-                      }
                     >
                       <RowIcon size={15} className="shrink-0 text-kumo-subtle" />
                       {/* 主行是**名字**（表格示例）——语法在右边，灰一点、小一号 */}
@@ -1101,13 +1048,15 @@ export function AiComposer({
 
         {/*
           **行尾的设置按钮**：面板与全屏对话页共用这一个输入区，只靠参数区分 ——
-          - **选择模型**（子菜单）：两处都给；一个模型都没配时换成一条「去设置」的引导；
-          - **配置权限**（齿轮 `GearSixIcon`）：只有面板给（`onConfigurePermissions`）——
-            权限视图是「整块替换面板内容」的，全屏对话页没有承载它的地方。
+          只有面板给「配置权限」（齿轮 `GearSixIcon`，`onConfigurePermissions`）——
+          权限视图是「整块替换面板内容」的，全屏对话页没有承载它的地方。
           图标分工按 Cloudflare 那张参照图来：触发按钮是**滑杆**（`SlidersHorizontalIcon`），
           齿轮只出现在「配置权限」那一项上，别调换。尺寸取 `sm`（`size-6.5` = 26px），
           与提交位同档才齐平。行尾的 `ms-auto` 归**最左边**那颗：两处都挂会把剩余空隙平分、
           按钮跑到中间去（全屏页踩过一次）。
+
+          模型相关项已从这里移除：真实模型与凭证都在 `apps/ai`（`AI_MODEL_ID` / AI Gateway），
+          前端不再选模型、也不再声明模型能力。
         */}
         {showSettingsMenu ? (
           <DropdownMenu>
@@ -1134,118 +1083,6 @@ export function AiComposer({
 
             {/* 与输入模式菜单同一个理由：贴底的行尾，菜单必须往上弹 */}
             <DropdownMenu.Content side="top" align="end" className="w-64">
-              {/*
-                选择模型：列表来自 `#/lib/store/ai-store` 的 `models`，点一项 `setActiveModel`。
-                触发项是**一行**（左边标签、右边当前模型名，`flex-1 text-end` 顶到箭头前），
-                与「设置项 = 标题 + 当前值」的写法一致。
-                Kumo 的 `SubTrigger` 自带行尾右向箭头，不要再自绘；图标也别用 `icon` prop。
-              */}
-              {models.length > 0 ? (
-                <DropdownMenu.Sub>
-                  <DropdownMenu.SubTrigger className="gap-2 text-sm">
-                    <CpuIcon size={15} className="shrink-0 text-kumo-subtle" />
-                    <span className="shrink-0 truncate">{t('selectModel', '选择模型')}</span>
-                    <span className="min-w-0 flex-1 truncate text-end text-kumo-subtle">
-                      {activeModel?.displayName ?? t('modelNone', '未选择')}
-                    </span>
-                  </DropdownMenu.SubTrigger>
-
-                  <DropdownMenu.SubContent className="w-64">
-                    {models.map((model) => {
-                      const isActive = model.id === activeModelId
-                      return (
-                        <DropdownMenu.Item
-                          key={model.id}
-                          onClick={() => setActiveModel(model.id)}
-                          className="items-start gap-2 py-2 text-sm"
-                        >
-                          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                            <span className="truncate">{model.displayName}</span>
-                            <span className="truncate text-xs leading-snug text-kumo-subtle">
-                              {[providerName(model.providerId), model.modelId]
-                                .filter(Boolean)
-                                .join(' · ')}
-                            </span>
-                          </span>
-                          {isActive ? (
-                            <CheckIcon
-                              size={14}
-                              className="ms-auto mt-0.5 shrink-0 text-kumo-brand"
-                            />
-                          ) : null}
-                        </DropdownMenu.Item>
-                      )
-                    })}
-                  </DropdownMenu.SubContent>
-                </DropdownMenu.Sub>
-              ) : (
-                /*
-                  一个模型都没配：给一条**去设置**的引导，而不是留一个空菜单 ——
-                  去处与 `AiConversation` 未配置时的空态一致（设置 → AI）。
-                */
-                <DropdownMenu.Item
-                  onClick={() => router.navigate({ to: '/settings/AI' })}
-                  className="items-start gap-2 py-2 text-sm"
-                >
-                  <CpuIcon size={15} className="mt-0.5 shrink-0 text-kumo-subtle" />
-                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="truncate">{t('modelEmpty', '还没有配置模型')}</span>
-                    <span className="truncate text-xs leading-snug text-kumo-subtle">
-                      {t('goToSettings', '去设置')}
-                    </span>
-                  </span>
-                </DropdownMenu.Item>
-              )}
-
-              {/*
-                思考程度：档位来自**这个模型声明的 `reasoningLevels`**（设置 → AI → 模型里勾的），
-                这里只负责选当前用哪一档；选择写回模型配置本身（按模型记住）。
-                运行时把它当作 AI SDK v7 的顶层 `reasoning` 参数发出去。
-                档位名复用设置页那一份（`common:profile.settings.aiReasoningLevels`），不另抄一份。
-              */}
-              {reasoningLevels.length > 0 ? (
-                <DropdownMenu.Sub>
-                  <DropdownMenu.SubTrigger className="gap-2 text-sm">
-                    <BrainIcon size={15} className="shrink-0 text-kumo-subtle" />
-                    <span className="shrink-0 truncate">{t('reasoning', '思考程度')}</span>
-                    <span className="min-w-0 flex-1 truncate text-end text-kumo-subtle">
-                      {t(
-                        `common:profile.settings.aiReasoningLevels.${
-                          activeModel?.reasoning ?? 'provider-default'
-                        }`,
-                        activeModel?.reasoning ?? 'provider-default',
-                      )}
-                    </span>
-                  </DropdownMenu.SubTrigger>
-
-                  <DropdownMenu.SubContent className="w-64">
-                    {reasoningLevels.map((level) => {
-                      const isActive =
-                        (activeModel?.reasoning ?? 'provider-default') === level
-                      return (
-                        <DropdownMenu.Item
-                          key={level}
-                          onClick={() => selectReasoning(level)}
-                          className="gap-2 text-sm"
-                        >
-                          <span className="min-w-0 flex-1 truncate">
-                            {t(`common:profile.settings.aiReasoningLevels.${level}`, level)}
-                          </span>
-                          {isActive ? (
-                            <CheckIcon
-                              size={14}
-                              className="ms-auto shrink-0 text-kumo-brand"
-                            />
-                          ) : null}
-                        </DropdownMenu.Item>
-                      )
-                    })}
-                  </DropdownMenu.SubContent>
-                </DropdownMenu.Sub>
-              ) : null}
-
-              {models.length > 0 && onConfigurePermissions ? <DropdownMenu.Separator /> : null}
-
               {onConfigurePermissions ? (
                 <DropdownMenu.Item
                   onClick={onConfigurePermissions}
@@ -1275,7 +1112,7 @@ export function AiComposer({
                 variant="secondary"
                 shape="circle"
                 size="sm"
-                // 设置按钮在时 `ms-auto` 归它；没有设置按钮（全屏页且没配模型）才归提交位
+                // 设置按钮在时 `ms-auto` 归它；没有设置按钮（全屏对话页没有权限入口）才归提交位
                 className={showSettingsMenu ? undefined : 'ms-auto'}
                 onClick={stopAiMessage}
                 aria-label={t('stop', '停止')}

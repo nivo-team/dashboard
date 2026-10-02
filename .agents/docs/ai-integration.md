@@ -1,15 +1,18 @@
 # AI 助手（Ask AI）接入设计
 
 > 本文是「Ask AI 接入真实模型」这件事的**单一真值**：数据模型、工具协议、权限矩阵与后续扩展。
-> 相关代码：`#/lib/store/ai-store`、`#/lib/ai/*`、`#/components/ai-panel`、`#/components/ai-composer`、`/settings/AI`。
+> 相关代码：`#/lib/ai/*`、`#/components/ai-panel`、`#/components/ai-composer`、`/settings/AI`。
+> **注**：厂商 / 模型配置（原 `#/lib/store/ai-store`、`admin.ai`）已清理，见 §0 与 §2.1。
 > 面板骨架与两种显示方式见 AGENTS.md §9；本文只讲「接上模型之后」的部分。
 
 ## 0. 状态与范围
 
 **MVP（已落地）**
 
-- 设置 → AI：**厂商配置**（OpenAI / Anthropic / OpenAI 兼容）+ **模型配置** + 默认模型；
-- **浏览器直连**厂商 API（Key 存在本机），流式对话 + 工具调用循环；
+- 设置 → AI：**通用设置**（显示方式 / 输出语言 / 显示详细信息 / 跟随滚动 / 自动跳转 / 光晕 /
+  头像 / 输出方式…）+ **AI 权限**；**厂商与模型配置已随 `admin.ai` 清理一并删除**（前端不选模型）；
+- **请求经 `apps/ai`（Hono Worker）转发**，凭证由 Worker 注入，**浏览器不再持有 Key**；
+  流式对话 + 工具调用循环（切换记录见 [ai-server-layer.md](./ai-server-layer.md) §5）；
 - **上下文注入**：当前 URL / 路由模板 / appId / 面包屑 / 页面标题；
 - **系统提示词分层 + 范围闸**：`#/lib/ai/prompt/*` 七层（身份 / **请求分诊与范围闸** / 能力 /
   工作方式 / 回答方式 / 页面上下文 / 任务清单），唯一出口 `buildSystemPrompt`（每轮重算）。
@@ -49,11 +52,13 @@
   这个包会进主 bundle（gzip 14 KB）。
   用户可在 **设置 → AI** 里关掉它（`aiActivityGlow`，落在 `admin.preferences:<appId>`、默认开）。
 
-- **工具调用卡片默认隐藏**（`aiShowToolCalls`，默认 `false`，设置 → AI 可打开）：普通用户只关心
-  回答内容，不关心中间调了哪个接口。关掉时 `AssistantPart` 对工具类 part 直接 `return null`。
-  **两件事刻意不受它影响**：**审批卡**（写操作的确认是必须的交互，在 `AiConversation` 里独立渲染，
-  不是可以隐藏的"输出"）与**「正在思考…」**（工具执行期间 `status` 仍是 `streaming`，
-  所以看不到工具卡片也不会显得卡死）。
+- **详细信息默认隐藏**（`aiShowDetails`，默认 `false`，设置 → AI 可打开）：它同时管工具调用卡片
+  与助手消息下方那行 token 用量（「缓存命中 X · 输入 Y · 输出 Z」）。普通用户只关心回答内容，
+  不关心中间调了哪个接口、更不关心 token 账。关掉时 `AssistantPart` 对工具类 part 直接
+  `return null`，用量行同样不渲染。
+  **三件事刻意不受它影响**：**审批卡**（写操作的确认是必须的交互，在 `AiConversation` 里独立渲染，
+  不是可以隐藏的"输出"）、**任务规划卡（manage_tasks）**与**「正在思考…」**（工具执行期间
+  `status` 仍是 `streaming`，所以看不到工具卡片也不会显得卡死）。
 
 - **助手头像**（`bot-avatars`，设置 → AI 选形状、默认 `clover`）：助手消息左侧一枚
   （正在生成的那条 `state="working"`、其余 `default`）与「正在思考…」那一行。三条约定：
@@ -79,7 +84,8 @@
 - 工具结果的可视化卡片（表格 / 图表）、thinking 态的细分动效
   （规格见 [ai-stack-research.md](./ai-stack-research.md) §3.3，来源是 Beautiful UI 的 `ThinkingState`）。
 
-> **唯一还没被证实的前提：厂商直连的浏览器 CORS**。调研时本机无法实测 —— `api.openai.com` 不可达、
+> **（历史记录：厂商直连的浏览器 CORS）** 该前提已随 `apps/ai` 中间层落地而消失 —— 请求不再从
+> 浏览器直连厂商，不存在 CORS 问题。以下保留当时的调研结论：调研时本机无法实测 —— `api.openai.com` 不可达、
 > `api.anthropic.com` 的 403 出自风控层（早于 CORS 处理）。使用者已在真实环境里跑通了整条链路，
 > 但没有回传 CORS 这一项是否通过；若不通过，兜底是自建一层薄代理（只补 CORS 头、不落 Key），
 > 请求层已做成可替换的 adapter，改一处即可。
@@ -95,57 +101,33 @@
 │                   #/lib/ai/prompt/*：系统提示词的七层装配（身份 / **范围闸** / 能力 /
 │                     工作方式 / 回答方式 / 页面上下文 / 任务清单），唯一出口 buildSystemPrompt
 ├─ L2 运行时层 ──── #/lib/ai/runtime：agent loop（流式 + 工具调用）+ provider adapter
-└─ L1 配置层 ────── admin.ai store：providers[] / models[] / activeModelId
+└─ L1 配置层 ────── 本机偏好（`admin.preferences:<appId>`：权限 / 模式 / 显示相关）
+                    原 `admin.ai`（providers[] / models[] / activeModelId）已删除 ——
+                    模型与凭证由 `apps/ai` / AI Gateway 决定，前端不选模型、不声明能力
 ```
 
 每层只依赖它下面的层：工具不认识 OpenAI，运行时不认识 Kumo，UI 不认识 JSON Schema。
 
 ## 2. 数据模型
 
-### 2.1 厂商与模型（L1，存本机）
+### 2.1 厂商与模型（L1，已删除）
 
-```ts
-type AiProviderKind = 'openai' | 'anthropic' | 'compatible'
+原 `admin.ai`（全局一份、不按应用隔离）里的 `providers: AiProviderConfig[]` + `models: AiModelConfig[]`
++ `activeModelId`，以及模型「能力声明」（`supportsTools` / `reasoningLevels` / `reasoning` /
+`supportsVision`）**均已删除**：
 
-interface AiProviderConfig {
-  id: string          // 本机生成的 uuid
-  kind: AiProviderKind
-  name: string        // 显示名（默认取 kind 的中文名，可改）
-  baseUrl: string     // 留空 → 用该 kind 的官方默认地址
-  apiKey: string      // 明文存 admin.ai（见 §5 安全）
-}
-
-interface AiModelConfig {
-  id: string
-  providerId: string  // → AiProviderConfig.id
-  modelId: string     // 传给厂商 API 的模型名，如 gpt-5-mini / claude-sonnet-4-5
-  displayName: string
-  supportsTools: boolean   // 关掉后该模型收不到工具，纯对话
-  reasoningLevels: AiReasoningLevel[]  // 这个模型声明支持哪些思考程度（空 = 不支持推理）
-  reasoning: AiReasoningLevel          // 当前用的那一档（输入区可切，按模型记住）
-  supportsVision: boolean              // 关掉后输入区不给图片入口
-}
-
-// AI SDK v7 的顶层可移植枚举，顺序即界面顺序
-type AiReasoningLevel =
-  | 'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
-```
-
-**思考程度走 AI SDK 的顶层 `reasoning` 参数**（v7 起可移植，SDK 自己翻成 `reasoning_effort` /
-`thinking.budget_tokens`）：运行时只在模型声明了档位、且选中的不是 `provider-default` 时才传。
-**不要改用 `providerOptions`** —— 两者不合并，那边一旦出现推理选项，顶层参数会被完全忽略。
-
-**图像识别没有 SDK 侧的能力查询**：AI SDK 只提供「怎么发图」（v7 用 `FilePart`，
-旧的 `ImagePart` 已 deprecated），能不能看图由厂商决定，所以必须由 `supportsVision` 自己声明
-（默认 **`true`**：现在的模型基本都多模态，关掉是显式声明"这个模型看不了图"）。关掉后
-「+」命令面板里的「添加照片和文件」会禁用并说明原因，而不是把入口整个藏起来 —— 入口忽然消失
-比灰着更让人困惑。
-
-**存储键 `admin.ai`，全局一份、不按应用隔离**：Key 是使用者级别的资产，在 console 配好、切到 analytics 不该重配（与 `admin.shell-ui` 同类，而不是 `admin.preferences:<appId>`）。跨标签页同步沿用 `enableCrossTabSync`。
-
-**为什么厂商与模型分开两张表**：一个厂商下通常挂多个模型（`gpt-5` / `gpt-5-mini`），而 Key 与 Base URL 属于厂商。合成一条记录会导致同一个 Key 被抄 N 份，改 Key 要改 N 处。
-
-**删除厂商连带删除它的模型**，并清理 `activeModelId` —— 否则会留下指向不存在厂商的孤儿模型。
+- `#/lib/store/ai-store.ts` 移除，`#/lib/store/index.ts` 不再导出；`admin.ai` 键不再被写入或读取
+  （旧存档残留没有任何读取方）。
+- 设置页只剩「通用设置」与「AI 权限」两张卡片；`ai-provider-card` / `ai-model-card` /
+  两个导入导出弹窗一并删除。
+- 输入区行尾设置按钮只剩「配置权限」一项（且只有面板给，全屏对话页没有）；图片 / 文件入口
+  **始终可用**，不再按模型能力置灰。
+- 模型与凭证改由 `apps/ai`（Hono Worker，**`AI_MODEL_ID` 覆盖客户端的 model**）与 AI Gateway
+  决定；`runtime.ts` 的 `WORKER_MODEL_ID = 'nivo-ai-server-fixed'` 只是占位。
+- 工具是否随请求发出**只由权限决定**（`chat.ts` 的 `getAllowedTools`）；`runtime.ts` 已删
+  `resolveReasoning()` 与 `StreamAssistantTurnOptions.supportsTools`。
+- `@ai-sdk/anthropic` / `@ai-sdk/openai` 依赖**仍在 `apps/web/package.json`，仍待移除**
+  （已不再被 import）。
 
 ### 2.2 会话与消息（L2）
 
@@ -345,10 +327,13 @@ native setter + 派发事件的技巧，动态字段、RTL、校验都会跟着�
 
 ## 4. 安全与风险
 
-- **API Key 明文存在浏览器**（`admin.ai`）。这是「零后端依赖」换来的代价，必须在设置页显式提示（`aiApiKeyHint`），并且输入框默认掩码显示。共用电脑 / 生产环境请勿填写真实 Key。
-- **请求从浏览器直连厂商**：需要厂商允许 CORS（Anthropic 需要 `anthropic-dangerous-direct-browser-access` 头；自建网关需自行放开）。因此请求层做成**可替换 adapter**：将来后端提供代理接口时，只换 adapter、配置与工具层不动。
+- **API Key 已不再落浏览器**（原设计明文存在 `admin.ai`，见 §2.1 的历史说明）：随厂商配置删除后，
+  凭证只存在于 `apps/ai` 的 secret 与 AI Gateway 的 BYOK，**任何日志 / toast / 错误都不回显**。
+  共用电脑 / 生产环境不再有「本机存了真实 Key」这个风险面。
+- **请求经 `apps/ai`（Hono Worker）转发**：浏览器不再直连厂商，CORS 与
+  `anthropic-dangerous-direct-browser-access` 不再是前提；请求层仍是**可替换 adapter**。
 - **工具白名单**是唯一防线之外的第二层：即使模型被提示词注入诱导，它能打的也只有 `GET /api` 清单里的 GET 接口。
-- 会话与工具结果**不出本机**，除厂商 API 外不额外上报。
+- 会话与工具结果**存在本机**（IndexedDB），除经 `apps/ai` 转发给模型外不额外上报。
 
 ## 5. 复用清单（不要重新发明）
 

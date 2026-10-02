@@ -152,14 +152,17 @@ export function isAiComposerMode(value: unknown): value is AiComposerMode {
 export const DEFAULT_AI_ACTIVITY_GLOW = true
 
 /**
- * 是否在会话里显示**工具调用**的状态卡片（执行中 / 完成 / 失败那一条）。
+ * 是否在会话里显示**详细信息** —— 目前包含两样：
+ * 1. **工具调用**的状态卡片（执行中 / 完成 / 失败那一条）；
+ * 2. **本轮用量**那一行（缓存命中 / 输入 / 输出 token）。
  *
- * 默认**关闭**：普通用户只关心回答内容，不关心中间调了哪个接口；
- * 打开后才会看到模型每一步在做什么，排查问题或想看 Agent 行为时再开。
+ * 默认**关闭**：普通用户只关心回答内容，不关心中间调了哪个接口、更不关心 token 账；
+ * 打开后才会看到模型每一步在做什么，排查问题（工具行为、prompt 前缀是否对齐）时再开。
  *
- * 注意它**不影响审批卡** —— 写操作的确认是必须的交互，不是可以隐藏的"输出"。
+ * 注意它**不影响审批卡 / 任务卡 / 跳转建议卡** —— 那几样是一次交互或核心进度回显，
+ * 不是可以隐藏的"输出"。
  */
-export const DEFAULT_AI_SHOW_TOOL_CALLS = false
+export const DEFAULT_AI_SHOW_DETAILS = false
 
 /**
  * AI 的小机器人头像（`bot-avatars` 包的 `type`）。
@@ -400,8 +403,8 @@ interface PreferencesState {
   aiComposerMode: AiComposerMode
   /** AI 进行中是否在视口四周显示流动光带 */
   aiActivityGlow: boolean
-  /** 是否在会话里显示工具调用的状态卡片（默认关，只给内容） */
-  aiShowToolCalls: boolean
+  /** 是否在会话里显示详细信息（工具调用卡片 + 本轮用量；默认关，只给内容） */
+  aiShowDetails: boolean
   /** AI 的小机器人头像形状（默认 clover） */
   aiBotAvatar: AiBotAvatar
   /** AI 的回答是边生成边显示，还是想完一次性给出（默认后者） */
@@ -431,7 +434,7 @@ interface PreferencesState {
   setAiSessionMode: (aiSessionMode: AiSessionMode) => void
   setAiComposerMode: (aiComposerMode: AiComposerMode) => void
   setAiActivityGlow: (aiActivityGlow: boolean) => void
-  setAiShowToolCalls: (aiShowToolCalls: boolean) => void
+  setAiShowDetails: (aiShowDetails: boolean) => void
   setAiBotAvatar: (aiBotAvatar: AiBotAvatar) => void
   setAiOutputMode: (aiOutputMode: AiOutputMode) => void
   setAiAutoScroll: (aiAutoScroll: boolean) => void
@@ -459,7 +462,7 @@ type PersistedPreferences = Pick<
   | 'aiSessionMode'
   | 'aiComposerMode'
   | 'aiActivityGlow'
-  | 'aiShowToolCalls'
+  | 'aiShowDetails'
   | 'aiBotAvatar'
   | 'aiOutputMode'
   | 'aiAutoScroll'
@@ -493,7 +496,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       aiSessionMode: DEFAULT_AI_SESSION_MODE,
       aiComposerMode: DEFAULT_AI_COMPOSER_MODE,
       aiActivityGlow: DEFAULT_AI_ACTIVITY_GLOW,
-      aiShowToolCalls: DEFAULT_AI_SHOW_TOOL_CALLS,
+      aiShowDetails: DEFAULT_AI_SHOW_DETAILS,
       aiBotAvatar: DEFAULT_AI_BOT_AVATAR,
       aiOutputMode: DEFAULT_AI_OUTPUT_MODE,
       aiAutoScroll: DEFAULT_AI_AUTO_SCROLL,
@@ -515,7 +518,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       setAiSessionMode: (aiSessionMode) => set({ aiSessionMode }),
       setAiComposerMode: (aiComposerMode) => set({ aiComposerMode }),
       setAiActivityGlow: (aiActivityGlow) => set({ aiActivityGlow }),
-      setAiShowToolCalls: (aiShowToolCalls) => set({ aiShowToolCalls }),
+      setAiShowDetails: (aiShowDetails) => set({ aiShowDetails }),
       setAiBotAvatar: (aiBotAvatar) => set({ aiBotAvatar }),
       setAiOutputMode: (aiOutputMode) => set({ aiOutputMode }),
       setAiAutoScroll: (aiAutoScroll) => set({ aiAutoScroll }),
@@ -554,7 +557,7 @@ export const usePreferencesStore = create<PreferencesState>()(
         aiSessionMode: state.aiSessionMode,
         aiComposerMode: state.aiComposerMode,
         aiActivityGlow: state.aiActivityGlow,
-        aiShowToolCalls: state.aiShowToolCalls,
+        aiShowDetails: state.aiShowDetails,
         aiBotAvatar: state.aiBotAvatar,
         aiOutputMode: state.aiOutputMode,
         aiAutoScroll: state.aiAutoScroll,
@@ -574,6 +577,14 @@ export const usePreferencesStore = create<PreferencesState>()(
        */
       merge: (persisted, current) => {
         const saved = (persisted ?? {}) as Partial<PersistedPreferences>
+        /*
+          旧存档迁移：这个开关原名 `aiShowToolCalls`（只控制工具卡片），后来扩成
+          「显示详细信息」（工具卡片 + 本轮用量）并改名为 `aiShowDetails` ——
+          旧值直接继承，不让已经打开它的用户再开一次。
+        */
+        const legacyShowToolCalls = (
+          saved as { aiShowToolCalls?: unknown }
+        ).aiShowToolCalls
         return {
           ...current,
           locale: isLocaleKey(saved.locale) ? saved.locale : current.locale,
@@ -611,10 +622,12 @@ export const usePreferencesStore = create<PreferencesState>()(
             typeof saved.aiActivityGlow === 'boolean'
               ? saved.aiActivityGlow
               : current.aiActivityGlow,
-          aiShowToolCalls:
-            typeof saved.aiShowToolCalls === 'boolean'
-              ? saved.aiShowToolCalls
-              : current.aiShowToolCalls,
+          aiShowDetails:
+            typeof saved.aiShowDetails === 'boolean'
+              ? saved.aiShowDetails
+              : typeof legacyShowToolCalls === 'boolean'
+                ? legacyShowToolCalls
+                : current.aiShowDetails,
           aiBotAvatar: isAiBotAvatar(saved.aiBotAvatar)
             ? saved.aiBotAvatar
             : current.aiBotAvatar,
