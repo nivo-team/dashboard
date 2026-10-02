@@ -13,9 +13,10 @@
 
 | 模块 | 迁移状态 | 本节内容 |
 | --- | --- | --- |
-| 用户列表（`$appId/users/user`） | ✅ 已迁移 | 功能 / 权限 / 4+1 条 AI 指令 / 数据源 `users` / 20 条测试 |
-| 用户详情（`$appId/users/user/$id`） | ✅ 已迁移 | 只读页：数据源 `user`、无指令 / 3 条测试 |
-| 新建 · 编辑（`…/new`、`…/$id/edit`） | ✅ 已迁移 | 表单桥（fill_form / submit_form）/ 4 条测试 |
+| 表格示例（`$appId/example/user`） | ✅ 已迁移并扁平化 | 功能 / 权限 / 5 条 AI 指令 / 数据源 `rows` / 20 条测试 |
+| 表格示例详情（`$appId/example/user/$id`） | ✅ 已迁移 | 只读页：数据源 `record`、无指令 / 3 条测试 |
+| 表格示例 新建 · 编辑（`…/new`、`…/$id/edit`） | ✅ 已迁移 | 表单桥（fill_form / submit_form）/ 4 条测试 |
+| 复杂表格（`$appId/example/complex-table`） | ✅ 新增 | 分组表头 / 展开行 / 列显隐 / 行选择 / 汇总行 / 数据源 `rows` + 3 条 UI 指令 / 6 条测试 |
 | 功能菜单树 · 详情（`$appId/system/features`） | ✅ 已迁移 | 三落点 / 数据源 ×3 + 表单桥（详情）/ 18 条测试 |
 | 数据字典分类列表（`$appId/system/data-dict`） | ✅ 已迁移 | 功能 / 接口 / 数据源 `dict-types`（无指令）/ 12 条测试 |
 | 数据字典分类详情（`$appId/system/data-dict/$typeId`） | ✅ 已迁移 | 三段式页面 / 数据源 ×2 + 表单桥 / 15 条测试 |
@@ -23,79 +24,80 @@
 | AI 助手（面板 / 全屏） | — | 面板两形态 / 全屏页 / 会话 / 输入区 / 卡片 / 15 条测试 |
 | 跨模块约定（AI 相关） | — | 权限·模式·跳转·写操作·页面数据·范围闸（测试时对照） |
 
-## users / 用户列表（`$appId/users/user`）
+## example / 表格示例（`$appId/example/user`）
 
-**代码**：`src/features/users/user/list/{index.tsx,feature.ts}` · 路由 `src/routes/$appId/users/user/index.tsx`
+**代码**：`src/features/table-example/{index.tsx,feature.ts,columns.tsx}` · 路由 `src/routes/$appId/example/user/index.tsx`
 
 **功能**
 - 分页列表（默认 15 条/页）、关键词搜索（`kw`）、多字段精确/范围筛选、服务端排序
 - 列设置（本机偏好，按应用隔离持久化）、多选与批量删除
 - 行菜单：查看（详情预览）/ 编辑 / 删除
-- 新建用户（按「表单打开方式」偏好：弹窗 / 分屏 / 独立页）
+- 新建记录（按「表单打开方式」偏好：弹窗 / 分屏 / 独立页）
 - 详情预览（分屏 / 抽屉 / 跳转独立页，随「详情打开方式」偏好）
 - 接口不可用时回落演示数据（不白屏）
 
-**权限点**：`user:create` · `user:edit` · `user:delete`（`user:export` 已在能力里声明、UI 尚未接入）
+**权限点**：`table-example:create` · `table-example:edit` · `table-example:delete`（`table-example:read` 由路由守卫与导航使用）
 
 **接口**：`GET /user` · `POST /user` · `PUT /user` · `DELETE /user/{id}` · `POST /user/batch-delete`
+（Mock 的 `/user` 接口路径**刻意保持不变**：改路径要同步契约产物，而权限 key / 模块名已统一为 `table-example`。）
 
 **AI 指令**（`run_page_command`，id 与页面按钮一一对应）
 
 | id | 何时用 | 类型 | 确认卡 |
 | --- | --- | --- | --- |
-| `create-user` | 用户要求新建 | navigate | 不需要（只是把表单摆出来） |
-| `edit-user` | 用户要求改某个用户（传 `id`） | navigate | 不需要 |
-| `open-user-detail` | 用户要看某个用户的详情（传 `id`） | navigate | 不需要（页面内分屏 / 抽屉 / 跳转） |
-| `delete-user` | 删除单个（传 `id`） | write | **必须**（标注不可撤销） |
-| `batch-delete-users` | 多选/多目标删除（传 `ids`） | write | **必须** |
+| `create-record` | 用户要求新建记录 | navigate | 不需要（只是把表单摆出来） |
+| `edit-record` | 用户要求改某条记录（传 `id`） | navigate | 不需要 |
+| `open-detail` | 用户要看某条记录的详情（传 `id`） | navigate | 不需要（页面内分屏 / 抽屉 / 跳转） |
+| `delete-record` | 删除单条（传 `id`） | write | **必须**（标注不可撤销） |
+| `batch-delete-records` | 多选/多目标删除（传 `ids`） | write | **必须** |
 
-**AI 数据源**：`users` —— 当前页的用户行（id/nickname/email/createtime/logintime）
+**AI 数据源**：`rows` —— 当前页的记录行（id/nickname/email/createtime/logintime）
 + 状态（关键词、筛选、分页、排序、总数、选中项、是否演示数据）。
 
 ### 测试清单
 
 | # | 步骤 | 预期 |
 | --- | --- | --- |
-| 1 | 打开 `/nivo/users/user` | 表格渲染、分页 15 条/页、无控制台报错 |
+| 1 | 打开 `/nivo/example/user` | 表格渲染、分页 15 条/页、无控制台报错 |
 | 2 | 搜索「张」 | URL 出现 `kw=张`、页码回 1、表格只剩匹配行 |
 | 3 | 高级筛选：注册时间范围 | 生效条件 chip 出现、表格按范围过滤 |
 | 4 | 点列头 `createtime` 排序 | URL 出现 `field=createtime&order=…`、顺序变化 |
 | 5 | 列设置里隐藏「邮箱」 | 列消失；刷新后仍隐藏（本机偏好） |
-| 6 | 行菜单 → 删除 → 确认 | toast「删除用户成功」、该行消失、总数 -1 |
-| 7 | 勾选 2 行 → 批量删除 → 确认 | toast「成功删除 2 个用户」、行消失、选中清空 |
-| 8 | 新建用户（三种打开方式各试一次）→ 提交 | toast「创建用户成功」、列表出现新用户 |
+| 6 | 行菜单 → 删除 → 确认 | toast「删除记录成功」、该行消失、总数 -1 |
+| 7 | 勾选 2 行 → 批量删除 → 确认 | toast「成功删除 2 条记录」、行消失、选中清空 |
+| 8 | 新建记录（三种打开方式各试一次）→ 提交 | toast「创建记录成功」、列表出现新记录 |
 | 9 | 点行 / 点昵称 | 按偏好打开详情（分屏 / 抽屉 / 跳转），数据正确 |
-| 10 | **AI·面板**：问「这一屏有多少个用户、都有谁」 | 调 `get_page_data`（**不再调接口**），回答与表格一致；数据含当前筛选与分页 |
-| 11 | **AI·面板**：说「把 XXX 删掉」 | 调 `run_page_command(delete-user)` → **确认卡**（含「执行后无法撤销」）→ 允许 → toast + **表格自动刷新** |
+| 10 | **AI·面板**：问「这一屏有多少条记录、都有谁」 | 调 `get_page_data`（**不再调接口**），回答与表格一致；数据含当前筛选与分页 |
+| 11 | **AI·面板**：说「把 XXX 删掉」 | 调 `run_page_command(delete-record)` → **确认卡**（含「执行后无法撤销」）→ 允许 → toast + **表格自动刷新** |
 | 12 | 承上，点「先不跳/拒绝」 | 工具报错，AI 说明被拒绝、**不重试同一条指令** |
-| 13 | **AI·面板**：说「新建一个叫测试的用户」 | `open_form` 打开表单并预填 → `submit_form` 确认卡 → 提交 → 列表出现 |
-| 14 | **AI·面板**：说「带我去用户列表」 | 跳转确认卡（带我去 / 本会话自动跳转 / 先不跳）；「本会话自动跳转」后再次跳转不再问 |
-| 15 | **AI·全屏**：说「看看用户列表」 | 不跳转；就地渲染表格 + 一张建议卡；`get_page_data` 不可用（工具未下发） |
+| 13 | **AI·面板**：说「新建一条叫测试的记录」 | `open_form` 打开表单并预填 → `submit_form` 确认卡 → 提交 → 列表出现 |
+| 14 | **AI·面板**：说「带我去表格示例」 | 跳转确认卡（带我去 / 本会话自动跳转 / 先不跳）；「本会话自动跳转」后再次跳转不再问 |
+| 15 | **AI·全屏**：说「看看表格示例」 | 不跳转；就地渲染表格 + 一张建议卡；`get_page_data` 不可用（工具未下发） |
 | 16 | 设置 → AI → 权限切「只读」 | AI 不再有 `run_page_command` / `call_write_api`；被要求删除时如实回答"权限没开" |
 | 17 | 切到 `ar-SA` | RTL 布局正常、新增文案齐全（列名 / 卡片 / 设置项） |
 | 18 | 关掉 mock（`pnpm mock`）后刷新 | 回落演示数据、页面不白屏 |
-| 19 | **AI·面板**：说「看一下 XXX 的详情」 | `run_page_command(open-user-detail)` → 按偏好打开详情预览（不跳页）；id 不在这一屏时明确报错、不打开空壳 |
+| 19 | **AI·面板**：说「看一下 XXX 的详情」 | `run_page_command(open-detail)` → 按偏好打开详情预览（不跳页）；id 不在这一屏时明确报错、不打开空壳 |
 | 20 | **AI·面板**：删除后立即问「现在这一屏还有谁」 | `get_page_data` 返回的是**刷新后**的数据（`reload` 已生效） |
 
-## users / 用户详情（`$appId/users/user/$id`）
+## example / 表格示例详情（`$appId/example/user/$id`）
 
-**代码**：`src/features/users/user/detail/{index.tsx,feature.ts,user-detail-view.tsx,user-detail.ts}`
+**代码**：`src/features/table-example/{detail-page.tsx,detail-feature.ts,detail-view.tsx,detail-loader.ts}`
 
-**功能**：查看单个用户资料（昵称/邮箱/注册时间等）、返回列表；**同一组件也被列表页的分屏预览复用**。
+**功能**：查看单条记录资料（昵称/邮箱/注册时间等）、返回列表；**同一组件也被列表页的分屏预览复用**。
 
 **AI 声明**：描述 + 实体 + `GET /user`（按 `kw` 精确查一条）+
-**数据源 `user`**（页面加载好的那个用户 + `loading` / `demoMode` / 路由上的 id）。
+**数据源 `record`**（页面加载好的那一条记录 + `loading` / `demoMode` / 路由上的 id）。
 **它是只读页，没有 `commands`** —— 指令与页面入口一一对应，这里没有会改数据的按钮。
 
 | # | 步骤 | 预期 |
 | --- | --- | --- |
-| 1 | 直接访问 `/nivo/users/user/10001` | 详情渲染、返回按钮回到列表 |
-| 2 | **AI·面板**：问「这个用户的注册时间和邮箱」 | 走 **`get_page_data`**（数据源 `user`），**不再调接口**；答案与页面一致 |
-| 3 | AI·面板：在详情页要求删除这个用户 | 该页没有删除指令 → 模型应回答"这一页不能删，去列表页"或提议 `navigate_to` 列表页，**不会静默调用 `call_write_api` 绕过页面** |
+| 1 | 直接访问 `/nivo/example/user/10001` | 详情渲染、返回按钮回到列表 |
+| 2 | **AI·面板**：问「这条记录的注册时间和邮箱」 | 走 **`get_page_data`**（数据源 `record`），**不再调接口**；答案与页面一致 |
+| 3 | AI·面板：在详情页要求删除这条记录 | 该页没有删除指令 → 模型应回答"这一页不能删，去列表页"或提议 `navigate_to` 列表页，**不会静默调用 `call_write_api` 绕过页面** |
 
-## users / 新建 · 编辑（`$appId/users/user/new`、`$appId/users/user/$id/edit`）
+## example / 表格示例 新建 · 编辑（`$appId/example/user/new`、`$appId/example/user/$id/edit`）
 
-**代码**：`src/features/users/user/create/*`、`src/features/users/user/edit/*`、共用表单 `src/features/users/user/form/*`
+**代码**：`src/features/table-example/{create-page.tsx,create-feature.ts,edit-page.tsx,edit-feature.ts}`、共用表单 `src/features/table-example/{form-view.tsx,form-dialog.tsx}`
 
 **功能**：表单录入 / 修改（昵称必填，邮箱与头像可选），提交后 toast + 返回列表。
 
@@ -105,9 +107,37 @@
 | # | 步骤 | 预期 |
 | --- | --- | --- |
 | 1 | 新建页只填邮箱提交 | 昵称校验报错、不提交 |
-| 2 | 编辑页改昵称提交 | toast「更新用户成功」、返回列表且列表显示新昵称 |
+| 2 | 编辑页改昵称提交 | toast「更新记录成功」、返回列表且列表显示新昵称 |
 | 3 | AI·面板：在新建页说「昵称填 测试A，邮箱 a@b.com」 | `fill_form` 写入字段（ask 模式先确认），输入框可见 |
 | 4 | AI：说「提交」 | `submit_form` → 确认卡 → 允许 → 成功；表单未变脏时直接拒绝、不弹卡 |
+
+## example / 复杂表格（`$appId/example/complex-table`）
+
+**代码**：`src/features/complex-table/{index.tsx,feature.ts,columns.tsx,data.ts}` · 路由 `src/routes/$appId/example/complex-table/index.tsx`
+
+**功能**
+- 分组表头（基本信息 / 分类与状态 / 数量与金额）
+- 可展开的父子行（订单 → 订单明细）
+- 列显隐（`TableControls` 的「显示选项」）
+- 行选择与清空选择
+- 汇总行（订单数 / 合计数量 / 合计金额）
+
+**权限点**：`table-example:read`（只读示例）
+
+**接口**：无 —— 数据为前端本地构造（`./data.ts`），示例页不新增契约。
+
+**AI 指令**：`expand-all-rows` / `collapse-all-rows` / `clear-row-selection`（UI 状态操作，直接执行）。
+
+**AI 数据源**：`rows` —— 当前展示的订单与明细行 + 状态（关键词、展开项、选中项）。
+
+| # | 步骤 | 预期 |
+| --- | --- | --- |
+| 1 | 打开 `/nivo/example/complex-table` | 多级表头渲染、无控制台报错 |
+| 2 | 点第一列展开箭头 | 展开订单明细；再点折叠 |
+| 3 | 「显示选项」隐藏「单价」 | 列消失、分组表头仍然正常 |
+| 4 | 勾选若干行 | 头部出现「已选择 N 项」与清空按钮 |
+| 5 | 底部汇总行 | 订单数 / 合计数量 / 合计金额随筛选变化 |
+| 6 | **AI·面板**：说「展开全部」「折叠全部」 | 调 `run_page_command(expand-all-rows / collapse-all-rows)`，表格展开态随之变化 |
 
 ## system / 数据字典分类列表（`$appId/system/data-dict`）
 
@@ -127,7 +157,7 @@
 **接口**：`GET /data_dict/type/tree`（**无参全量**，一次拉整棵树）· `POST /data_dict/type`（新建）·
 `PUT /data_dict/type`（更新）· `DELETE /data_dict/type/{id}`（删除）
 
-**AI 声明**：✅ **已接入**（`src/features/system/data-dict/list/feature.ts`）
+**AI 声明**：✅ **已接入**（`src/features/data-dict/list/feature.ts`）
 - **数据源** `dict-types`：根分类的直接子分类 + 它们的 `children`（id / name / code / 类型 / 状态 / 排序 / 备注）
   —— 用户问「有哪些分类」「某个分类下有什么」时**直接读页面数据，不用再拉全量树**
 - **`reload`**：写操作后重新取数
@@ -170,7 +200,7 @@
 **接口**：`GET /data_dict/type/tree` · `PUT /data_dict/type` · `GET /data_dict`（分页 + `kw` / `status`）·
 `POST /data_dict` · `PUT /data_dict` · `DELETE /data_dict/{id}`
 
-**AI 声明**：✅ **已接入**（`src/features/system/data-dict/detail/feature.ts`）
+**AI 声明**：✅ **已接入**（`src/features/data-dict/detail/feature.ts`）
 - **数据源** `dict-type`：当前分类（id / 名称 / 编码 / 键值类型 / 状态 / 排序 / 备注 / 上级分类名）
   + `hasUnsavedChanges`（用户刚改过还没保存时，AI 答得出来）
 - **数据源** `sub-types`：它的子分类
@@ -354,7 +384,7 @@
 ## 维护这份清单
 
 - **覆盖范围**：三个业务模块（users / system.features / system.data-dict / home）+ AI 助手 + 跨模块约定。
-  新增页面时在对应模块下补一节（照 `users / 用户列表` 的格式）。
+  新增页面时在对应模块下补一节（照 `users / 表格示例` 的格式）。
 - **迁移一个模块时**：把该节的「AI 声明」从"尚未接入"改成实际的 `feature.ts` 能力
   （`commands` / `dataSources`），并更新 [features-architecture.md](./features-architecture.md) §6 的现状表。
 - **测试清单的口径**：每条都要能照着点、且预期可观察（toast / 表格变化 / URL / 卡片）。

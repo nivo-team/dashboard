@@ -68,8 +68,8 @@
     return (
       <UserFormView
         variant="page"
-        onClose={() => navigate({ to: '/$appId/users/user', params: { appId } })}
-        onSuccess={() => navigate({ to: '/$appId/users/user', params: { appId } })}
+        onClose={() => navigate({ to: '/$appId/example/user', params: { appId } })}
+        onSuccess={() => navigate({ to: '/$appId/example/user', params: { appId } })}
       />
     )
   }
@@ -147,5 +147,5 @@ AI 填报操作由四个原子工具串联完成：
 
 ### 5.2 全局集中过滤点 (`filterPageCapabilities`)
 所有给模型消费的上下文（系统提示词、`get_page_context`、表单工具、页面清单）**统一流经 `filterPageCapabilities(spec, authContext)` 这一处函数**：
-- 严格遵循 `AGENTS.md` 铁律 4：当未来对接权限体系时，当前用户未获得的权限（如无 `user:edit`），其对应的表单、操作按钮与接口将**在此处直接被就地裁剪**；
+- 严格遵循 `AGENTS.md` 铁律 4：当未来对接权限体系时，当前用户未获得的权限（如无 `table-example:edit`），其对应的表单、操作按钮与接口将**在此处直接被就地裁剪**；
 - AI 永远只能感知当前用户实际拥有的合法能力，从根本上杜绝越权猜测与非法调用。

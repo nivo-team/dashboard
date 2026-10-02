@@ -20,7 +20,7 @@ import { ok } from '../utils/response'
  * ## 权限点命名
  *
  * `{模块}:{动作}`，动作取 `read` / `create` / `edit` / `delete` / `write`。
- * 模块名与 `feature.ts` 里声明的一致（`user` / `dict` / `feature`），
+ * 模块名与 `feature.ts` 里声明的一致（`table-example` / `dict` / `feature`），
  * 这样「页面能力、页面指令、AI 工具」三处说的是同一套语言。
  *
  * ## Mock 的三种角色
@@ -36,16 +36,16 @@ import { ok } from '../utils/response'
  * 否则「admin 不能删」会在判定第一道就被短路掉。
  */
 const ALL_PERMISSIONS = [
-  // 用户运营
-  'user:read',
-  'user:create',
-  'user:edit',
+  // 表格示例（模块名与权限 key 统一为 `table-example`）
+  'table-example:read',
+  'table-example:create',
+  'table-example:edit',
   // 更新（直连接口改一条记录）与编辑分开：客户端 UI 不会自动同步
-  'user:update',
-  'user:delete',
+  'table-example:update',
+  'table-example:delete',
   // AI 填写表单（只改页面状态、不落库）与提交（落库、不可撤销）分开 —— 风险等级不同
-  'user:fill',
-  'user:submit',
+  'table-example:fill',
+  'table-example:submit',
   // 数据字典
   'dict:read',
   'dict:create',
@@ -114,7 +114,7 @@ defineRouteMeta({
                   role: { type: 'string', description: '角色标识' },
                   permissions: {
                     type: 'array',
-                    description: '权限点，形如 user:delete',
+                    description: '权限点，形如 table-example:delete',
                     items: { type: 'string' },
                   },
                 },

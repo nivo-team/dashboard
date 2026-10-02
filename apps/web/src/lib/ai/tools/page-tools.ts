@@ -81,8 +81,8 @@ export function collectNavigation(appId: string | null): NavigationEntry[] {
 /**
  * 站内路径白名单：目标必须落在某个**已知导航项之下**。
  *
- * 为什么用「前缀」而不是「完全相等」：详情页（`/console/users/user/10001`）本来就不在导航清单里，
- * 但它属于「用户列表」这个导航项之下，是合法目标；而 `/evil` 这种凭空来的路径一律拒绝。
+ * 为什么用「前缀」而不是「完全相等」：详情页（`/console/example/user/10001`）本来就不在导航清单里，
+ * 但它属于「表格示例」这个导航项之下，是合法目标；而 `/evil` 这种凭空来的路径一律拒绝。
  * 这样模型既能带用户去看具体某条记录，又没法把页面导到未知位置。
  */
 export function isAllowedPath(path: string, appId: string | null): boolean {
@@ -172,7 +172,7 @@ export const listNavigationTool: AiToolDefinition = {
  * 目标路径对应的**可读页面名**（给确认卡 / 建议卡显示）。
  *
  * 取名规则与 `isAllowedPath` 同一套：优先精确命中导航项，否则取最长的前缀命中
- * （详情页 `/console/users/user/10001` → 「用户列表」）。取不到就退化成路径本身 ——
+ * （详情页 `/console/example/user/10001` → 「表格示例」）。取不到就退化成路径本身 ——
  * 卡片上永远不能出现空白标题。
  */
 function resolveTargetLabel(path: string, appId: string | null): string {
@@ -194,7 +194,7 @@ export const navigateToTool: AiToolDefinition = {
     properties: {
       path: {
         type: 'string',
-        description: '目标路径，例如 /console/users/user 或 /console/users/user/10001',
+        description: '目标路径，例如 /console/example/user 或 /console/example/user/10001',
       },
       reason: {
         type: 'string',
@@ -207,7 +207,7 @@ export const navigateToTool: AiToolDefinition = {
   /*
     归到 `read` 而不是 `act`：导航**不改变任何东西** —— 它只是把用户带到另一个页面，
     「看哪里」不是「改什么」。所以只读档也应该能用它；否则一个只读的 AI 连
-    「带我去用户列表」都做不到，那显然过严了。
+    「带我去表格示例」都做不到，那显然过严了。
 
     但「只读」不等于「免确认」：跳转会带离当前页面，所以**询问模式下**要用户点头
     （自动模式 = 始终允许，直接跳）。三个落点：

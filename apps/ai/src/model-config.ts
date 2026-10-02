@@ -152,7 +152,7 @@ export function resolveUpstream(env: AiEnv): UpstreamResolution {
  * provider 与模型路由由 AI Gateway 配置；这里只回答「请求体里的 `model` 要不要被服务端改写」：
  * 配了 `AI_MODEL_ID` 就**覆盖**客户端传来的 model（前端不必知道模型名），留空则透传。
  *
- * **注意**：这里只报 `hasApiKey` 的布尔值，绝不回显密钥内容。
+ * **注意**：这里只报 `hasProviderKey` / `hasGatewayToken` 的布尔值，绝不回显密钥内容。
  */
 export interface FixedModelConfig {
   providerKind: 'openai' | 'anthropic'

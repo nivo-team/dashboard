@@ -6,7 +6,7 @@ description: 本仓库数据表格开发规范（DataTable + TanStack Table v9 +
 # 数据表格开发
 
 适用：`src/routes/**` 下的列表页，以及 `src/components/data-table`、`src/components/table-controls`。
-**参考实现：`src/features/users/user/list/index.tsx`（用户列表：schema 生成 23 列 + 数组悬浮卡片 + 详情跳转；薄路由在 `src/routes/$appId/users/user/index.tsx`）。列顺序与默认可见性的最新做法见数据字典分类树 / 功能树（ID 列第一、默认全显示）。**
+**参考实现：`src/features/table-example/list/index.tsx`（表格示例：schema 生成 23 列 + 数组悬浮卡片 + 详情跳转；薄路由在 `src/routes/$appId/example/user/index.tsx`）。列顺序与默认可见性的最新做法见数据字典分类树 / 功能树（ID 列第一、默认全显示）。**
 
 ## 0. 数据来源：不重复定义数据模型
 
@@ -32,7 +32,7 @@ description: 本仓库数据表格开发规范（DataTable + TanStack Table v9 +
 8. **默认展示全部字段**：`DEFAULT_HIDDEN_COLUMNS` 默认为**空数组** ——「显示选项」是让用户按需临时收起的工具，不是设计上的默认收起项。确有必要默认收起时（如列表极宽），把列 id 加进这个数组并在注释里写清理由。
 9. **列 id 必须等于后端字段名**：排序时列 id 直接作为 `field` 参数发给后端，禁止驼峰改名（`wealth_lv` 不得写成 `wealthLevel`）。
 
-> 存量差异：`users/user`（10 列默认收起）与 `config/lang`（动态语言列）尚未按第 8 条迁移，改到它们时一并清空。
+> 存量差异：`example/user`（10 列默认收起）与 `config/lang`（动态语言列）尚未按第 8 条迁移，改到它们时一并清空。
 
 ## 2. 标准接入步骤
 
@@ -108,8 +108,8 @@ Kumo 的 `Table.Head` / `Table.Cell` 只接受物理 `left` / `right`，因此 `
 
 ### 2.4 树形表格（父子层级，可选）
 
-> 现有使用方：**数据字典分类树**（`src/features/system/data-dict/dict-type-table.tsx`）与
-> **功能树容器视图**（`src/features/system/features/feature-container.tsx`）。
+> 现有使用方：**数据字典分类树**（`src/features/data-dict/dict-type-table.tsx`）与
+> **功能树容器视图**（`src/features/menus/feature-container.tsx`）。
 > 展开态 hook 是 `#/components/data-table` 的 **`useTreeSearchExpanded`**；
 > 过滤纯函数是 `#/lib/tree-search` 的 **`filterTreeByMatch`**（UI 侧可从前者一处导入）。
 > 两个模块共用同一套交互，新模块照抄，不要再各写一份。

@@ -6,7 +6,7 @@ import { useEffect, useRef } from 'react'
  * ## 为什么需要它
  *
  * `call_write_api` 是**通用写通道**，它不知道当前页面的列表数据放在哪里。
- * 用户列表页就是**直接调 SDK 把结果塞进 React state**（`fetchUsers`，不走 react-query），
+ * 表格示例页就是**直接调 SDK 把结果塞进 React state**（`fetchUsers`，不走 react-query），
  * 于是 AI 删掉一条之后，页面上那一行还在 —— 用户读到的就是"没删掉"，而 AI 却在回答里
  * 说删成功了（这是最糟的一种不一致：**数据对了，界面骗人**）。
  *

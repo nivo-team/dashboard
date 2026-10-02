@@ -8,16 +8,19 @@ import { chatRoute } from './routes/chat'
 import { systemPromptRoute } from './routes/system-prompt'
 
 /**
- * AI 中间层（Hono on Cloudflare Workers）—— **本轮只做系统提示词拼接**。
+ * AI 中间层（Hono on Cloudflare Workers）—— **系统提示词拼接 + OpenAI 兼容透传**。
  *
  * 它在整条链路里的位置：
  *
  * ```text
- * 浏览器（现状：仍直连厂商，本轮不动）
- *    └─ 将来：POST /v1/system-prompt 取提示词，再交由网关出站
- *                    ↓
- *           本 Worker（无状态，规则在代码里）
+ * 浏览器（Vercel AI SDK，baseURL 指向本 Worker 的 /v1）
+ *    → POST /v1/chat/completions（messages + tools + promptFacts）
+ *    → 本 Worker：注入 system、剥离 promptFacts、注入上游凭证
+ *    → AI Gateway（provider / 模型路由 / 重试 / 缓存 / DLP）
+ *    → 厂商
  * ```
+ *
+ * 另有 `/v1/system-prompt`（不走对话链路地取提示词，见 `routes/system-prompt.ts`）。
  *
  * 三条刻意的边界：
  * - **不落数据库**：提示词与规则就是 `@admin/ai-prompt` 的代码，改规则 = 重新部署；
@@ -44,7 +47,7 @@ app.use('*', async (c, next) => {
 /**
  * 健康检查。
  *
- * 刻意**自述当前阶段**（`phase: 'prompt-only'`）与**脱敏未启用**（`redaction: false`）：
+ * 刻意**自述当前阶段**（`phase: 'gateway'`）与**脱敏未启用**（`redaction: false`）：
  * 这两个状态很容易被读成"已经安全了"，让它们出现在最容易被 curl 到的地方，
  * 就不会有人误判这个服务已经能兜住数据出站。
  */

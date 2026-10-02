@@ -389,7 +389,7 @@ export type PermissionsResult = {
          */
         role: string;
         /**
-         * 权限点，形如 user:delete
+         * 权限点，形如 table-example:delete
          */
         permissions: Array<string>;
     };

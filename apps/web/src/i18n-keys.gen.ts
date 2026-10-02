@@ -1,6 +1,6 @@
 /* eslint-disable */
 // 本文件由 scripts/i18n/gen-types.mjs 生成 —— 不要手改。
-// 源语言：zh-CN｜命名空间：10 个｜键：1002 个
+// 源语言：zh-CN｜命名空间：11 个｜键：1009 个
 // 重新生成：pnpm i18n:types
 
 /**
@@ -189,16 +189,17 @@ export interface I18nNamespaceKeys {
     | "detailPreview.expand"
     | "detailPreview.resize"
     | "language"
+    | "nav.complexTable"
     | "nav.config"
+    | "nav.example"
     | "nav.home"
     | "nav.langPack"
     | "nav.system"
     | "nav.systemDataDict"
     | "nav.systemMenus"
     | "nav.systemRoles"
-    | "nav.userDetail"
-    | "nav.userList"
-    | "nav.userOps"
+    | "nav.tableExample"
+    | "nav.tableExampleDetail"
     | "notFound.backHome"
     | "notFound.copied"
     | "notFound.copyLink"
@@ -474,6 +475,29 @@ export interface I18nNamespaceKeys {
     | "unsavedChanges.save"
     | "userMenu.ariaLabel"
     | "userMenu.logout"
+  "complex-table":
+    | "cell.selectAll"
+    | "cell.selectRow"
+    | "columns.amount"
+    | "columns.category"
+    | "columns.id"
+    | "columns.name"
+    | "columns.qty"
+    | "columns.status"
+    | "columns.unitPrice"
+    | "description"
+    | "empty.description"
+    | "empty.title"
+    | "groups.amount"
+    | "groups.basic"
+    | "groups.category"
+    | "moduleName"
+    | "searchPlaceholder"
+    | "status.active"
+    | "status.done"
+    | "status.pending"
+    | "summary"
+    | "title"
   "dashboard":
     | "cards.metrics.activeUsers"
     | "cards.metrics.badge"
@@ -942,15 +966,12 @@ export interface I18nNamespaceKeys {
     | "title"
     | "visible.hidden"
     | "visible.visible"
-  "users":
-    | "actions.batchDeleteWithCount"
+  "table-example":
     | "actions.create"
     | "cell.avatarAlt"
-    | "cell.no"
     | "cell.selectAll"
     | "cell.selectRow"
     | "cell.unnamed"
-    | "cell.yes"
     | "columns.actions"
     | "columns.avatar"
     | "columns.createtime"
@@ -965,13 +986,11 @@ export interface I18nNamespaceKeys {
     | "detail.fields.email"
     | "detail.fields.id"
     | "detail.fields.logintime"
-    | "detail.no"
     | "detail.notFoundDescription"
     | "detail.notFoundTitle"
     | "detail.retry"
     | "detail.sections.basic"
     | "detail.title"
-    | "detail.yes"
     | "dialogs.batchDelete"
     | "dialogs.batchDeleteConfirm"
     | "dialogs.batchDeleteTitle"
@@ -985,10 +1004,6 @@ export interface I18nNamespaceKeys {
     | "export.headers.id"
     | "export.headers.logintime"
     | "export.headers.nickname"
-    | "filters.apply"
-    | "filters.cancel"
-    | "filters.clear"
-    | "filters.title"
     | "form.avatarUrl"
     | "form.avatarUrlPlaceholder"
     | "form.cancel"
@@ -1004,18 +1019,11 @@ export interface I18nNamespaceKeys {
     | "form.nicknameRequired"
     | "form.save"
     | "form.updateSuccess"
-    | "import.cancel"
-    | "import.confirm"
-    | "import.description"
-    | "import.dropDescription"
-    | "import.dropHint"
-    | "import.title"
     | "messages.batchDeleteSuccess"
     | "messages.deleteSuccess"
     | "messages.fetchFailed"
     | "messages.networkFailed"
     | "moduleName"
-    | "refreshTooltip"
     | "rowActions.delete"
     | "rowActions.edit"
     | "rowActions.label"
@@ -1025,7 +1033,7 @@ export interface I18nNamespaceKeys {
 }
 
 /** 命名空间名。 */
-export type I18nNamespace = "ai" | "auth" | "common" | "dashboard" | "dataDict" | "langs" | "menus" | "roles" | "system" | "users"
+export type I18nNamespace = "ai" | "auth" | "common" | "complex-table" | "dashboard" | "dataDict" | "langs" | "menus" | "roles" | "system" | "table-example"
 
 /**
  * 可动态拼接的键前缀（来自 i18n.config.json 的 check.dynamicKeyPrefixes）。

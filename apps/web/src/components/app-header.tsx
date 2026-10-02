@@ -29,8 +29,8 @@ interface CrumbItem {
  * 根据当前路由动态提取面包屑链路。
  *
  * 导航层级与路由目录一一对应：
- * `/$appId/users/user` → 仪表盘 / 用户运营 / 用户列表
- * `/$appId/users/user/10001` → 仪表盘 / 用户运营 / 用户列表 / 10001
+ * `/$appId/example/user` → 仪表盘 / 示例 / 表格示例
+ * `/$appId/example/user/10001` → 仪表盘 / 示例 / 表格示例 / 10001
  */
 function useBreadcrumbs(): CrumbItem[] {
   const { t } = useTranslation()
@@ -45,7 +45,7 @@ function useBreadcrumbs(): CrumbItem[] {
   const homeLabel = t('nav.home', '仪表盘')
 
   // 剥离第一级前缀 appId（用于给后端区分具体 App，不参与面包屑计算）
-  // 例如："/console" 或 "/console/home" -> 仪表盘；"/console/users/user" -> 仪表盘 / 用户运营 / 用户列表
+  // 例如："/console" 或 "/console/home" -> 仪表盘；"/console/example/user" -> 仪表盘 / 示例 / 表格示例
   const segments = pathname.split('/').filter(Boolean)
   const appId = segments[0] || DEFAULT_APP_ID
   const subSegments = segments.slice(1)

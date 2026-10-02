@@ -7,7 +7,6 @@ import {
   SquaresFourIcon,
   SwatchesIcon,
   UserIcon,
-  UsersIcon,
 } from '@phosphor-icons/react'
 import { isMultiAppEnabled } from './app-config'
 import {
@@ -23,7 +22,7 @@ export interface NavSubItem {
   labelKey?: string
   to: string
   badge?: string
-  /** 绑定的 feature 或权限要求（如 'user:read' 或 ['user:read'] 或 'user'） */
+  /** 绑定的 feature 或权限要求（如 'table-example:read' 或 ['table-example:read'] 或 'table-example'） */
   feature?: string | string[] | PermissionRequirement
   features?: string | string[] | PermissionRequirement
   /** 访问该二级菜单所需的权限要求 */
@@ -78,7 +77,7 @@ export interface NavGroup {
 
 /**
  * 提取导航节点声明的 feature 或权限要求。
- * 兼容 features / feature / permission 三种声明方式，并对模块简写（如 'user'）智能补全为通配模式。
+ * 兼容 features / feature / permission 三种声明方式，并对模块简写（如 'table-example'）智能补全为通配模式。
  */
 export function getNavFeatureRequirement(
   target?: {
@@ -143,7 +142,7 @@ export function collectGroupFeatureRequirements(group: NavGroup): PermissionRequ
  *
  * 约定：导航层级与 `src/routes/$appId/` 下的模块目录一一对应。
  * 一个模块 = 一个目录，模块下的子模块 = 子目录，
- * 因此「用户运营（/users）→ 用户列表（/users/user）」也是「目录 → 子目录」。
+ * 因此「示例（/example）→ 表格示例（/example/user）」也是「目录 → 子目录」。
  */
 export const NAV_GROUPS: NavGroup[] = [
   {
@@ -161,31 +160,39 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    // 无分组标题：折叠分组（用户运营）自身已承载分组语义，避免重复的英文 group label
-    features: 'user:read',
+    // 「示例」模块：承载表格能力的样板页，权限 key 与模块名统一为 `table-example`
+    features: 'table-example:read',
     items: [
       {
-        label: '用户运营',
-        labelKey: 'nav.userOps',
-        to: '/users',
-        icon: UsersIcon,
-        keywords: ['user', 'users', '用户', '用户运营', 'user ops'],
-        // 用户运营后续还会挂载更多子模块，默认折叠，避免侧边栏过长
-        defaultOpen: false,
-        features: 'user:read',
+        label: '示例',
+        labelKey: 'nav.example',
+        to: '/example',
+        icon: SquaresFourIcon,
+        keywords: ['example', 'examples', 'demo', 'table', '示例', '样例', '表格'],
+        // 示例模块默认展开，方便新用户一眼看到「表格示例 / 复杂表格」
+        defaultOpen: true,
+        features: ['table-example:read'],
+        // 两个示例页彼此独立，任一可读就该看到入口（子项各自按权限收敛）
+        groupPermissionMode: 'any',
         children: [
           {
-            label: '用户列表',
-            labelKey: 'nav.userList',
-            to: '/users/user',
-            features: 'user:read',
+            label: '表格示例',
+            labelKey: 'nav.tableExample',
+            to: '/example/user',
+            features: 'table-example:read',
+          },
+          {
+            label: '复杂表格',
+            labelKey: 'nav.complexTable',
+            to: '/example/complex-table',
+            features: 'table-example:read',
           },
         ],
       },
     ],
   },
   {
-    // 系统管理：与用户运营同样是折叠分组，模块较多（菜单管理 / 数据字典 / 角色管理）
+    // 系统管理：与示例同样是折叠分组，模块较多（菜单管理 / 数据字典 / 角色管理）
     features: ['feature:read', 'dict:read', 'role:read'],
     /*
       **显式 'any'**：`/system` 是容器路由，几个子模块（菜单管理 / 数据字典 / 角色管理）

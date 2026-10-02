@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { NewFeaturePage } from '#/features/system/menus/create'
+import { NewFeaturePage } from '#/features/menus/create'
 import { guardRoutePermission } from '#/lib/app-route-guard'
 
 /**

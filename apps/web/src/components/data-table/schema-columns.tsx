@@ -209,7 +209,7 @@ function createDefaultRenderers<TData>(): Record<SchemaRenderKind, ColumnRendere
  * @example
  * ```tsx
  * const columns = useSchemaColumns<UserItem>(UserItemSchema, {
- *   ns: 'users',
+ *   ns: 'table-example',
  *   columns: ['nickname', 'id', 'email'],
  *   sortable: ['nickname', 'id'],
  *   baseMeta: { headerClassName: 'min-w-[120px]' },

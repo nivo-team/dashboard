@@ -1,5 +1,5 @@
 import { LinkButton } from '@cloudflare/kumo'
-import { DatabaseIcon, TreeStructureIcon, UsersIcon } from '@phosphor-icons/react'
+import { DatabaseIcon, TableIcon, TreeStructureIcon } from '@phosphor-icons/react'
 import { useTranslation } from 'react-i18next'
 import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
 
@@ -21,9 +21,9 @@ export function QuickActionsCard() {
 
   const actions = [
     {
-      to: `/${appId}/users/user`,
-      label: t('nav.userList', { ns: 'common', defaultValue: '用户列表' }),
-      icon: UsersIcon,
+      to: `/${appId}/example/user`,
+      label: t('nav.tableExample', { ns: 'common', defaultValue: '表格示例' }),
+      icon: TableIcon,
     },
     {
       to: `/${appId}/system/menus`,

@@ -292,9 +292,10 @@
     "config": "配置",
     "langPack": "语言包",
     "home": "仪表盘",
-    "userOps": "用户运营",
-    "userList": "用户列表",
-    "userDetail": "用户详情"
+    "example": "示例",
+    "tableExample": "表格示例",
+    "tableExampleDetail": "表格示例详情",
+    "complexTable": "复杂表格"
   },
   "notFound": {
     "backHome": "返回首页",

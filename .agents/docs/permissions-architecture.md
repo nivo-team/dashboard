@@ -37,7 +37,7 @@ hasPermission(requirement?: PermissionRequirement, context?)     // 增强签名
 
 | 形态 | 语义 |
 |---|---|
-| `'user:read'` | 单权限点，支持 `*` 通配模块或动作 |
+| `'table-example:read'` | 单权限点，支持 `*` 通配模块或动作 |
 | `['a:read', 'b:read']` | **全部满足**（ALL） |
 | `{ any: [...] }` | 任一满足 |
 | `{ all: [...] }` | 全部满足 |
@@ -118,7 +118,7 @@ const permissionContext = usePermissionContext()   // { role, permissions, isSup
 > **注意 any 只放宽「入口是否可见」，不放宽任何实际权限**：组内子项仍各自按权限收敛
 > （只有 `dict:read` 时「功能」子项照样隐藏）。
 >
-> 「用户运营」这类**单一子模块**的组保持默认 `'all'`（all/any 等价，无需显式声明）。
+> 「示例」这类**单一子模块**的组保持默认 `'all'`（all/any 等价，无需显式声明）。
 
 ## 6. 路由守卫
 
@@ -139,9 +139,9 @@ export async function guardRoutePermission({ appId, href, permission, fallbackTo
 
 | 路由 | 权限 |
 |---|---|
-| `/$appId/users` | `user:read` |
-| `/$appId/users/user/new` | `user:create` |
-| `/$appId/users/user/$id/edit` | `user:edit` |
+| `/$appId/example` | `table-example:read` |
+| `/$appId/example/user/new` | `table-example:create` |
+| `/$appId/example/user/$id/edit` | `table-example:edit` |
 | `/$appId/system` | `{ any: ['feature:read', 'dict:read'] }` |
 | `/$appId/system/features` | `feature:read` |
 | `/$appId/system/features/new` | `feature:create` |
@@ -155,7 +155,7 @@ export async function guardRoutePermission({ appId, href, permission, fallbackTo
 
 | 位置 | 权限点 |
 |---|---|
-| 用户列表：新建 / 批量删除 / 行内编辑+删除 | `user:create` / `user:delete` / `user:edit` |
+| 表格示例：新建 / 批量删除 / 行内编辑+删除 | `table-example:create` / `table-example:delete` / `table-example:edit` |
 | 功能树：新建入口、行内编辑+删除、组视图编辑+删除 | `feature:create` / `feature:edit` / `feature:delete` |
 | 功能详情：添加权限、权限行内编辑+删除、危险区删除功能 | `feature:create` / `feature:edit` / `feature:delete` |
 | **功能详情：表单只读 + 页头开关禁用 + 浮条不出** | `feature:edit` |
@@ -218,7 +218,7 @@ Mock 里 `Viewer` 刻意**保留 `role:read` 权限点、却不含「角色管�
 没有单测框架，改动后用「执行真实 mock 接口 + 真实判定函数」的 harness 验证
 （stub 掉 `react` / `zustand` / phosphor 图标即可直接跑 TS 源码）。至少覆盖：
 
-- `Admin` 的 `isSuperAdmin === false`，且 `feature:delete` / `user:delete` / `dict:delete` 均为 `false`；
+- `Admin` 的 `isSuperAdmin === false`，且 `feature:delete` / `table-example:delete` / `dict:delete` 均为 `false`；
 - `Viewer` 全部 `:read` 为 `true`、`create/edit/delete` 为 `false`；
 - 真实 `GET /permissions` 对三个 token 反查出的 role 正确；
-- 只拥有 `user:read` 时「系统」组整组隐藏。
+- 只拥有 `table-example:read` 时「系统」组整组隐藏。

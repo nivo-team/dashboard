@@ -590,7 +590,7 @@ export const PermissionsResultSchema = {
                 },
                 permissions: {
                     type: 'array',
-                    description: '权限点，形如 user:delete',
+                    description: '权限点，形如 table-example:delete',
                     items: {
                         type: 'string'
                     }

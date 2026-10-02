@@ -192,7 +192,7 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
 **页面级 AI 上下文**是这套设计的核心：每个页面用 `useAiPageContext(Route.id, { description,
 endpoints })` 声明「我是干什么的、我用了哪些接口」。动机是真实踩坑 —— 全局接口清单有
 600+ 条且**不含参数**，模型只能猜；它曾用 `query: { uid }` 调 `GET /user/info`（要 `id`），
-而用户详情页实际用的是 `GET /user` 的 `uid` 精确查询。**光看清单分不出这两者的差别**。
+而表格示例详情页实际用的是 `GET /user` 的 `uid` 精确查询。**光看清单分不出这两者的差别**。
 
 **参数明细不手写**：由 `scripts/gen-endpoint-specs.js` 从 `openapi.json` 生成
 （已并入 `pnpm api`）。`/api` 前缀在消费侧归一化（同一份 openapi 里 450 条不带、18 条带）。
@@ -319,7 +319,7 @@ useAiPageContext(Route.id, {
     变成了"本会话不再问"，与按钮字面意思自相矛盾。跳转卡的「带我去」正是靠 `once` 才做到
     "就这一次"。
 17. **写操作不会自己刷新页面**：`call_write_api` 是通用通道，不知道页面数据放在哪。
-    用户列表页**直接调 SDK 塞 React state**（不走 react-query），所以只 `invalidateQueries()`
+    表格示例页**直接调 SDK 塞 React state**（不走 react-query），所以只 `invalidateQueries()`
     对它完全无效 —— 删完那一行还在，用户读成"没删掉"。两条路都要有：
     **页面登记重载**（`page-reload-bridge` 的 `useAiPageReload(fetchUsers)`，保留筛选/分页）
     优先，react-query 的 `invalidateQueries()` 兜底。
@@ -769,7 +769,7 @@ useAiPageContext(Route.id, {
   所以 `findEndpointSpec` 会依次试「原样 / 去 `/api` / 加 `/api`」三种写法。
   那份索引 **363 KB（gzip 23.6 KB）**，**按需懒加载**，不进主 bundle —— 它只被
   `import type` 与动态 `import()` 引用，别改成静态 import。
-  参考实现：`$appId/users/user/index.tsx`（用户列表页）。
+  参考实现：`$appId/example/user/index.tsx`（表格示例页）。
 - **系统提示词只描述「模式」，不复述「权限」**（`buildSystemPrompt`）：权限那一维由
   **本轮实际交给模型的工具清单**精确表达。提示词里再写一句"你只能读"，就会与工具清单
   形成**分叉** —— 真实踩过：`navigate_to` 已经放进只读档，模型却照着旧提示词回答

@@ -5,7 +5,7 @@
 
 - 能力实现：[`apps/web/src/components/detail-preview/`](../apps/web/src/components/detail-preview/detail-preview.tsx)
 - 偏好存储：`admin.preferences:<appId>` 的 `detailOpenMode`（[store.md](./store.md)）
-- 参考实现：[用户列表](../apps/web/src/features/users/user/list/index.tsx) + [用户详情视图](../apps/web/src/features/users/user/detail/user-detail-view.tsx)
+- 参考实现：[表格示例](../apps/web/src/features/table-example/list/index.tsx) + [表格示例详情视图](../apps/web/src/features/table-example/detail/user-detail-view.tsx)
 - 表格侧的整行点击：[`DataTable` 的 `onRowClick`](../apps/web/src/components/data-table/data-table.tsx)
 
 ## 1. 三种打开方式
@@ -308,7 +308,7 @@ Provider 监听 `location.href`：点侧边栏、面包屑、浏览器前进后�
 ## 7. 详情预览：表格内的分屏 / 右侧抽屉 (Detail Preview)
 
 「点表格一行，不离开列表就能看详情」是通用能力 —— 完整说明、接入清单与坑见
-**[.agents/docs/detail-preview.md](./.agents/docs/detail-preview.md)**；参考实现是用户列表 + 用户详情视图。
+**[.agents/docs/detail-preview.md](./.agents/docs/detail-preview.md)**；参考实现是表格示例 + 表格示例详情视图。
 
 - 能力在 `#/components/detail-preview`（`DetailPreviewProvider` / `useDetailPreview`），
   挂在 `AppShell` 里，**同时是状态源与布局容器**；三种打开方式由 `detailOpenMode` 决定

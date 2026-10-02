@@ -96,7 +96,7 @@ export function resolveNavLabel(labelKey: string | undefined, fallback: string):
  * 业务导航（`ALL_NAV_TARGETS`）的 `to` 是**相对 appId** 的，要先补上 `/<appId>` 前缀；
  * 外壳导航（`ALL_SHELL_NAV_TARGETS`）本来就是绝对路径 —— 这两份数据源的差异见 `#/lib/navigation`。
  *
- * 边界对齐很重要：`/users/user` 不该匹配到 `/users/user-archive`，所以除了相等之外
+ * 边界对齐很重要：`/example/user` 不该匹配到 `/example/user-archive`，所以除了相等之外
  * 只接受「后面紧跟 `/`」的情况。
  */
 /**
@@ -133,7 +133,7 @@ export function matchNavLabel(pathname: string, appId: string | null): string | 
     candidates.push({ path: item.to, labelKey: item.labelKey, label: item.label })
   }
 
-  // 最长前缀优先：`/users/user/10001` 同时命中「用户列表」与「用户运营」时取更具体的那个
+  // 最长前缀优先：`/example/user/10001` 同时命中「表格示例」与「示例」时取更具体的那个
   const hit = candidates
     .filter(
       (item) =>

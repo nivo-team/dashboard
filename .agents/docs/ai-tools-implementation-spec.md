@@ -130,7 +130,7 @@ export const DATA_READ_GRANT = 'data:read'
 ```ts
 await ctx.requestApproval({
   toolName: DATA_READ_GRANT,
-  input: { tool: 'get_page_data', source: '用户列表（当前页）' },
+  input: { tool: 'get_page_data', source: '表格示例（当前页）' },
   reason: 'AI 想读取当前页面的表格数据（敏感字段已脱敏）',
 })
 ```
@@ -277,7 +277,7 @@ return { ok: true, value: /* 标量或 ≤100 项的小数组 */ }
   submitPermission?: string
 ```
 
-**页面声明**（`features/users/user/list/feature.ts` 等）按下面的口径补：
+**页面声明**（`features/table-example/list/feature.ts` 等）按下面的口径补：
 
 | 动作 | 权限点 |
 |---|---|
@@ -303,7 +303,7 @@ return { ok: true, value: /* 标量或 ≤100 项的小数组 */ }
 
 | # | 任务 | 写入范围（**只许动这些**） |
 |---|---|---|
-| **T1** | 字段注解 + 脱敏 + 读数据授权 + 权限点细分（一条链） | `lib/features/types.ts`、`lib/ai/page-capabilities.ts`、`lib/ai/content-redact.ts`(新)、`lib/ai/tools/feature-tools.ts`、`lib/ai/session-permissions.ts`、`lib/ai/tools/data-tools.ts`(只加 `*:update`)、`features/users/user/list/feature.ts`、`features/system/data-dict/list/feature.ts` |
+| **T1** | 字段注解 + 脱敏 + 读数据授权 + 权限点细分（一条链） | `lib/features/types.ts`、`lib/ai/page-capabilities.ts`、`lib/ai/content-redact.ts`(新)、`lib/ai/tools/feature-tools.ts`、`lib/ai/session-permissions.ts`、`lib/ai/tools/data-tools.ts`(只加 `*:update`)、`features/table-example/list/feature.ts`、`features/data-dict/list/feature.ts` |
 | **T2** | `check_result_match`（新工具，独占新文件） | `lib/ai/tools/check-result-match-tool.ts`(新) |
 | **T3** | `analyze_data`（新工具，独占新文件） | `lib/ai/tools/analyze-tool.ts`(新) |
 | **T4** | 统一注册 + 上下文扩展 + 计数器（**Lead 做**） | `lib/ai/tools/index.ts`、`lib/ai/types.ts`、`lib/ai/chat.ts`、`lib/ai/session-store.ts` |
@@ -387,7 +387,7 @@ return { ok: true, value: /* 标量或 ≤100 项的小数组 */ }
 
 ### 尚未做（后续）
 
-- **其余 8 个 `feature.ts` 还没补 `fields` 注解** —— 现在只有 `users/user/list` 与 `data-dict/list`
+- **其余 8 个 `feature.ts` 还没补 `fields` 注解** —— 现在只有 `table-example` 与 `data-dict/list`
   有注解；没注解的页面里 `analyze_data` 会明确抛错（这是刻意的：宁缺勿猜）。
 - **`type` 没有 `array`** —— data-dict 的 `children`（嵌套数组）因此未注解。
 - **`data-dict/list` 没有 `forms`** —— 它的写入口在组件内，无处声明 `fillPermission` / `submitPermission`。

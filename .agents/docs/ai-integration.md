@@ -239,7 +239,7 @@ interface AiToolDefinition<Input = unknown> {
 （校验通过 + 确实有改动）就是「信息足够」最可靠的可判定表达，比让模型自述可信得多。
 
 **跳转（`navigate_to`）是一条独立于写操作的规则**：它归 `read` 档 —— 只读档也必须有它，
-否则只读的 AI 连「带我去用户列表」都做不到 —— 但它会把用户**带离当前页面**，
+否则只读的 AI 连「带我去表格示例」都做不到 —— 但它会把用户**带离当前页面**，
 所以**询问模式下**要用户点头（**自动模式 = 始终允许，直接跳**）：
 
 | 容器 | 形态 |
@@ -287,7 +287,7 @@ interface AiToolDefinition<Input = unknown> {
 4. **拒绝即抛错**：错误文案里带「不要重试同一个请求」，让模型如实向用户说明，而不是假装成功；
 5. **成功后刷新页面数据**：优先走页面登记的 `page-reload-bridge`（`useAiPageReload`，
    保留筛选/分页/排序），页面没登记时退回 `queryClient.invalidateQueries()` ——
-   列表页可能把数据放在 React state 里（用户列表页就是），不刷新就会出现「AI 说删了、
+   列表页可能把数据放在 React state 里（表格示例页就是），不刷新就会出现「AI 说删了、
    界面上还在」。
 
 另外返回值要**截断**（列表接口动辄几百条），并在截断时明确告知模型「还有更多数据」，让它改用分页参数而不是把整个响应塞进上下文。
@@ -302,8 +302,8 @@ interface AiPageContext {
   appName: string | null
   url: string            // 完整 URL（含 search / hash）—— 用户强调过这是最关键的资源
   pathname: string
-  routeId: string | null // TanStack Router 的路由模板，如 /$appId/users/user/$uid
-  breadcrumb: string[]   // 首页 / 用户运营 / 用户列表
+  routeId: string | null // TanStack Router 的路由模板，如 /$appId/example/user/$uid
+  breadcrumb: string[]   // 首页 / 示例 / 表格示例
   title: string | null   // 页面标题
 }
 ```

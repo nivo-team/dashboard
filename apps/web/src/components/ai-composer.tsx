@@ -189,7 +189,7 @@ function formatFileSize(bytes: number): string {
  * `zhang@example.com` 里的 `@example` 也会被当成引用）。
  *
  * 返回的 `start` 指向 `@` 本身：选中菜单项时用它把这段替换掉。
- * `query` 允许中文与 `:`（`@用户` / `@user:li` 都能搜）。
+ * `query` 允许中文与 `:`（`@示例` / `@table-example:li` 都能搜）。
  */
 function parseMentionQuery(draft: string): { query: string; start: number } | null {
   const match = /(^|\s)@([^\s@]*)$/.exec(draft)
@@ -218,7 +218,7 @@ function parseMentionQuery(draft: string): { query: string; start: number } | nu
  * 触发按钮只是触发点，不是锚点（挂在颗小圆钮下面的浮层看着像另一个东西的附属品）。
  *
  * 其一：**`@` 引用面板**（命令面板的形态）—— 打 `@`、或点「+ → 引用位置」就浮出来，可以引用
- * 「哪个模块 / 哪个页面 / 哪一条记录」（`@user` / `@user:list` / `@user:1234`），
+ * 「哪个模块 / 哪个页面 / 哪一条记录」（`@table-example` / `@table-example:list` / `@table-example:1234`），
  * 另有一段「添加」放附件入口。行按 `kind` 分段，行内是「名字 + 灰色语法 + 右侧说明」。
  * 行的内容来自 `#/lib/ai/route-refs` —— 名字、图标、匹配词都取自导航清单，**这里不另加名单**；
  * 展开成路径那一步在发给模型时（`runtime.toModelMessages`）做，所以用户看到的还是自己打的那串字。
@@ -296,7 +296,7 @@ export function AiComposer({
   const [mentionActive, setMentionActive] = useState(0)
 
   /*
-    刚点了「记录」那一行（插入 `@user:`）：接下来用户是**在补 ID**，这期间不能再弹菜单 ——
+    刚点了「记录」那一行（插入 `@table-example:`）：接下来用户是**在补 ID**，这期间不能再弹菜单 ——
     否则每敲一个数字，同一块面板就会弹回来一次。补到打了空格（或把冒号删了）就恢复正常。
   */
   const recordTypingRef = useRef(false)
@@ -340,7 +340,7 @@ export function AiComposer({
   const mentionRowDisabled = (row: AiRouteRefItem) =>
     row.kind === 'add' && !supportsVision
 
-  /** 一行的匹配规则：名字 / 语法 / 说明 / 导航关键词四处都能命中（所以 `@用户` 与 `@user` 一样好使） */
+  /** 一行的匹配规则：名字 / 语法 / 说明 / 导航关键词四处都能命中（所以 `@示例` 与 `@table-example` 一样好使） */
   const mentionRowMatches = (row: AiRouteRefItem) => {
     const query = mentionToken?.query.trim().toLowerCase()
     if (!query) return true
@@ -353,9 +353,9 @@ export function AiComposer({
   }
 
   /**
-   * 面板的行。一处特别的兜底：`@user:1234` 是**合法的记录引用**，但没有任何一行的文案里
+   * 面板的行。一处特别的兜底：`@table-example:1234` 是**合法的记录引用**，但没有任何一行的文案里
    * 含 `1234` —— 照普通规则它只会落到「没有匹配」。所以一条都没匹配上、而查询里又带着冒号时，
-   * 把该模块的**记录行**留着（用户看到的是「用户详情」那一行），面板不闪、也不误报「没匹配上」。
+   * 把该模块的**记录行**留着（用户看到的是「表格示例详情」那一行），面板不闪、也不误报「没匹配上」。
    */
   const mentionRows = (() => {
     if (!mentionOpen) return []
@@ -465,7 +465,7 @@ export function AiComposer({
 
     const token = parseMentionQuery(next)
     if (recordTypingRef.current) {
-      // 还在补记录 ID（`@user:1234`）：继续压着菜单；冒号被删掉或整段没了就解除
+      // 还在补记录 ID（`@table-example:1234`）：继续压着菜单；冒号被删掉或整段没了就解除
       if (!token || !token.query.includes(':')) {
         recordTypingRef.current = false
       } else {
@@ -499,7 +499,7 @@ export function AiComposer({
       return
     }
 
-    // 记录模板（`@user:`）**不留尾空格**：光标停在冒号后面，等用户补上 ID
+    // 记录模板（`@table-example:`）**不留尾空格**：光标停在冒号后面，等用户补上 ID
     setValue(`${head}@${row.token}${row.record ? '' : ' '}`)
     recordTypingRef.current = row.record === true
     setMentionOpen(false)
@@ -515,7 +515,7 @@ export function AiComposer({
    */
   const startMention = () => {
     recordTypingRef.current = false
-    // 前一个字符不是空白就补一个空格，别把 `@` 粘在词尾上（`看看@user` 解析不出来）
+    // 前一个字符不是空白就补一个空格，别把 `@` 粘在词尾上（`看看@table-example` 解析不出来）
     setValue((prev) => (prev === '' || /\s$/.test(prev) ? `${prev}@` : `${prev} @`))
     setMentionOpen(true)
     setMentionActive(0)
@@ -961,7 +961,7 @@ export function AiComposer({
                       }
                     >
                       <RowIcon size={15} className="shrink-0 text-kumo-subtle" />
-                      {/* 主行是**名字**（用户列表）——语法在右边，灰一点、小一号 */}
+                      {/* 主行是**名字**（表格示例）——语法在右边，灰一点、小一号 */}
                       <span className="shrink-0 truncate text-sm text-kumo-default">
                         {row.name}
                       </span>
