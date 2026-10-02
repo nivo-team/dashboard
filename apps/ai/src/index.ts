@@ -38,7 +38,28 @@ app.use('*', async (c, next) => {
   const handler = cors({
     origin: (origin) => resolveAllowedOrigin(origin, c.env.ALLOWED_ORIGINS),
     allowMethods: ['GET', 'POST', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization'],
+    /*
+      **必须覆盖 SDK 实际发出的每一个头** —— 少一个，浏览器就让整条预检失败，表现为
+      「后端明明在跑，前端一个请求都发不出去」，报错形如：
+      `Request header field User-Agent is not allowed by Access-Control-Allow-Headers`。
+
+      实测（AI SDK 的 openai-compatible provider + Safari）会带：
+      `content-type`、`authorization`、`accept`（SSE 流）与 `user-agent`；
+      Safari 会把 `user-agent` 纳入预检（它是 forbidden header，Chrome 通常不列进来，
+      所以这个坑只在 Safari 上暴露）。缓存相关头一并放行，避免换个浏览器又少一个。
+      这些头本身不带权限语义 —— 真正的边界是 origin 白名单 + 上游凭证。
+    */
+    allowHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'User-Agent',
+      'Cache-Control',
+      'Pragma',
+      'X-Requested-With',
+    ],
+    /* 让页面能读到自述头（`x-nivo-ai`）与网关诊断头，便于排查与抓包 */
+    exposeHeaders: ['x-nivo-ai'],
     maxAge: 86_400,
   })
   return handler(c, next)

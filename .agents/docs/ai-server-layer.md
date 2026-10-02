@@ -715,6 +715,7 @@ REST API 提供**四个**端点（都走同一份 Cloudflare 账单与网关能�
 | 6 | **AI Gateway 令牌是账户级** | 无法按 gateway 收窄；多租户靠分账户或 Worker binding（§10.6） |
 | 7 | **沙箱内 `wrangler dev` 失败** | 用 esbuild + `app.request()` 验证（§6） |
 | 8 | **CORS ≠ 鉴权** | 生产必须在 `ALLOWED_ORIGINS` 显式列域名 |
+| 9 | **CORS 的 `allowHeaders` 少一个头 = 前端完全发不出请求** | AI SDK 会带 `accept` 与 `user-agent`，后者只在 **Safari** 上进入预检（Chrome 不列）—— 报错是 `Request header field User-Agent is not allowed...`。放行清单见 `apps/ai/src/index.ts`，排查方式见 `apps/ai/README.md` 的「浏览器接入的两个坑」 |
 
 ---
 

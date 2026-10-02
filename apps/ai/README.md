@@ -62,6 +62,19 @@ src/env.ts                    vars / secrets 类型边界
 | `AI_GATEWAY_TOKEN` | **secret** | Cloudflare 令牌（`rest-api` 下是 `Authorization: Bearer`，需 **Workers AI > Read**；`provider-native` 下是 `cf-aig-authorization`） |
 | `AI_PROVIDER_API_KEY` | **secret** | 厂商 key（`direct` 模式必需；`provider-native` 下作为上游 key；**BYOK 时留空**） |
 
+### 浏览器接入的两个坑（都会表现成"后端在跑，前端一个请求都发不出去"）
+
+1. **`allowHeaders` 必须覆盖 SDK 实际发出的每一个头**（[`src/index.ts`](./src/index.ts)）：
+   AI SDK 的 openai-compatible provider 会带 `content-type` / `authorization` / `accept`（SSE）
+   与 `user-agent`。**Safari 会把 `user-agent` 纳入预检**（Chrome 通常不列），少放行一个头，
+   浏览器就让整条预检失败，报错形如
+   `Request header field User-Agent is not allowed by Access-Control-Allow-Headers`。
+   排查：对端点发一次带 `Access-Control-Request-Headers` 的 `OPTIONS`，看回显的
+   `access-control-allow-headers` 是否覆盖它。
+2. **来源必须精确匹配**：`ALLOWED_ORIGINS` 按**原样字符串**比较（`http://localhost:3000`
+   与 `http://127.0.0.1:3000` 是两个来源）；未命中的来源不会拿到 `Access-Control-Allow-Origin`，
+   浏览器侧直接拒绝读取。
+
 **REST API 形态的一行配置示例**（`https://api.cloudflare.com/.../ai/v1/chat/completions`）：
 
 ```toml
