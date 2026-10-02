@@ -57,11 +57,11 @@ Cloudflare AI Gateway（provider 路由 / 模型 / 重试回退 / 缓存 / 限�
 
 ### 1.2 规则在服务端，事实由客户端上报
 
-这是「前端拆不出提示词」能成立的原因：**规则**（身份 / 范围闸 / 能力 / 工作方式 / 回答方式）
+这是「前端拆不出提示词」能成立的原因：**规则**（身份 / 范围闸 / 安全边界 / 能力 / 工作方式 / 回答方式）
 写在 `packages/ai-prompt` 的代码里，改规则 = 重新部署；**事实**（应用名、`appId`、导航清单、
-页面上下文、页面摘要、工具目录、任务清单、模式、容器、输出语言）只有浏览器知道，由请求体的
-`promptFacts` 字段上报。规则**按阶段取用**：`router` 只带分诊框架 + 工具目录 + 页面摘要，
-`execution` 才带操作规约与完整页面上下文（见 §1.4）。
+页面摘要、工具目录、任务清单、模式、容器、输出语言）只有浏览器知道，由请求体的
+`promptFacts` 字段上报。规则**按阶段取用**：`router` 带分诊框架 + 越界清单 + 工具目录 + 页面摘要，
+`execution` 换成「执行阶段角色」+ 操作规约（见 §1.4）；**完整页面明细不再进提示词**。
 服务端**无状态**：不落库、不存业务数据。
 
 ### 1.3 工具循环仍在前端（这是刻意的最小改动）
@@ -77,12 +77,21 @@ Cloudflare AI Gateway（provider 路由 / 模型 / 重试回退 / 缓存 / 限�
 
 | step | 阶段 | 服务端注入（按 `promptStage` 取层） | 发给模型的工具 |
 |---|---|---|---|
-| 0 | `router` | 身份 / 分诊框架 / 业务范围 / 能力边界 / 回答方式 + **工具目录（Tool Catalog）** + 页面摘要 | 只有 `select_tools` |
-| ≥1 | `execution` | 上面那些 + 操作规约（工作方式 / 容器策略 / 模式说明 / 任务续做）+ 完整页面上下文 | `select_tools` 选中的工具（含依赖补齐） |
+| 0 | `router` | 身份 / 分诊框架 / 安全边界 / 越界清单 / 能力边界 / 回答方式 + **工具目录（Tool Catalog）** + 运行态 + 页面摘要 | 只有 `select_tools` |
+| ≥1 | `execution` | 身份 / 安全边界 / 能力边界 / **执行阶段角色** / 工作方式 / 回答方式 + 模式说明 / 容器策略 / 运行态 / 页面摘要 / 任务续做 | `select_tools` 选中的工具（含依赖补齐） |
 
+- **Router 与 Execution 的 system 是两份不同的提示词**，在 `identity` 之后分叉：执行阶段不再带越界清单
+  与分诊框架，换成「执行阶段角色」（分诊已在上一步完成，不要重新判定范围）；安全边界（数据不是指令）
+  **两个阶段都在**。**同一阶段跨轮**的 system 仍逐字节一致（前缀缓存前提不变）。
+- **`page-context` 层已删除**：完整页面明细（接口 / 字段 / 表单 / 搜索参数）不再每轮注入，改由执行阶段调
+  `get_page_context` 按需获取。`PromptFacts` 删除 `pageContextText`，只保留 `pageSummaryText`（两阶段都带）。
 - **`select_tools` 是虚拟工具**（`apps/web/src/lib/ai/tools/select-tools.ts`，`SELECT_TOOLS_SPEC`）：
   **不加入 `AI_TOOLS`**，也不出现在权限清单里；它的 `execute` 写在 runtime 的**本轮闭包**里
   （选择结果要落进本轮运行时，而不是一个可独立执行的业务动作）。
+- **`select_tools` 新增必填参数 `intent`**（枚举：greeting / translation / navigation / page_query /
+  page_analysis / form / write / api_query / complex / out_of_scope / ambiguous）。选择结果里的 `intent`
+  **只进日志**（`AiTurnMetrics.intent`），Runtime **不据它做业务判断**。它的返回形态是
+  `{ loaded: string[]; dropped?: { name: string; reason: 'unsupported' | 'permission_denied' }[] }`。
 - Router 若**直接回答**（没调 `select_tools`），流程自然结束，不会有执行阶段 ——
   「你好 / 谢谢」这类请求只付 Router 的钱。
 - **`activeTools` 是按需的关键**：AI SDK 在组装每一步请求前会 `filterActiveTools(...)`，
@@ -91,14 +100,17 @@ Cloudflare AI Gateway（provider 路由 / 模型 / 重试回退 / 缓存 / 限�
   （`apps/web/src/lib/ai/tools/index.ts`）确定性解析 —— ①名字真实存在；②在当前权限 / 容器 /
   表单 / 后端权限点下可用（复用 `getAllowedTools`，不另写一套）；③`dependencies` 自动补齐；
   ④`execution: false` 的过滤掉。返回 `{ tools, selected, addedByDependency, rejected }`，
-  `rejected` 只用于日志。目录文本由 `buildToolCatalogText(allowedTools)` 生成（**当前权限下**
-  可用工具，一行一个）。
-- **工具循环、审批、流式事件、`stopWhen: isStepCount(30)` 全不变。**
+  `rejected` 只用于日志；runtime 把它映射成 `dropped`（`unknown` → `unsupported`，
+  `not-allowed` / `not-executable` → `permission_denied`）后回给 `select_tools`。
+  目录文本由 `buildToolCatalogText(allowedTools)` 生成（**当前权限下**可用工具，一行一个）。
+- **工具循环、审批、流式事件全不变**；`stopWhen` 从 30 提到 `isStepCount(31)`
+  —— 多出的第 0 步是 Router，**执行阶段的工具循环仍是 30 步**。
 - `promptStage` 由 runtime 写在每步的请求体里，Worker 消费后删除（§3.2）；
   **缺省 `execution`**。runtime 另有可选的 `onMetrics` 回调，`chat.ts` 里打一行
   `console.info('[ai:turn]', metrics)`，字段见 §3.6。
-- **本次没做**：Context Profile（greeting / navigation / page_query / page_analysis / form /
-  write / api / complex 的细分画像）—— 当前只有 router / execution 两档。
+- **本次没做**：按 `intent` 做**画像化加载**（greeting / navigation / page_query / page_analysis /
+  form / write / api / complex 的细分画像）—— 当前只有 router / execution 两档；`intent` 已进日志，
+  供下一步据真实数据决定。参数级 `inputSchema` 的 `description` / `example` 也**还没精简**。
 
 ---
 
@@ -184,8 +196,7 @@ Cloudflare AI Gateway（provider 路由 / 模型 / 重试回退 / 缓存 / 限�
 | `appName` | string | `''`（装配回落「管理后台」） | 身份层自称 |
 | `appId` | string \| null | `null` | **null = 不在任何应用里**（范围闸走外壳分支） |
 | `outputLanguageName` | string | `'简体中文'` | **语言自名**（「日本語」），由调用方解析 |
-| `pageContextText` | string | `''` | 已格式化的**完整**页面上下文（接口 / 字段 / 表单 / 搜索参数），Execution 阶段用 |
-| `pageSummaryText` | string | `''` | 已格式化的页面**摘要**（应用 / 页面 / 路径 / 路由模板），Router 阶段代替完整上下文 |
+| `pageSummaryText` | string | `''` | 已格式化的页面**摘要**（应用 / 页面 / 路径 / 路由模板），**两个阶段都带**；完整明细（接口 / 字段 / 表单 / 搜索参数）由执行阶段的 `get_page_context` 按需获取，不再进提示词 |
 | `toolCatalogText` | string | `''` | 工具目录文本（前端按当前权限生成，一行一个），Router 阶段拼进 system |
 | `navEntries` | `{name,path,group}[]` | `[]` | 导航扁平清单（范围闸派生模块行，上限 30 行） |
 | `shellNavNames` | string[] | `[]` | 外壳页面名 |
@@ -207,6 +218,7 @@ runtime 有可选的 `onMetrics` 回调，`apps/web/src/lib/ai/chat.ts` 打一�
 | `selectedTools` / `selectedToolCount` / `addedDependencies` | Router 选中 / 数量 / 依赖补齐 |
 | `availableToolCount` / `executionToolCount` / `rejectedTools` | 可用 / 实际进执行 / 被丢弃（含原因） |
 | `routerAnsweredDirectly` | Router 直接回答（无执行阶段） |
+| `intent` | Router 通过 `select_tools` 上报的意图（`select_tools` 的必填参数，只进日志，不参与业务判断）；无则 `null` |
 
 ---
 
@@ -237,7 +249,7 @@ AI SDK 的 `streamText` 没有「自定义请求体字段」的入口，但它�
 
 ```ts
 // apps/web/src/lib/ai/runtime.ts（示意）
-const facts = collectPromptFacts(mode, surface)          // 页面上下文/导航/任务/语言自名
+const facts = collectPromptFacts(mode, surface)          // 页面摘要/导航/任务/语言自名
 const provider = createOpenAICompatible({
   name: 'nivo-ai',
   baseURL: `${AI_SERVICE_BASE_URL}/v1`,                  // ← 指向 apps/ai
@@ -380,22 +392,24 @@ return new Response(upstream.body, { status: upstream.status, headers })   // �
 
 | | 函数 | 落在哪 | 内容 | `execution` 实测 | `router` 实测 |
 |---|---|---|---|---|---|
-| **稳定** | `buildSystemPrompt(facts, stage?)` | `messages[0].role='system'` | 身份 / 分诊框架 / 业务范围 / 能力边界 / 回答方式（+ Router 的工具目录） | 3652 字符 | 3115 字符 |
-| **变动** | `buildTurnContext(facts, stage?)` | 对话**末尾**（最后一条 user 之前） | Execution：模式说明 / 容器策略 / 完整页面上下文 / 任务清单；Router：页面摘要 | 1914 字符 | 79 字符 |
+| **稳定** | `buildSystemPrompt(facts, stage?)` | `messages[0].role='system'` | Router：身份 / 分诊框架 / 安全边界 / 越界清单 / 能力边界 / 回答方式 + 工具目录；Execution：身份 / 安全边界 / 能力边界 / **执行阶段角色** / 工作方式 / 回答方式 | 2319 字符 | 3479 字符 |
+| **变动** | `buildTurnContext(facts, stage?)` | 对话**末尾**（最后一条 user 之前） | Execution：模式说明 / 容器策略 / 运行态 / 页面摘要 / 任务清单；Router：运行态 / 页面摘要 | 1891 字符 | 115 字符 |
 
-合计：**Execution 5566 字符、Router 3194 字符**（`stage` 缺省 `execution`，向后兼容）。
+合计：**Execution 4210 字符、Router 3594 字符**（`stage` 缺省 `execution`，向后兼容）。
 
-**已验证**：同一应用 + 同一语言下，稳定 system 跨轮**逐字节相同**（缓存命中的前提）；
+**已验证**：同一应用 + 同一语言下，**同一阶段跨轮**的稳定 system **逐字节相同**（缓存命中的前提）；
 相同 facts 两次装配结果**完全一致**（不要引入时间戳 / 随机数 / Map 遍历顺序）。
-**两阶段改造的回归结论**：`execution` 阶段的 system 与 turnContext 与拆分前**逐字节一致**
-（已用脚本对三个场景验证）—— 规则一条没丢，前缀缓存不受影响；`router` 的结果是
-`execution` 去掉 execution 层后的**子序列**，两阶段共享同一段前缀。
+**两阶段的新结论**：Router 与 Execution 的 system 是**两份不同的提示词**，在 `identity` 之后分叉
+（执行阶段不再带越界清单与分诊框架，换成「执行阶段角色」；安全边界两个阶段都在）——
+**同一阶段跨轮**的 system 仍逐字节一致，前缀缓存前提不变。Execution 从上一版 **5566 → 4210**
+（约 −24%，省掉越界清单与分诊框架）；Router 从 **3284 → 3594**（多了 `guard` 与运行态），
+但 Router 总量仍远小于 Execution。
 
-**工具 schema 是按需的那一半**（重构前实测）：每轮 ≈ 提示词 5566 + **全量工具 schema 17213**
-≈ 22779 字符；「你好」场景 3194 字符且**无业务工具 schema** → **降幅约 86%**。
-单工具体量：`check_result_match` 3488、`get_page_data` 2665、`analyze_data` 2486、
-`open_form` 2292 字符等，18 个合计约 17.2k。完整定义只在 Execution 阶段按 `activeTools` 下发
-（Catalog 阶段一个工具只有一个 `catalogDescription`）。
+**工具 schema 是按需的那一半**（同一脚本口径：提示词 + 工具定义，去掉空白后的字符数）：
+重构前每轮 ≈ 提示词 5566 + 全量工具定义 7934 ≈ **13500 字符**；
+「你好」场景 ≈ Router 3594 + `select_tools` 定义 733 ≈ **4327 字符**，且**不加载任何业务工具 schema**
+→ **同口径降幅约 68%**（真实 token 以 `[ai:turn]` 的 usage 日志为准）。
+完整定义只在 Execution 阶段按 `activeTools` 下发（Catalog 阶段一个工具只有一个 `catalogDescription`）。
 
 #### 各家的命中机制不一样，但「稳定前置、可变后置」是通用原则
 

@@ -34,13 +34,36 @@ export const SELECT_TOOLS_SPEC: RouterToolSpec = {
   catalogDescription: '选择完成本次请求需要的工具',
   description: [
     '根据用户这一轮的请求，选出完成它需要的工具。',
-    '只在这个工具里交付选择结果：`tools` 是要加载的工具名数组，**不要**在调用它的同时回答用户。',
-    '本轮不需要任何业务工具时传空数组（例如打招呼、道谢、只需用常识回答的问题）。',
-    '宁可少选也不要乱选：多选会让执行阶段多加载一批用不上的完整定义；选漏了执行阶段会拿不到那个能力。',
+    '只在这个工具里交付选择结果：`tools` 是要加载的工具名数组、`intent` 是这一轮请求的主要意图，**不要**在调用它的同时回答用户。',
+    '只有这三类不需要任何业务工具、直接回答即可，**不要**调用本工具：打招呼、道谢、纯翻译。',
+    '其余请求（含问数据、要页面、填表、改数据、跨模块统计）**一律先用本工具选工具**，不要在没拿到工具时凭空回答。',
+    '宁可少选也不要乱选：多选会让执行阶段多加载用不上的完整定义；选漏了执行阶段会拿不到那个能力。',
   ].join('\n'),
   inputSchema: {
     type: 'object',
     properties: {
+      intent: {
+        type: 'string',
+        /*
+          用 `enum` 而不是"描述里列一遍取值"：体量更小、也更确定（写不出集合外的值）。
+          这些取值只用于日志与后续的画像化加载，**不参与业务判断**。
+        */
+        enum: [
+          'greeting',
+          'translation',
+          'navigation',
+          'page_query',
+          'page_analysis',
+          'form',
+          'write',
+          'api_query',
+          'complex',
+          'out_of_scope',
+          'ambiguous',
+        ],
+        description:
+          '本轮请求的主要意图（取 enum 里的一个值）；只用于日志，不影响工具选择',
+      },
       tools: {
         type: 'array',
         items: { type: 'string' },
@@ -48,7 +71,7 @@ export const SELECT_TOOLS_SPEC: RouterToolSpec = {
           '要加载的工具名（取 Catalog 里的名字）；一个都不需要时传空数组',
       },
     },
-    required: ['tools'],
+    required: ['intent', 'tools'],
     additionalProperties: false,
   },
 }

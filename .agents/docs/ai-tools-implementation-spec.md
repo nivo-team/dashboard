@@ -333,6 +333,29 @@ return { ok: true, value: /* 标量或 ≤100 项的小数组 */ }
 5. `select_tools` 是**虚拟工具**，**不加入 `AI_TOOLS`**，也不出现在权限清单里
    （它的 `execute` 在 `runtime.ts` 的本轮闭包中）。
 
+**`select_tools` 的输入 schema**（定义在 `lib/ai/tools/select-tools.ts`）：`intent` 与 `tools`
+**都必填**。`tools` 是要加载的工具名数组；`intent` 是这一轮请求的主要意图，**只进日志**
+（`AiTurnMetrics.intent`），Runtime **不据它做业务判断**：
+
+```ts
+inputSchema: {
+  type: 'object',
+  properties: {
+    intent: {
+      type: 'string',
+      enum: ['greeting', 'translation', 'navigation', 'page_query', 'page_analysis',
+        'form', 'write', 'api_query', 'complex', 'out_of_scope', 'ambiguous'],
+    },
+    tools: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['intent', 'tools'],
+  additionalProperties: false,
+}
+```
+
+描述里只写「打招呼 / 道谢 / 纯翻译」这三类直接回答、**不要**调用本工具（原先那句与
+「通识与百科、常识问答属于越界」自相矛盾，已删除）；其余请求一律先用本工具选工具。
+
 **关键约束一条没删**（都还在 `description` / 提示词层里）：不猜接口路径、不猜字段名、
 写操作必须确认、删除不可撤销、被拒不重试、`truncated` 不得下结论、`check_result_match` 的
 `value` 必须来自用户。被删掉的是**与其它工具的比较、容器策略、`@` 引用编排** —— 那些由提示词层承载。

@@ -155,8 +155,8 @@ import { resolveAiPageContext } from './page-context-registry'
 /**
  * 页面**摘要** —— 只回答「我在哪一页」，**不带**接口、字段、表单、搜索参数明细。
  *
- * 用途是两阶段里的 Router 阶段：它只需要知道"用户站在哪个页面上"就能选对工具，
- * 明细（几 KB 的接口清单）留给 Execution 阶段（`formatPageContext`）或 `get_page_context` 工具。
+ * 用途是两阶段里的**两个阶段都用**：它只需要知道"用户站在哪个页面上"就能选对工具，
+ * 而几 KB 的接口明细交给执行阶段的 `get_page_context` 工具按需取。
  * 于是「这一页是干什么的 / 你好」这类请求不必为明细付 token。
  */
 export function formatPageSummary(context: AiPageContext): string {
@@ -171,13 +171,11 @@ export function formatPageSummary(context: AiPageContext): string {
 }
 
 /**
- * 把页面上下文压成一段给模型看的文本。
+ * 把页面上下文压成一段给模型看的文本 —— **现在只被 `get_page_context` 工具使用**。
  *
- * 放在 system 提示里而不是让模型每轮调一次 `get_page_context`：「我在哪」是每轮都要用的信息，
- * 多花一次工具调用（以及一次往返延迟）不划算；工具保留给「导航之后想确认位置」的场景。
- *
- * 两阶段改造后它**只服务于 Execution 阶段**（Router 用 `formatPageSummary`）——
- * 真正要动手时才需要这份明细。
+ * 早先它每轮注入 system；按需加载改造后，「我在哪」用摘要（`formatPageSummary`）表达，
+ * 几 KB 的接口 / 字段 / 表单明细改成执行阶段**按需调用工具**获取 ——
+ * 需要这份明细的动作本来就被要求先调 `get_page_context`（见工作方式层）。
  */
 export function formatPageContext(context: AiPageContext): string {
   const page = resolveAiPageContext(context.routePath)

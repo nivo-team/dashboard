@@ -75,13 +75,11 @@ export interface PromptFacts {
    * 语言键 → 自名的解析留在调用方（前端已有 `SUPPORTED_LOCALES`），本包不做 locale 表。
    */
   outputLanguageName: string
-  /** 已格式化的当前页面上下文文本（前端由 `formatPageContext` 产出） */
-  pageContextText: string
   /**
-   * 页面**摘要**（应用 / 页面 / 路径）—— Router 阶段用它，**不**带接口、字段、表单明细。
+   * 页面**摘要**（应用 / 页面 / 路径 / 路由模板）—— 两个阶段都带，**不含**接口 / 字段 / 表单明细。
    *
-   * 明细是"执行时才需要的输入"，由执行阶段的 `pageContextText` 或工具按需取；
-   * 只回一句"我在哪个页面上"的问题不该为它付 token。
+   * 明细属于"执行某个动作时才需要的输入"：需要它的动作本来就被要求先调 `get_page_context`
+   * （见工作方式层），所以它是**按需获取**的事实，不再每轮注入。
    */
   pageSummaryText?: string
   /**

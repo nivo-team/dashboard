@@ -313,6 +313,9 @@ export async function* streamAssistantTurn(
   /** Router 的选择结果；`null` = 还没选过（模型可能直接回答了） */
   let selection: ReturnType<typeof resolveTools> | null = null
 
+  /** Router 判定的意图（只进日志；Runtime 不据它做业务判断） */
+  let intent: string | null = null
+
   /** 执行阶段的 `activeTools`（空数组 = 这一步不给任何工具，模型只能直接回答） */
   let executionToolNames: string[] = []
 
@@ -330,7 +333,8 @@ export async function* streamAssistantTurn(
       SELECT_TOOLS_SPEC.inputSchema as Parameters<typeof jsonSchema>[0],
     ),
     execute: async (input: unknown) => {
-      const raw = (input ?? {}) as { tools?: unknown }
+      const raw = (input ?? {}) as { tools?: unknown; intent?: unknown }
+      intent = typeof raw.intent === 'string' ? raw.intent.trim() : null
       const names = Array.isArray(raw.tools)
         ? raw.tools.filter((name): name is string => typeof name === 'string')
         : []
@@ -341,14 +345,19 @@ export async function* streamAssistantTurn(
       selection = resolveTools(names, options.toolPolicy)
       executionToolNames = selection.tools.map((item) => item.name)
       /*
-        回给模型的结果**只讲事实**（加载了哪些、哪些没加载）：它会被拼进下一步的请求，
-        多一句话就是多一份每轮成本，所以不要把它写成第二份提示词。
+        回给模型的结果**只讲事实**（加载了哪些、哪些没加载、为什么没加载）：
+        - `unsupported`：注册表里根本没有这个能力（**不要**说成"权限没开"）；
+        - `permission_denied`：能力在，但当前权限 / 容器 / 表单条件不满足。
+        措辞与系统提示词「能力边界」层严格对应，模型据此如实回答。
+        这段会被拼进下一步请求，所以刻意只说两三个词，不写成第二份提示词。
       */
+      const dropped = selection.rejected.map((item) => ({
+        name: item.name,
+        reason: item.reason === 'unknown' ? 'unsupported' : 'permission_denied',
+      }))
       return {
         loaded: executionToolNames,
-        ...(selection.rejected.length > 0
-          ? { dropped: selection.rejected.map((item) => item.name) }
-          : {}),
+        ...(dropped.length > 0 ? { dropped } : {}),
       }
     },
   })
@@ -507,6 +516,7 @@ export async function* streamAssistantTurn(
     executionToolCount: finalSelection?.tools.length ?? 0,
     rejectedTools: finalSelection?.rejected.map((item) => item.name) ?? [],
     routerAnsweredDirectly: finalSelection === null,
+    intent,
   })
 }
 

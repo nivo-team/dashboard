@@ -276,7 +276,7 @@
 ## AI 助手（面板 / 全屏）
 
 **代码**：`components/{ai-panel,ai-composer,ai-conversation,ai-conversation-scroller,ai-session-list,ai-session-picker,ai-activity-glow}.tsx` ·
-`routes/$appId_.sphere/**`（全屏对话页）· `routes/_main/settings/AI.tsx`（设置）· 逻辑在 `lib/ai/**`、提示词在 `lib/ai/prompt/**`
+`routes/$appId_.sphere/**`（全屏对话页）· `routes/_main/settings/AI.tsx`（设置）· 逻辑在 `lib/ai/**`、提示词真值在 `packages/ai-prompt`（由 `apps/ai` 每轮注入）
 
 **功能**
 - **入口**：顶栏「Ask AI」（只在 `$appId` 外壳显示）；面板两种形态 —— **分屏**（挤压内容、可拖宽 300–720）与**浮窗**（可拖宽高、可折叠成只有头行的一条、移动端整屏）

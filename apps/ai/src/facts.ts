@@ -100,14 +100,15 @@ export function normalizeFacts(raw: unknown): PromptFacts {
       body.outputLanguageName,
       DEFAULT_OUTPUT_LANGUAGE_NAME,
     ),
-    pageContextText: asString(body.pageContextText),
     /*
-      两阶段改造新增的两个事实字段：
-      - `pageSummaryText`：页面摘要，Router 阶段代替完整页面上下文；
-      - `toolCatalogText`：工具目录（前端按当前权限生成），Router 阶段拼进 system。
-      两者缺失时对应层整段不出现（`build` 返回 null），不会留下空标题。
+      页面**摘要**（应用 / 页面 / 路径 / 路由模板）—— 两个阶段都带。
+      明细（接口 / 字段 / 表单）不再随 facts 上报：需要它的动作由 `get_page_context` 按需获取。
     */
     pageSummaryText: asString(body.pageSummaryText),
+    /*
+      `toolCatalogText`：工具目录（前端按当前权限生成），Router 阶段拼进 system。
+      两者缺失时对应层整段不出现（`build` 返回 null），不会留下空标题。
+    */
     toolCatalogText: asString(body.toolCatalogText),
     navEntries: asNavEntries(body.navEntries),
     shellNavNames: asStringArray(body.shellNavNames),

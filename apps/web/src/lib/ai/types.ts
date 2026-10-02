@@ -400,6 +400,12 @@ export interface AiTurnMetrics {
   executionToolCount: number
   /** 被丢掉的选择（不存在 / 越权 / 非执行工具），供排查 Router 选错 */
   rejectedTools: string[]
+  /**
+   * Router 判定的本轮**意图**（`select_tools.intent`）—— `null` 表示没走 Router。
+   *
+   * 它目前只进日志（用于下一步按画像加载与压缩 Prompt）；Runtime 不拿它做业务判断。
+   */
+  intent: string | null
   /** Router 是否**没选工具**（直接回答或纯问候）—— 这条为 true 时 Execution 阶段不存在 */
   routerAnsweredDirectly: boolean
 }

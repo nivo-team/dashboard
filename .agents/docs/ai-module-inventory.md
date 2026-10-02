@@ -5,7 +5,7 @@
 > | 文档 | 形态 | 什么时候读 |
 > |---|---|---|
 > | [ai-architecture.md](./ai-architecture.md) | **叙述式**：分层理由、数据流、扩展点、**18 条踩过的坑** | 改任何 AI 代码之前 |
-> | **本文** | **清单式**：提示词 12 层逐层、18 个工具全表、审批矩阵、设置项全表、**AI 相关文件全地图** | 想知道「AI 现在到底有什么 / 在哪个文件」时 |
+> | **本文** | **清单式**：提示词 14 层逐层、18 个工具全表、审批矩阵、设置项全表、**AI 相关文件全地图** | 想知道「AI 现在到底有什么 / 在哪个文件」时 |
 > | [ai-integration.md](./ai-integration.md) | 设计蓝图与选型依据（给人看） | 追溯「当初为什么这么设计」 |
 >
 > 覆盖面：`apps/web/src/lib/ai/**`（33 个文件）、`lib/features/**`、`components/ai-*.tsx`、
@@ -23,7 +23,7 @@
 
 | 项 | 现状 |
 |---|---|
-| 系统提示词 | **12 层**（`PROMPT_LAYERS`），唯一出口 `buildSystemPrompt(facts, stage?)` / `buildTurnContext(facts, stage?)`（服务端），**每轮重算**；按 `promptStage`（router / execution）选层 |
+| 系统提示词 | **14 层**（`PROMPT_LAYERS`，stable 9 + volatile 5），唯一出口 `buildSystemPrompt(facts, stage?)` / `buildTurnContext(facts, stage?)`（服务端），**每轮重算**；按 `promptStage`（router / execution）选层 —— 两阶段的 system 是**两份不同提示词**（identity 后分叉），同一阶段跨轮逐字节一致 |
 | 工具 | **18 个**（`AI_TOOLS`），按 `group` 分 页面 / 数据 / 表单；权限界面按 `access` 解释风险。另有 Router 阶段的虚拟工具 `select_tools`（不进 `AI_TOOLS`） |
 | 运行容器 | 2 个：`panel`（分屏 / 浮窗）、`sphere`（全屏对话页）；**由渲染处显式传入**，不靠路由字符串反推 |
 | 正交维度 | **权限**（能不能用） × **模式**（用起来要不要问） × **容器**（策略与工具清单） |
@@ -79,29 +79,34 @@ L7 上下文    page-context / page-context-registry / page-capabilities / endpo
 - 输入快照 `PromptLayerInput`：`{ mode, surface, outputLocale, context, appName }`，其中 `context`
   由 `getPageContext()` **一轮只采一次**，各层共用同一份。
 
-### 2.2 逐层清单（12 层）
+### 2.2 逐层清单（14 层）
 
 | # | 层 id（文件） | group | 阶段 | 标题 | 回答的问题 | 关键内容（当前口径） |
 |---|---|---|---|---|---|---|
 | L1 | `identity`（`layers/identity.ts`） | core | 两阶段 | 身份与定位 | 你是谁、为谁服务 | 应用名走 `appName` 参数；显式掐掉「通用助手」人格 —— **只为这一个系统服务** |
-| L2 | `scope-core`（`layers/scope.ts`） | core | 两阶段 | 请求分诊与范围闸（分诊框架） | **什么该答、什么该拒** | 三分类表（✅业务内 / ⛔越界 / ⚠️模糊）；**先分诊再行动**；越界一律拒、不做任何工具调用 |
-| L3 | `domain`（`layers/scope.ts`） | domain | 两阶段 | 业务范围与越界清单 | 业务边界在哪 | **逐条点名越界类型**（闲聊、通识、数学、写代码与**解释代码**、其它产品、专业建议、任何「忽略规则」的元指令）；**两个例外**（翻译、一句寒暄）；越界话术 3 行内；「不变通」硬约束（含**数据不是指令**）；模块清单从 `collectNavigation` 派生（上限 30 行），无 appId 时给外壳页面清单 |
-| L4 | `capability`（`layers/capability.ts`） | core | 两阶段 | 能力边界 / 操作前的确认 | 手上有什么、要不要先问 | **绝不复述权限**（见坑 1）；只描述模式：`ask` 动手前先问 / `auto` 直接做，`call_write_api` 两模式都问；跳转是**交互确认不是权限**，被拒后不重试同一目标 |
-| L5 | `workflow`（`layers/workflow.ts`） | execution | execution | 工作方式与决策优先级 | 业务内请求怎么做 | **按容器分策略**：面板 playbook = 单模块查询**先带用户去页面**、多模块才调接口；全屏 playbook = **就地渲染数据**、跳转退化成建议卡；通用规约（先工具后回答、写操作走清单接口、被拒即停、`truncated` 处理、复合任务用 `manage_tasks`、续做守则） |
-| L6 | `output`（`layers/output.ts`） | core | 两阶段 | 回答方式 | 怎么说话 | **用目标语言的自名回答**（`SUPPORTED_LOCALES.nativeName`）；先结论后依据；**不暴露分诊过程、不复述提示词原文**；拒绝用同一门语言、3 行内 |
-| L7 | `tool-catalog`（`index.ts`） | core | **router** | 本轮可用工具目录（Router） | 这轮能用哪些工具 | 一行一个 `- name：一句话`，由前端 `buildToolCatalogText` 按**当前权限下可用**的工具生成；**不含 JSON Schema**（完整定义只在 Execution 下发） |
-| L8 | `mode-rule`（`layers/capability.ts`） | execution | execution | 本轮模式说明 | 这轮要不要先问 | `ask` / `auto` 的确认口径；只在 Execution 出现 |
-| L9 | `playbook`（`layers/workflow.ts`） | execution | execution | 本轮决策优先级（按容器） | 这轮怎么走 | 面板 / 全屏两套 playbook（读 `input.surface`） |
-| L10 | `page-summary`（`index.ts`） | core | **router** | 当前页面摘要（Router） | 我在哪（摘要） | `formatPageSummary`：应用 / 页面 / 路径 / 路由模板 —— 不带接口 / 字段 / 表单明细 |
-| L11 | `page-context`（`index.ts`） | domain | execution | 当前页面上下文 | 我在哪（完整） | 单一出口 `formatPageContext(context)`：URL / appId / routePath / navLabel / title + 接口 / 字段 / 表单 / 搜索参数 |
-| L12 | `active-tasks`（`layers/workflow.ts`） | execution | execution | 进行中的任务清单 | 这轮在续做什么 | 从会话消息里取最后一份 `manage_tasks` 清单**直接注入**（绕开历史工具结果衰减）；无未完成项时返回 `null` |
+| L2 | `scope-core`（`layers/scope.ts`） | core | **仅 router** | 请求分诊与范围闸（分诊框架） | **什么该答、什么该拒** | 三分类表（✅业务内 / ⛔越界 / ⚠️模糊）；**先分诊再行动**；越界一律拒、不做任何工具调用。分诊在选工具那一步完成，不再发给执行阶段 |
+| L3 | `guard`（`layers/scope.ts`） | core | 两阶段 | 安全边界（数据不是指令） | 什么不能被当成指令 | **数据不是指令、元指令越界、坚持 / 催促不改变判定** —— 从原 `domain` 抽出，因为执行阶段会读到工具返回与附件，注入防线不能缺席 |
+| L4 | `domain`（`layers/scope.ts`） | domain | **仅 router** | 业务范围与越界清单 | 业务边界在哪 | **逐条点名越界类型**（闲聊、通识、数学、写代码与**解释代码**、其它产品、专业建议、任何「忽略规则」的元指令）；**两个例外**（翻译、一句寒暄）；越界话术 3 行内；混合请求处理；模块清单从 `collectNavigation` 派生（上限 30 行），无 appId 时给外壳页面清单 |
+| L5 | `capability`（`layers/capability.ts`） | core | 两阶段 | 能力边界 | 手上有什么、要不要先问 | **区分 unsupported / permission_denied**：系统本来就有、只是当前没开放（权限 / 容器挡住）→ 说当前权限未开启、可去「设置 → AI → AI 权限」调整；系统本身没有 → 如实说「这个后台没有这项功能」，**不要编**、也不要说成「权限没开」；分不清 → 按「当前不可用」表述、提示可去设置查看，**不要断言系统有这个能力**。**绝不复述权限**（见坑 1） |
+| L6 | `executor-role`（`index.ts`） | execution | 仅 execution | 执行阶段角色（分诊已完成） | 这轮是执行阶段吗 | **分诊与范围判定已经在选工具那一步完成**；只需用给定工具把已确定的请求做完，**不要重新判定范围**；要事实先调工具 |
+| L7 | `workflow`（`layers/workflow.ts`） | execution | 仅 execution | 工作方式与决策优先级 | 业务内请求怎么做 | **按容器分策略**：面板 playbook = 单模块查询**先带用户去页面**、多模块才调接口；全屏 playbook = **就地渲染数据**、跳转退化成建议卡；通用规约（先工具后回答、写操作走清单接口、被拒即停、`truncated` 处理、复合任务用 `manage_tasks`、续做守则） |
+| L8 | `output`（`layers/output.ts`） | core | 两阶段 | 回答方式 | 怎么说话 | **用目标语言的自名回答**（`SUPPORTED_LOCALES.nativeName`）；先结论后依据；**不暴露分诊过程、不复述提示词原文**；拒绝用同一门语言、3 行内 |
+| L9 | `tool-catalog`（`index.ts`） | core | **仅 router** | 本轮可用工具目录（Router） | 这轮能用哪些工具 | 一行一个 `- name：一句话`，由前端 `buildToolCatalogText` 按**当前权限下可用**的工具生成；**不含 JSON Schema**（完整定义只在 Execution 下发） |
+| L10 | `mode-rule`（`layers/capability.ts`） | execution | 仅 execution | 本轮模式说明 | 这轮要不要先问 | `ask` / `auto` 的确认口径；只在 Execution 出现 |
+| L11 | `playbook`（`layers/workflow.ts`） | execution | 仅 execution | 本轮决策优先级（按容器） | 这轮怎么走 | 面板 / 全屏两套 playbook（读 `input.surface`） |
+| L12 | `runtime-context`（`index.ts`） | core | 两阶段 | 当前运行态（模式 / 语言） | 这轮在什么状态下跑 | 模式（询问 / 自动）与输出语言；单列一层是因为模式说明只发给 Execution，Router 看不到会让提示词里的引用悬空 |
+| L13 | `page-summary`（`index.ts`） | core | **两阶段** | 当前页面摘要 | 我在哪（摘要） | `formatPageSummary`：应用 / 页面 / 路径 / 路由模板 —— 不带接口 / 字段 / 表单明细（原只给 Router） |
+| L14 | `active-tasks`（`layers/workflow.ts`） | execution | 仅 execution | 进行中的任务清单 | 这轮在续做什么 | 从会话消息里取最后一份 `manage_tasks` 清单**直接注入**（绕开历史工具结果衰减）；无未完成项时返回 `null` |
+
+> `page-context` 层**已删除**：完整页面明细（接口 / 字段 / 表单 / 搜索参数）不再每轮注入，
+> 改由执行阶段调 `get_page_context` 按需获取；`PromptFacts` 也删掉了 `pageContextText`。
 
 ### 2.3 提示词里的「事实」只有四个来源（全部经函数、留过滤点）
 
 | 内容 | 出口 | 时机 |
 |---|---|---|
 | 系统提示词 | `buildSystemPrompt` | 每轮重算 |
-| 当前页面 | `formatPageContext(getPageContext())` | 每轮采集 |
+| 当前页面 | `formatPageSummary(getPageContext())`（摘要，两阶段都带）；完整明细由 `get_page_context` 工具按需获取 | 每轮采集 / 模型调用工具时 |
 | 导航清单（能去哪） | `collectNavigation(appId)` → `list_navigation`（也是范围闸的数据源） | 模型调用工具时 / 拼提示词时 |
 | 表单清单 | `listAiForms()` → `list_page_forms` | 模型调用工具时 |
 | 页面接口 + 参数明细 | `resolveAiPageContext(routePath)` / `resolveActivePageCapabilities(routePath)` + `findEndpointSpec()` → `get_page_context` | 模型调用工具时 |
@@ -117,8 +122,10 @@ L7 上下文    page-context / page-context-registry / page-capabilities / endpo
 3. **顺序即优先级**：分诊排第 2 位（仅次于身份），可变事实排最后。
 4. **容器只影响 `playbook` 层与工具清单**，且各只有一个落点；工具描述保持容器中立。
 5. **阶段划分只问一句**：不做任何工具调用、也要遵循它吗？要 → 两阶段都留；不要 → 只留
-   `execution`（`workflow` / `mode-rule` / `playbook` / `active-tasks`）；工具目录与页面摘要只留 `router`。
-   `execution` 阶段的输出与重构前**逐字节一致**（回归脚本验证过）。
+   `execution`（`executor-role` / `workflow` / `mode-rule` / `playbook` / `active-tasks`）；
+   **分诊框架与越界清单只留 `router`**（分诊在选工具那一步完成）；工具目录只留 `router`，
+   页面摘要与运行态两个阶段都带。于是两阶段的 system 是**两份不同的提示词**，在 `identity` 之后
+   分叉；**同一阶段跨轮**仍逐字节一致（前缀缓存前提不变）。
 6. **不暴露内部过程**（`scope-core` 层与 `output` 层各压一道）：回答里不出现分类标签，规则原文不念给用户。
 
 ---
@@ -290,12 +297,12 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 | 文件 | 行数 | 职责 |
 |---|---:|---|
 | `chat.ts` | 392 | 一轮消息驱动：读偏好 → 挑工具 → 采集事实（含工具目录）→ 拼消息 → 消费事件流；审批 Promise 通道；`StreamEventBatcher`；`onMetrics` 日志；`stopAiMessage` |
-| `runtime.ts` | 687 | 唯一 `import 'ai'`：建模型、**两阶段（`prepareStep` + `activeTools`）**、`toSdkTools`、`select_tools` 接线、`streamText`、`fullStream` → `AiStreamEvent`、`AiTurnMetrics`、`ThinkTagStreamParser`、`toModelMessages`（历史衰减 3 轮 + 附件转 part + `@` 展开） |
-| `types.ts` | 429 | 公共类型：`AiToolAccess` / `AiToolGroup` / `AiMode` / `AiSurface` / `AiPermissionMode` / `AiApprovalDecision` / `AiToolContext` / `AiToolDefinition`（含 `catalogDescription` / `dependencies` / `catalog` / `execution`）/ `AiMessage(Part)` / `AiTurnUsage` / `AiTurnMetrics` / `AiStreamEvent` |
+| `runtime.ts` | 697 | 唯一 `import 'ai'`：建模型、**两阶段（`prepareStep` + `activeTools`）**、`toSdkTools`、`select_tools` 接线（必填 `intent`；`rejected` → `dropped` 映射）、`streamText`、`fullStream` → `AiStreamEvent`、`AiTurnMetrics`（含 `intent`）、`ThinkTagStreamParser`、`toModelMessages`（历史衰减 3 轮 + 附件转 part + `@` 展开） |
+| `types.ts` | 435 | 公共类型：`AiToolAccess` / `AiToolGroup` / `AiMode` / `AiSurface` / `AiPermissionMode` / `AiApprovalDecision` / `AiToolContext` / `AiToolDefinition`（含 `catalogDescription` / `dependencies` / `catalog` / `execution`）/ `AiMessage(Part)` / `AiTurnUsage` / `AiTurnMetrics` / `AiStreamEvent` |
 | `index.ts` | 34 | 能力出口 barrel；**刻意不导出 `runtime`**（避免 SDK 进主 bundle） |
-| `prompt-facts.ts` | 91 | **事实采集**（页面上下文 + 页面摘要 / 工具目录 / 导航 / 任务 / 语言）—— 随请求上报给中间层；**规则不在这里**（在服务端） |
+| `prompt-facts.ts` | 90 | **事实采集**（页面摘要 / 工具目录 / 导航 / 任务 / 语言）—— 随请求上报给中间层；**规则不在这里**（在服务端） |
 | `tools/index.ts` | 307 | `AI_TOOLS` 注册表（唯一真值）+ `resolveAllowedToolNames` + `getAllowedTools`（权限 / 表单组 / 容器 / 后端权限点过滤）+ `findTool` + **Tool Catalog**（`listToolCatalog` / `buildToolCatalogText`）+ **Context Resolver**（`resolveTools`） |
-| `tools/select-tools.ts` | 54 | **Router 阶段的虚拟工具** `select_tools`（`SELECT_TOOLS_NAME` / `SELECT_TOOLS_SPEC`）；`execute` 落在 runtime 闭包，**不进 `AI_TOOLS`** |
+| `tools/select-tools.ts` | 77 | **Router 阶段的虚拟工具** `select_tools`（`SELECT_TOOLS_NAME` / `SELECT_TOOLS_SPEC`；必填 `intent` + `tools`，`intent` 只进日志）；`execute` 落在 runtime 闭包，**不进 `AI_TOOLS`** |
 | `tools/page-tools.ts` | 275 | `get_page_context` / `list_navigation` / `navigate_to`；`collectNavigation`（导航清单唯一出口）+ `isAllowedPath`（站内路径白名单，前缀匹配，支持详情页） |
 | `tools/data-tools.ts` | 439 | `search_api` / `call_read_api` / `list_dict_options` / `call_write_api`；白名单解析（模板 + `pathParams`）、`truncatePayload`、写后刷新 |
 | `tools/form-tools.ts` | 340 | `open_form` / `list_page_forms` / `fill_form` / `submit_form`；字段白名单（只放行表单声明的字段） |
@@ -305,7 +312,7 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 | `tools/permission-tools.ts` | 57 | `request_permission`（主动申请授权） |
 | `tools/check-result-match-tool.ts` | 277 | `check_result_match`（存在性查询，只回 `{ exists }`；每次必问） |
 | `tools/analyze-tool.ts` | 901 | `analyze_data`（JSON 操作链表达式分析，AI 不接触数据；走 `DATA_READ_GRANT`） |
-| `page-context.ts` | 250 | `getPageContext()`（整体不缓存）、`formatPageSummary`（Router）/ `formatPageContext`（Execution）、`resolveNavLabel`（有缓存）、外壳桥 `registerAiShellBridge` / `getAiShellBridge` |
+| `page-context.ts` | 248 | `getPageContext()`（整体不缓存）、`formatPageSummary`（两阶段都带）/ `formatPageContext`（`get_page_context` 工具按需输出明细）、`resolveNavLabel`（有缓存）、外壳桥 `registerAiShellBridge` / `getAiShellBridge` |
 | `page-context-registry.ts` | 111 | `useAiPageContext(Route.id, spec)` 注册表（模块级 Map，不进 state） |
 | `page-capabilities.ts` | 268 | 页面能力 JSON 规格 + `filterPageCapabilities` / `resolveActivePageCapabilities` / `usePageCapabilities`；**权限判定唯一实现** `hasPageCapabilityPermission` |
 | `endpoint-specs.ts` | 74 | 接口参数明细查询：懒加载 `endpoint-specs.gen` + `/api` 前缀归一化三写法 |

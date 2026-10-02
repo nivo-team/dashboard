@@ -1,7 +1,7 @@
 import type { PromptFacts } from '@admin/ai-prompt'
 import { SUPPORTED_LOCALES, type LocaleKey } from '#/lib/locale'
 import { ALL_SHELL_NAV_TARGETS } from '#/lib/navigation'
-import { formatPageContext, formatPageSummary, getPageContext, resolveNavLabel } from './page-context'
+import { formatPageSummary, getPageContext, resolveNavLabel } from './page-context'
 import { useAiSessionStore } from './session-store'
 import { collectNavigation } from './tools/page-tools'
 import { getLatestSessionTasks } from './tools/task-tools'
@@ -51,7 +51,7 @@ export interface CollectPromptFactsOptions {
  * 采集本轮事实快照 —— **每轮都要重新采**（页面可能已导航、任务可能已推进、语言可能已切换）。
  *
  * 与各来源的关系（都是既有的"唯一出口"，这里只是取用，不另写一份）：
- * - 页面上下文 → `getPageContext()` + `formatPageContext()`；
+ * - 页面摘要 → `getPageContext()` + `formatPageSummary()`（完整明细由 `get_page_context` 工具按需取）；
  * - 业务导航 → `collectNavigation()`（与 `list_navigation` 同一个过滤点）；
  * - 外壳页面名 → `ALL_SHELL_NAV_TARGETS` + `resolveNavLabel`；
  * - 任务清单 → `getLatestSessionTasks()`（与提示词的任务层同源）。
@@ -72,10 +72,9 @@ export function collectPromptFacts({
     appId,
     outputLanguageName,
     /*
-      页面上下文**两份**：Router 用摘要（我在哪），Execution 用完整明细（接口 / 字段 / 表单）。
-      服务端按 `promptStage` 二选一，前端不必知道这一轮会走到哪个阶段。
+      只上报页面**摘要**（应用 / 页面 / 路径 / 路由模板）：完整明细（接口 / 字段 / 表单）
+      由 `get_page_context` 工具在执行阶段按需获取 —— 每轮都带几 KB 明细不值当。
     */
-    pageContextText: formatPageContext(context),
     pageSummaryText: formatPageSummary(context),
     toolCatalogText: toolCatalogText ?? '',
     navEntries: collectNavigation(appId).map((entry) => ({

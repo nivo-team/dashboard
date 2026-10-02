@@ -1,7 +1,7 @@
 import { buildCapabilityLayer, buildModeRuleLayer } from './layers/capability.ts'
 import { buildIdentityLayer } from './layers/identity.ts'
 import { buildOutputLayer } from './layers/output.ts'
-import { buildDomainLayer, buildScopeCoreLayer } from './layers/scope.ts'
+import { buildDomainLayer, buildGuardLayer, buildScopeCoreLayer } from './layers/scope.ts'
 import {
   buildActiveTasksLayer,
   buildPlaybookLayer,
@@ -11,7 +11,7 @@ import type { PromptFacts, PromptLayer, PromptStage } from './types.ts'
 
 export * from './types.ts'
 export { buildIdentityLayer } from './layers/identity.ts'
-export { buildDomainLayer, buildScopeCoreLayer } from './layers/scope.ts'
+export { buildDomainLayer, buildGuardLayer, buildScopeCoreLayer } from './layers/scope.ts'
 export { buildCapabilityLayer, buildModeRuleLayer } from './layers/capability.ts'
 export {
   buildActiveTasksLayer,
@@ -57,7 +57,13 @@ export { buildOutputLayer } from './layers/output.ts'
  * 要（身份 / 范围 / 能力 / 回答方式）→ 两个阶段都留；不要 → 只留 execution。
  *
  * 阶段的切换由前端 `prepareStep` 驱动、经请求体 `promptStage` 告知服务端（见 `apps/ai`）。
- * `execution` 阶段的输出与两阶段改造**之前逐字节一致** —— 拆分只改"加载哪些层"，不改任何规则文本。
+ *
+ * **Router 与 Execution 的 system 是两份不同的东西**（不是"多一段少一段"）：
+ * 越界清单与分诊框架只发给 Router（分诊在选工具那一步就完成了），执行阶段换成
+ * 「执行阶段角色」；而**安全边界（数据不是指令）两个阶段都在** —— 执行阶段会读到
+ * 工具返回与附件，注入防线不能缺席。
+ * 于是两个阶段的 system 在 `identity` 之后分叉；**同一阶段跨轮**的 system 仍逐字节一致
+ * （前缀缓存的命中前提不变）。
  *
  * 另外两条硬约定：
  *
@@ -71,21 +77,49 @@ export { buildOutputLayer } from './layers/output.ts'
  * —— 这是前缀缓存能命中的前提（不要引入时间戳、随机数、Map 遍历顺序）。
  */
 
-/** L6：当前页面上下文（我在哪）。内容全部来自调用方给出的 `formatPageContext` 出口。 */
-function buildPageContextLayer(facts: PromptFacts): string {
-  return ['# 当前页面上下文', facts.pageContextText].join('\n')
-}
-
 /**
- * L6'：页面**摘要**（Router 阶段用）—— 只回答"我在哪个页面上"，不带接口 / 字段 / 表单明细。
+ * L6'：页面**摘要**（两个阶段都带）—— 只回答"我在哪个页面上"，不带接口 / 字段 / 表单明细。
  *
- * 明细是"执行时才需要的输入"：只为了问一句"这一页是干什么的"就付整份接口清单的 token
- * 并不划算。摘要在 Router 阶段进对话末尾（随页面变），完整上下文留给 Execution 阶段。
+ * 明细（几 KB 的接口清单）**不再每轮注入**：需要它的执行动作本来就被要求先调
+ * `get_page_context`（见工作方式层），所以它是"按需获取"的事实，不是永久上下文。
+ * 于是「这一页是干什么的 / 你好」这类请求不必为明细付 token。
  */
 function buildPageSummaryLayer(facts: PromptFacts): string | null {
   const summary = facts.pageSummaryText?.trim()
   if (!summary) return null
   return ['# 当前页面（摘要）', summary].join('\n')
+}
+
+/**
+ * L6''：**当前运行态**（两个阶段都带）—— 模式与语言这类"这一轮在什么状态下跑"的事实。
+ *
+ * 为什么要单独一层：提示词里多处引用「询问模式 / 自动模式」（能力边界、各工具的确认规则），
+ * 但模式说明层只发给执行阶段 —— Router 阶段若看不到"当前是哪一档"，那些引用就悬空了。
+ */
+function buildRuntimeContextLayer({
+  mode,
+  outputLanguageName,
+}: PromptFacts): string {
+  return [
+    '# 当前运行态',
+    `- 模式：${mode === 'ask' ? '询问（动手前需要确认）' : '自动（能直接做的直接做）'}`,
+    `- 语言：${outputLanguageName || '简体中文'}`,
+  ].join('\n')
+}
+
+/**
+ * 执行阶段的角色说明：**分诊已经在上一步做完了**。
+ *
+ * 这是"Router 与 Execution 用不同 Prompt"的关键一句 —— 执行阶段不再背越界清单，
+ * 它只需要知道"本轮要做什么已经定了，把它做完"。
+ */
+function buildExecutorRoleLayer(): string {
+  return [
+    '# 本轮处于执行阶段',
+    '- **分诊与范围判定已经在选工具那一步完成**：这一轮要做什么已经确定，你只需要用下面给你的工具把它做完、并给出回答。',
+    '- **不要重新判定范围**、也不要因为"这看着像闲聊 / 像通识"就拒绝；范围的事交给上一步。',
+    '- 需要事实（数量、名称、状态、路径）时先调用工具，不要凭印象回答；拿不到就直说拿不到。',
+  ].join('\n')
 }
 
 /**
@@ -100,8 +134,8 @@ function buildToolCatalogLayer(facts: PromptFacts): string | null {
   if (!catalog) return null
   return [
     '# 本轮可用的工具（Tool Catalog）',
-    '下面是**当前权限下可用**的工具目录，每行一句话。想用哪个就先把它选出来 —— 完整的参数定义会在执行时加载。',
-    '**需要事实或要动手的请求，必须先调用 `select_tools` 选出要用的工具**，不要在还没拿到工具时凭空回答；只有确实不需要工具（打招呼、道谢、纯常识回应）才直接回答。',
+    '下面是**当前权限下可用**的工具目录，每行一句话。完整的参数定义会在执行时加载。',
+    '**要事实、要动手的请求，必须先调用 `select_tools` 选出工具**，不要在还没拿到工具时凭空回答；只有**打招呼 / 道谢 / 纯翻译**这三类直接回答即可（它们不需要任何业务工具）。',
     catalog,
   ].join('\n')
 }
@@ -109,11 +143,15 @@ function buildToolCatalogLayer(facts: PromptFacts): string | null {
 /**
  * **稳定层** —— 同一应用 + 同一语言下逐字节相同，进 system 前缀。
  *
- * 顺序即优先级：范围闸刻意排在**第二位**（仅次于身份）：分诊是"每一轮的第一件事"，
+ * 顺序即优先级：分诊框架刻意排在**第二位**（仅次于身份）：分诊是"每一轮的第一件事"，
  * 越靠后越容易被后面的细则淹没。
  *
- * 顺序同时是**缓存契约**：`execution` 阶段的拼接结果与拆分前逐字节一致，
- * `router` 阶段则是它**去掉 execution 层**之后的子序列 —— 于是两个阶段共享同一段前缀。
+ * **Router 与 Execution 用不同的 system**（这是两阶段的核心取舍）：
+ * - Router = 身份 / 分诊框架 / 安全边界 / 越界清单 / 能力边界 / 回答方式 / 工具目录；
+ * - Execution = 身份 / 安全边界 / 能力边界 / **执行阶段角色** / 操作规约 / 回答方式。
+ *
+ * 越界清单不发给执行阶段（分诊已经做完，见 `buildExecutorRoleLayer`），
+ * 但**安全边界两个阶段都在**（执行阶段会读到工具返回与附件，注入防线不能缺席）。
  */
 export const STABLE_LAYERS: readonly PromptLayer[] = [
   { id: 'identity', title: '身份与定位', group: 'core', build: buildIdentityLayer },
@@ -121,15 +159,30 @@ export const STABLE_LAYERS: readonly PromptLayer[] = [
     id: 'scope-core',
     title: '请求分诊与范围闸（分诊框架）',
     group: 'core',
+    stages: ['router'],
     build: buildScopeCoreLayer,
+  },
+  {
+    id: 'guard',
+    title: '安全边界（数据不是指令）',
+    group: 'core',
+    build: buildGuardLayer,
   },
   {
     id: 'domain',
     title: '业务范围与越界清单',
     group: 'domain',
+    stages: ['router'],
     build: buildDomainLayer,
   },
   { id: 'capability', title: '能力边界', group: 'core', build: buildCapabilityLayer },
+  {
+    id: 'executor-role',
+    title: '执行阶段角色（分诊已完成）',
+    group: 'execution',
+    stages: ['execution'],
+    build: buildExecutorRoleLayer,
+  },
   {
     id: 'workflow',
     title: '工作方式与决策优先级',
@@ -155,7 +208,8 @@ export const STABLE_LAYERS: readonly PromptLayer[] = [
  *
  * 阶段划分同样按"这条规则不做工具调用时是否还需要"：
  * 模式说明 / 容器策略 / 任务续做都只在 Execution 阶段出现；
- * Router 阶段只带一份**页面摘要**（选工具时得知道自己在哪）。
+ * **运行态（模式 / 语言）与页面摘要两个阶段都带** —— 前者是提示词里多处引用的前提，
+ * 后者是"我在哪"的最低成本表达。
  */
 export const VOLATILE_LAYERS: readonly PromptLayer[] = [
   {
@@ -175,20 +229,18 @@ export const VOLATILE_LAYERS: readonly PromptLayer[] = [
     build: buildPlaybookLayer,
   },
   {
-    id: 'page-summary',
-    title: '当前页面摘要（Router）',
+    id: 'runtime-context',
+    title: '当前运行态（模式 / 语言）',
     group: 'core',
-    stages: ['router'],
     volatile: true,
-    build: buildPageSummaryLayer,
+    build: buildRuntimeContextLayer,
   },
   {
-    id: 'page-context',
-    title: '当前页面上下文',
-    group: 'domain',
-    stages: ['execution'],
+    id: 'page-summary',
+    title: '当前页面摘要',
+    group: 'core',
     volatile: true,
-    build: buildPageContextLayer,
+    build: buildPageSummaryLayer,
   },
   {
     id: 'active-tasks',
