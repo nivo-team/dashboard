@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { streamSSE } from 'hono/streaming'
 import { buildSystemPrompt, PROMPT_LAYERS } from '@admin/ai-prompt'
-import { normalizeFacts } from '../facts'
+import { normalizeFacts, resolvePromptStage } from '../facts'
 
 /**
  * 系统提示词接口 —— 不走对话链路、直接取提示词的调试出口。
@@ -27,7 +27,14 @@ export const systemPromptRoute = new Hono()
 /** 层目录：给调试与文档用（前端 switch 时也靠它核对层序）。 */
 systemPromptRoute.get('/layers', (c) =>
   c.json({
-    layers: PROMPT_LAYERS.map((layer) => ({ id: layer.id, title: layer.title })),
+    layers: PROMPT_LAYERS.map((layer) => ({
+      id: layer.id,
+      title: layer.title,
+      group: layer.group,
+      /* 没声明 = 两个阶段都加载；声明了就只在列出的阶段出现（两阶段见 PromptStage） */
+      stages: layer.stages ?? ['router', 'execution'],
+      volatile: layer.volatile === true,
+    })),
   }),
 )
 
@@ -47,13 +54,20 @@ systemPromptRoute.post('/', async (c) => {
   }
 
   const facts = normalizeFacts(raw)
-  const system = buildSystemPrompt(facts)
+  /* 同样支持 `promptStage`：拿它就能直接对比两个阶段的提示词长度（缺省 execution） */
+  const stage = resolvePromptStage(
+    raw && typeof raw === 'object'
+      ? (raw as { promptStage?: unknown }).promptStage
+      : undefined,
+  )
+  const system = buildSystemPrompt(facts, stage)
 
   return c.json({
     system,
     meta: {
       layers: LAYER_IDS,
       chars: system.length,
+      stage,
       mode: facts.mode,
       surface: facts.surface,
       hasAppScope: Boolean(facts.appId),
@@ -90,7 +104,12 @@ systemPromptRoute.post('/stream', async (c) => {
   }
 
   const facts = normalizeFacts(raw)
-  const system = buildSystemPrompt(facts)
+  const stage = resolvePromptStage(
+    raw && typeof raw === 'object'
+      ? (raw as { promptStage?: unknown }).promptStage
+      : undefined,
+  )
+  const system = buildSystemPrompt(facts, stage)
 
   return streamSSE(c, async (stream) => {
     let aborted = false
@@ -103,6 +122,7 @@ systemPromptRoute.post('/stream', async (c) => {
       data: JSON.stringify({
         layers: LAYER_IDS,
         chars: system.length,
+        stage,
         mode: facts.mode,
         surface: facts.surface,
       }),

@@ -151,5 +151,157 @@ export function findTool(name: string): AiToolDefinition | undefined {
   return AI_TOOLS.find((tool) => tool.name === name)
 }
 
+// ---------------------------------------------------------------- Tool Catalog（Router 阶段）
+
+/** Catalog 里的一行：名字 + 一句话（`catalogDescription`，不含 schema）。 */
+export interface AiToolCatalogEntry {
+  name: string
+  summary: string
+}
+
+/**
+ * 把「当前可用的工具」压成 Router 阶段的 Catalog 条目。
+ *
+ * 入参必须是**已经过权限 / 容器 / 表单过滤**的工具（`getAllowedTools` 的产物）——
+ * 否则模型会选中一个它其实拿不到的工具档，然后回头告诉用户"我没权限"（真实踩过）。
+ *
+ * `catalog: false` 的工具不进清单（仍可被依赖补齐，只是不摆在选择列表里）。
+ */
+export function listToolCatalog(
+  allowedTools: readonly AiToolDefinition[],
+): AiToolCatalogEntry[] {
+  return allowedTools
+    .filter((tool) => tool.catalog !== false)
+    .map((tool) => ({ name: tool.name, summary: tool.catalogDescription }))
+}
+
+/**
+ * Catalog 的**文本形态**（一行一个工具）—— 交给服务端拼进 Router 阶段的 system。
+ *
+ * 刻意不带 JSON Schema：那是 Execution 阶段才下发的完整定义。
+ */
+export function buildToolCatalogText(
+  allowedTools: readonly AiToolDefinition[],
+): string {
+  return listToolCatalog(allowedTools)
+    .map((entry) => `- ${entry.name}：${entry.summary}`)
+    .join('\n')
+}
+
+// ---------------------------------------------------------------- Context Resolver（两阶段之间）
+
+/** 一次工具选择的**确定性解析结果** —— Router 输出不可信，这里才是真值。 */
+export interface AiToolSelection {
+  /** 最终交给 Execution Agent 的工具（已被权限过滤，并补全依赖，顺序按注册表） */
+  tools: AiToolDefinition[]
+  /** 模型明确选中且真实存在的名字（去重后的原样顺序） */
+  selected: string[]
+  /** Runtime 依据 `dependencies` 自动补上的名字 */
+  addedByDependency: string[]
+  /** 被丢掉的名字与原因 —— 进 token / 选择日志，便于发现 Router 选错或模型幻觉 */
+  rejected: Array<{
+    name: string
+    reason: 'unknown' | 'not-allowed' | 'not-executable'
+  }>
+}
+
+export interface ResolveToolsOptions {
+  permission: AiPermissionMode
+  customTools: readonly string[]
+  hasForms?: boolean
+  surface?: AiSurface
+  /** 后端权限点；不传表示不按权限点过滤（与 `getAllowedTools` 同义） */
+  permissions?: readonly string[]
+}
+
+/**
+ * **Context Resolver**：把 Router 选出来的工具名解析成 Execution Agent 真正持有的工具集。
+ *
+ * 这是「不要让 Router 负责业务判断」的落点 —— Router 只回答"需要哪些工具"，
+ * 而下面这些**全部由 Runtime 确定性决定**，不信任模型输出：
+ * 1. 名字是否真实存在（幻觉直接丢掉）；
+ * 2. 是否在**当前权限 / 容器 / 表单 / 后端权限点**下可用（复用 `getAllowedTools`，不另写一套）；
+ * 3. `dependencies` 声明的依赖自动补齐（模型不必记住工具之间的依赖）；
+ * 4. `execution: false` 的工具即使被选中也不进执行阶段。
+ *
+ * 返回值里的 `rejected` 只用于观测；执行阶段拿到的 `tools` 已经是安全且自足的一份。
+ */
+export function resolveTools(
+  selectedNames: readonly string[],
+  options: ResolveToolsOptions,
+): AiToolSelection {
+  const allowed = getAllowedTools(options.permission, options.customTools, {
+    hasForms: options.hasForms,
+    surface: options.surface,
+    permissions: options.permissions,
+  })
+  const executable = allowed.filter((tool) => tool.execution !== false)
+  const available = new Set(executable.map((tool) => tool.name))
+
+  const selected: string[] = []
+  const rejected: AiToolSelection['rejected'] = []
+  /** 已经处理过的名字（选中的 + 依赖补上的），避免重复与环 */
+  const handled = new Set<string>()
+
+  for (const raw of selectedNames) {
+    const name = typeof raw === 'string' ? raw.trim() : ''
+    if (!name || handled.has(name)) continue
+    handled.add(name)
+
+    const tool = findTool(name)
+    if (!tool) {
+      rejected.push({ name, reason: 'unknown' })
+      continue
+    }
+    if (!available.has(name)) {
+      rejected.push({
+        name,
+        reason: tool.execution === false ? 'not-executable' : 'not-allowed',
+      })
+      continue
+    }
+    selected.push(name)
+  }
+
+  /*
+    依赖闭包（BFS）：`analyze_data` → `get_page_data`、`fill_form` → `list_page_forms` …
+    依赖同样要过上面那道可用性闸 —— 补齐一个当前容器拿不到的工具没有意义。
+  */
+  const addedByDependency: string[] = []
+  const queue = [...selected]
+  while (queue.length > 0) {
+    const name = queue.shift() as string
+    for (const dependency of findTool(name)?.dependencies ?? []) {
+      if (handled.has(dependency)) continue
+      handled.add(dependency)
+
+      const depTool = findTool(dependency)
+      if (!depTool) {
+        rejected.push({ name: dependency, reason: 'unknown' })
+        continue
+      }
+      if (!available.has(dependency)) {
+        rejected.push({
+          name: dependency,
+          reason: depTool.execution === false ? 'not-executable' : 'not-allowed',
+        })
+        continue
+      }
+      addedByDependency.push(dependency)
+      queue.push(dependency)
+    }
+  }
+
+  const wanted = new Set([...selected, ...addedByDependency])
+  return {
+    // 按注册表顺序输出：同一份选择在每轮里逐字节一致（前缀缓存友好）
+    tools: executable.filter((tool) => wanted.has(tool.name)),
+    selected,
+    addedByDependency,
+    rejected,
+  }
+}
+
 export * from './data-tools'
 export * from './page-tools'
+export * from './select-tools'

@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { buildSystemPrompt, buildTurnContext } from '@admin/ai-prompt'
-import { normalizeFacts } from '../facts'
+import { normalizeFacts, resolvePromptStage } from '../facts'
 import { resolveUpstream } from '../model-config'
 import type { AiEnv } from '../env'
 
@@ -28,15 +28,19 @@ import type { AiEnv } from '../env'
  * 所以：**只要不做内容变换，就不要碰 body**。将来要脱敏时再权衡（那必须变成逐块处理，
  * 见 `.agents/docs/ai-server-layer.md` §9 与 §7）。
  *
- * ## 与前端的两条约定
+ * ## 与前端的三条约定
  *
  * 1. **私有字段 `promptFacts`**：客户端把事实快照放在请求体的 `promptFacts` 里
  *    （与 OpenAI 请求体同层）。本端点消费后**必须删除**，否则会被发给厂商。
- * 2. **客户端传来的 `Authorization` 一律丢弃**：上游凭证由 Worker 注入。
+ * 2. **私有字段 `promptStage`**：`router` / `execution`，决定加载哪几层提示词
+ *    （两阶段见 `packages/ai-prompt` 的 `PromptStage`）。同样**必须删除**；缺省按
+ *    `execution` 处理，保持老前端的行为不变。
+ * 3. **客户端传来的 `Authorization` 一律丢弃**：上游凭证由 Worker 注入。
  *    前端 SDK 仍需要一个非空的 `apiKey` 占位才能发请求，但它不会到达厂商。
  */
 
 const FACTS_FIELD = 'promptFacts'
+const STAGE_FIELD = 'promptStage'
 
 export const chatRoute = new Hono<{ Bindings: AiEnv }>()
 
@@ -105,6 +109,13 @@ chatRoute.post('/chat/completions', async (c) => {
   const facts = normalizeFacts(payload[FACTS_FIELD])
   delete payload[FACTS_FIELD]
 
+  /*
+    阶段：`router`（选工具）还是 `execution`（真正执行）。两个私有字段都必须在转发前删掉，
+    否则会被当成上游参数发给厂商。缺省 `execution` —— 老前端不受影响。
+  */
+  const promptStage = resolvePromptStage(payload[STAGE_FIELD])
+  delete payload[STAGE_FIELD]
+
   const incoming = payload.messages
   if (!Array.isArray(incoming)) {
     return c.json({ error: 'missing_messages', message: '请求体缺少 messages 数组' }, 400)
@@ -120,21 +131,23 @@ chatRoute.post('/chat/completions', async (c) => {
   /*
     注入分两段（**这是缓存对齐的关键，别合并回去**）：
 
-    1. **稳定规则 → `messages[0]`**：身份 / 范围闸 / 能力边界 / 通用工作方式 / 回答方式。
-       客户端带来的 system 一律丢掉（服务端才是真值，否则两套规则会互相打架）。
-    2. **本轮环境 → 对话末尾**：模式说明 / 容器策略 / 页面上下文 / 任务清单。
+    1. **稳定规则 → `messages[0]`**：按阶段装配 —— Router 阶段是身份 / 分诊 / 业务范围 /
+     能力边界 / 回答方式 / **工具目录**；Execution 阶段在此基础上换成操作规约。
+     客户端带来的 system 一律丢掉（服务端才是真值，否则两套规则会互相打架）。
+  2. **本轮环境 → 对话末尾**：Router 只带页面摘要；Execution 带模式说明 / 容器策略 /
+     完整页面上下文 / 任务清单。
 
-    为什么环境必须在末尾：`system` 在 messages 最前面，它里面**任何**一处变化都会让
-    它后面的一切（包括整段对话历史）失去服务商的前缀缓存 —— 历史是 token 大头，
-    等于每轮都为整段历史重新付费。放进末尾之后，环境说明一旦随消息进入历史就不再变，
-    下一轮的前缀仍然完整命中。
+  为什么环境必须在末尾：`system` 在 messages 最前面，它里面**任何**一处变化都会让
+  它后面的一切（包括整段对话历史）失去服务商的前缀缓存 —— 历史是 token 大头，
+  等于每轮都为整段历史重新付费。放进末尾之后，环境说明一旦随消息进入历史就不再变，
+  下一轮的前缀仍然完整命中。
 
-    环境说明用 `system` 角色（它是系统指令、不是用户输入）。DeepSeek 官方明确支持
-    「在对话中间插入 system 消息」；若某个兼容网关不支持，把 `role` 改成 `user` 即可 ——
-    落点只在这一处。
+  环境说明用 `system` 角色（它是系统指令、不是用户输入）。DeepSeek 官方明确支持
+  「在对话中间插入 system 消息」；若某个兼容网关不支持，把 `role` 改成 `user` 即可 ——
+  落点只在这一处。
   */
-  const system = buildSystemPrompt(facts)
-  const turnContext = buildTurnContext(facts)
+  const system = buildSystemPrompt(facts, promptStage)
+  const turnContext = buildTurnContext(facts, promptStage)
 
   const messages = incoming.filter(
     (message) =>

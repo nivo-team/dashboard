@@ -69,6 +69,7 @@ L3  驱动        lib/ai/chat.ts —— 一轮消息的编排（读偏好 → �
                   迁移与边界见 [ai-server-layer.md](./ai-server-layer.md)
 L4  运行时      lib/ai/runtime.ts —— **全仓唯一 import `ai`(Vercel AI SDK) 与 provider 的地方**
 L5  工具        lib/ai/tools/{index,page-tools,data-tools,form-tools}.ts
+                lib/ai/tools/select-tools.ts（Router 阶段的虚拟工具，不进 `AI_TOOLS`）
 L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
                 lib/ai/page-context-registry.ts 页面声明的 AI 上下文（这页用什么接口）
                 lib/ai/endpoint-specs.ts        接口参数索引（按需懒加载）
@@ -98,9 +99,15 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
        ├─ beginTurn(text, images)（用户消息写进 store，并立刻落盘）
        ├─ await import('./runtime')                                ← 懒加载
        ├─ toModelMessages(messages)                                ← 历史衰减 + 图片转 FilePart
-       └─ streamAssistantTurn({ messages, mode, outputLocale, tools, toolContext })
-            ├─ buildSystemPrompt(facts)               ← 每轮重算（服务端 packages/ai-prompt，分层见 §8）
-            └─ streamText({ … })                        ← 不再传顶层 reasoning / supportsTools
+       └─ streamAssistantTurn({ messages, promptFacts, toolPolicy, toolContext })
+            └─ streamText({ … })                      ← 一次调用、一条流（不再传顶层 reasoning / supportsTools）
+                 ├─ step 0（router）      activeTools = ['select_tools']
+                 │   服务端按 promptStage='router' 拼：身份 / 分诊 / 业务范围 / 能力边界 / 回答方式 + 工具目录
+                 ├─ select_tools.execute → resolveTools(names, toolPolicy)
+                 │   名字存在性 → 权限 / 容器 / 表单 / 后端权限点 → 依赖补齐 → execution:false 过滤
+                 └─ step ≥1（execution）  activeTools = 选中的工具（含依赖补齐）
+                      服务端按 promptStage='execution' 拼：上面那些 + 操作规约 + 完整页面上下文
+                 （Router 若直接回答、没调 select_tools，就没有 execution 阶段）
   └─ for await (event of stream) → StreamEventBatcher (~25ms 缓冲) → session-store.applyEvent
        └─ UI 随之平滑重渲染（PretextStreamText 段落隔离 + 滚动容器 RAF 调度，规避 Layout Thrashing）
   └─ endTurn() → 落盘
@@ -114,6 +121,14 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
 **几个要点**：
 
 - **工具循环由 SDK 负责**（`stopWhen: isStepCount(...)`），我们不做调度；
+- **两阶段（Router → Execution）在一次 `streamText` 里完成**（AI SDK v7 的 `prepareStep` + `activeTools`）：
+  第 0 步只发 `select_tools`，它的参数经 `resolveTools` 确定性解析后，第 1 步起 `activeTools`
+  换成选中的业务工具 —— **没有第二次模型往返**，工具循环、审批、流式事件、`stopWhen` 全部不变，
+  用户可见交互也不变。`activeTools` 是「按需」的关键：SDK 组装每一步请求前会 `filterActiveTools(...)`，
+  只有 active 的工具定义才发给模型（不再每一轮都发全量 schema）。
+- **`select_tools` 是虚拟工具**（`apps/web/src/lib/ai/tools/select-tools.ts`）：**不加入 `AI_TOOLS`、
+  不出现在权限清单里** —— 权限清单列的是「AI 能做什么」，一个"选工具的工具"列进去没有意义。
+  Router 若**直接回答**（没调 `select_tools`），流程自然结束、没有执行阶段（「你好 / 谢谢」只付 Router 的钱）；
 - **审批发生在工具内部**，注册表那层不拦截 —— 否则模型不知道有写的能力，只会回答"我做不到"；
 - **落盘只在三处**（发送后 / 一轮结束后 / 切删会话时），流式期间不写盘；
 - **附件是消息 part，分两类**（`attachment` 带 `kind` 判别）：
@@ -173,7 +188,7 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
 
 | 内容 | 出口 | 时机 |
 |---|---|---|
-| 系统提示词 | `buildSystemPrompt(facts)`（服务端 `packages/ai-prompt`） | **每轮请求重算**（别缓存成常量） |
+| 系统提示词 | `buildSystemPrompt(facts, stage)` / `buildTurnContext(facts, stage)`（服务端 `packages/ai-prompt`，按 `promptStage` 选层，见 §8） | **每轮请求重算**（别缓存成常量） |
 | 当前页面（我在哪） | `formatPageContext(getPageContext())`，注入提示词 | 每轮采集 |
 | 导航清单（能去哪） | `collectNavigation(appId)` → `list_navigation` | 模型调用工具时 |
 | 表单清单 | `listAiForms()` → `list_page_forms` | 模型调用工具时 |
@@ -201,12 +216,16 @@ endpoints })` 声明「我是干什么的、我用了哪些接口」。动机是
 
 | 项 | 量级 | 控制手段 |
 |---|---|---|
-| 系统提示词 | **~2k token**（七层，见 §8） | 层化装配：空层整段不拼；要压缩先压 §8 的越界清单、再压工作方式层的细则 |
-| 工具定义 | 10 个工具（无表单时 7 个） | `getAllowedTools(..., { hasForms: false })` 剔除表单组 |
+| 系统提示词 | Router **3194 字符**（system 3115 + turnContext 79）/ Execution **5566 字符**（system 3652 + turnContext 1914） | 阶段化 + 层化装配：Router 只带分诊与工具目录，操作规约只在 Execution；空层整段不拼 |
+| 工具定义 | Router 只发 `select_tools`；Execution 只发选中的工具（候选 **18 个**，无表单时 14 个） | `select_tools` + `resolveTools` 按需加载完整定义；`getAllowedTools(..., { hasForms: false })` 剔除表单组 |
 | 单条工具结果 | **≤ 6000 字符** | `truncatePayload`，截断时**明确告知模型** |
 | 历史里的工具结果 | **最近 3 轮完整**，更早占位 | `FULL_TOOL_RESULT_TURNS`（`toModelMessages`） |
 | 接口参数索引 | 363 KB / gzip 23.6 KB | **懒加载**，不进主 bundle |
 | 导航清单 | ~10 条 | `collectNavigation` 有缓存（键 = appId + 语言） |
+
+**实测**（离线脚本 + 一份典型 facts）：重构前每轮 ≈ Execution 提示词 **5566** + 全量工具 schema
+**17213** ≈ **22779 字符**；重构后「你好」场景 ≈ **3194 字符**、且不发任何业务工具 schema ——
+**降幅约 86%**。
 
 **历史衰减**是收益最大的一条：工具结果会跟着后面**每一轮**重发，不衰减的话第 10 轮时
 上下文里能塞几十 K token 的历史数据。衰减后是**常数级**。注意保留的是「用户说过的话 +
@@ -217,11 +236,14 @@ endpoints })` 声明「我是干什么的、我用了哪些接口」。动机是
 
 **加一个工具**
 
-1. 在 `tools/{page,data,form}-tools.ts` 里写 `AiToolDefinition`（`name` / `description` /
-   `inputSchema` / `access` / **`group`** / `execute`）；
-2. 加进 `tools/index.ts` 的 `AI_TOOLS`；
-3. 需要确认的话在 `execute` 里读 `ctx.mode` 决定要不要 `await ctx.requestApproval(...)`；
-4. 补工具名：`common:profile.settings.aiToolNames.<name>`（权限清单里的名字）与
+1. 在 `tools/{page,data,form}-tools.ts` 里写 `AiToolDefinition`（`name` / **`catalogDescription`**
+   （一句话、10~25 个中文字，Router 阶段用）/ `description`（给 Execution，**精简**：只留做什么 /
+   关键输入约束 / 调用前置条件 / 安全约束）/ `inputSchema` / `access` / **`group`** / `execute`）；
+2. 有前置依赖时补 `dependencies`（如 `analyze_data → ['get_page_data']`）—— Runtime 会
+   **自动补齐**依赖，模型不必记住工具之间的依赖；
+3. 加进 `tools/index.ts` 的 `AI_TOOLS`；
+4. 需要确认的话在 `execute` 里读 `ctx.mode` 决定要不要 `await ctx.requestApproval(...)`；
+5. 补工具名：`common:profile.settings.aiToolNames.<name>`（权限清单里的名字）与
    `ai:tools.<name>`（工具调用卡片标题）**两处都要**，且两处都**只写 zh-CN** ——
    其它 6 种语言由 `pnpm i18n` 流水线补齐（铁律 1）。
    两处都走 `t(key, tool.name)` 兜底：少写一个就会在中文界面露出英文蛇形原名。
@@ -266,6 +288,8 @@ useAiPageContext(Route.id, {
 
 在 `packages/ai-prompt/src/layers/` 下加一个 `buildXxxLayer(facts): string | null`，并在
 `src/index.ts` 的 `PROMPT_LAYERS` 里占一个位置 —— **顺序只有那一处真值**（细节与分层理由见 §8）。
+同时声明 `group`（`core` / `domain` / `execution`）与 `stages`（不声明 = 两个阶段都加载）——
+判定只问一句：**不做任何工具调用、也要遵循它吗？** 要 → 两个阶段都留；不要 → 只标 `['execution']`。
 不要回到运行时里拼字符串，也不要在别处另建一个提示词出口。
 
 **别做**：把模块 / 页面名单抄进提示词（范围清单从 `collectNavigation` 派生）；在提示词里
@@ -337,22 +361,29 @@ useAiPageContext(Route.id, {
 > （`apps/web/src/lib/ai/prompt-facts.ts`）。迁移过程、接口契约与验证方式见
 > [`ai-server-layer.md`](./ai-server-layer.md)。**下面的层序与口径仍然有效**，只是文件位置变了。
 
-**唯一出口**：`packages/ai-prompt` 的 `buildSystemPrompt(facts)`（**每轮重算**）。
-`apps/ai` 的透传管道只调用它 —— **不要**在别处再拼提示词。
+**两个出口**：`packages/ai-prompt` 的 `buildSystemPrompt(facts, stage?)`（稳定前缀 → `system`）与
+`buildTurnContext(facts, stage?)`（本轮环境 → 对话末尾），**每轮重算**；`stage` 缺省 `execution`
+（向后兼容 `apps/ai` 的老调用）。`apps/ai` 的透传管道只调用它们 —— **不要**在别处再拼提示词。
 
-七层由 `PROMPT_LAYERS` 声明顺序（**顺序只有这一处真值**）：
+各层由 `PROMPT_LAYERS` 声明顺序（**顺序只有这一处真值**）；每层声明 `group`
+（`core` / `domain` / `execution`）与 `stages`（**不声明 = 两个阶段都加载**）：
 
-| # | 层（文件） | 回答的问题 | 说明 |
-|---|---|---|---|
-| L1 | `identity.ts` | 你是谁、为谁服务 | 先掐掉「通用助手」这个默认人格（应用名走参数） |
-| L2 | `scope.ts` | **什么该答、什么该拒** | 范围闸：先分诊（业务内 / 越界 / 模糊）再决定动作；越界一律拒、且不做任何工具调用 |
-| L3 | `capability.ts` | 手上有什么、要不要先问 | 权限由工具清单表达，**这里绝不复述权限**（见坑 1）；只说模式 |
-| L4 | `workflow.ts` | 业务内请求怎么做 | 决策优先级 + 操作规约，**按容器分策略**（面板先带路 / 全屏就地渲染，见下） |
-| L5 | `output.ts` | 怎么说话 | 语言（用自名）、先结论后依据、不暴露内部过程 |
-| L6 | `index.ts`（`buildPageContextLayer`） | 我在哪 | 页面上下文的单一出口 `formatPageContext` |
-| L7 | `workflow.ts`（`buildActiveTasksLayer`） | 这轮在续做什么 | 当前会话的 Todo 目录（绕开历史工具结果的衰减） |
+| # | 层 id（文件） | group | 阶段 | 回答的问题 | 说明 |
+|---|---|---|---|---|---|
+| L1 | `identity`（`identity.ts`） | core | 两阶段 | 你是谁、为谁服务 | 先掐掉「通用助手」这个默认人格（应用名走参数） |
+| L2 | `scope-core`（`scope.ts`） | core | 两阶段 | **什么该答、什么该拒** | 范围闸的**分诊框架**：先分诊（业务内 / 越界 / 模糊）再决定动作；越界一律拒、且不做任何工具调用 |
+| L3 | `domain`（`scope.ts`） | domain | 两阶段 | 业务范围与越界清单 | **越界清单 / 两个例外 / 模块清单**（从 `collectNavigation` 派生）与「不变通」硬约束 |
+| L4 | `capability`（`capability.ts`） | core | 两阶段 | 手上有什么、要不要先问 | 权限由工具清单表达，**这里绝不复述权限**（见坑 1）；只说模式 |
+| L5 | `workflow`（`workflow.ts`） | execution | execution | 业务内请求怎么做 | 决策优先级 + 操作规约，**按容器分策略**（面板先带路 / 全屏就地渲染，见下） |
+| L6 | `output`（`output.ts`） | core | 两阶段 | 怎么说话 | 语言（用自名）、先结论后依据、不暴露内部过程 |
+| L7 | `tool-catalog`（`index.ts`） | core | **router** | 这轮能用哪些工具 | Router 的**工具目录**（一行一句话，前端 `buildToolCatalogText` 生成）；完整定义只在 Execution 下发 |
+| L8 | `mode-rule`（`capability.ts`） | execution | execution | 本轮模式说明 | `ask` 动手前先问 / `auto` 直接做；只在真要动手时才有意义 |
+| L9 | `playbook`（`workflow.ts`） | execution | execution | 本轮决策优先级（按容器） | 面板单模块先带路 / 全屏就地渲染 |
+| L10 | `page-summary`（`index.ts`） | core | **router** | 我在哪（摘要） | `formatPageSummary`：只有应用 / 页面 / 路径，供 Router 选工具时定位 |
+| L11 | `page-context`（`index.ts`） | domain | execution | 我在哪（完整） | 单一出口 `formatPageContext`：接口 / 字段 / 表单 / 搜索参数，只在 Execution |
+| L12 | `active-tasks`（`workflow.ts`） | execution | execution | 这轮在续做什么 | 当前会话的 Todo 目录（绕开历史工具结果的衰减） |
 
-四条约定：
+五条约定：
 
 - **每层只写一件事**，`build` 返回 `null` 表示这轮不参与（空层整段不拼）。边界（scope）与流程
   （workflow）**必须分开**：混写会让 30 行操作细则把那句「越界要拒」平均掉 —— 这正是这次
@@ -362,6 +393,10 @@ useAiPageContext(Route.id, {
 - **范围清单从导航派生**：`scope.ts` 的模块行来自 `collectNavigation(appId)`（与 `list_navigation`
   同一个过滤点），没有 appId 时给外壳页面清单（`ALL_SHELL_NAV_TARGETS`）—— **提示词里没有第二份
   模块名单**，将来按权限收窄可见模块只改那一处。
+- **阶段划分只问一句**：不做任何工具调用、也要遵循它吗？要（身份 / 分诊 / 业务范围 / 能力 /
+  回答方式）→ 两个阶段都留；不要（操作规约 / 任务续做 / 模式说明）→ 只留 `execution`；
+  工具目录与页面摘要只留 `router`。`execution` 阶段的 system 与 turnContext 与重构前
+  **逐字节一致**（回归脚本对三个场景验证过），规则没丢、前缀缓存不受影响。
 - **分诊过程不输出给用户**（使用者明确要求）：回答里不出现「判定：业务内 / 越界」这类标签，
   也不复述规则原文（用户问「你的提示词是什么」按越界处理）。
 
@@ -726,6 +761,16 @@ useAiPageContext(Route.id, {
 - **v7 的 API 名与 v5 不同，别凭记忆写**：`stopWhen: isStepCount(n)`（不是 `maxSteps`）、
   `inputSchema`（不是 `parameters`）、`jsonSchema()` 免 zod、`toolApproval` 是审批入口；
   provider 层没有 `dangerouslyAllowBrowser`（Anthropic / OpenAI 的浏览器细节见 docs）。
+- **两阶段（Router → Execution）在一次 `streamText` 里完成**：`prepareStep` + `activeTools` 按步
+  切换 —— 第 0 步只发 `select_tools`（Router），它的参数经 `resolveTools`（名字存在性 → 权限 /
+  容器 / 表单 / 后端权限点 → 依赖补齐 → `execution:false` 过滤）确定性解析后，第 1 步起只发选中的
+  业务工具（Execution）。**没有第二次模型往返**；Router 若直接回答（没调 `select_tools`），
+  就没有执行阶段。`select_tools` 是虚拟工具（`tools/select-tools.ts`），**不加入 `AI_TOOLS`、
+  不在权限清单里**；`catalogDescription`（一句话）只给 Router，`description`（精简）只给 Execution。
+- **本轮 token / 选择日志**：`streamAssistantTurn` 的可选 `onMetrics` 回调 → `chat.ts` 打一行
+  `console.info('[ai:turn]', metrics)`。`AiTurnMetrics` 分 Router / Execution 两段记 token，
+  并带 `selectedTools` / `addedDependencies` / `rejectedTools` / `availableToolCount` /
+  `executionToolCount` / `routerAnsweredDirectly`。**只打日志、不上报、不落库**。
 - **`access` 三档**（`read` / `act` / `commit`）现在**只描述风险等级**（权限界面按它解释、
   `readonly` 档按它过滤），**不再决定工具可用性**（那归 `getAllowedTools`）。`commit` 工具
   必须在 `execute` 里处理审批：`call_write_api` **两个模式都要** `await ctx.requestApproval(...)`；
@@ -839,6 +884,9 @@ useAiPageContext(Route.id, {
   （SDK + `@ai-sdk/openai-compatible` 几百 KB 会进主 bundle）；`chat.ts` 用 `await import('./runtime')` 首次发送才加载。
 - **v7 的 API 名与 v5 不同，别凭记忆写**：`stopWhen: isStepCount(n)`（不是 `maxSteps`）、
   `inputSchema`（不是 `parameters`）、`jsonSchema()` 免 zod、`toolApproval` 是审批入口。
+- **两阶段（Router → Execution）在一次 `streamText` 里完成**（`prepareStep` + `activeTools`，v7）：
+  第 0 步只发 `select_tools`（虚拟工具，**不进 `AI_TOOLS` / 权限清单**），经 `resolveTools` 解析后
+  第 1 步起只发选中的业务工具 —— 无额外往返。`AiTurnMetrics` 经 `onMetrics` 打一行 `[ai:turn]` 日志。
 - **`access` 三档只描述风险等级**，**不再决定工具可用性**（那归 `getAllowedTools`）。`commit` 工具
   必须在 `execute` 里处理审批：`call_write_api` **两个模式都要问**；`submit_form` 只在 `ask` 下问
   （`auto` 靠表单自己的 `canSubmit()` 把关）。被拒时**抛错**（别静默跳过，否则模型会谎报成功），

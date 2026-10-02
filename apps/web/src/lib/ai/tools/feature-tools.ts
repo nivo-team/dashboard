@@ -34,8 +34,9 @@ import { truncatePayload } from './data-tools'
 
 export const getPageDataTool: AiToolDefinition = {
   name: 'get_page_data',
+  catalogDescription: '获取当前页面已加载的数据',
   description:
-    '读取**当前页面已经加载好的数据**（列表行、当前筛选、分页、选中项等），以及这一页可用的指令清单。用户在面板里问「这一屏 / 当前列表 / 刚才那条」时**先用它** —— 页面里的数据不用再调接口查一遍。**返回 `data: []` 表示这一页还没声明数据源**（未迁移的页面就是这样），那就改用 `search_api` + `call_read_api` 取数。',
+    '读取当前页面已加载的数据（列表行、当前筛选、分页、选中项）与这一页可用的指令清单。source 为数据源 id，不传则返回全部；返回 data: [] 表示这一页没有声明数据源。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -153,8 +154,9 @@ export const getPageDataTool: AiToolDefinition = {
 
 export const runPageCommandTool: AiToolDefinition = {
   name: 'run_page_command',
+  catalogDescription: '执行当前页面提供的操作',
   description:
-    '执行**当前页面上声明的一条指令**（如「删除这条记录」「批量删除选中项」「导出」「打开新建表单」）。指令 id 与参数以 `get_page_data` 返回的 `commands` 为准，**不要自己编 id**。写类指令（kind=write）会先弹确认卡，删除类还会标明不可撤销；用户拒绝就停下、不要重试同一条指令。',
+    '执行当前页面声明的一条指令。command 必须是 get_page_data 返回的指令 id，不得编造；写类指令会先弹确认，删除不可撤销，被拒后不要重试。',
   inputSchema: {
     type: 'object',
     properties: {

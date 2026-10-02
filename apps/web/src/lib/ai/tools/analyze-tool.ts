@@ -65,11 +65,10 @@ const MAX_RESULT_ROWS = 100
 
 export const analyzeDataTool: AiToolDefinition = {
   name: 'analyze_data',
+  catalogDescription: '统计当前页面已加载的数据',
   description:
-    '对**当前页面已加载的数据**做统计（计数 / 求和 / 平均 / 分组 / 排序 / 去重），'
-    + '**AI 不需要看到数据本身**：你写一条 JSON 操作链，客户端本地求值后只把**结果**给你。'
-    + '回答「有多少条」「按 X 分组各多少」「最大的几个」这类问题时用它 —— 先用 `get_page_data` 拿到数据源 id 与字段注解（`fields`），再按注解里的字段名写 pipeline，**不要猜字段名**。'
-    + 'pipeline 最多 8 步；字段必须在该数据源的 `fields` 里；`sum` / `avg` 只能用于 number 字段。',
+    '对当前页面已加载的数据做统计（计数 / 求和 / 分组 / 排序 / 去重）：你写一条 JSON 操作链，客户端本地求值后只把结果给你。source 与字段名必须来自 get_page_data 的字段注解，不得猜测；pipeline 最多 8 步。',
+  dependencies: ['get_page_data'],
   inputSchema: {
     type: 'object',
     properties: {

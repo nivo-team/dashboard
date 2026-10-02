@@ -7,7 +7,7 @@ import { resolveAiPageContext } from './page-context-registry'
 import { collectPromptFacts, resolveOutputLanguageName } from './prompt-facts'
 import { addSessionGrant, hasSessionGrant } from './session-permissions'
 import { useAiSessionStore } from './session-store'
-import { getAllowedTools } from './tools'
+import { buildToolCatalogText, getAllowedTools } from './tools'
 import type {
   AiApprovalDecision,
   AiApprovalRequest,
@@ -302,22 +302,54 @@ export async function sendAiMessage(
     */
     const { permissions } = await ensureUserPermissions(getQueryClient())
 
+    /*
+      工具策略是 Runtime 的**唯一**过滤输入：Router 阶段用它算"可选范围"（工具目录），
+      Execution 阶段用它把 Router 的选择解析成实际下发的工具集 —— 两处同一份条件，
+      页面上的权限清单也是同一份（`getAllowedTools`）。
+    */
+    const toolPolicy = {
+      permission: aiPermission,
+      customTools: aiAllowedTools,
+      hasForms,
+      surface,
+      // 后端权限（上限）∩ 用户偏好（在权限内收紧）
+      permissions,
+    }
+
+    /*
+      Router 的目录**在这里生成**：`collectPromptFacts` 只带事实，不重复算过滤；
+      目录只列当前权限下可用的工具（列了拿不到的，模型就会选它、然后回头说"我没权限"）。
+    */
+    const catalogTools = getAllowedTools(aiPermission, aiAllowedTools, {
+      hasForms,
+      surface,
+      permissions,
+    })
+
     const stream = streamAssistantTurn({
       messages,
       /*
         事实快照由前端采集、随请求上报（页面描述 / 字段名 / 接口描述 / 导航 / 表单 / 任务）。
         规则（身份 / 范围闸 / 能力 / 工作方式 / 回答方式）在服务端 —— 见 `prompt-facts.ts` 的边界表。
+        两阶段各取其中一部分：Router 用页面摘要 + 工具目录，Execution 用完整页面上下文。
       */
-      promptFacts: collectPromptFacts({ mode, surface, outputLanguageName }),
-      // 页面具备表单能力或已挂载表单时，保留表单工具
-      tools: getAllowedTools(aiPermission, aiAllowedTools, {
-        hasForms,
+      promptFacts: collectPromptFacts({
+        mode,
         surface,
-        // 后端权限（上限）∩ 用户偏好（在权限内收紧）
-        permissions,
+        outputLanguageName,
+        toolCatalogText: buildToolCatalogText(catalogTools),
       }),
+      toolPolicy,
       toolContext: buildToolContext(mode, surface, trimmed),
       abortSignal: controller.signal,
+      /*
+        一轮的 token 账与工具选择 —— 只打一行日志。
+        分 Router / Execution 两段记，用来验证"按需加载"到底省在哪：
+        Router 段小、Execution 段的工具数随选择变，混在一起看不出问题。
+      */
+      onMetrics: (metrics) => {
+        console.info('[ai:turn]', metrics)
+      },
     })
 
     batcher = new StreamEventBatcher(assistantId)

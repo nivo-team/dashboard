@@ -95,8 +95,9 @@ export function isAllowedPath(path: string, appId: string | null): boolean {
 
 export const getPageContextTool: AiToolDefinition = {
   name: 'get_page_context',
+  catalogDescription: '获取当前页面与接口信息',
   description:
-    '读取用户此刻所在的页面信息：完整地址、应用、所在页面名称与标题，**以及这个页面用到的接口和它们的参数明细**（参数名 / 位置 / 是否必填）。要在这个页面上查数据时，**先看这里**，再决定调哪个接口、怎么传参。**全屏对话页里没有业务页面上下文**（你只会看到"在对话页"），那种情况改用 list_navigation 定位模块 + search_api 找接口。',
+    '读取用户此刻所在页面：地址、应用、页面名称与标题，以及该页面用到的接口和参数明细（参数名 / 位置 / 是否必填）。查数据或调接口前先调用它，接口路径以返回为准、不要猜测。',
   inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   access: 'read',
   group: 'page',
@@ -137,8 +138,8 @@ export const getPageContextTool: AiToolDefinition = {
 
 export const listNavigationTool: AiToolDefinition = {
   name: 'list_navigation',
-  description:
-    '列出这个后台有哪些页面（名称 + 路径）。当用户说「带我去某某页面 / 打开某某功能」时，先用它找到目标路径，再调用 navigate_to。',
+  catalogDescription: '查找后台的页面路径',
+  description: '列出后台页面的名称与路径，供 navigate_to 选择，路径不得猜测。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -187,8 +188,9 @@ function resolveTargetLabel(path: string, appId: string | null): string {
 
 export const navigateToTool: AiToolDefinition = {
   name: 'navigate_to',
+  catalogDescription: '跳转到后台指定页面',
   description:
-    '把用户带到后台的某个页面（前端路由跳转）。**这个动作可能要先经过用户同意**：询问模式下面板会弹确认卡（「带我去」只这一次 / 「本会话自动跳转」本次对话内不再问 / 「先不跳」），**自动模式下直接跳**；全屏对话页里不会真的跳，而是把跳转渲染成一张由用户点击的卡片。因此：**用户拒绝后就不要再重试同一目标**，改为在当前对话里把数据给出来，或换一个目标、或反问用户想去哪里。',
+    '把用户带到后台某个页面（前端路由跳转）。path 必须来自 list_navigation，不得猜测。询问模式下会先请用户确认；用户拒绝后不要重试同一目标，改为在当前对话给出数据或反问用户。',
   inputSchema: {
     type: 'object',
     properties: {

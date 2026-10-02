@@ -1,17 +1,17 @@
 import { buildCapabilityLayer, buildModeRuleLayer } from './layers/capability.ts'
 import { buildIdentityLayer } from './layers/identity.ts'
 import { buildOutputLayer } from './layers/output.ts'
-import { buildScopeLayer } from './layers/scope.ts'
+import { buildDomainLayer, buildScopeCoreLayer } from './layers/scope.ts'
 import {
   buildActiveTasksLayer,
   buildPlaybookLayer,
   buildWorkflowLayer,
 } from './layers/workflow.ts'
-import type { PromptFacts, PromptLayer } from './types.ts'
+import type { PromptFacts, PromptLayer, PromptStage } from './types.ts'
 
 export * from './types.ts'
 export { buildIdentityLayer } from './layers/identity.ts'
-export { buildScopeLayer } from './layers/scope.ts'
+export { buildDomainLayer, buildScopeCoreLayer } from './layers/scope.ts'
 export { buildCapabilityLayer, buildModeRuleLayer } from './layers/capability.ts'
 export {
   buildActiveTasksLayer,
@@ -35,8 +35,8 @@ export { buildOutputLayer } from './layers/output.ts'
  *
  * | | 函数 | 落在哪 | 内容 |
  * |---|---|---|---|
- * | **稳定** | `buildSystemPrompt(facts)` | `messages[0].role = 'system'` | 身份 / 范围闸 / 能力边界 / 通用工作方式 / 回答方式 |
- * | **变动** | `buildTurnContext(facts)` | 对话**末尾**（最后一条 user 之前） | 本轮模式说明 / 容器策略 / 页面上下文 / 任务清单 |
+ * | **稳定** | `buildSystemPrompt(facts, stage?)` | `messages[0].role = 'system'` | 身份 / 范围闸 / 能力边界 / 通用工作方式 / 回答方式（Router 阶段另加工具目录） |
+ * | **变动** | `buildTurnContext(facts, stage?)` | 对话**末尾**（最后一条 user 之前） | 本轮模式说明 / 容器策略 / 页面上下文 / 任务清单 |
  *
  * **为什么必须分开**：`system` 在 messages 的**最前面**，它里面任何一处变化，都会让
  * **它后面的一切（包括整段对话历史）**失去服务商的前缀缓存（prompt caching）匹配。
@@ -46,6 +46,19 @@ export { buildOutputLayer } from './layers/output.ts'
  * 所以：**新加一层时先问它会不会随环境变**；会变就标 `volatile: true` 放进 `VOLATILE_LAYERS`。
  * 详见 `.agents/docs/ai-server-layer.md` §缓存对齐。
  *
+ * ## 再加一维：**阶段**（按需加载，见 `PromptLayer.stages`）
+ *
+ * 一次对话分两个阶段：`router`（只选工具）与 `execution`（真正执行）。
+ * 操作规约（怎么填表、怎么写库、按容器怎么带路）对"选工具"毫无用处，标 `['execution']`；
+ * 工具目录与页面摘要只对"选工具"有用，标 `['router']`。
+ * 于是「你好」这类请求不会为执行规约与工具 schema 付钱。
+ *
+ * **判定一条规则属于哪个阶段，只问一句：不做任何工具调用、也要遵循它吗？**
+ * 要（身份 / 范围 / 能力 / 回答方式）→ 两个阶段都留；不要 → 只留 execution。
+ *
+ * 阶段的切换由前端 `prepareStep` 驱动、经请求体 `promptStage` 告知服务端（见 `apps/ai`）。
+ * `execution` 阶段的输出与两阶段改造**之前逐字节一致** —— 拆分只改"加载哪些层"，不改任何规则文本。
+ *
  * 另外两条硬约定：
  *
  * 1. **顺序只有一份真值** —— 就是下面的两个数组。加一层 = 加一个 builder 并在数组里占位，
@@ -54,7 +67,7 @@ export { buildOutputLayer } from './layers/output.ts'
  *    工具清单」精确表达，提示词里写死一句「你只能读」，权限改了而这里忘了改，模型就会
  *    放着给它的工具不用、反过来告诉用户「我没权限」（真实踩过，见 capability 层注释）。
  *
- * 提示词**每轮请求重算**，绝不缓存成常量；但相同 facts 必须产出**逐字节相同**的结果
+ * 提示词**每轮请求重算**，绝不缓存成常量；但相同 facts（同一阶段）必须产出**逐字节相同**的结果
  * —— 这是前缀缓存能命中的前提（不要引入时间戳、随机数、Map 遍历顺序）。
  */
 
@@ -64,17 +77,74 @@ function buildPageContextLayer(facts: PromptFacts): string {
 }
 
 /**
+ * L6'：页面**摘要**（Router 阶段用）—— 只回答"我在哪个页面上"，不带接口 / 字段 / 表单明细。
+ *
+ * 明细是"执行时才需要的输入"：只为了问一句"这一页是干什么的"就付整份接口清单的 token
+ * 并不划算。摘要在 Router 阶段进对话末尾（随页面变），完整上下文留给 Execution 阶段。
+ */
+function buildPageSummaryLayer(facts: PromptFacts): string | null {
+  const summary = facts.pageSummaryText?.trim()
+  if (!summary) return null
+  return ['# 当前页面（摘要）', summary].join('\n')
+}
+
+/**
+ * Router 阶段的**工具目录**：一行一个工具（`- name：一句话`）。
+ *
+ * 文本由调用方（前端 `buildToolCatalogText`）按**当前权限下可用的工具**生成 ——
+ * 与 `AI_TOOLS` 同源，服务端不维护第二份名单。完整定义（含 JSON Schema）
+ * 只在 Execution 阶段随 `tools` 下发，这里刻意只有一句话。
+ */
+function buildToolCatalogLayer(facts: PromptFacts): string | null {
+  const catalog = facts.toolCatalogText?.trim()
+  if (!catalog) return null
+  return [
+    '# 本轮可用的工具（Tool Catalog）',
+    '下面是**当前权限下可用**的工具目录，每行一句话。想用哪个就先把它选出来 —— 完整的参数定义会在执行时加载。',
+    '**需要事实或要动手的请求，必须先调用 `select_tools` 选出要用的工具**，不要在还没拿到工具时凭空回答；只有确实不需要工具（打招呼、道谢、纯常识回应）才直接回答。',
+    catalog,
+  ].join('\n')
+}
+
+/**
  * **稳定层** —— 同一应用 + 同一语言下逐字节相同，进 system 前缀。
  *
  * 顺序即优先级：范围闸刻意排在**第二位**（仅次于身份）：分诊是"每一轮的第一件事"，
  * 越靠后越容易被后面的细则淹没。
+ *
+ * 顺序同时是**缓存契约**：`execution` 阶段的拼接结果与拆分前逐字节一致，
+ * `router` 阶段则是它**去掉 execution 层**之后的子序列 —— 于是两个阶段共享同一段前缀。
  */
 export const STABLE_LAYERS: readonly PromptLayer[] = [
-  { id: 'identity', title: '身份与定位', build: buildIdentityLayer },
-  { id: 'scope', title: '请求分诊与范围闸', build: buildScopeLayer },
-  { id: 'capability', title: '能力边界', build: buildCapabilityLayer },
-  { id: 'workflow', title: '工作方式与决策优先级', build: buildWorkflowLayer },
-  { id: 'output', title: '回答方式与语言', build: buildOutputLayer },
+  { id: 'identity', title: '身份与定位', group: 'core', build: buildIdentityLayer },
+  {
+    id: 'scope-core',
+    title: '请求分诊与范围闸（分诊框架）',
+    group: 'core',
+    build: buildScopeCoreLayer,
+  },
+  {
+    id: 'domain',
+    title: '业务范围与越界清单',
+    group: 'domain',
+    build: buildDomainLayer,
+  },
+  { id: 'capability', title: '能力边界', group: 'core', build: buildCapabilityLayer },
+  {
+    id: 'workflow',
+    title: '工作方式与决策优先级',
+    group: 'execution',
+    stages: ['execution'],
+    build: buildWorkflowLayer,
+  },
+  { id: 'output', title: '回答方式与语言', group: 'core', build: buildOutputLayer },
+  {
+    id: 'tool-catalog',
+    title: '本轮可用工具目录（Router）',
+    group: 'core',
+    stages: ['router'],
+    build: buildToolCatalogLayer,
+  },
 ]
 
 /**
@@ -82,24 +152,49 @@ export const STABLE_LAYERS: readonly PromptLayer[] = [
  *
  * 放在末尾之后，这些内容一旦进入历史就**不再变**（它是当时那一轮说出去的），
  * 于是下一轮的前缀仍然完整命中。
+ *
+ * 阶段划分同样按"这条规则不做工具调用时是否还需要"：
+ * 模式说明 / 容器策略 / 任务续做都只在 Execution 阶段出现；
+ * Router 阶段只带一份**页面摘要**（选工具时得知道自己在哪）。
  */
 export const VOLATILE_LAYERS: readonly PromptLayer[] = [
-  { id: 'mode-rule', title: '本轮模式说明', volatile: true, build: buildModeRuleLayer },
+  {
+    id: 'mode-rule',
+    title: '本轮模式说明',
+    group: 'execution',
+    stages: ['execution'],
+    volatile: true,
+    build: buildModeRuleLayer,
+  },
   {
     id: 'playbook',
     title: '本轮决策优先级（按容器）',
+    group: 'execution',
+    stages: ['execution'],
     volatile: true,
     build: buildPlaybookLayer,
   },
   {
+    id: 'page-summary',
+    title: '当前页面摘要（Router）',
+    group: 'core',
+    stages: ['router'],
+    volatile: true,
+    build: buildPageSummaryLayer,
+  },
+  {
     id: 'page-context',
     title: '当前页面上下文',
+    group: 'domain',
+    stages: ['execution'],
     volatile: true,
     build: buildPageContextLayer,
   },
   {
     id: 'active-tasks',
     title: '进行中的任务清单',
+    group: 'execution',
+    stages: ['execution'],
     volatile: true,
     build: buildActiveTasksLayer,
   },
@@ -110,6 +205,11 @@ export const PROMPT_LAYERS: readonly PromptLayer[] = [
   ...STABLE_LAYERS,
   ...VOLATILE_LAYERS,
 ]
+
+/** 某层是否属于这个阶段（没声明 `stages` = 两个阶段都要）。 */
+function inStage(layer: PromptLayer, stage: PromptStage): boolean {
+  return !layer.stages || layer.stages.includes(stage)
+}
 
 /**
  * 空层（返回 `null` 或只有空白）不参与拼接，层与层之间空一行 —— 于是「这轮没有任务清单」
@@ -127,15 +227,40 @@ function assemble(layers: readonly PromptLayer[], facts: PromptFacts): string {
 
 /**
  * 稳定部分 → **system**。每轮重算，但相同 facts 逐字节一致（前缀缓存的命中前提）。
+ *
+ * `stage` 决定加载哪些层（见 `PromptLayer.stages`），默认 `execution` —— 即"改调用方之前
+ * 的老行为"。`router` 阶段会省掉操作规约，并多带一份工具目录。
  */
-export function buildSystemPrompt(facts: PromptFacts): string {
-  return assemble(STABLE_LAYERS, facts)
+export function buildSystemPrompt(
+  facts: PromptFacts,
+  stage: PromptStage = 'execution',
+): string {
+  return assemble(
+    STABLE_LAYERS.filter((layer) => inStage(layer, stage)),
+    facts,
+  )
 }
 
 /**
  * 本轮环境 → **对话末尾**。没有内容时返回 `null`（调用方就别插那条消息）。
+ *
+ * 两个阶段带的东西不同：`router` 只有页面摘要（选工具时得知道自己在哪），
+ * `execution` 才是模式说明 / 容器策略 / 完整页面上下文 / 任务清单。
  */
-export function buildTurnContext(facts: PromptFacts): string | null {
-  const text = assemble(VOLATILE_LAYERS, facts)
+export function buildTurnContext(
+  facts: PromptFacts,
+  stage: PromptStage = 'execution',
+): string | null {
+  const text = assemble(
+    VOLATILE_LAYERS.filter((layer) => inStage(layer, stage)),
+    facts,
+  )
   return text.trim() ? text : null
+}
+
+/** 某个阶段会用到的层（供文档 / 调试 / token 自检引用）。 */
+export function layersForStage(stage: PromptStage): readonly PromptLayer[] {
+  return [...STABLE_LAYERS, ...VOLATILE_LAYERS].filter((layer) =>
+    inStage(layer, stage),
+  )
 }

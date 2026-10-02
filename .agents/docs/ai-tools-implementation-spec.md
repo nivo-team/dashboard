@@ -144,6 +144,7 @@ await ctx.requestApproval({
 ```ts
 export const checkResultMatchTool: AiToolDefinition = {
   name: 'check_result_match',
+  catalogDescription: '检查页面数据是否存在指定值',
   description: '检查**当前页面已加载的数据**里，某个字段是否存在满足条件的值。'
     + '**它只回答"存在 / 不存在"**，不返回数据本身 —— 用于在数据已脱敏的情况下，'
     + '确认用户提到的某个具体值（例如手机号）在不在结果里。'
@@ -297,6 +298,47 @@ return { ok: true, value: /* 标量或 ≤100 项的小数组 */ }
 | `fill_form` | 在 `execute` 里查**表单声明的 `fillPermission`**（工具层不写死权限点） |
 | `submit_form` | 同上，查 `submitPermission` |
 
+### 1.9 加一个工具：双层描述、依赖与阶段开关
+
+> 两阶段按需加载（Router → Execution，见 [`ai-server-layer.md`](./ai-server-layer.md) §1.4）落地后，
+> `AiToolDefinition` 新增下列字段。它们**只影响「什么时候把定义发给模型」**，不改工具行为。
+
+| 字段 | 必填 | 作用 |
+|---|---|---|
+| `catalogDescription: string` | ✅ **必填** | Router 阶段工具目录的一行。**10~25 个中文字**，只说明「能干什么」 |
+| `description: string` | ✅（原有） | Execution 阶段的完整说明，**已大幅精简**：只留 做什么 / 关键输入约束 / 调用前置条件 / 安全约束 |
+| `dependencies?: readonly string[]` | 按需 | 被选中时 Runtime **自动补齐**的其它工具名（模型不必记住工具间依赖） |
+| `catalog?: boolean` | 否（默认 `true`） | 是否进 Router 的 Tool Catalog |
+| `execution?: boolean` | 否（默认 `true`） | 是否允许进 Execution 阶段 |
+
+**双层描述的分工**（不要写重、不要写串）：
+
+| 阶段 | 模型看到的 | 来源 | 体量 |
+|---|---|---|---|
+| Router | 一行 `- name：catalogDescription` | `buildToolCatalogText(allowedTools)`（只含**当前权限下可用**的工具） | 每工具一句话 |
+| Execution | 完整定义（`description` + `inputSchema`） | `activeTools` 选中的工具（含依赖补齐） | 单工具 2~3.5k 字符 |
+
+`catalogDescription` **不要**写：调用规则、权限、其它工具、业务流程，也不要复述 system prompt ——
+那些属于执行阶段的 `description` 与各层提示词。
+
+**`dependencies` 现状**（仅三处）：`analyze_data → ['get_page_data']`、
+`check_result_match → ['get_page_data']`、`fill_form → ['list_page_forms']`。
+
+**加一个工具的步骤**：
+
+1. 写实现：`catalogDescription` 必填、`description` 精简、需要前置工具就写 `dependencies`；
+2. 注册进 `AI_TOOLS`（`lib/ai/tools/index.ts`）—— **唯一真值**，不要另立名单；
+3. 权限点按 §1.8 声明（`requiredPermissions` / `requiredPermissionsAny`，或 `execute` 里查页面声明）；
+4. 不需要出现在 Router 目录的标 `catalog: false`；只该在 Router 存在的标 `execution: false`。
+5. `select_tools` 是**虚拟工具**，**不加入 `AI_TOOLS`**，也不出现在权限清单里
+   （它的 `execute` 在 `runtime.ts` 的本轮闭包中）。
+
+**关键约束一条没删**（都还在 `description` / 提示词层里）：不猜接口路径、不猜字段名、
+写操作必须确认、删除不可撤销、被拒不重试、`truncated` 不得下结论、`check_result_match` 的
+`value` 必须来自用户。被删掉的是**与其它工具的比较、容器策略、`@` 引用编排** —— 那些由提示词层承载。
+
+**尚未做**：`inputSchema` 里参数的 `description` / `example` **还没精简**（留待拿到真实 token 数据后再压）。
+
 ---
 
 ## 2. 任务与写入范围（互不重叠）
@@ -320,6 +362,7 @@ return { ok: true, value: /* 标量或 ≤100 项的小数组 */ }
 2. **不要跑** `typecheck` / `build` / `dev`（仓库约定：只有使用者点名 verify 时才跑）。正确性靠**阅读类型与调用方**保证。
 3. **不要新建平行的名单**：字段注解、权限点、工具清单一律复用既有出口
    （`AI_TOOLS` / `resolveFeature` / `hasPageCapabilityPermission`）。
+   （`select_tools` 是虚拟工具，**不进** `AI_TOOLS`，见 §1.9。）
 4. **不引入新依赖**。
 5. **只改自己任务范围内的文件**；需要改别人的文件 → 在交付说明里提出，不要直接动手。
 6. **不要 `eval` / `new Function`**（表达式必须是纯数据结构）。

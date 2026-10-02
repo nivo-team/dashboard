@@ -84,8 +84,9 @@ function resolveWhitelistedPath(
 
 export const searchApiTool: AiToolDefinition = {
   name: 'search_api',
+  catalogDescription: '搜索后台的业务接口',
   description:
-    '在系统的接口清单里检索接口（按关键词匹配方法与路径）。要用接口取数时先用它找到接口，再调 call_read_api。**取数还是带用户去页面，按当前容器的行事策略**（见系统提示）：全屏对话页把结果直接呈现在对话里，面板优先用 navigate_to 带用户去页面。',
+    '在接口清单里按关键词检索接口（方法与路径）。调用任何业务接口前先用它确认接口路径与参数名，不得凭印象猜测。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -133,8 +134,9 @@ export const searchApiTool: AiToolDefinition = {
 
 export const callReadApiTool: AiToolDefinition = {
   name: 'call_read_api',
+  catalogDescription: '调用只读业务接口取数',
   description:
-    '调用只读（GET）业务接口取回真实数据。**取数还是带用户去页面，按当前容器的行事策略**（见系统提示）：全屏对话页就用它在对话里以 Markdown 表格 / 摘要给出结果；面板里单模块单页面的列表浏览与搜索过滤（如 @table-example:list、查看表格示例）应优先 navigate_to 带用户去页面、再用 update_search_params 让表格呈现，只有跨模块的综合统计/对比才在这里输出表格。**路径里的 `{id}` 这类占位符**：可以传模板路径并用 `pathParams` 填值（例如 `path: "/user/{id}", pathParams: { id: 10001 }`），也可以直接给替换好的真实路径。无论哪种情况，**都不要凭印象编数据、不要猜参数名**。',
+    '调用只读（GET）业务接口取回真实数据。path 必须是 search_api 清单里存在的接口，参数名以接口声明为准，不得猜测。结果被截断（truncated）时不要据此下结论，改用更精确的参数或分页。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -206,8 +208,9 @@ export const callReadApiTool: AiToolDefinition = {
 
 export const listDictOptionsTool: AiToolDefinition = {
   name: 'list_dict_options',
+  catalogDescription: '读取数据字典的可选项',
   description:
-    '读取数据字典的枚举选项（值 → 文案）。接口返回的 status、type 这类数字含义用它翻译成人话；反查「哪个值对应某个文案」也用它。',
+    '读取数据字典的枚举选项（值 → 文案），用于翻译接口返回的枚举字段。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -311,8 +314,9 @@ function isPathAllowedForTemplate(template: string, path: string): boolean {
  */
 export const callWriteApiTool: AiToolDefinition = {
   name: 'call_write_api',
+  catalogDescription: '调用写入业务接口改数据',
   description:
-    '调用一个会**修改数据**的接口（POST / PUT / PATCH / DELETE）。执行前系统一定会请用户确认（删除会额外标明不可撤销）；如果用户拒绝，会返回失败，此时不要重复尝试同一个请求，改为向用户说明并询问下一步。**路径里的 `{id}` 这类占位符**：可以传模板路径（`"/user/{id}"`）并用 `pathParams`（`{"id":10001}`）填值，也可以直接给替换好的真实路径。接口与参数名以 `get_page_context` / `search_api` 返回的为准，**不要凭印象拼路径**。',
+    '调用会修改数据的接口（POST / PUT / PATCH / DELETE）。path 与参数名必须来自 search_api 清单，不得猜测；每次调用系统都会请用户确认，删除不可撤销，被拒绝后不要重试同一请求，改为向用户说明。',
   inputSchema: {
     type: 'object',
     properties: {

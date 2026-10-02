@@ -12,7 +12,7 @@
 
 | | 状态 |
 |---|---|
-| **已落地** | ① `packages/ai-prompt` 提示词唯一真值；② `apps/ai` 的提示词服务与 **OpenAI 兼容透传管道**；③ **前端已切换**（不再持有提示词，也不再需要配置模型与凭证）；④ 缓存对齐（两段式装配 + 阶梯式衰减 + 指标可见） |
+| **已落地** | ① `packages/ai-prompt` 提示词唯一真值；② `apps/ai` 的提示词服务与 **OpenAI 兼容透传管道**；③ **前端已切换**（不再持有提示词，也不再需要配置模型与凭证）；④ 缓存对齐（两段式装配 + 阶梯式衰减 + 指标可见）；⑤ **两阶段按需加载**（Router → Execution，`promptStage` 取层 + 工具目录 + 虚拟 `select_tools`） |
 | **前端** | ✅ **已切换**：`runtime.ts` 出站指向中间层、`prompt-facts.ts` 采集事实上报；前端 `lib/ai/prompt/**` 已删除。迁移记录见 §5 |
 | **凭证** | 只在 Worker（`AI_GATEWAY_TOKEN` / `AI_PROVIDER_API_KEY` 走 secret） |
 | **provider / 模型** | 归 **AI Gateway**；Worker 只保留「上游地址 + 鉴权形态 + 是否覆盖 model」 |
@@ -29,12 +29,12 @@
 
 ```text
 浏览器（Vercel AI SDK）
-  │  POST /v1/chat/completions   { messages, tools, promptFacts }
+  │  POST /v1/chat/completions   { messages, tools, promptFacts, promptStage }
   │  （不再自己拼 system；apiKey 只是占位）
   ▼
 apps/ai（Hono on Cloudflare Workers）
-  ├─ 注入服务端 system（packages/ai-prompt 真值）
-  ├─ 剥离私有字段 promptFacts、丢弃客户端 Authorization
+  ├─ 注入服务端 system（packages/ai-prompt 真值，按 promptStage 取层）
+  ├─ 剥离私有字段 promptFacts / promptStage、丢弃客户端 Authorization
   ├─ 注入上游凭证（cf-aig-authorization / Authorization）
   └─ fetch 上游 → **原样返回上游 body**（ReadableStream 直接交出）
   ▼
@@ -52,13 +52,16 @@ Cloudflare AI Gateway（provider 路由 / 模型 / 重试回退 / 缓存 / 限�
 | provider / 模型路由 | ❌ 不配置 | 只决定「上游地址 + 是否覆盖 model」 | ✅ **配置在这里** |
 | 事实快照 | ✅ 采集并上报 | 消费后剥离 | ❌（它只是透明代理） |
 | 工具定义与执行 | ✅ 仍在前端 | 不参与（随请求透传） | ❌ |
+| 工具按需加载 | ✅ Router 阶段只发 `select_tools`，`activeTools` 逐步收窄 | 按 `promptStage` 选层 | ❌ |
 | 鉴权 | 带登录 token | 校验落点（待接后端） | 可选（Authenticated Gateway） |
 
 ### 1.2 规则在服务端，事实由客户端上报
 
 这是「前端拆不出提示词」能成立的原因：**规则**（身份 / 范围闸 / 能力 / 工作方式 / 回答方式）
 写在 `packages/ai-prompt` 的代码里，改规则 = 重新部署；**事实**（应用名、`appId`、导航清单、
-页面上下文、任务清单、模式、容器、输出语言）只有浏览器知道，由请求体的 `promptFacts` 字段上报。
+页面上下文、页面摘要、工具目录、任务清单、模式、容器、输出语言）只有浏览器知道，由请求体的
+`promptFacts` 字段上报。规则**按阶段取用**：`router` 只带分诊框架 + 工具目录 + 页面摘要，
+`execution` 才带操作规约与完整页面上下文（见 §1.4）。
 服务端**无状态**：不落库、不存业务数据。
 
 ### 1.3 工具循环仍在前端（这是刻意的最小改动）
@@ -67,17 +70,47 @@ Cloudflare AI Gateway（provider 路由 / 模型 / 重试回退 / 缓存 / 限�
 **前端执行工具**（`fill_form` 要写 React state、`navigate_to` 要 router、审批卡要 UI）→
 前端再发下一轮。**Worker 不参与工具循环**，它只保证每一轮的 system 都被正确注入。
 
+### 1.4 两阶段按需加载：Router → Execution（一次 `streamText`）
+
+前端 `apps/web/src/lib/ai/runtime.ts` 用 AI SDK v7 的 `prepareStep` + `activeTools` 实现，
+**没有额外往返**：同一次 `streamText` 的第 0 步是 Router，≥1 步是 Execution。
+
+| step | 阶段 | 服务端注入（按 `promptStage` 取层） | 发给模型的工具 |
+|---|---|---|---|
+| 0 | `router` | 身份 / 分诊框架 / 业务范围 / 能力边界 / 回答方式 + **工具目录（Tool Catalog）** + 页面摘要 | 只有 `select_tools` |
+| ≥1 | `execution` | 上面那些 + 操作规约（工作方式 / 容器策略 / 模式说明 / 任务续做）+ 完整页面上下文 | `select_tools` 选中的工具（含依赖补齐） |
+
+- **`select_tools` 是虚拟工具**（`apps/web/src/lib/ai/tools/select-tools.ts`，`SELECT_TOOLS_SPEC`）：
+  **不加入 `AI_TOOLS`**，也不出现在权限清单里；它的 `execute` 写在 runtime 的**本轮闭包**里
+  （选择结果要落进本轮运行时，而不是一个可独立执行的业务动作）。
+- Router 若**直接回答**（没调 `select_tools`），流程自然结束，不会有执行阶段 ——
+  「你好 / 谢谢」这类请求只付 Router 的钱。
+- **`activeTools` 是按需的关键**：AI SDK 在组装每一步请求前会 `filterActiveTools(...)`，
+  只有 active 的工具定义才会发给模型（已从 ai@7.0.116 的 dist 源码确认）。
+- **Router 输出的工具名不被信任**：一律经 `resolveTools(selectedNames, toolPolicy)`
+  （`apps/web/src/lib/ai/tools/index.ts`）确定性解析 —— ①名字真实存在；②在当前权限 / 容器 /
+  表单 / 后端权限点下可用（复用 `getAllowedTools`，不另写一套）；③`dependencies` 自动补齐；
+  ④`execution: false` 的过滤掉。返回 `{ tools, selected, addedByDependency, rejected }`，
+  `rejected` 只用于日志。目录文本由 `buildToolCatalogText(allowedTools)` 生成（**当前权限下**
+  可用工具，一行一个）。
+- **工具循环、审批、流式事件、`stopWhen: isStepCount(30)` 全不变。**
+- `promptStage` 由 runtime 写在每步的请求体里，Worker 消费后删除（§3.2）；
+  **缺省 `execution`**。runtime 另有可选的 `onMetrics` 回调，`chat.ts` 里打一行
+  `console.info('[ai:turn]', metrics)`，字段见 §3.6。
+- **本次没做**：Context Profile（greeting / navigation / page_query / page_analysis / form /
+  write / api / complex 的细分画像）—— 当前只有 router / execution 两档。
+
 ---
 
 ## 2. 代码地图
 
 | 路径 | 职责 |
 |---|---|
-| `packages/ai-prompt/src/**` | 提示词唯一真值：`buildSystemPrompt(facts)` + `PROMPT_LAYERS` + 七层实现（**零运行时依赖**） |
+| `packages/ai-prompt/src/**` | 提示词唯一真值：`buildSystemPrompt(facts, stage?)` + `buildTurnContext(facts, stage?)` + `layersForStage(stage)` + `PROMPT_LAYERS`（**零运行时依赖**；`stage` 缺省 `execution`） |
 | `apps/ai/src/index.ts` | Hono app：CORS、`/health`、路由挂载、404 / onError |
-| `apps/ai/src/routes/chat.ts` | **透传管道**：`POST /v1/chat/completions`（注入 → 剥离 → fetch → 原样返回） |
-| `apps/ai/src/routes/system-prompt.ts` | `POST /v1/system-prompt`（JSON）与 `/stream`（SSE）、`GET /layers` |
-| `apps/ai/src/facts.ts` | **不信任输入**的规范化（HTTP facts → 安全默认值） |
+| `apps/ai/src/routes/chat.ts` | **透传管道**：`POST /v1/chat/completions`（注入 → 剥离 `promptFacts` / `promptStage` → fetch → 原样返回） |
+| `apps/ai/src/routes/system-prompt.ts` | `POST /v1/system-prompt`（JSON）与 `/stream`（SSE，均接受 `promptStage`）、`GET /layers`（每层 `id` / `title` / `group` / `stages` / `volatile`） |
+| `apps/ai/src/facts.ts` | **不信任输入**的规范化（HTTP facts → 安全默认值）+ `resolvePromptStage`（缺省 `execution`） |
 | `apps/ai/src/model-config.ts` | 上游地址 + 鉴权形态三选一 + 「是否覆盖 model」 |
 | `apps/ai/src/cors.ts` | 来源白名单（**不是鉴权**） |
 | `apps/ai/src/redact.ts` | 出站脱敏预留钩子（恒等占位） |
@@ -110,8 +143,9 @@ Cloudflare AI Gateway（provider 路由 / 模型 / 重试回退 / 缓存 / 限�
 | `tools` / `tool_choice` / `stream` / 其它 | 原样透传（工具循环仍由前端驱动） |
 | `model` | 配了 `AI_MODEL_ID` 时会被**覆盖**（前端不必知道模型名） |
 | `promptFacts` | **私有字段**，事实快照（见 §3.5）。消费后**必然被删除**，不会发给厂商 |
+| `promptStage` | **私有字段**，`'router' \| 'execution'`，决定加载哪几层提示词（见 §1.4）。消费后**必然被删除**；**缺省 `execution`**（老前端行为不变） |
 
-**行为**：注入 system → 剥离 `promptFacts` → 覆盖 model（若配置）→ 注入凭证 →
+**行为**：按 `promptStage` 取层并注入 system → 剥离 `promptFacts` / `promptStage` → 覆盖 model（若配置）→ 注入凭证 →
 `fetch` AI Gateway → **原样返回上游 body**（含上游错误码与正文）。
 
 **响应头**：透传上游的 `content-type`、`cache-control` 与 `cf-aig-*` 诊断头
@@ -132,12 +166,14 @@ Cloudflare AI Gateway（provider 路由 / 模型 / 重试回退 / 缓存 / 限�
 ### 3.3 `POST /v1/system-prompt`（JSON）与 `/stream`（SSE）
 
 用于**不走对话链路**地取提示词（调试、核对层序、将来前端本地缓存校验）。
+两个端点都接受 `promptStage`（缺省 `execution`）—— 拿它就能直接对比两个阶段的提示词长度。
 字段与响应见 `facts.ts` / `system-prompt.ts`；SSE 事件序列为 `meta` → `chunk`* → `done`，
 `data` 统一 JSON 化（换行转义，客户端不用自己分帧）。
 
 ### 3.4 `GET /v1/system-prompt/layers`
 
-层目录（`id` + `title`），给调试与切换时核对层序。
+层目录，每层返回 `{ id, title, group, stages, volatile }`（`stages` 不声明时回落
+`['router', 'execution']`），给调试与切换时核对层序。
 
 ### 3.5 `promptFacts` 字段表
 
@@ -148,10 +184,29 @@ Cloudflare AI Gateway（provider 路由 / 模型 / 重试回退 / 缓存 / 限�
 | `appName` | string | `''`（装配回落「管理后台」） | 身份层自称 |
 | `appId` | string \| null | `null` | **null = 不在任何应用里**（范围闸走外壳分支） |
 | `outputLanguageName` | string | `'简体中文'` | **语言自名**（「日本語」），由调用方解析 |
-| `pageContextText` | string | `''` | 已格式化的页面上下文 |
+| `pageContextText` | string | `''` | 已格式化的**完整**页面上下文（接口 / 字段 / 表单 / 搜索参数），Execution 阶段用 |
+| `pageSummaryText` | string | `''` | 已格式化的页面**摘要**（应用 / 页面 / 路径 / 路由模板），Router 阶段代替完整上下文 |
+| `toolCatalogText` | string | `''` | 工具目录文本（前端按当前权限生成，一行一个），Router 阶段拼进 system |
 | `navEntries` | `{name,path,group}[]` | `[]` | 导航扁平清单（范围闸派生模块行，上限 30 行） |
 | `shellNavNames` | string[] | `[]` | 外壳页面名 |
 | `activeTasks` | `{id,title,status}[] \| null` | `null` | 会话任务清单；全完成则该层整段缺席 |
+
+`promptFacts` 里**没有** `promptStage` —— 阶段是请求体的**平级私有字段**（§3.2），
+与 facts 一起消费后删除。
+
+### 3.6 本轮 token / 选择日志（前端侧）
+
+runtime 有可选的 `onMetrics` 回调，`apps/web/src/lib/ai/chat.ts` 打一行
+`console.info('[ai:turn]', metrics)`；字段（`AiTurnMetrics`）：
+
+| 字段 | 含义 |
+|---|---|
+| `routerInputTokens` / `routerOutputTokens` | Router 这一步的 token |
+| `executionInputTokens` / `executionOutputTokens` | Execution 的 token |
+| `totalInputTokens` / `totalOutputTokens` | 本轮合计 |
+| `selectedTools` / `selectedToolCount` / `addedDependencies` | Router 选中 / 数量 / 依赖补齐 |
+| `availableToolCount` / `executionToolCount` / `rejectedTools` | 可用 / 实际进执行 / 被丢弃（含原因） |
+| `routerAnsweredDirectly` | Router 直接回答（无执行阶段） |
 
 ---
 
@@ -194,6 +249,9 @@ const provider = createOpenAICompatible({
   },
 })
 ```
+
+两阶段改造后，同一个 `fetch` 闭包还会写入当轮的 `promptStage`（`prepareStep` 把阶段记在闭包里，
+`createWorkerModel` 的 fetch 每个请求前读出来，见 §1.4）—— 服务端据此取层；**不引入额外请求**。
 
 ### 5.2 实际改动（已完成）
 
@@ -260,6 +318,7 @@ ESB=$(ls -d node_modules/.pnpm/esbuild@*/node_modules/esbuild/bin/esbuild | head
 ```
 
 **已覆盖的断言**：system 置顶且客户端 system 被丢弃、`promptFacts` 被剥离、
+`promptStage` 被剥离（缺省 `execution`）、
 凭证注入且客户端凭证未被透传、`model` 被服务端覆盖、`stream` 原样透传、
 **SSE 逐块到达（未被缓冲）**、缺 `messages` → 400、未配上游 → 503、
 `rest-api` 与 `provider-native` 两种鉴权头的差异、`/health` 不回显密钥。
@@ -316,15 +375,27 @@ return new Response(upstream.body, { status: upstream.status, headers })   // �
 （**包括整段对话历史**）失去服务商前缀缓存（prompt caching）匹配。历史是 token 大头 ——
 把「每轮都变 / 切换就变」的内容留在 system 里，等于**每轮都为整段历史重新付费**。
 
-所以提示词分两段装配（`packages/ai-prompt`），**落点不同**：
+所以提示词分两段装配（`packages/ai-prompt`），**落点不同**；每段又**按阶段取层**
+（`PromptStage = 'router' | 'execution'`，见 §1.4）：
 
-| | 函数 | 落在哪 | 内容 | 实测长度 |
-|---|---|---|---|---|
-| **稳定** | `buildSystemPrompt(facts)` | `messages[0].role='system'` | 身份 / 范围闸 / 能力边界 / 通用工作方式 / 回答方式 | 3626 字符 |
-| **变动** | `buildTurnContext(facts)` | 对话**末尾**（最后一条 user 之前） | 本轮模式说明 / 容器策略 / 页面上下文 / 任务清单 | 2205 字符 |
+| | 函数 | 落在哪 | 内容 | `execution` 实测 | `router` 实测 |
+|---|---|---|---|---|---|
+| **稳定** | `buildSystemPrompt(facts, stage?)` | `messages[0].role='system'` | 身份 / 分诊框架 / 业务范围 / 能力边界 / 回答方式（+ Router 的工具目录） | 3652 字符 | 3115 字符 |
+| **变动** | `buildTurnContext(facts, stage?)` | 对话**末尾**（最后一条 user 之前） | Execution：模式说明 / 容器策略 / 完整页面上下文 / 任务清单；Router：页面摘要 | 1914 字符 | 79 字符 |
+
+合计：**Execution 5566 字符、Router 3194 字符**（`stage` 缺省 `execution`，向后兼容）。
 
 **已验证**：同一应用 + 同一语言下，稳定 system 跨轮**逐字节相同**（缓存命中的前提）；
 相同 facts 两次装配结果**完全一致**（不要引入时间戳 / 随机数 / Map 遍历顺序）。
+**两阶段改造的回归结论**：`execution` 阶段的 system 与 turnContext 与拆分前**逐字节一致**
+（已用脚本对三个场景验证）—— 规则一条没丢，前缀缓存不受影响；`router` 的结果是
+`execution` 去掉 execution 层后的**子序列**，两阶段共享同一段前缀。
+
+**工具 schema 是按需的那一半**（重构前实测）：每轮 ≈ 提示词 5566 + **全量工具 schema 17213**
+≈ 22779 字符；「你好」场景 3194 字符且**无业务工具 schema** → **降幅约 86%**。
+单工具体量：`check_result_match` 3488、`get_page_data` 2665、`analyze_data` 2486、
+`open_form` 2292 字符等，18 个合计约 17.2k。完整定义只在 Execution 阶段按 `activeTools` 下发
+（Catalog 阶段一个工具只有一个 `catalogDescription`）。
 
 #### 各家的命中机制不一样，但「稳定前置、可变后置」是通用原则
 

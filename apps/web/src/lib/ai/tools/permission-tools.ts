@@ -9,8 +9,9 @@ import type { AiToolDefinition } from '../types'
  */
 export const requestPermissionTool: AiToolDefinition = {
   name: 'request_permission',
+  catalogDescription: '向用户申请操作权限',
   description:
-    '向用户申请操作权限（例如申请「表单操作权限」或「接口写权限」）。在刷新页面、回到历史会话继续任务前，如果尚未获得权限，调用此工具向用户弹出授权卡片。用户批准后本会话将持续放行后续对应操作。',
+    '向用户申请操作权限（表单 / 接口写）。继续会话前若尚无权限，先调用它弹授权卡，批准后本会话放行。',
   inputSchema: {
     type: 'object',
     properties: {

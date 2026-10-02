@@ -197,6 +197,37 @@ export interface AiToolDefinition<Input = Record<string, unknown>> {
   name: string
   /** 给模型看的用途说明 —— 写清楚「什么时候该用它」，模型是否用对全靠这句话 */
   description: string
+  /**
+   * **Catalog 阶段**给模型看的一句话 —— 只说明「这个工具能干什么」。
+   *
+   * 建议 10~25 个中文字。**不要**在这里写：调用规则、权限、其它工具、业务流程，
+   * 也不要复述 system prompt —— 那些属于执行阶段的 `description` 与各层提示词。
+   *
+   * 为什么单独留一条：Router 阶段要把**当前权限下全部可用**的工具摆给模型做选择，
+   * 而 `description` + `inputSchema` 的全量体量约 1.7 万字符，不可能每轮都发；
+   * 发这条一句话（约 10~25 字）就够了 —— 完整定义只在 Execution 阶段按需下发。
+   */
+  catalogDescription: string
+  /**
+   * 依赖的其它工具名 —— 被选中时 Runtime 会**自动补齐**它们（见 `resolveTools`）。
+   *
+   * 例：`analyze_data` 依赖 `get_page_data`（要先拿到数据源 id 与字段注解）。
+   * 补依赖是 Runtime 的确定性职责，模型不必记住工具之间的依赖关系。
+   */
+  dependencies?: readonly string[]
+  /**
+   * 是否参与 Router 阶段的 Catalog（默认 `true`）。
+   *
+   * `false` = 不出现在给模型的清单里，但仍可被依赖补齐 / 被选中（真值只有本定义一处）。
+   */
+  catalog?: boolean
+  /**
+   * 是否允许进入 Execution Agent（默认 `true`）。
+   *
+   * `false` = 即使被选中也会被 `resolveTools` 过滤掉 —— 给「只在 Router 阶段存在」的
+   * 辅助工具留位置（例如 `select_tools` 自己就不该进执行阶段）。
+   */
+  execution?: boolean
   inputSchema: Record<string, unknown>
   access: AiToolAccess
   /** 权限界面里的分组（页面 / 数据 / 表单）：设置页按它折叠、计数 */
@@ -338,6 +369,39 @@ export interface AiTurnUsage {
   cacheReadTokens?: number
   /** 未命中缓存的输入 token */
   noCacheTokens?: number
+}
+
+/**
+ * 一轮对话的 **token 与工具选择日志** —— 「按需加载」到底省没省、省在哪一段，只能靠它验证。
+ *
+ * 两阶段的输入量差距极大（Router 只有分诊 + 目录，Execution 才有操作规约 + 完整 schema），
+ * 所以**必须分段记录**：只看总数会把"Router 便宜"与"某次选了很多工具"混成一个数字。
+ *
+ * 生产环境默认只 `console.info` 一行（见 `chat.ts`）；不上报、不落库。
+ */
+export interface AiTurnMetrics {
+  /** Router 阶段（选工具）的输入 / 输出 token */
+  routerInputTokens: number
+  routerOutputTokens: number
+  /** Execution 阶段（真正执行）的输入 / 输出 token */
+  executionInputTokens: number
+  executionOutputTokens: number
+  /** 两阶段合计 */
+  totalInputTokens: number
+  totalOutputTokens: number
+  /** Router 选中的工具（模型给的、且真实存在且当前可用） */
+  selectedTools: string[]
+  selectedToolCount: number
+  /** Runtime 依据 `dependencies` 自动补上的工具 */
+  addedDependencies: string[]
+  /** 当前权限 / 容器下可用的工具总数 —— Router 做选择的**范围** */
+  availableToolCount: number
+  /** 真正下发给 Execution 的完整工具数（它们的 schema 才是执行阶段的开销） */
+  executionToolCount: number
+  /** 被丢掉的选择（不存在 / 越权 / 非执行工具），供排查 Router 选错 */
+  rejectedTools: string[]
+  /** Router 是否**没选工具**（直接回答或纯问候）—— 这条为 true 时 Execution 阶段不存在 */
+  routerAnsweredDirectly: boolean
 }
 
 /**

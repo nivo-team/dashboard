@@ -118,10 +118,10 @@ function isReadErrorSnapshot(value: unknown): boolean {
 
 export const checkResultMatchTool: AiToolDefinition = {
   name: 'check_result_match',
-  description: '检查**当前页面已加载的数据**里，某个字段是否存在满足条件的值。'
-    + '**它只回答"存在 / 不存在"**，不返回数据本身 —— 用于在数据已脱敏的情况下，'
-    + '确认用户提到的某个具体值（例如手机号）在不在结果里。'
-    + '每次调用都需要用户同意；用户拒绝时不要重试。',
+  catalogDescription: '检查页面数据是否存在指定值',
+  description:
+    '检查页面数据中某字段是否存在符合条件的值，只答存在 / 不存在。field 须取自 get_page_data 注解，value 须来自用户；每次调用都要用户同意，被拒不重试。',
+  dependencies: ['get_page_data'],
   inputSchema: {
     type: 'object',
     properties: {

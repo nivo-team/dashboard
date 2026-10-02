@@ -1,7 +1,7 @@
 # AI 助手（Ask AI）接入设计
 
 > 本文是「Ask AI 接入真实模型」这件事的**单一真值**：数据模型、工具协议、权限矩阵与后续扩展。
-> 相关代码：`#/lib/ai/*`、`#/components/ai-panel`、`#/components/ai-composer`、`/settings/AI`。
+> 相关代码：`#/lib/ai/*`、`#/lib/ai/tools/select-tools`、`#/components/ai-panel`、`#/components/ai-composer`、`/settings/AI`。
 > **注**：厂商 / 模型配置（原 `#/lib/store/ai-store`、`admin.ai`）已清理，见 §0 与 §2.1。
 > 面板骨架与两种显示方式见 AGENTS.md §9；本文只讲「接上模型之后」的部分。
 
@@ -14,8 +14,10 @@
 - **请求经 `apps/ai`（Hono Worker）转发**，凭证由 Worker 注入，**浏览器不再持有 Key**；
   流式对话 + 工具调用循环（切换记录见 [ai-server-layer.md](./ai-server-layer.md) §5）；
 - **上下文注入**：当前 URL / 路由模板 / appId / 面包屑 / 页面标题；
-- **系统提示词分层 + 范围闸**：`#/lib/ai/prompt/*` 七层（身份 / **请求分诊与范围闸** / 能力 /
-  工作方式 / 回答方式 / 页面上下文 / 任务清单），唯一出口 `buildSystemPrompt`（每轮重算）。
+- **系统提示词分层 + 范围闸**：`packages/ai-prompt` 分层装配（身份 / **请求分诊与范围闸** / 能力 /
+  工作方式 / 回答方式 / 页面上下文 / 任务清单），唯一出口 `buildSystemPrompt` / `buildTurnContext`
+  （每轮重算、服务端拼接）。**按阶段加载**：Router 阶段只要分诊 + 工具目录，Execution 阶段才有
+  操作规约与完整页面上下文。
   每轮**先分诊再行动**：业务外（闲聊、通识、数学、写代码与解释代码、翻译以外的语言任务、
   其它产品、专业建议…）一律拒绝且**不做任何工具调用**；例外只有**翻译**（系统是多语言的）
   与一句寒暄；分诊过程不输出给用户。分层理由、当前口径与扩展点见
@@ -96,11 +98,15 @@
 ┌─ L5 UI ────────── ai-panel（消息流 / 工具调用卡 / 审批卡）
 │                   ai-composer（输入区 + 显示方式 + 模式切换）
 ├─ L4 工具层 ────── #/lib/ai/tools/*：注册表 + JSON Schema + access + execute
+│                   Router 的虚拟工具 select-tools（不进 AI_TOOLS）
 │                   ctx = { navigate, queryClient, client, getPageContext, requestApproval }
 ├─ L3 上下文层 ──── #/lib/ai/page-context：当前 URL / 路由 / appId / 面包屑 / 页面标题
-│                   #/lib/ai/prompt/*：系统提示词的七层装配（身份 / **范围闸** / 能力 /
-│                     工作方式 / 回答方式 / 页面上下文 / 任务清单），唯一出口 buildSystemPrompt
-├─ L2 运行时层 ──── #/lib/ai/runtime：agent loop（流式 + 工具调用）+ provider adapter
+│                   packages/ai-prompt：系统提示词分层，按 promptStage（router / execution）
+│                     选层（Router 只给分诊 + 工具目录，Execution 才有操作规约与完整页面上下文）；
+│                     唯一出口 buildSystemPrompt / buildTurnContext
+├─ L2 运行时层 ──── #/lib/ai/runtime：一次 streamText 内的两阶段（prepareStep + activeTools）
+│                   —— 第 0 步只发 select_tools，resolveTools 解析后第 1 步起只发选中的业务工具；
+│                   无额外模型往返。另含 provider adapter
 └─ L1 配置层 ────── 本机偏好（`admin.preferences:<appId>`：权限 / 模式 / 显示相关）
                     原 `admin.ai`（providers[] / models[] / activeModelId）已删除 ——
                     模型与凭证由 `apps/ai` / AI Gateway 决定，前端不选模型、不声明能力
@@ -186,7 +192,11 @@ WebMCP 目前只在很新的 Chrome 里可用（且规范仍在演进），本�
 ```ts
 interface AiToolDefinition<Input = unknown> {
   name: string                 // 给模型的唯一名字，蛇形
-  description: string          // 给模型看的用途说明（决定它会不会用对）
+  catalogDescription: string   // Router 阶段的一句话（10~25 个中文字）—— 只说明"能干什么"
+  description: string          // Execution 阶段给模型看的用途说明（已精简：做什么 / 输入约束 / 前置条件 / 安全约束）
+  dependencies?: readonly string[]   // 前置工具，Runtime 自动补齐（analyze_data → ['get_page_data'] 等）
+  catalog?: boolean            // 默认 true；false = 不进 Router 目录（仍可被依赖补齐）
+  execution?: boolean          // 默认 true；false = 即使被选中也不进执行阶段
   inputSchema: Record<string, unknown>   // JSON Schema，直接用，不引入 zod
   access: 'read' | 'act' | 'commit'
   group: 'page' | 'data' | 'form'   // 权限界面里的分组（工具自己声明）
@@ -195,6 +205,13 @@ interface AiToolDefinition<Input = unknown> {
 ```
 
 **不引入 zod**：AI SDK v5 的 `tool()` 接受 JSON Schema（`jsonSchema()`），而我们的工具输入本来就该是纯数据描述 —— 少一个依赖，也方便将来把 schema 直接展示给用户。
+
+**双层描述与按需加载**：`catalogDescription`（一句话）只随 Router 阶段的工具目录发给模型；
+`description` + `inputSchema` 只在 Execution 阶段随选中的工具下发。工具之间的比较、容器策略、
+`@` 引用编排一律不在工具描述里（由提示词层承载）—— 描述里保留的是不猜路径 / 不猜字段 /
+写操作确认 / 删除不可撤销 / 被拒不重试 / `truncated` 不下结论 / 探测值必须来自用户这些约束。
+Router 的输出**不被信任**：`resolveTools` 会做 名字存在性 → 权限 / 容器 / 表单 / 后端权限点 →
+依赖闭包 → `execution:false` 过滤（见 [ai-architecture.md](./ai-architecture.md) §2）。
 
 ### 3.2 权限（能用到什么）与模式（要不要问）
 

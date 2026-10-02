@@ -1,4 +1,9 @@
-import type { PromptFacts, PromptNavEntry, PromptTask } from '@admin/ai-prompt'
+import type {
+  PromptFacts,
+  PromptNavEntry,
+  PromptStage,
+  PromptTask,
+} from '@admin/ai-prompt'
 
 /**
  * 把 HTTP 来的**不可信**请求体规范化成 `PromptFacts`。
@@ -13,8 +18,20 @@ import type { PromptFacts, PromptNavEntry, PromptTask } from '@admin/ai-prompt'
 
 export const PROMPT_MODES = ['ask', 'auto'] as const
 export const PROMPT_SURFACES = ['panel', 'sphere'] as const
+export const PROMPT_STAGES = ['router', 'execution'] as const
 
 export const DEFAULT_OUTPUT_LANGUAGE_NAME = '简体中文'
+
+/**
+ * 请求体里的阶段字段 → `PromptStage`。
+ *
+ * **默认 `execution`**：老前端（或手写 curl）不带这个字段时，行为与两阶段改造之前完全一致
+ * —— 这是升级期的安全默认，不要改成 `router`（那会让一次普通请求只拿到 Router 层，
+ * 模型看不到操作规约）。
+ */
+export function resolvePromptStage(value: unknown): PromptStage {
+  return PROMPT_STAGES.find((known) => known === value) ?? 'execution'
+}
 
 function asString(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback
@@ -84,6 +101,14 @@ export function normalizeFacts(raw: unknown): PromptFacts {
       DEFAULT_OUTPUT_LANGUAGE_NAME,
     ),
     pageContextText: asString(body.pageContextText),
+    /*
+      两阶段改造新增的两个事实字段：
+      - `pageSummaryText`：页面摘要，Router 阶段代替完整页面上下文；
+      - `toolCatalogText`：工具目录（前端按当前权限生成），Router 阶段拼进 system。
+      两者缺失时对应层整段不出现（`build` 返回 null），不会留下空标题。
+    */
+    pageSummaryText: asString(body.pageSummaryText),
+    toolCatalogText: asString(body.toolCatalogText),
     navEntries: asNavEntries(body.navEntries),
     shellNavNames: asStringArray(body.shellNavNames),
     activeTasks: asTasks(body.activeTasks),

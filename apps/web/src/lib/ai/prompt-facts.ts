@@ -1,7 +1,7 @@
 import type { PromptFacts } from '@admin/ai-prompt'
 import { SUPPORTED_LOCALES, type LocaleKey } from '#/lib/locale'
 import { ALL_SHELL_NAV_TARGETS } from '#/lib/navigation'
-import { formatPageContext, getPageContext, resolveNavLabel } from './page-context'
+import { formatPageContext, formatPageSummary, getPageContext, resolveNavLabel } from './page-context'
 import { useAiSessionStore } from './session-store'
 import { collectNavigation } from './tools/page-tools'
 import { getLatestSessionTasks } from './tools/task-tools'
@@ -38,6 +38,13 @@ export interface CollectPromptFactsOptions {
   surface: AiSurface
   /** 已解析过的输出语言自名（`auto` 已在调用方解析成具体语言） */
   outputLanguageName: string
+  /**
+   * Router 阶段的**工具目录文本**（`buildToolCatalogText(可用工具)`）。
+   *
+   * 由调用方（`chat.ts`）生成，因为「当前权限下有哪些工具」的过滤也在那边 ——
+   * 这里只负责把它带进事实快照，不重复算一份。
+   */
+  toolCatalogText?: string
 }
 
 /**
@@ -53,6 +60,7 @@ export function collectPromptFacts({
   mode,
   surface,
   outputLanguageName,
+  toolCatalogText,
 }: CollectPromptFactsOptions): PromptFacts {
   const context = getPageContext()
   const appId = context.appId ?? null
@@ -63,7 +71,13 @@ export function collectPromptFacts({
     appName: context.appName ?? '管理后台',
     appId,
     outputLanguageName,
+    /*
+      页面上下文**两份**：Router 用摘要（我在哪），Execution 用完整明细（接口 / 字段 / 表单）。
+      服务端按 `promptStage` 二选一，前端不必知道这一轮会走到哪个阶段。
+    */
     pageContextText: formatPageContext(context),
+    pageSummaryText: formatPageSummary(context),
+    toolCatalogText: toolCatalogText ?? '',
     navEntries: collectNavigation(appId).map((entry) => ({
       name: entry.name,
       path: entry.path,

@@ -41,8 +41,9 @@ export function getLatestSessionTasks(
  */
 export const manageTasksTool: AiToolDefinition = {
   name: 'manage_tasks',
+  catalogDescription: '创建和更新任务清单',
   description:
-    '当用户的指令包含多个任务或需要分步处理多个对象时（例如「帮我新建 3 个用户：张三、李四、王五」），首先使用此工具创建任务清单（Todo List）。在执行每项任务前将其标记为 in_progress，完成后标记为 completed；若用户要求取消某些任务则标记为 cancelled。系统会在界面上展示实时任务进度卡片。',
+    '用户指令包含多个任务时，用它创建任务清单；执行前把当前项置为 in_progress，完成后置为 completed，取消则置为 cancelled。',
   inputSchema: {
     type: 'object',
     properties: {

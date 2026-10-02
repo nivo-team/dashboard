@@ -12,14 +12,17 @@ pnpm -C apps/ai deploy     # 部署到 Cloudflare
 | 端点 | 说明 |
 |---|---|
 | `GET /health` | 自述阶段、脱敏与鉴权是否启用、上游是否配置；**不回显密钥** |
-| `POST /v1/chat/completions` | **透传管道**：注入服务端 system → 剥离 `promptFacts` → 注入凭证 → 返回上游 body（SSE 原样） |
-| `POST /v1/system-prompt` | 只取提示词（JSON） |
+| `POST /v1/chat/completions` | **透传管道**：注入服务端 system（按 `promptStage` 取层）→ 剥离 `promptFacts` / `promptStage` → 注入凭证 → 返回上游 body（SSE 原样） |
+| `POST /v1/system-prompt` | 只取提示词（JSON）；接受 `promptStage`（缺省 `execution`） |
 | `POST /v1/system-prompt/stream` | 同上，SSE：`meta` → `chunk`* → `done` |
-| `GET /v1/system-prompt/layers` | 层目录（id + title） |
+| `GET /v1/system-prompt/layers` | 层目录（`id` + `title` + `group` + `stages` + `volatile`） |
 
-请求体里的私有字段 **`promptFacts`** = 事实快照（页面上下文 / 导航 / 任务 / 模式 / 容器 / 输出语言），
+请求体里的私有字段 **`promptFacts`** = 事实快照（页面上下文 / 页面摘要 / 工具目录 / 导航 / 任务 / 模式 / 容器 / 输出语言），
 由前端上报；服务端消费后**必然删除**，不会发给厂商。字段表见
 [`.agents/docs/ai-server-layer.md`](../../.agents/docs/ai-server-layer.md) §3.5。
+
+另有私有字段 **`promptStage`**（`'router' | 'execution'`）：决定本轮装配哪几层提示词，
+同样**消费后即删除**；**缺省 `execution`**（老前端行为不变）。语义见同文档 §1.4。
 
 ## 职责边界
 
@@ -40,7 +43,7 @@ pnpm -C apps/ai deploy     # 部署到 Cloudflare
 src/index.ts                  Hono app：CORS、/health、路由挂载、404/onError
 src/routes/chat.ts            透传管道（注入 system + 凭证，原样返回上游 body）
 src/routes/system-prompt.ts   提示词接口（JSON + SSE）
-src/facts.ts                  HTTP 输入规范化（不信任输入）
+src/facts.ts                  HTTP 输入规范化（不信任输入）+ 阶段解析（resolvePromptStage，缺省 execution）
 src/model-config.ts           上游地址 + 鉴权形态（provider-native / rest-api / direct）+ 是否覆盖 model
 src/cors.ts                   来源白名单
 src/redact.ts                 出站脱敏预留钩子

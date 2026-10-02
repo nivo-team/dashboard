@@ -18,8 +18,9 @@ import type { AiToolDefinition } from '../types'
 
 export const openFormTool: AiToolDefinition = {
   name: 'open_form',
+  catalogDescription: '打开新增或编辑表单',
   description:
-    '在当前页面打开新增或编辑表单，并支持同时预填字段内容。当用户要求「新建 XX / 创建 XX / 编辑 XX」时调用此工具，传入 action（create 或 edit）、可选 id、以及可选要直接填入的 values 键值对。',
+    '在当前页面打开新增或编辑表单，可用 values 预填；表单必须先打开才能填 / 提交，字段名取自 list_page_forms，不得猜测。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -125,8 +126,9 @@ export const openFormTool: AiToolDefinition = {
 
 export const listPageFormsTool: AiToolDefinition = {
   name: 'list_page_forms',
+  catalogDescription: '查看当前页面的表单与字段',
   description:
-    '列出用户当前页面上正在编辑的表单、字段定义与当前值。要帮用户填表之前先调用它 —— 否则你不知道有哪些字段、只能瞎猜字段名。',
+    '列出当前页面的表单、字段与当前值；填表前必须先调用它取字段名，不得猜测。',
   inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   access: 'read',
   group: 'form',
@@ -152,8 +154,10 @@ export const listPageFormsTool: AiToolDefinition = {
 
 export const fillFormTool: AiToolDefinition = {
   name: 'fill_form',
+  catalogDescription: '填写表单字段',
   description:
-    '把若干字段值写进当前页面的表单（**只改表单内容，不会提交、不会发请求**）。询问模式下这一步会先请用户确认，自动模式下直接写入。写完请告诉用户检查一遍；需要落库时再用 submit_form。',
+    '把字段值写入当前表单，仅改内容、不提交。询问模式下会先请用户确认，自动模式直接写入。formId 与字段名取自 list_page_forms 且须在其白名单内；被拒绝后不要重试。',
+  dependencies: ['list_page_forms'],
   inputSchema: {
     type: 'object',
     properties: {
@@ -246,8 +250,9 @@ export const fillFormTool: AiToolDefinition = {
 
 export const submitFormTool: AiToolDefinition = {
   name: 'submit_form',
+  catalogDescription: '提交当前表单',
   description:
-    '提交当前页面的表单，把改动写入服务端。**询问模式下系统会先请用户确认**（自动模式下表单校验通过就直接提交）；用户拒绝时不要重试同一个提交，改为向用户说明并询问下一步。',
+    '提交当前表单，写入服务端。询问模式须用户确认，自动模式须满足 canSubmit()；被拒绝后不得重试。',
   inputSchema: {
     type: 'object',
     properties: {

@@ -27,6 +27,16 @@ export type AiMode = 'ask' | 'auto'
  */
 export type AiSurface = 'panel' | 'sphere'
 
+/**
+ * 一次请求所处的阶段 —— 决定加载哪些提示词层（见 `PromptLayer.stages`）与哪份页面上下文。
+ *
+ * - `router`：第一阶段，只回答「这次要用哪些工具」—— 带分诊/范围、能力目录、页面摘要；
+ * - `execution`：第二阶段，带着选中的工具真正执行 —— 才加载操作规约与完整页面上下文。
+ *
+ * 由前端 `runtime.ts` 在 `prepareStep` 里切换，并经请求体字段告知服务端。
+ */
+export type PromptStage = 'router' | 'execution'
+
 /** 一条业务导航项（由调用方从导航清单投影而来，**不是**本包自己读导航）。 */
 export interface PromptNavEntry {
   /** 当前语言下的页面名称 */
@@ -67,6 +77,20 @@ export interface PromptFacts {
   outputLanguageName: string
   /** 已格式化的当前页面上下文文本（前端由 `formatPageContext` 产出） */
   pageContextText: string
+  /**
+   * 页面**摘要**（应用 / 页面 / 路径）—— Router 阶段用它，**不**带接口、字段、表单明细。
+   *
+   * 明细是"执行时才需要的输入"，由执行阶段的 `pageContextText` 或工具按需取；
+   * 只回一句"我在哪个页面上"的问题不该为它付 token。
+   */
+  pageSummaryText?: string
+  /**
+   * Router 阶段的 **Tool Catalog 文本**（一行一个工具：`- name：一句话`）。
+   *
+   * 由前端按**当前权限下可用的工具**生成（`buildToolCatalogText`），与 `AI_TOOLS` 同源 ——
+   * 服务端不维护第二份工具名单，只负责把它拼进 Router 的 system。
+   */
+  toolCatalogText?: string
   /** 业务导航的**扁平**清单（含分组信息），范围闸据此派生模块行 */
   navEntries: readonly PromptNavEntry[]
   /** 外壳页面名清单（应用选择 / 个人资料 / 外观 / AI 设置 / 关于） */
@@ -81,6 +105,24 @@ export interface PromptLayer {
   id: string
   /** 层的职责一句话（与 `.agents/docs/ai-architecture.md` 的表格一一对应） */
   title: string
+  /**
+   * 这一层属于哪一组（只用于文档 / 日志 / 自检，不改变拼接顺序）：
+   * - `core`：身份 / 分诊框架 / 能力边界 / 回答方式 —— **每个请求都要**；
+   * - `domain`：业务范围清单 / 越界清单 / 例外 —— Router 做分诊也要，所以同上；
+   * - `execution`：操作规约（工作方式 / 容器策略 / 任务续做）—— **只有真要动手时才要**。
+   */
+  group: 'core' | 'domain' | 'execution'
+  /**
+   * 这一层在**哪些阶段**加载（默认两个阶段都加载）。
+   *
+   * 两阶段由前端的 `prepareStep` 驱动，服务端按请求体里的 `promptStage` 取用：
+   * - `router`：只做「选工具」，要的是**分诊与范围**、以及一份工具目录；
+   * - `execution`：真正动手，才需要操作规约（怎么填表、怎么写库、按容器怎么带路）。
+   *
+   * 判定一条规则该不该标 `['execution']`，只问一句：**不做任何工具调用、也要遵循它吗？**
+   * 要（身份 / 范围 / 能力 / 回答方式）→ 两个阶段都留；不要（操作规约 / 任务续做）→ 只留 execution。
+   */
+  stages?: readonly PromptStage[]
   /**
    * 是否属于「本轮环境」（模式 / 容器 / 页面 / 任务）。
    *

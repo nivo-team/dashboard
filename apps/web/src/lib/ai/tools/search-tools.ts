@@ -9,8 +9,9 @@ import type { AiToolDefinition } from '../types'
  */
 export const updateSearchParamsTool: AiToolDefinition = {
   name: 'update_search_params',
+  catalogDescription: '修改当前页面的筛选条件',
   description:
-    '更新当前页面的搜索与过滤参数（搜索关键词、多字段筛选、服务端排序、分页）。高优先级：当用户询问单模块数据、查询具体列表或使用 @引用（如 @table-example:list）时，必须优先使用 navigate_to 到达页面并调用此工具更新页面参数，在界面表格上为用户呈现结果！将参数值设为 null 可清除该参数。',
+    '更新当前页面的搜索与筛选参数（关键词、多字段筛选、服务端排序、分页）；参数值设为 null 可清除该参数。',
   inputSchema: {
     type: 'object',
     properties: {

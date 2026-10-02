@@ -1,9 +1,16 @@
-import type { PromptFacts } from '@admin/ai-prompt'
+import type { PromptFacts, PromptStage } from '@admin/ai-prompt'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { isStepCount, jsonSchema, streamText, tool } from 'ai'
 import type { ModelMessage, ToolSet } from 'ai'
 import { expandRouteRefs } from './route-refs'
 import { resolveRecentBoundary } from './history-boundary'
+import {
+  getAllowedTools,
+  resolveTools,
+  SELECT_TOOLS_NAME,
+  SELECT_TOOLS_SPEC,
+  type ResolveToolsOptions,
+} from './tools'
 import type {
   AiAttachment,
   AiImageAttachment,
@@ -13,6 +20,7 @@ import type {
   AiStreamEvent,
   AiToolContext,
   AiToolDefinition,
+  AiTurnMetrics,
 } from './types'
 
 /**
@@ -69,8 +77,14 @@ const WORKER_MODEL_ID = 'nivo-ai-server-fixed'
  * 事实快照必须随**每一个**请求发出（包括工具循环里的每一轮），因为服务端是无状态的、
  * 每轮都要重新拼提示词。AI SDK 没有"自定义请求体字段"的入口，所以用自定义 `fetch`
  * 在最外层把 `promptFacts` 并进请求体 —— 这是本项目**唯一一处**改写出站请求体的地方。
+ *
+ * `getStage` 是两阶段的接点：SDK 每一步都会调用 `prepareStep`，我们把当前阶段记在闭包里，
+ * 这里读出来放进 `promptStage` —— 服务端据此决定加载哪几层提示词。
  */
-function createWorkerModel(promptFacts: PromptFacts) {
+function createWorkerModel(
+  promptFacts: PromptFacts,
+  getStage: () => PromptStage = () => 'execution',
+) {
   return createOpenAICompatible({
     name: 'nivo-ai',
     baseURL: `${AI_SERVICE_BASE_URL}/v1`,
@@ -80,6 +94,7 @@ function createWorkerModel(promptFacts: PromptFacts) {
         try {
           const body = JSON.parse(init.body) as Record<string, unknown>
           body.promptFacts = promptFacts
+          body.promptStage = getStage()
           return fetch(input, { ...init, body: JSON.stringify(body) })
         } catch {
           // 不是 JSON 体就不动它（例如 SDK 偶发的探测请求）
@@ -122,11 +137,24 @@ export interface StreamAssistantTurnOptions {
    * 本轮**事实快照** —— 随请求发给中间层，由它拼系统提示词。
    *
    * 规则（身份 / 范围闸 / 能力 / 工作方式 / 回答方式）**不在这里**：那是服务端唯一的真值。
+   * 两阶段各取其中一部分（Router 用页面摘要 + 工具目录，Execution 用完整页面上下文）。
    */
   promptFacts: PromptFacts
-  tools: readonly AiToolDefinition[]
+  /**
+   * 工具策略（权限 / 容器 / 表单 / 后端权限点）—— Runtime 的**唯一**过滤输入。
+   *
+   * Router 阶段用它算「当前可选范围」（与页面上的权限清单同源），
+   * Execution 阶段用它把 Router 的选择解析成实际下发的工具集（`resolveTools`）。
+   */
+  toolPolicy: ResolveToolsOptions
   toolContext: AiToolContext
   abortSignal?: AbortSignal
+  /**
+   * 一轮结束后的 token / 工具选择日志（可选）。
+   *
+   * 只做观测：拿不到就只是少一条日志，不影响这一轮。
+   */
+  onMetrics?: (metrics: AiTurnMetrics) => void
 }
 
 /**
@@ -249,20 +277,126 @@ export async function* streamAssistantTurn(
   options: StreamAssistantTurnOptions,
 ): AsyncGenerator<AiStreamEvent> {
   /*
-    工具是否随请求发出**只由权限决定**（`chat.ts` 已按权限 / 容器 / 表单能力过滤过一遍）。
-    前端不再声明「模型能力」—— 具体模型与它支持的参数由 `apps/ai` 与 AI Gateway 决定。
+    ── 两阶段（Router → Execution）────────────────────────────────────────────
+    一次 `streamText`、一条 HTTP 流，但**每一步发给模型的东西不同**：
 
-    厂商专属参数（例如 Anthropic 的 `thinking.budgetTokens`）同样不在这里设置：
-    provider 细节归 AI Gateway，前端不该假装知道自己连的是哪家。
+    | step | 阶段 | 提示词（服务端按 `promptStage` 选层） | 模型能看到的工具 |
+    |---|---|---|---|
+    | 0 | router | 分诊 / 范围 / 能力 / 回答方式 + **工具目录**（一行一句话） | 只有 `select_tools` |
+    | ≥1 | execution | 上面那些 + 操作规约 + **完整页面上下文** | `select_tools` 选中的（含依赖补齐） |
+
+    于是「你好」这类请求只付目录与分诊的钱，不必把 18 个工具的完整 schema 发出去；
+    而工具循环、审批、流式事件全部不变（仍由 SDK 与本层驱动）。
   */
-  const useTools = options.tools.length > 0
+
+  /*
+    当前可选范围：与设置页的权限清单**同一份过滤**（权限 / 容器 / 表单 / 后端权限点）。
+    Router 的目录文本由 `chat.ts` 生成（事实采集在那边），这里再算一次只为日志与兜底 ——
+    纯内存过滤，成本可忽略。
+  */
+  const availableTools = getAllowedTools(
+    options.toolPolicy.permission,
+    options.toolPolicy.customTools,
+    {
+      hasForms: options.toolPolicy.hasForms,
+      surface: options.toolPolicy.surface,
+      permissions: options.toolPolicy.permissions,
+    },
+  )
+
+  /*
+    阶段状态：`createWorkerModel` 的 fetch 在每个请求前读它，`prepareStep` 在每一步前写它。
+    两者配对，服务端据此决定加载哪几层提示词。
+  */
+  let stage: PromptStage = 'router'
+
+  /** Router 的选择结果；`null` = 还没选过（模型可能直接回答了） */
+  let selection: ReturnType<typeof resolveTools> | null = null
+
+  /** 执行阶段的 `activeTools`（空数组 = 这一步不给任何工具，模型只能直接回答） */
+  let executionToolNames: string[] = []
+
+  /** 分阶段 token 记账（由 `onStepFinish` 累计） */
+  const tokens = {
+    routerInput: 0,
+    routerOutput: 0,
+    executionInput: 0,
+    executionOutput: 0,
+  }
+
+  const selectToolsSdk = tool({
+    description: SELECT_TOOLS_SPEC.description,
+    inputSchema: jsonSchema(
+      SELECT_TOOLS_SPEC.inputSchema as Parameters<typeof jsonSchema>[0],
+    ),
+    execute: async (input: unknown) => {
+      const raw = (input ?? {}) as { tools?: unknown }
+      const names = Array.isArray(raw.tools)
+        ? raw.tools.filter((name): name is string => typeof name === 'string')
+        : []
+      /*
+        **Runtime 的确定性解析**：模型给的名字不可信 —— 不存在的丢掉、当前不可用的丢掉、
+        声明的依赖自动补齐（见 `resolveTools`）。执行阶段只认这一份结果。
+      */
+      selection = resolveTools(names, options.toolPolicy)
+      executionToolNames = selection.tools.map((item) => item.name)
+      /*
+        回给模型的结果**只讲事实**（加载了哪些、哪些没加载）：它会被拼进下一步的请求，
+        多一句话就是多一份每轮成本，所以不要把它写成第二份提示词。
+      */
+      return {
+        loaded: executionToolNames,
+        ...(selection.rejected.length > 0
+          ? { dropped: selection.rejected.map((item) => item.name) }
+          : {}),
+      }
+    },
+  })
 
   const result = streamText({
-    model: createWorkerModel(options.promptFacts),
+    model: createWorkerModel(options.promptFacts, () => stage),
     messages: [...options.messages],
-    // 没有工具定义时传空集：不发工具定义，也不会触发 SDK 的多步循环
-    tools: useTools ? toSdkTools(options.tools, options.toolContext) : {},
-    stopWhen: isStepCount(MAX_TOOL_STEPS),
+    /*
+      工具定义**全部注册**（Router 工具 + 业务工具），再用 `activeTools` 按步收窄 ——
+      SDK 在组装每一步的请求前会先 `filterActiveTools`，只有 active 的那些才真正发给模型。
+      这是「按需加载 schema」能成立的关键：不必把一轮对话拆成两次调用。
+    */
+    tools: {
+      [SELECT_TOOLS_NAME]: selectToolsSdk,
+      ...toSdkTools(availableTools, options.toolContext),
+    },
+    activeTools: [SELECT_TOOLS_NAME],
+    prepareStep: ({ stepNumber }) => {
+      if (stepNumber === 0) {
+        stage = 'router'
+        return { activeTools: [SELECT_TOOLS_NAME] }
+      }
+      /*
+        第 1 步起是执行阶段：`select_tools` 已经在这个 step 开始前执行过，
+        `executionToolNames` 就是 Runtime 解析后的结果（可能是空数组 = 本轮不需要工具）。
+      */
+      stage = 'execution'
+      return { activeTools: executionToolNames }
+    },
+    onStepFinish: (step) => {
+      const usage = step.usage
+      /*
+        用 `stepNumber` 判断阶段（而不是读 `stage`）：少一个对"SDK 先 onStepFinish
+        还是先 prepareStep"的隐含依赖 —— 第 0 步永远是 Router。
+      */
+      if (step.stepNumber === 0) {
+        tokens.routerInput += usage?.inputTokens ?? 0
+        tokens.routerOutput += usage?.outputTokens ?? 0
+      } else {
+        tokens.executionInput += usage?.inputTokens ?? 0
+        tokens.executionOutput += usage?.outputTokens ?? 0
+      }
+    },
+    /*
+      步数预算 **+1**：第 0 步是 Router（选工具），执行阶段的工具循环仍应拿到原来的 30 步
+      —— 否则两阶段改造会悄悄少掉一轮工具调用。
+    */
+    stopWhen: isStepCount(MAX_TOOL_STEPS + 1),
     abortSignal: options.abortSignal,
   })
 
@@ -352,6 +486,28 @@ export async function* streamAssistantTurn(
   for (const ev of thinkParser.flush()) {
     yield ev
   }
+
+  /*
+    一轮结束：把 token 账与工具选择交出去（`onMetrics` 可选，缺省只是少一条日志）。
+    这里读的是**累计值** —— Router 步通常 1 步，Execution 可能多步（工具循环）。
+    `selection === null` 表示 Router 直接回答了（本轮没有执行阶段）。
+  */
+  const finalSelection: ReturnType<typeof resolveTools> | null = selection
+  options.onMetrics?.({
+    routerInputTokens: tokens.routerInput,
+    routerOutputTokens: tokens.routerOutput,
+    executionInputTokens: tokens.executionInput,
+    executionOutputTokens: tokens.executionOutput,
+    totalInputTokens: tokens.routerInput + tokens.executionInput,
+    totalOutputTokens: tokens.routerOutput + tokens.executionOutput,
+    selectedTools: finalSelection?.selected ?? [],
+    selectedToolCount: finalSelection?.selected.length ?? 0,
+    addedDependencies: finalSelection?.addedByDependency ?? [],
+    availableToolCount: availableTools.length,
+    executionToolCount: finalSelection?.tools.length ?? 0,
+    rejectedTools: finalSelection?.rejected.map((item) => item.name) ?? [],
+    routerAnsweredDirectly: finalSelection === null,
+  })
 }
 
 /** 工具结果统一转成文本再回给模型：不用 JSON 分支，省掉 JSONValue 的类型体操。 */
