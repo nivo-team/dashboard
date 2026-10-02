@@ -4,7 +4,7 @@
 >
 > | 文档 | 形态 | 什么时候读 |
 > |---|---|---|
-> | [ai-architecture.md](./ai-architecture.md) | **叙述式**：分层理由、数据流、扩展点、**18 条踩过的坑** | 改任何 AI 代码之前 |
+> | [ai-architecture.md](./ai-architecture.md) | **叙述式**：分层理由、数据流、扩展点、**19 条踩过的坑** | 改任何 AI 代码之前 |
 > | **本文** | **清单式**：提示词 14 层逐层、18 个工具全表、审批矩阵、设置项全表、**AI 相关文件全地图** | 想知道「AI 现在到底有什么 / 在哪个文件」时 |
 > | [ai-integration.md](./ai-integration.md) | 设计蓝图与选型依据（给人看） | 追溯「当初为什么这么设计」 |
 >
@@ -297,7 +297,7 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 | 文件 | 行数 | 职责 |
 |---|---:|---|
 | `chat.ts` | 392 | 一轮消息驱动：读偏好 → 挑工具 → 采集事实（含工具目录）→ 拼消息 → 消费事件流；审批 Promise 通道；`StreamEventBatcher`；`onMetrics` 日志；`stopAiMessage` |
-| `runtime.ts` | 697 | 唯一 `import 'ai'`：建模型、**两阶段（`prepareStep` + `activeTools`）**、`toSdkTools`、`select_tools` 接线（必填 `intent`；`rejected` → `dropped` 映射）、`streamText`、`fullStream` → `AiStreamEvent`、`AiTurnMetrics`（含 `intent`）、`ThinkTagStreamParser`、`toModelMessages`（历史衰减 3 轮 + 附件转 part + `@` 展开） |
+| `runtime.ts` | 832 | 唯一 `import 'ai'`：建模型、**两阶段（`prepareStep` + `activeTools`）**、`toSdkTools`、`select_tools` 接线（必填 `intent`；`rejected` → `dropped` 映射）、`streamText`、`fullStream` → `AiStreamEvent`、**「工具调用被写成文本」的兜底**（Router 缓冲 + 强制重试一次，见 `TOOL_CALL_LEAK_PATTERNS`）、`AiTurnMetrics`（含 `intent`）、`ThinkTagStreamParser`、`toModelMessages`（历史衰减 3 轮 + 附件转 part + `@` 展开） |
 | `types.ts` | 435 | 公共类型：`AiToolAccess` / `AiToolGroup` / `AiMode` / `AiSurface` / `AiPermissionMode` / `AiApprovalDecision` / `AiToolContext` / `AiToolDefinition`（含 `catalogDescription` / `dependencies` / `catalog` / `execution`）/ `AiMessage(Part)` / `AiTurnUsage` / `AiTurnMetrics` / `AiStreamEvent` |
 | `index.ts` | 34 | 能力出口 barrel；**刻意不导出 `runtime`**（避免 SDK 进主 bundle） |
 | `prompt-facts.ts` | 90 | **事实采集**（页面摘要 / 工具目录 / 导航 / 任务 / 语言）—— 随请求上报给中间层；**规则不在这里**（在服务端） |

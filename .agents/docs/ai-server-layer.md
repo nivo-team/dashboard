@@ -105,6 +105,18 @@ Cloudflare AI Gateway（provider 路由 / 模型 / 重试回退 / 缓存 / 限�
   目录文本由 `buildToolCatalogText(allowedTools)` 生成（**当前权限下**可用工具，一行一个）。
 - **工具循环、审批、流式事件全不变**；`stopWhen` 从 30 提到 `isStepCount(31)`
   —— 多出的第 0 步是 Router，**执行阶段的工具循环仍是 30 步**。
+- **模型把工具调用写成文本时的兜底**（真实踩到）：正常路径是结构化 `tool_calls`，但模型偶尔会把
+  调用**写进正文**（DeepSeek 的 `<||DSML|| …>` 标记、某些模型的 `<function_calls>`、或直接写
+  `select_tools(...)`）。那种情况下整轮不产生 tool call、SDK 当普通回答结束 —— 用户看到一段
+  XML、页面毫无反应。runtime 的处置（见 `runtime.ts` 的 `TOOL_CALL_LEAK_PATTERNS` 与 `runOnce`）：
+  - **Router 阶段的文本先缓冲**，在 `finish-step` 决定：有 tool call → 只发前言（泄漏段切掉）；
+    正常回答（问候 / 翻译）→ 照常发出；判定为泄漏 → 丢弃并**强制重试一次**
+    （这次 `tool_choice: 'required'`，逼它走结构化通道）；
+  - 重试仍然泄漏 → 发一条明确错误（`{ type: 'error' }`），**绝不把那段 XML 当回答**；
+  - **执行阶段不缓冲、不自动重试**（文本已经流出，重试还可能重放写操作）—— 只打一条
+    `[ai:execution]` 告警，便于排查；
+  - `select_tools` 的 `tool-call` / `tool-result` / `tool-error` **不往会话里落卡片**：
+    它是内部协议，用户该看到的是业务动作。
 - `promptStage` 由 runtime 写在每步的请求体里，Worker 消费后删除（§3.2）；
   **缺省 `execution`**。runtime 另有可选的 `onMetrics` 回调，`chat.ts` 里打一行
   `console.info('[ai:turn]', metrics)`，字段见 §3.6。

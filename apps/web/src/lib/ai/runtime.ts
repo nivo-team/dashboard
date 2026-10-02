@@ -265,6 +265,34 @@ class ThinkTagStreamParser {
 }
 
 /**
+ * 「工具调用被写成文本」的标记 —— 必须兜住的一类模型行为。
+ *
+ * 正常路径下工具调用走**结构化 `tool_calls`**（SDK 解析 → `select_tools.execute` → 执行阶段）。
+ * 实测存在另一种形态：模型把调用**写进正文**（DeepSeek 的 `<||DSML|| …>` 标记、某些模型的
+ * `<function_calls>`、或直接写 `select_tools(...)`）。这时 SDK 拿不到任何 tool call，
+ * 整轮会被当成"普通回答"结束 —— 用户看到一段 XML、页面毫无反应（真实踩到）。
+ *
+ * 这里只负责**认出**它；处置在 `streamAssistantTurn` 里（Router 缓冲 + 强制重试一次）。
+ */
+const TOOL_CALL_LEAK_PATTERNS: readonly RegExp[] = [
+  /<\|\|?\s*DSML\s*\|\|?/i,
+  /<\|tool[\u2581_ ]?calls?\|>/i,
+  /<\|?function[\u2581_ ]?calls?\|?>/i,
+  /"name"\s*:\s*"select_tools"/,
+  /\bselect_tools\s*[[({]/,
+]
+
+/** 返回文本里**最早的**泄漏标记位置（`-1` = 没有泄漏）。 */
+function findToolCallLeak(text: string): number {
+  let earliest = -1
+  for (const pattern of TOOL_CALL_LEAK_PATTERNS) {
+    const at = text.search(pattern)
+    if (at >= 0 && (earliest === -1 || at < earliest)) earliest = at
+  }
+  return earliest
+}
+
+/**
  * 跑一轮助手回复，把流式事件抛给调用方。
  *
  * 用 async generator 而不是回调：调用方用 `for await` 消费，天然支持中途 `break`
@@ -362,138 +390,245 @@ export async function* streamAssistantTurn(
     },
   })
 
-  const result = streamText({
-    model: createWorkerModel(options.promptFacts, () => stage),
-    messages: [...options.messages],
-    /*
-      工具定义**全部注册**（Router 工具 + 业务工具），再用 `activeTools` 按步收窄 ——
-      SDK 在组装每一步的请求前会先 `filterActiveTools`，只有 active 的那些才真正发给模型。
-      这是「按需加载 schema」能成立的关键：不必把一轮对话拆成两次调用。
-    */
-    tools: {
-      [SELECT_TOOLS_NAME]: selectToolsSdk,
-      ...toSdkTools(availableTools, options.toolContext),
-    },
-    activeTools: [SELECT_TOOLS_NAME],
-    prepareStep: ({ stepNumber }) => {
-      if (stepNumber === 0) {
-        stage = 'router'
-        return { activeTools: [SELECT_TOOLS_NAME] }
-      }
-      /*
-        第 1 步起是执行阶段：`select_tools` 已经在这个 step 开始前执行过，
-        `executionToolNames` 就是 Runtime 解析后的结果（可能是空数组 = 本轮不需要工具）。
-      */
-      stage = 'execution'
-      return { activeTools: executionToolNames }
-    },
-    onStepFinish: (step) => {
-      const usage = step.usage
-      /*
-        用 `stepNumber` 判断阶段（而不是读 `stage`）：少一个对"SDK 先 onStepFinish
-        还是先 prepareStep"的隐含依赖 —— 第 0 步永远是 Router。
-      */
-      if (step.stepNumber === 0) {
-        tokens.routerInput += usage?.inputTokens ?? 0
-        tokens.routerOutput += usage?.outputTokens ?? 0
-      } else {
-        tokens.executionInput += usage?.inputTokens ?? 0
-        tokens.executionOutput += usage?.outputTokens ?? 0
-      }
-    },
-    /*
-      步数预算 **+1**：第 0 步是 Router（选工具），执行阶段的工具循环仍应拿到原来的 30 步
-      —— 否则两阶段改造会悄悄少掉一轮工具调用。
-    */
-    stopWhen: isStepCount(MAX_TOOL_STEPS + 1),
-    abortSignal: options.abortSignal,
-  })
+  /*
+    ── Router 文本缓冲 ────────────────────────────────────────────────────────
+    为什么要在 Router 阶段扣住文本：模型偶尔会把工具调用**写成正文**（见
+    `TOOL_CALL_LEAK_PATTERNS`）—— 那种情况下整轮不产生任何 tool call，直接流出去就是
+    "用户看到一段 XML、页面毫无反应"。所以 Router 的文本先缓冲，step 结束时再决定：
+    有 tool call 就发前言、判定为泄漏就丢弃并**强制重试一次**、正常回答才照常发出。
+    执行阶段的流式**不受影响**（不缓冲）。
+  */
+  let routerBuffer = ''
+  /** Router 这一步是否真的产生了结构化 tool call */
+  let routerSawToolCall = false
+  /** Router 是否把调用写成了文本（强制重试一次的判据） */
+  let routerLeaked = false
+  /** 执行阶段文本的副本 —— 只为观测"又被写成文本"，不参与输出、不做缓冲 */
+  let executionText = ''
 
-  const thinkParser = new ThinkTagStreamParser()
+  async function* runOnce(forceRouterTool: boolean): AsyncGenerator<AiStreamEvent> {
+    stage = 'router'
+    routerBuffer = ''
+    routerSawToolCall = false
+    routerLeaked = false
+    executionText = ''
+    /* 重试要重新选一次：不要沿用上一轮的残留 */
+    selection = null
+    executionToolNames = []
+    intent = null
 
-  for await (const part of result.fullStream) {
-    switch (part.type) {
-      case 'text-delta':
-        if (part.text) {
-          for (const ev of thinkParser.feed(part.text)) {
-            yield ev
+    const result = streamText({
+      model: createWorkerModel(options.promptFacts, () => stage),
+      messages: [...options.messages],
+      /*
+        工具定义**全部注册**（Router 工具 + 业务工具），再用 `activeTools` 按步收窄 ——
+        SDK 在组装每一步的请求前会先 `filterActiveTools`，只有 active 的那些才真正发给模型。
+        这是「按需加载 schema」能成立的关键：不必把一轮对话拆成两次调用。
+      */
+      tools: {
+        [SELECT_TOOLS_NAME]: selectToolsSdk,
+        ...toSdkTools(availableTools, options.toolContext),
+      },
+      activeTools: [SELECT_TOOLS_NAME],
+      prepareStep: ({ stepNumber }) => {
+        if (stepNumber === 0) {
+          stage = 'router'
+          /*
+            正常路径用 `auto`（纯问候可以直接回答）；**只有重试**时才用 `required` ——
+            上一次模型把调用写成了文本，这一次必须走结构化工具通道。
+          */
+          return forceRouterTool
+            ? { activeTools: [SELECT_TOOLS_NAME], toolChoice: 'required' as const }
+            : { activeTools: [SELECT_TOOLS_NAME] }
+        }
+        /*
+          第 1 步起是执行阶段：`select_tools` 已经在这个 step 开始前执行过，
+          `executionToolNames` 就是 Runtime 解析后的结果（可能是空数组 = 本轮不需要工具）。
+        */
+        stage = 'execution'
+        return { activeTools: executionToolNames }
+      },
+      onStepFinish: (step) => {
+        const usage = step.usage
+        /*
+          用 `stepNumber` 判断阶段（而不是读 `stage`）：少一个对"SDK 先 onStepFinish
+          还是先 prepareStep"的隐含依赖 —— 第 0 步永远是 Router。
+        */
+        if (step.stepNumber === 0) {
+          tokens.routerInput += usage?.inputTokens ?? 0
+          tokens.routerOutput += usage?.outputTokens ?? 0
+        } else {
+          tokens.executionInput += usage?.inputTokens ?? 0
+          tokens.executionOutput += usage?.outputTokens ?? 0
+        }
+      },
+      /*
+        步数预算 **+1**：第 0 步是 Router（选工具），执行阶段的工具循环仍应拿到原来的 30 步
+        —— 否则两阶段改造会悄悄少掉一轮工具调用。
+      */
+      stopWhen: isStepCount(MAX_TOOL_STEPS + 1),
+      abortSignal: options.abortSignal,
+    })
+
+    const thinkParser = new ThinkTagStreamParser()
+
+    for await (const part of result.fullStream) {
+      switch (part.type) {
+        case 'text-delta':
+          if (part.text) {
+            /* Router 阶段的文本先缓冲，由 step 结束时的 `finish-step` 决定处置 */
+            if (stage === 'router') {
+              routerBuffer += part.text
+              break
+            }
+            /*
+              执行阶段的文本照常流式输出；另留一份副本只为**观测**「工具调用被写成文本」
+              （见 `finish-step`）—— 那时文本已经在用户眼前了，收不回来，但日志要留下线索。
+            */
+            executionText += part.text
+            for (const ev of thinkParser.feed(part.text)) {
+              yield ev
+            }
           }
+          break
+        case 'reasoning-delta': {
+          const text =
+            (part as { text?: string; delta?: string }).text ??
+            (part as { delta?: string }).delta ??
+            ''
+          if (text) {
+            console.debug('[Reasoning Delta Received]', text)
+            yield { type: 'reasoning', text }
+          }
+          break
         }
-        break
-      case 'reasoning-delta': {
-        const text =
-          (part as { text?: string; delta?: string }).text ??
-          (part as { delta?: string }).delta ??
-          ''
-        if (text) {
-          console.debug('[Reasoning Delta Received]', text)
-          yield { type: 'reasoning', text }
+        case 'tool-call':
+          /*
+            `select_tools` 是**内部协议**（Router 的交付通道），不是业务动作 ——
+            不往会话里落卡片：用户看到的应该是"AI 去查数据了"，而不是一张选工具的卡。
+          */
+          if (String(part.toolName) === SELECT_TOOLS_NAME) break
+          for (const ev of thinkParser.flush()) yield ev
+          yield {
+            type: 'tool-call',
+            toolCallId: part.toolCallId,
+            toolName: String(part.toolName),
+            input: part.input,
+          }
+          break
+        case 'tool-result': {
+          if (String(part.toolName) === SELECT_TOOLS_NAME) break
+          yield {
+            type: 'tool-result',
+            toolCallId: part.toolCallId,
+            toolName: String(part.toolName),
+            output: part.output,
+          }
+          /*
+            全屏容器里 `navigate_to` **不会真跳**，返回的是一份 `proposed` 建议（见
+            `tools/page-tools.ts`）—— 在这里翻成 `nav-proposal` 流式事件，由 store 落成
+            消息里的建议卡。这样工具层仍是「纯函数 + 返回值」，不必知道会话里哪条消息、
+            哪个 part；渲染层也只认事件，不认工具实现。
+          */
+          const proposal = readNavigationProposal(part.output)
+          if (proposal) yield { type: 'nav-proposal', ...proposal }
+          break
         }
-        break
-      }
-      case 'tool-call':
-        for (const ev of thinkParser.flush()) yield ev
-        yield {
-          type: 'tool-call',
-          toolCallId: part.toolCallId,
-          toolName: String(part.toolName),
-          input: part.input,
-        }
-        break
-      case 'tool-result': {
-        yield {
-          type: 'tool-result',
-          toolCallId: part.toolCallId,
-          toolName: String(part.toolName),
-          output: part.output,
-        }
+        case 'tool-error':
+          /* 与 tool-call 同理：内部协议的失败不往会话里落卡片 */
+          if (String(part.toolName) === SELECT_TOOLS_NAME) break
+          yield {
+            type: 'tool-error',
+            toolCallId: part.toolCallId,
+            toolName: String(part.toolName),
+            error: part.error,
+          }
+          break
+        case 'error':
+          yield { type: 'error', error: part.error }
+          break
         /*
-          全屏容器里 `navigate_to` **不会真跳**，返回的是一份 `proposed` 建议（见
-          `tools/page-tools.ts`）—— 在这里翻成 `nav-proposal` 流式事件，由 store 落成
-          消息里的建议卡。这样工具层仍是「纯函数 + 返回值」，不必知道会话里哪条消息、
-          哪个 part；渲染层也只认事件，不认工具实现。
+          Router 步刚结束：决定缓冲区里的文本怎么处置。
+          - 有 tool call → 只发"前言"（泄漏段一并切掉，避免露出半截 XML）；
+          - 没有 tool call 但文本里有调用标记 → 判定泄漏：丢弃，交给外层强制重试；
+          - 其他 → 照常发出（纯问候 / 纯翻译这类 Router 直接回答的场景）。
         */
-        const proposal = readNavigationProposal(part.output)
-        if (proposal) yield { type: 'nav-proposal', ...proposal }
-        break
-      }
-      case 'tool-error':
-        yield {
-          type: 'tool-error',
-          toolCallId: part.toolCallId,
-          toolName: String(part.toolName),
-          error: part.error,
+        case 'finish-step': {
+          if (stage !== 'router') {
+            /*
+              执行阶段的观测：这里的文本**已经流到用户眼前了**，收不回来，
+              所以不重试（重试还可能重放已经执行过的写操作）—— 只留一条告警，
+              让"模型又把调用写成了文本"在日志里有据可查。
+            */
+            if (findToolCallLeak(executionText) >= 0) {
+              console.warn(
+                '[ai:execution] 模型把工具调用写成了文本；该步内容已输出、未自动重试，请人工确认这一轮是否真的执行了动作',
+              )
+            }
+            executionText = ''
+            break
+          }
+          const leakAt = findToolCallLeak(routerBuffer)
+          if (routerSawToolCall) {
+            const usable = (leakAt >= 0 ? routerBuffer.slice(0, leakAt) : routerBuffer).trim()
+            if (usable) yield { type: 'text', text: usable }
+          } else if (leakAt >= 0) {
+            routerLeaked = true
+          } else if (routerBuffer.trim()) {
+            yield { type: 'text', text: routerBuffer }
+          }
+          routerBuffer = ''
+          break
         }
-        break
-      case 'error':
-        yield { type: 'error', error: part.error }
-        break
-      case 'finish': {
-        /*
-          带上 token 用量 —— `cacheReadTokens` 是「提示词拼接是否对齐」的唯一客观指标：
-          任何一处「不该变却变了」（时间戳、随机顺序、历史被改写）都会让它掉下来。
-          SDK 已把各厂商不同的字段名归一化到 `inputTokenDetails`，这里不需要分支。
-        */
-        const usage = part.totalUsage
-        yield {
-          type: 'finish',
-          usage: {
-            inputTokens: usage?.inputTokens,
-            outputTokens: usage?.outputTokens,
-            cacheReadTokens: usage?.inputTokenDetails?.cacheReadTokens,
-            noCacheTokens: usage?.inputTokenDetails?.noCacheTokens,
-          },
+        case 'finish': {
+          /*
+            带上 token 用量 —— `cacheReadTokens` 是「提示词拼接是否对齐」的唯一客观指标：
+            任何一处「不该变却变了」（时间戳、随机顺序、历史被改写）都会让它掉下来。
+            SDK 已把各厂商不同的字段名归一化到 `inputTokenDetails`，这里不需要分支。
+          */
+          const usage = part.totalUsage
+          yield {
+            type: 'finish',
+            usage: {
+              inputTokens: usage?.inputTokens,
+              outputTokens: usage?.outputTokens,
+              cacheReadTokens: usage?.inputTokenDetails?.cacheReadTokens,
+              noCacheTokens: usage?.inputTokenDetails?.noCacheTokens,
+            },
+          }
+          break
         }
-        break
+        default:
+          // 其余 part（reasoning / source / step 边界等）本期不呈现
+          break
       }
-      default:
-        // 其余 part（reasoning / source / step 边界等）本期不呈现
-        break
     }
+
+    for (const ev of thinkParser.flush()) {
+      yield ev
+    }
+
   }
 
-  for (const ev of thinkParser.flush()) {
-    yield ev
+  /*
+    正常就一轮；只有 Router 判定为"工具调用被写成文本"时才强制重试一次
+    （重试用 `tool_choice: 'required'`，逼它走结构化通道）。重试仍失败就明确报错 ——
+    绝不再把那段 XML 当成回答交给用户。
+  */
+  for await (const ev of runOnce(false)) yield ev
+  if (routerLeaked) {
+    console.warn(
+      '[ai:router] 模型把 select_tools 调用输出成了文本，已强制重试一次（tool_choice=required）',
+    )
+    for await (const ev of runOnce(true)) yield ev
+    if (routerLeaked) {
+      yield {
+        type: 'error',
+        error: new Error(
+          '模型没有按工具协议发起调用（把调用写成了文本），本次没能执行；请重试一次或换个说法。',
+        ),
+      }
+    }
   }
 
   /*

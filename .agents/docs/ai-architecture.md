@@ -357,6 +357,14 @@ useAiPageContext(Route.id, {
     `DELETE /user/{id}` 这种**模板**，`call_write_api` 早期拿它与模型给的字符串做完全相等比较，
     于是**所有模板化删除（用户/功能/字典/字典分类）都是死的**。现在：白名单按模板匹配
     **替换后的真实路径**，`{id}` 用 `pathParams` 填（缺参数直接报错，绝不把 `{id}` 发出去）。
+19. **模型可能把工具调用写成正文，而不是结构化 `tool_calls`**（真实踩到，用户只看到一段 XML、
+    页面毫无反应）：DeepSeek 的 `<||DSML|| …>` 标记、某些模型的 `<function_calls>`、
+    或直接写 `select_tools(...)`。这种形态下 SDK 拿不到任何 tool call，整轮会被当成"普通回答"
+    正常结束 —— 所以**必须由运行时兜住**（不能指望模型每次都守协议）：
+    Router 阶段文本先缓冲，`finish-step` 时判定 —— 泄漏就丢弃并**强制重试一次**
+    （`tool_choice: 'required'`），重试仍失败发一条明确错误；执行阶段不重试（文本已输出，
+    且重试可能重放写操作），只打告警。检测规则见 `runtime.ts` 的 `TOOL_CALL_LEAK_PATTERNS`。
+    **别把这段兜底删掉**：它挡的是"模型协议泄漏"，而不是偶发网络错误。
 
 ## 8. 系统提示词的分层与范围闸
 
@@ -887,7 +895,7 @@ useAiPageContext(Route.id, {
 
 > 设计蓝图 [.agents/docs/ai-integration.md](./.agents/docs/ai-integration.md)、选型调研
 > [docs/ai-stack-research.md](./docs/ai-stack-research.md)；**架构总览、一轮消息的数据流、
-> 上下文预算、扩展点与 9 条踩过的坑见 [.agents/docs/ai-architecture.md](./.agents/docs/ai-architecture.md)**。
+> 上下文预算、扩展点与 19 条踩过的坑见 [.agents/docs/ai-architecture.md](./.agents/docs/ai-architecture.md)**。
 > 下面只留**改错了会出事**的契约。
 
 - **前端不配置厂商 / 模型（原 `admin.ai` 已删）**：模型与凭证由 `apps/ai`（`AI_MODEL_ID` 覆盖
