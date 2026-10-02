@@ -72,6 +72,9 @@ Cloudflare AI Gateway（provider 路由 / 模型 / 重试回退 / 缓存 / 限�
 
 ### 1.4 两阶段按需加载：Router → Execution（一次 `streamText`）
 
+> 设计依据与优先级清单：[`docs/ai-agent-prompt-optimization.md`](../../docs/ai-agent-prompt-optimization.md)
+> （P0–P3⑪ 已落地，文首有逐条对照表）。
+
 前端 `apps/web/src/lib/ai/runtime.ts` 用 AI SDK v7 的 `prepareStep` + `activeTools` 实现，
 **没有额外往返**：同一次 `streamText` 的第 0 步是 Router，≥1 步是 Execution。
 

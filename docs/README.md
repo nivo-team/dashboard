@@ -34,3 +34,9 @@
     共用同一个判定入口）；UI 从"工具名"换成"模块 × 能力"；`call_write_api` 给了三个选项；
     **工具定义下沉降级为可选**（原先的安全理由不成立）
   - 含五阶段迁移路径（阶段 0-2 不依赖后端改动）与 5 个待决策项
+- [AI Agent Prompt 优化与架构建议 (ai-agent-prompt-optimization.md)](./ai-agent-prompt-optimization.md)
+  - 从「每轮全量注入」到「按需加载」的下一步：拆开 Router Context 与 Executor Context，
+    让每个阶段只携带完成自己职责所需的上下文（含 P0–P3 优先级清单）
+  - **落地状态**（文首有逐条对照表）：P0–P3⑪ 已在本仓库落地 —— 两阶段
+    （`prepareStep` + `activeTools`）、工具双层描述与依赖展开、`intent`、页面上下文分层、
+    分阶段 token 日志；仅剩「按真实数据继续压缩」与参数级 `inputSchema` 精简
