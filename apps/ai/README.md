@@ -3,9 +3,15 @@
 AI 中间层（**Hono on Cloudflare Workers**）：拼接系统提示词 + 作为 **OpenAI 兼容管道**把请求透传到 AI Gateway 并原样回传 SSE。
 
 ```bash
-pnpm -C apps/ai dev        # 本地 http://localhost:3002
+pnpm -C apps/ai dev        # 本地 http://localhost:3002（或局域网 http://<本机 IP>:3002）
 pnpm -C apps/ai deploy     # 部署到 Cloudflare
 ```
+
+> **局域网访问**：`wrangler.toml` 的 `[dev]`（`ip = "0.0.0.0"`、`port = 3002`）让 dev server
+> 监听所有网卡，局域网内其它设备用 `http://<本机 IP>:3002` 即可访问。
+> 此时 `ALLOWED_ORIGINS` 必须包含前端页面**实际打开的来源**（例如 `http://<本机 IP>:3000`），
+> 按原样字符串精确匹配，否则请求在预检阶段就被拒。前端一侧只需覆盖
+> `apps/web/.env.development.local`，见 [apps/web/.env.example](../web/.env.example)。
 
 ## 端点
 

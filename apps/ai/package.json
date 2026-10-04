@@ -5,7 +5,7 @@
   "type": "module",
   "description": "AI 中间层（Hono on Cloudflare Workers）：注入服务端系统提示词并透传 OpenAI 兼容请求到 AI Gateway，规则取自 @admin/ai-prompt。",
   "scripts": {
-    "dev": "wrangler dev --port 3002",
+    "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit"
   },

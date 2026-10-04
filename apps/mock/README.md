@@ -29,6 +29,22 @@ pnpm mock          # 在仓库根执行，启动 http://localhost:3001
 > [permissions-architecture.md](../../.agents/docs/permissions-architecture.md)）。
 > 把 `Admin` 当超管的后果是「admin 不能删」在判定第一道就被短路掉。
 
+### 局域网访问
+
+dev server 监听所有网卡（`nitro.config.ts` 的 `devServer.hostname = '0.0.0.0'`，端口 3001 同处声明），
+局域网内其它设备用 `http://<本机 IP>:3001` 打开状态页 / 契约 / 接口都一致可用。
+
+多应用模式（`VITE_MULTI_APP=true`）下 `/apps` 下发的地址取自 `MOCK_PUBLIC_URL`，
+不配时是 `http://localhost:3001`（别的设备拿到会把请求打回它自己）。局域网开发时写进
+`apps/mock/.env`（已被 git 忽略，Nitro dev 自动加载 `.env` / `.env.local`）：
+
+```bash
+MOCK_PUBLIC_URL=http://<本机 IP>:3001
+```
+
+前端一侧只需覆盖 `apps/web/.env.development.local`，三处地址的对应关系见
+[apps/web/.env.example](../web/.env.example) 的「局域网访问」一节。
+
 ## 接口
 
 | 方法 | 路径 | 说明 |

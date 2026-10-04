@@ -73,6 +73,21 @@ pnpm preview
 
 登录时**任意非空账号 + 任意非空密码**都能进入。
 
+### 局域网访问（手机 / 别的机器）
+
+三个 dev server 默认就监听所有网卡，同一局域网内直接打开 `http://<本机 IP>:3000` 即可：
+
+| 应用 | 绑定位置 | 地址 |
+| --- | --- | --- |
+| web | `apps/web/vite.config.ts` 的 `server.host` | `http://<本机 IP>:3000` |
+| mock | `apps/mock/nitro.config.ts` 的 `devServer` | `http://<本机 IP>:3001` |
+| ai | `apps/ai/wrangler.toml` 的 `[dev]` | `http://<本机 IP>:3002` |
+
+接口地址要跟着换成同一个 IP（别的设备上的 `localhost` 指向它自己）：在
+`apps/web/.env.development.local` 里覆盖 `VITE_API_BASE_URL` 与 `VITE_AI_SERVICE_BASE_URL`，
+并把该来源加进 `apps/ai/wrangler.toml` 的 `ALLOWED_ORIGINS`。
+完整说明见 [apps/web/.env.example](./apps/web/.env.example)。
+
 Mock 的接口定义与 OpenAPI 契约同源：改了 `apps/mock` 里的路由后跑一次
 `pnpm api`，前端 SDK 会跟着更新。
 

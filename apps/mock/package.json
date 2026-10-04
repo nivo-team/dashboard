@@ -4,7 +4,7 @@
   "type": "module",
   "description": "契约自持的 Mock API（Nitro v3）：接口定义与 OpenAPI 契约同源，契约由路由反向生成。",
   "scripts": {
-    "dev": "nitro dev --port 3001",
+    "dev": "nitro dev",
     "build": "nitro build",
     "build:cloudflare": "nitro build --preset cloudflare_module",
     "build:vercel": "nitro build --preset vercel",

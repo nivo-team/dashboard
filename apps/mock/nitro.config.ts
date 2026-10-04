@@ -11,6 +11,15 @@ export default defineConfig({
   // v3 默认不扫描任何目录，必须显式指定服务端源码目录
   serverDir: './server',
 
+  // 开发服务器监听所有网卡（0.0.0.0）而不是只监听 localhost，局域网内其它设备
+  // 用 `http://<本机 IP>:3001` 就能连上（见 apps/web/.env.example 的「局域网访问」）。
+  // 绑定地址与端口都放这里（`pnpm dev` 是裸的 `nitro dev`），
+  // 命令行 `nitro dev --host/--port` 仍可临时覆盖。
+  devServer: {
+    hostname: '0.0.0.0',
+    port: 3001,
+  },
+
   experimental: {
     openAPI: true,
   },
