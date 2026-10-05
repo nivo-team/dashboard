@@ -48,11 +48,12 @@ export function ShellSidebarProvider({ children }: { children: ReactNode }) {
   /** 移动端抽屉的开合：只在内存里（抽屉是「看一眼就走」的浮层，不跨会话保留）。 */
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  // 只取一次快照作为桌面初始值：非受控的 Provider 自己管理之后的展开态与宽度
-  const [{ sidebarOpen, sidebarWidth }] = useState(() => {
-    const { sidebarOpen: open, sidebarWidth: width } = useShellUiStore.getState()
-    return { sidebarOpen: open, sidebarWidth: width }
-  })
+  // 桌面初始值：订阅 store 最新状态。
+  // 在 RTL / LTR 方向切换时，由于 Kumo 内部 SidebarProvider 的 contextValue 缓存遗漏了 side 依赖，
+  // 我们通过 key={isRtl ? 'rtl' : 'ltr'} 触发 Provider 重挂以立即应用正确的 side 定位。
+  // 这里读取 store 当前值传给 defaultOpen / defaultWidth，保证方向切换重挂后无缝保持当前的折叠/展开与宽度。
+  const sidebarOpen = useShellUiStore((state) => state.sidebarOpen)
+  const sidebarWidth = useShellUiStore((state) => state.sidebarWidth)
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
@@ -70,6 +71,7 @@ export function ShellSidebarProvider({ children }: { children: ReactNode }) {
 
   return (
     <Sidebar.Provider
+      key={isRtl ? 'rtl' : 'ltr'}
       side={isRtl ? 'right' : 'left'}
       collapsible="icon"
       // 桌面初始值；移动端受控后 defaultOpen 不参与（`open` 优先）

@@ -180,6 +180,7 @@ function SphereLayoutBody({ appId }: { appId: string }) {
               main 显式 `bg-kumo-base`），wrapper 那层反而看不见。
             */
             variant="inset"
+            key={isRtl ? 'rtl' : 'ltr'}
             side={isRtl ? 'right' : 'left'}
             // 收起 = 整列滑走（offcanvas）：会话行没有图标，收成 icon 轨道会只剩空行
             collapsible="offcanvas"
