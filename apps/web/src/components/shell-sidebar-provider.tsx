@@ -1,5 +1,5 @@
-import { Sidebar } from '@cloudflare/kumo'
-import { useCallback, useState, type ReactNode } from 'react'
+import { Sidebar, useSidebar } from '@cloudflare/kumo'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   persistSidebarOpen,
   persistSidebarWidth,
@@ -7,6 +7,7 @@ import {
   SIDEBAR_MIN_WIDTH,
   SHELL_MOBILE_BREAKPOINT,
   useShellUiStore,
+  type SidebarExpandMode,
 } from '#/lib/store'
 import { useLocale } from '#/lib/use-locale'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
@@ -54,6 +55,7 @@ export function ShellSidebarProvider({ children }: { children: ReactNode }) {
   // 这里读取 store 当前值传给 defaultOpen / defaultWidth，保证方向切换重挂后无缝保持当前的折叠/展开与宽度。
   const sidebarOpen = useShellUiStore((state) => state.sidebarOpen)
   const sidebarWidth = useShellUiStore((state) => state.sidebarWidth)
+  const sidebarExpandMode = useShellUiStore((state) => state.sidebarExpandMode)
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
@@ -80,7 +82,7 @@ export function ShellSidebarProvider({ children }: { children: ReactNode }) {
       open={isMobile ? mobileOpen : undefined}
       onOpenChange={handleOpenChange}
       mobileBreakpoint={SHELL_MOBILE_BREAKPOINT}
-      // 折叠后悬停/聚焦临时展开，方便在收起状态下快速切换页面。
+      // 保持 peekable 开启，使 Kumo context 闭包具备窥探能力；具体展开逻辑由下方的 SidebarPeekBridge 精准控制。
       peekable
       // 允许拖拽右侧边缘调整宽度（见各侧边栏内的 Sidebar.ResizeHandle）。
       resizable
@@ -89,8 +91,106 @@ export function ShellSidebarProvider({ children }: { children: ReactNode }) {
       minWidth={SIDEBAR_MIN_WIDTH}
       maxWidth={SIDEBAR_MAX_WIDTH}
     >
-      {children}
+      <SidebarPeekBridge expandMode={sidebarExpandMode}>
+        {children}
+      </SidebarPeekBridge>
     </Sidebar.Provider>
+  )
+}
+
+/**
+ * 侧边栏快速展开方式桥接组件：
+ * 处于 Sidebar.Provider 内部，负责处理 `logo`（仅悬浮在 Logo 展开）、`full` 与 `none` 模式。
+ */
+function SidebarPeekBridge({
+  expandMode,
+  children,
+}: {
+  expandMode: SidebarExpandMode
+  children: ReactNode
+}) {
+  const { open, isMobile, startPeek, stopPeek } = useSidebar()
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const isPeekingFromLogoRef = useRef(false)
+
+  // 侧边栏常规展开或移动端状态下，重置 Logo 窥探标记
+  useEffect(() => {
+    if (open || isMobile) {
+      isPeekingFromLogoRef.current = false
+    }
+  }, [open, isMobile])
+
+  useEffect(() => {
+    if (isMobile) return
+    const wrapper = wrapperRef.current
+    if (!wrapper) return
+
+    const handlePointerOver = (e: MouseEvent) => {
+      if (open) return
+      const target = e.target as HTMLElement | null
+
+      // 1. 禁止悬浮展开：鼠标划入任何区域一律阻断 peek 展开
+      if (expandMode === 'none') {
+        stopPeek()
+        return
+      }
+
+      // 2. 悬浮展开（full）：交由 Kumo 默认行为自由发挥
+      if (expandMode === 'full') {
+        return
+      }
+
+      // 3. 仅悬浮在 Logo 展开（logo）：
+      const inHeader = Boolean(target?.closest('[data-sidebar="header"]'))
+      if (inHeader) {
+        isPeekingFromLogoRef.current = true
+        startPeek()
+      } else if (!isPeekingFromLogoRef.current) {
+        // 如果当前并非由 Logo 触发的窥探展开，鼠标直接划过菜单项时阻止展开
+        stopPeek()
+      }
+    }
+
+    const handlePointerOut = (e: MouseEvent) => {
+      if (open) return
+      const related = e.relatedTarget as HTMLElement | null
+      const sidebarEl = wrapper.querySelector('[data-sidebar="sidebar"]')
+
+      // 鼠标完全移出侧边栏时收起窥探展开
+      if (sidebarEl && !sidebarEl.contains(related)) {
+        isPeekingFromLogoRef.current = false
+        stopPeek()
+      }
+    }
+
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null
+      // 点击了菜单项链接或按钮后收起展开态
+      if (
+        target?.closest('a') ||
+        target?.closest('[data-sidebar="menu-button"]') ||
+        target?.closest('[data-sidebar="menu-sub-button"]')
+      ) {
+        isPeekingFromLogoRef.current = false
+        stopPeek()
+      }
+    }
+
+    wrapper.addEventListener('mouseover', handlePointerOver)
+    wrapper.addEventListener('mouseout', handlePointerOut)
+    wrapper.addEventListener('click', handleClick)
+
+    return () => {
+      wrapper.removeEventListener('mouseover', handlePointerOver)
+      wrapper.removeEventListener('mouseout', handlePointerOut)
+      wrapper.removeEventListener('click', handleClick)
+    }
+  }, [expandMode, isMobile, open, startPeek, stopPeek])
+
+  return (
+    <div ref={wrapperRef} className="contents">
+      {children}
+    </div>
   )
 }
 

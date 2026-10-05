@@ -1,6 +1,6 @@
 /* eslint-disable */
 // 本文件由 scripts/i18n/gen-types.mjs 生成 —— 不要手改。
-// 源语言：zh-CN｜命名空间：11 个｜键：986 个
+// 源语言：zh-CN｜命名空间：11 个｜键：991 个
 // 重新生成：pnpm i18n:types
 
 /**
@@ -354,6 +354,11 @@ export interface I18nNamespaceKeys {
     | "profile.settings.pageWidths.follow"
     | "profile.settings.pageWidths.full"
     | "profile.settings.palette"
+    | "profile.settings.sidebarExpandMode"
+    | "profile.settings.sidebarExpandModeHint"
+    | "profile.settings.sidebarExpandModes.full"
+    | "profile.settings.sidebarExpandModes.logo"
+    | "profile.settings.sidebarExpandModes.none"
     | "profile.settings.themeDisabled"
     | "profile.settings.timezoneHint"
     | "profile.status.disabled"

@@ -90,6 +90,19 @@ export const AI_FLOAT_VIEWPORT_MARGIN = 80
  */
 export const DEFAULT_MOTION_ENABLED = true
 
+/**
+ * 侧边栏折叠时的快速展开方式：
+ * - `logo`：**仅悬浮在 Logo 展开**（默认）—— 鼠标悬浮在侧边栏顶部的 Logo / 品牌区域时触发临时展开；悬浮其他菜单项时不展开；
+ * - `full`：**悬浮展开** —— 鼠标悬浮在侧边栏任意区域均触发临时展开；
+ * - `none`：**禁止悬浮展开** —— 完全关闭悬浮临时展开，仅通过底部折叠按钮切换展开状态。
+ */
+export type SidebarExpandMode = 'logo' | 'full' | 'none'
+export const DEFAULT_SIDEBAR_EXPAND_MODE: SidebarExpandMode = 'logo'
+
+export function isSidebarExpandMode(value: unknown): value is SidebarExpandMode {
+  return value === 'logo' || value === 'full' || value === 'none'
+}
+
 /** 拖拽期间的写盘节流：`onWidthChange` 每帧都会触发，同步写 localStorage 会卡。 */
 const WIDTH_PERSIST_DELAY_MS = 200
 
@@ -98,6 +111,8 @@ interface ShellUiState {
   sidebarOpen: boolean
   /** 桌面端侧边栏宽度（px） */
   sidebarWidth: number
+  /** 折叠状态下的侧边栏快速展开方式 */
+  sidebarExpandMode: SidebarExpandMode
   /** 详情预览面板（分屏形态）的宽度（px） */
   detailPanelWidth: number
   /** AI 面板的宽度（px） */
@@ -110,6 +125,7 @@ interface ShellUiState {
   motionEnabled: boolean
   setSidebarOpen: (open: boolean) => void
   setSidebarWidth: (width: number) => void
+  setSidebarExpandMode: (mode: SidebarExpandMode) => void
   setDetailPanelWidth: (width: number) => void
   setAiPanelWidth: (width: number) => void
   setMotionEnabled: (enabled: boolean) => void
@@ -126,6 +142,7 @@ type PersistedShellUi = Pick<
   ShellUiState,
   | 'sidebarOpen'
   | 'sidebarWidth'
+  | 'sidebarExpandMode'
   | 'detailPanelWidth'
   | 'aiPanelWidth'
   | 'aiFloatWidth'
@@ -161,6 +178,7 @@ export const useShellUiStore = create<ShellUiState>()(
     (set) => ({
       sidebarOpen: true,
       sidebarWidth: SIDEBAR_WIDTH,
+      sidebarExpandMode: DEFAULT_SIDEBAR_EXPAND_MODE,
       detailPanelWidth: DETAIL_PANEL_DEFAULT_WIDTH,
       aiPanelWidth: AI_PANEL_DEFAULT_WIDTH,
       aiFloatWidth: AI_FLOAT_DEFAULT_WIDTH,
@@ -169,6 +187,7 @@ export const useShellUiStore = create<ShellUiState>()(
       setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
       setSidebarWidth: (sidebarWidth) =>
         set({ sidebarWidth: clampSidebarWidth(sidebarWidth) }),
+      setSidebarExpandMode: (sidebarExpandMode) => set({ sidebarExpandMode }),
       setDetailPanelWidth: (detailPanelWidth) =>
         set({ detailPanelWidth: clampDetailPanelWidth(detailPanelWidth) }),
       setAiPanelWidth: (aiPanelWidth) =>
@@ -186,6 +205,7 @@ export const useShellUiStore = create<ShellUiState>()(
       partialize: (state): PersistedShellUi => ({
         sidebarOpen: state.sidebarOpen,
         sidebarWidth: state.sidebarWidth,
+        sidebarExpandMode: state.sidebarExpandMode,
         detailPanelWidth: state.detailPanelWidth,
         aiPanelWidth: state.aiPanelWidth,
         aiFloatWidth: state.aiFloatWidth,
@@ -196,6 +216,7 @@ export const useShellUiStore = create<ShellUiState>()(
        * 旧存档没有 `detailPanelWidth` / `aiPanelWidth`（后续新增）—— 缺失或非法一律回落
        * 默认值，否则 `undefined` 会被当成宽度写进 `style.width`（渲染成 `width: undefinedpx`）。
        * `aiFloatWidth` / `aiFloatHeight` 同理（浮窗可拖拽尺寸是更后面才加的）；
+       * `sidebarExpandMode`：缺失或非法回落到默认值 `logo`；
        * `motionEnabled` 是布尔：只认 boolean，缺失时回落到**默认开**（升级用户不该突然没动画）。
        */
       merge: (persisted, current) => {
@@ -211,6 +232,9 @@ export const useShellUiStore = create<ShellUiState>()(
             Number.isFinite(saved.sidebarWidth)
               ? clampSidebarWidth(saved.sidebarWidth)
               : current.sidebarWidth,
+          sidebarExpandMode: isSidebarExpandMode(saved.sidebarExpandMode)
+            ? saved.sidebarExpandMode
+            : current.sidebarExpandMode,
           detailPanelWidth:
             typeof saved.detailPanelWidth === 'number' &&
             Number.isFinite(saved.detailPanelWidth)

@@ -82,6 +82,13 @@
       "appearanceHint": "选择界面的主题模式",
       "languageHint": "切换管理后台的界面语言",
       "timezoneHint": "全站时间展示使用的时区",
+      "sidebarExpandMode": "侧边栏快速展开方式",
+      "sidebarExpandModeHint": "折叠状态下的临时展开行为；底部折叠按钮始终可用",
+      "sidebarExpandModes": {
+        "logo": "仅悬浮在 Logo 展开",
+        "full": "悬浮展开",
+        "none": "禁止悬浮展开"
+      },
       "detailOpenMode": "详情打开方式",
       "detailOpenModeHint": "表格中打开详情的方式；移动端始终跳转详情页",
       "detailOpenModes": {
