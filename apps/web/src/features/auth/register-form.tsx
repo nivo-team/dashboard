@@ -132,8 +132,20 @@ export function RegisterForm({
         {t('signUpTitle', '创建新账号')}
       </h1>
 
+      {/* ====================================================================== */}
+      {/* 第三方 OAuth 注册按钮区（标题正下方优先展示）                         */}
+      {/* ====================================================================== */}
+      {showOAuth && (
+        <OAuthButtons
+          mode="signup"
+          providers={oauthProviders}
+          dividerPosition="bottom"
+          className="mt-6"
+        />
+      )}
+
       {/* 注册表单 */}
-      <form onSubmit={handleRegisterSubmit} className="mt-8 flex flex-col gap-4.5">
+      <form onSubmit={handleRegisterSubmit} className="mt-5 flex flex-col gap-4.5">
         {/* 用户名输入框 */}
         <div className="flex flex-col gap-1.5">
           <Input
@@ -255,17 +267,6 @@ export function RegisterForm({
         >
           {isLoading ? t('signingUp', '正在创建账号…') : t('signUpSubmit', '注 册')}
         </Button>
-
-        {/* ====================================================================== */}
-        {/* 第三方 OAuth 注册按钮区（按配置按需展示）                             */}
-        {/* ====================================================================== */}
-        {showOAuth && (
-          <OAuthButtons
-            mode="signup"
-            providers={oauthProviders}
-            className="pt-1"
-          />
-        )}
 
         {/* 登录跳转引导 */}
         {!hideLoginLink && (

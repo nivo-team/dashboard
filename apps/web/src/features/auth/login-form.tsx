@@ -198,8 +198,21 @@ export function LoginForm({
         {t('signIn')}
       </h1>
 
+      {/* ====================================================================== */}
+      {/* 第三方 OAuth 登录按钮区（标题正下方优先展示）                         */}
+      {/* ====================================================================== */}
+      {showOAuth && (
+        <OAuthButtons
+          mode="login"
+          providers={oauthProviders}
+          redirect={redirectUrl}
+          dividerPosition="bottom"
+          className="mt-6"
+        />
+      )}
+
       {/* 登录表单 */}
-      <form onSubmit={handleLoginSubmit} className="mt-8 flex flex-col gap-5">
+      <form onSubmit={handleLoginSubmit} className="mt-5 flex flex-col gap-5">
         {/* ====================================================================== */}
         {/* 可选的测试账号选择器（通过 showDemoAccounts 与 demoAccounts 控制）    */}
         {/* ====================================================================== */}
@@ -333,18 +346,6 @@ export function LoginForm({
         >
           {isLoading ? t('submitting') : t('submit')}
         </Button>
-
-        {/* ====================================================================== */}
-        {/* 第三方 OAuth 登录按钮区（按配置按需展示）                             */}
-        {/* ====================================================================== */}
-        {showOAuth && (
-          <OAuthButtons
-            mode="login"
-            providers={oauthProviders}
-            redirect={redirectUrl}
-            className="pt-1"
-          />
-        )}
 
         {/* ====================================================================== */}
         {/* 底部辅助链接区：注册引导 + 忘记邮箱/密码引导                           */}

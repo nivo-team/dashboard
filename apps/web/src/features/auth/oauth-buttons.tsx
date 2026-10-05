@@ -12,6 +12,8 @@ export interface OAuthButtonsProps {
   mode?: 'login' | 'signup'
   /** 自定义启用的提供商列表（可选，默认读取 env 开启列表） */
   providers?: OAuthProviderConfig[]
+  /** 分割线位置：置于按钮下方（默认）还是上方 */
+  dividerPosition?: 'top' | 'bottom'
   /** 登录/注册成功后的重定向目标 */
   redirect?: string
   /** 额外容器类名 */
@@ -26,6 +28,7 @@ export interface OAuthButtonsProps {
 export function OAuthButtons({
   mode = 'login',
   providers: customProviders,
+  dividerPosition = 'bottom',
   redirect: redirectUrl,
   className = '',
 }: OAuthButtonsProps) {
@@ -51,54 +54,70 @@ export function OAuthButtons({
     })
   }
 
+  const dividerNode = (
+    <div className="relative flex items-center justify-center">
+      <div className="absolute inset-0 flex items-center">
+        <div className="w-full border-t border-kumo-line" />
+      </div>
+      <div className="relative bg-kumo-base px-3 text-xs text-kumo-subtle select-none">
+        {dividerPosition === 'top'
+          ? t('orContinueWith', '或使用以下方式继续')
+          : t('orDivider', '或')}
+      </div>
+    </div>
+  )
+
+  const buttonsNode = (
+    <div
+      className={`grid gap-2.5 ${
+        enabledProviders.length === 1
+          ? 'grid-cols-1'
+          : enabledProviders.length === 2
+            ? 'grid-cols-2'
+            : 'grid-cols-3'
+      }`}
+    >
+      {enabledProviders.map((provider) => {
+        const Icon = provider.icon
+        const actionText =
+          mode === 'signup'
+            ? t('signUpWithProvider', { provider: provider.name })
+            : t('loginWithProvider', { provider: provider.name })
+
+        return (
+          <Button
+            key={provider.id}
+            type="button"
+            variant="secondary"
+            size="md"
+            aria-label={actionText}
+            title={actionText}
+            onClick={() => handleProviderClick(provider.id)}
+            className="flex h-10 w-full items-center justify-center gap-2 border-kumo-line bg-kumo-base hover:bg-kumo-tint focus-visible:ring-2 focus-visible:ring-kumo-brand"
+          >
+            <Icon size={18} className="shrink-0 text-kumo-default" />
+            <span className="truncate text-sm font-medium text-kumo-default">
+              {provider.name}
+            </span>
+          </Button>
+        )
+      })}
+    </div>
+  )
+
   return (
-    <div className={`flex flex-col gap-4 ${className}`}>
-      {/* 分隔线与文字 */}
-      <div className="relative flex items-center justify-center">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-kumo-line" />
-        </div>
-        <div className="relative bg-kumo-base px-3 text-xs text-kumo-subtle select-none">
-          {t('orContinueWith', '或使用以下方式继续')}
-        </div>
-      </div>
-
-      {/* 按钮列表 */}
-      <div
-        className={`grid gap-2.5 ${
-          enabledProviders.length === 1
-            ? 'grid-cols-1'
-            : enabledProviders.length === 2
-              ? 'grid-cols-2'
-              : 'grid-cols-3'
-        }`}
-      >
-        {enabledProviders.map((provider) => {
-          const Icon = provider.icon
-          const actionText =
-            mode === 'signup'
-              ? t('signUpWithProvider', { provider: provider.name })
-              : t('loginWithProvider', { provider: provider.name })
-
-          return (
-            <Button
-              key={provider.id}
-              type="button"
-              variant="secondary"
-              size="md"
-              aria-label={actionText}
-              title={actionText}
-              onClick={() => handleProviderClick(provider.id)}
-              className="flex h-10 w-full items-center justify-center gap-2 border-kumo-line bg-kumo-base hover:bg-kumo-tint focus-visible:ring-2 focus-visible:ring-kumo-brand"
-            >
-              <Icon size={18} className="shrink-0 text-kumo-default" />
-              <span className="truncate text-sm font-medium text-kumo-default">
-                {provider.name}
-              </span>
-            </Button>
-          )
-        })}
-      </div>
+    <div className={`flex flex-col gap-5 ${className}`}>
+      {dividerPosition === 'top' ? (
+        <>
+          {dividerNode}
+          {buttonsNode}
+        </>
+      ) : (
+        <>
+          {buttonsNode}
+          {dividerNode}
+        </>
+      )}
     </div>
   )
 }

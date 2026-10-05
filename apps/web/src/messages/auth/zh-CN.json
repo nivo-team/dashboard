@@ -57,6 +57,7 @@
   "resetLinkSent": "重置链接已发送",
   "resetLinkSentDesc": "密码重置邮件已发送至您的邮箱，请查收并按照邮件指引操作",
   "backToLogin": "返回登录",
+  "orDivider": "或",
   "orContinueWith": "或使用以下方式继续",
   "loginWithProvider": "使用 {{provider}} 登录",
   "signUpWithProvider": "使用 {{provider}} 注册",
