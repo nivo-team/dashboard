@@ -101,56 +101,41 @@ export function LoginForm({
     try {
       setIsLoading(true)
 
-      const response = await apiLogin({
-        body: {
-          username: username.trim(),
-          password,
-        },
+      const data = await apiLogin({
+        username,
+        password,
+        rememberDevice,
       })
 
-      if (response.code === 0 && response.data?.user) {
-        const user = response.data.user
-
-        if (isMultiAppEnabled()) {
-          const defaultApp = getDefaultApp()
-          if (defaultApp) {
-            completeLoginWithApp(user, defaultApp.id)
-            onSuccess?.()
-            await router.invalidate()
-            const target =
-              redirectUrl &&
-              redirectUrl.startsWith('/') &&
-              redirectUrl !== '/' &&
-              redirectUrl !== '/select-app'
-                ? redirectUrl
-                : `/${defaultApp.id}/home`
-            navigate({ to: target as any })
-          } else {
-            setAuthenticatedSession(user)
-            onSuccess?.()
-            await router.invalidate()
-            navigate({
-              to: '/select-app',
-              search: {
-                redirect: redirectUrl,
-              },
-            })
-          }
-        } else {
-          setAuthenticatedSession(user)
-          onSuccess?.()
-          await router.invalidate()
-          const target =
-            redirectUrl && redirectUrl.startsWith('/') && redirectUrl !== '/'
-              ? redirectUrl
-              : '/home'
-          navigate({ to: target as any })
-        }
+      // 单应用模式：直接使用默认应用完成选定，跳转至业务首页，避免多余的 / 路由选择
+      if (!isMultiAppEnabled()) {
+        const defaultApp = getDefaultApp()
+        completeLoginWithApp(
+          {
+            token: data.token,
+            user: data.user,
+            apps: [defaultApp],
+          },
+          defaultApp.id,
+        )
+        onSuccess?.()
+        await router.invalidate()
+        const target =
+          redirectUrl &&
+          redirectUrl.startsWith('/') &&
+          redirectUrl !== '/' &&
+          redirectUrl !== '/select-app'
+            ? redirectUrl
+            : `/${defaultApp.id}/home`
+        navigate({ to: target as any })
       } else {
-        toast.add({
-          title: t('authFailed'),
-          description: response.message || t('authFailed'),
-          variant: 'error',
+        // 多应用模式：暂存登录态，进入应用选择路由以获取并选定工作空间应用
+        setAuthenticatedSession(data)
+        onSuccess?.()
+        await router.invalidate()
+        navigate({
+          to: '/',
+          search: { redirect: redirectUrl },
         })
       }
     } catch (err: unknown) {

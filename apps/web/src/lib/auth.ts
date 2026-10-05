@@ -360,13 +360,13 @@ export async function apiLogin(credentials: {
   user: UserInfo
   apps: AppItem[]
 }> {
-  const cleanUsername = credentials.username.trim()
+  const cleanUsername = credentials?.username?.trim() || ''
 
   if (!cleanUsername) {
     throw new Error('请输入账号')
   }
 
-  if (!credentials.password || credentials.password.trim().length === 0) {
+  if (!credentials?.password || credentials.password.trim().length === 0) {
     throw new Error('请输入密码')
   }
 
