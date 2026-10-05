@@ -35,10 +35,30 @@ export const NAVIGATION_GRANT = 'navigate'
  */
 export const DATA_READ_GRANT = 'data:read'
 
+function createUniqueDraftScopeId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return `draft-${crypto.randomUUID()}`
+  }
+  return `draft-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+/** 当前新会话（未持久化落盘）专属的唯一授权作用域 ID，绝不与任何其他会话共享 */
+let currentDraftScopeId = createUniqueDraftScopeId()
+
+/**
+ * 重置新会话作用域并清空其所有授权：
+ * 当用户新开对话（startNewSession）时调用，确保新会话与上一个会话权限完全隔离。
+ */
+export function resetDraftSessionScope(): void {
+  const appId = useAuthStore.getState().currentApp?.id ?? null
+  clearSessionGrants(currentDraftScopeId)
+  currentDraftScopeId = createUniqueDraftScopeId()
+}
+
 function getStorageKey(appId: string | null, sessionId: string | null): string {
   const safeAppId = appId || 'global'
-  // 若会话尚未落盘（新对话初始状态），使用独立的草稿作用域
-  const safeSessionId = sessionId || 'draft'
+  // 若会话尚未落盘（新对话），使用本次新对话独占的唯一 scope ID，绝不与任何其他会话共享
+  const safeSessionId = sessionId || currentDraftScopeId
   return `${STORAGE_PREFIX}:${safeAppId}:${safeSessionId}`
 }
 
@@ -55,7 +75,7 @@ function purgeAllSessionGrants(): void {
     const keysToRemove: string[] = []
     for (let i = 0; i < window.sessionStorage.length; i++) {
       const key = window.sessionStorage.key(i)
-      if (key && key.startsWith(STORAGE_PREFIX)) {
+      if (key && (key.startsWith(STORAGE_PREFIX) || key.includes(':draft'))) {
         keysToRemove.push(key)
       }
     }
@@ -66,8 +86,20 @@ function purgeAllSessionGrants(): void {
 }
 
 // 刷新浏览器重新申请：每次整页重载时重置会话授权账本
-if (typeof window !== 'undefined' && isDocumentReload()) {
-  purgeAllSessionGrants()
+if (typeof window !== 'undefined') {
+  if (isDocumentReload()) {
+    purgeAllSessionGrants()
+  } else {
+    // 清理旧版本可能残留的公共 :draft 键，防止继承错误权限
+    try {
+      for (let i = 0; i < window.sessionStorage.length; i++) {
+        const k = window.sessionStorage.key(i)
+        if (k && k.endsWith(':draft')) window.sessionStorage.removeItem(k)
+      }
+    } catch {
+      // ignore
+    }
+  }
 }
 
 function loadGrantsFromStorage(

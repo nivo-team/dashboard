@@ -27,8 +27,15 @@ export * from './route-refs'
 export * from './search-params-bridge'
 export * from './session-boot'
 export * from './session-groups'
+export * from './session-permissions'
 export * from './session-store'
 export * from './tools'
 export * from './types'
-// IDB 的读写函数只给 store 用，对外只暴露类型
-export type { AiSessionRecord, AiSessionSummary } from './session-db'
+export {
+  deleteComposerDraft,
+  getComposerDraft,
+  saveComposerDraft,
+  type AiComposerDraft,
+  type AiSessionRecord,
+  type AiSessionSummary,
+} from './session-db'

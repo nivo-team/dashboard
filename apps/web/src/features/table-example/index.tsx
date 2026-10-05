@@ -62,7 +62,7 @@ import { TableExampleFormDialog } from './form-dialog'
 import { getTableExampleFormMetadata, TableExampleFormView } from './form-view'
 
 /**
- * 示例 / 表格示例（/$appId/example/user）
+ * 示例 / 表格示例（/$appId/example/table）
  *
  * 列编排约定：一列只呈现一项数据 ——
  * 标量字段独占一列；嵌套对象把内部字段展开成各自的列。
@@ -139,7 +139,7 @@ export function TableExampleListPage() {
 
   // 3. 本机视觉偏好留在 Zustand 持久化（按应用隔离）
   const [columnVisibility, setColumnVisibility] = useAppTableState<ColumnVisibilityState>(
-    'example/user',
+    'example/table',
     'columnVisibility',
     () => Object.fromEntries(DEFAULT_HIDDEN_COLUMNS.map((id) => [id, false])),
   )
@@ -268,8 +268,8 @@ export function TableExampleListPage() {
         onExpand: () => {
           navigate({
             to: isEdit
-              ? '/$appId/example/user/$id.edit'
-              : '/$appId/example/user/new',
+              ? '/$appId/example/table/$id.edit'
+              : '/$appId/example/table/new',
             params: isEdit
               ? { appId, id: String(id) }
               : { appId },
@@ -311,7 +311,7 @@ export function TableExampleListPage() {
         : null
       setFormInitialData(initData)
       if (formOpenMode === 'page' || isMobile) {
-        navigate({ to: '/$appId/example/user/new', params: { appId } })
+        navigate({ to: '/$appId/example/table/new', params: { appId } })
       } else {
         void setFormState({ form: 'create', formId: null })
         if (formOpenMode === 'split') {
@@ -329,7 +329,7 @@ export function TableExampleListPage() {
       setFormInitialData(mergedUser)
       if (formOpenMode === 'page' || isMobile) {
         navigate({
-          to: '/$appId/example/user/$id.edit',
+          to: '/$appId/example/table/$id.edit',
           params: { appId, id: String(user.id) },
         })
       } else {
@@ -455,7 +455,7 @@ export function TableExampleListPage() {
         description: `${t('detail.fields.id', 'ID')} ${id}`,
         onExpand: () => {
           navigate({
-            to: '/$appId/example/user/$id',
+            to: '/$appId/example/table/$id',
             params: { appId, id },
           })
         },

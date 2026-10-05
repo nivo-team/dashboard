@@ -13,7 +13,7 @@ import { fetchTableExampleDetail } from './detail-loader'
  *
  * 这是「表格点开详情但不跳页」能成立的前提：详情不再绑在路由组件上，
  * 而是 props 驱动的普通组件，因此同一份 UI / 同一份取数逻辑可以同时出现在
- * - 详情路由 `/$appId/example/user/$id`（`variant="page"`）；
+ * - 详情路由 `/$appId/example/table/$id`（`variant="page"`）；
  * - 表格的详情预览浮层（`variant="preview"`，见 `#/components/detail-preview`）。
  *
  * 两种形态的差异**只有外壳**，主体内容完全一致：

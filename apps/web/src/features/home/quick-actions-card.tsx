@@ -21,7 +21,7 @@ export function QuickActionsCard() {
 
   const actions = [
     {
-      to: `/${appId}/example/user`,
+      to: `/${appId}/example/table`,
       label: t('nav.tableExample', { ns: 'common', defaultValue: '表格示例' }),
       icon: TableIcon,
     },

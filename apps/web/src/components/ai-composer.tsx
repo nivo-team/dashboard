@@ -25,7 +25,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ClipboardEvent, KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
+  deleteComposerDraft,
+  getComposerDraft,
   listRouteRefItems,
+  saveComposerDraft,
   sendAiMessage,
   stopAiMessage,
   useAiSessionStore,
@@ -44,7 +47,8 @@ import {
   usePreferencesStore,
   type AiComposerMode,
 } from '#/lib/store'
-import { AiFloatingTaskCard } from '#/components/ai-task-card'
+import { getAppScope } from '#/lib/store/app-scope'
+import { AiTaskBackplate, getActiveTaskData } from '#/components/ai-task-card'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 
 export interface AiComposerProps {
@@ -247,8 +251,19 @@ export function AiComposer({
 
   const isStreaming = useAiSessionStore((state) => state.status === 'streaming')
   const startNewSession = useAiSessionStore((state) => state.startNewSession)
+  const activeSessionId = useAiSessionStore((state) => state.activeSessionId)
+  const draftText = useAiSessionStore((state) => state.draftText)
+  const draftAttachments = useAiSessionStore((state) => state.draftAttachments)
+  const setDraft = useAiSessionStore((state) => state.setDraft)
+  const rewindMessageId = useAiSessionStore((state) => state.rewindMessageId)
+  const cancelRollback = useAiSessionStore((state) => state.cancelRollback)
   const composerMode = usePreferencesStore((state) => state.aiComposerMode)
   const setComposerMode = usePreferencesStore((state) => state.setAiComposerMode)
+
+  const messages = useAiSessionStore((state) => state.messages)
+  const sessionStatus = useAiSessionStore((state) => state.status)
+  const activeTaskData = getActiveTaskData(messages, sessionStatus)
+  const [taskCollapsed, setTaskCollapsed] = useState(true)
 
   /*
     待发送的**附件**（图片与普通文件同一条路：data URL）。只活在输入区里：
@@ -257,6 +272,55 @@ export function AiComposer({
   */
   const [attachments, setAttachments] = useState<AiAttachment[]>([])
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const isLoadedRef = useRef(false)
+  const draftTimerRef = useRef<number | null>(null)
+
+  // 消费来自 store 的草稿（回退修改或切换会话时装载到输入框中）
+  useEffect(() => {
+    if (draftText !== null) {
+      setValue(draftText)
+      setAttachments([...draftAttachments])
+      setDraft(null, [])
+      isLoadedRef.current = true
+      textareaRef.current?.focus({ preventScroll: true })
+    }
+  }, [draftText, draftAttachments, setDraft])
+
+  // 切换会话或初次挂载时：若当前输入框未被编辑，从 IndexedDB 读取对应会话的草稿
+  useEffect(() => {
+    let cancelled = false
+    void getComposerDraft(getAppScope(), activeSessionId).then((draft) => {
+      if (cancelled) return
+      if (draft) {
+        setValue(draft.text)
+        setAttachments([...draft.attachments])
+      }
+      isLoadedRef.current = true
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [activeSessionId])
+
+  // 用户打字或修改附件时：防抖 300ms 缓存到 IndexedDB（按 appId 与 sessionId 隔离，new session 使用独立 key）
+  useEffect(() => {
+    if (!isLoadedRef.current || isStreaming) return
+
+    if (draftTimerRef.current !== null) {
+      window.clearTimeout(draftTimerRef.current)
+    }
+
+    draftTimerRef.current = window.setTimeout(() => {
+      draftTimerRef.current = null
+      void saveComposerDraft(getAppScope(), activeSessionId, value, attachments)
+    }, 300)
+
+    return () => {
+      if (draftTimerRef.current !== null) {
+        window.clearTimeout(draftTimerRef.current)
+      }
+    }
+  }, [value, attachments, activeSessionId, isStreaming])
 
   const toast = useKumoToastManager()
 
@@ -420,6 +484,11 @@ export function AiComposer({
     setValue('')
     setAttachments([])
     setMentionOpen(false)
+    if (draftTimerRef.current !== null) {
+      window.clearTimeout(draftTimerRef.current)
+      draftTimerRef.current = null
+    }
+    void deleteComposerDraft(getAppScope(), activeSessionId)
     void sendAiMessage(next, composerMode, outgoing, surface)
   }
 
@@ -431,6 +500,9 @@ export function AiComposer({
    */
   const handleValueChange = (next: string) => {
     setValue(next)
+    if (useAiSessionStore.getState().error) {
+      useAiSessionStore.setState({ error: null })
+    }
 
     const token = parseMentionQuery(next)
     if (recordTypingRef.current) {
@@ -639,36 +711,64 @@ export function AiComposer({
     setAttachments((prev) => prev.filter((_, i) => i !== index))
   }
 
+  const hasBackplate = Boolean(rewindMessageId || activeTaskData)
+
   return (
     <div className="flex w-full flex-col gap-2">
-      <AiFloatingTaskCard />
-      <div
-        // 两块浮层（「+」动作菜单与 `@` 面板）的锚点 —— 它们都贴在这一层的上沿浮出来
-        ref={composerRef}
-        // 粘贴收图挂在外层：事件从 textarea 冒泡上来，不必给 Kumo 的 Textarea 透传 onPaste
-        onPaste={handlePaste}
-        className={cn(
-          // `relative` 只用于内部绝对定位（附件卡片的删除按钮）；浮层由 Kumo portal 出去、以本层为锚点
-          'relative flex flex-col rounded-2xl bg-kumo-control ring-1 ring-kumo-line transition-all',
-          // 焦点态：整块外框换成品牌色细环（`ring-1` 无变体、`has-[…]` 带变体，后者在后、能覆盖）
-          'has-[textarea:focus]:ring-[1.5px] has-[textarea:focus]:ring-kumo-brand/50',
-          className,
-        )}
-      >
-      <Textarea
-        ref={textareaRef}
-        value={value}
-        onValueChange={handleValueChange}
-        onKeyDown={handleKeyDown}
-        autoResize
-        minRows={2}
-        maxRows={8}
-        aria-label={t('inputLabel', 'AI 输入框')}
-        placeholder={t('inputPlaceholder', '输入你的问题…')}
-        // 清零 Kumo 输入框的默认外观：底色 / 圆角 / padding / 自身 ring 全部让给外层框。
-        // 用方向后缀（`px-4 pt-4 pb-0`）而不是 `p-4`，避免与 Kumo 的 `py-2` 拼出多余的上下留白。
-        className="min-h-0 rounded-none border-0 bg-transparent px-4 pt-4 pb-0 ring-0 focus:ring-0"
-      />
+      {/* 后置层叠卡片（回退修改或任务推进）：自适应高度流式布局，输入框始终紧密贴合在下方，彻底杜绝布局漂移 */}
+      <div className="relative w-full">
+        {rewindMessageId ? (
+          <div className="flex items-start justify-between rounded-t-2xl border-t border-x border-kumo-line bg-kumo-tint px-3.5 pt-1.5 pb-4 text-xs text-kumo-subtle">
+            <div className="flex items-center min-w-0">
+              <span className="truncate text-[11px] text-kumo-subtle">
+                {t('rollbackHint', '正在回退修改该消息，发送后将覆盖后续回答')}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={cancelRollback}
+              title={t('cancelRollback', '取消回退')}
+              className="ms-2 inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-kumo-subtle transition-colors hover:bg-kumo-fill hover:text-kumo-default"
+            >
+              <XIcon size={12} />
+            </button>
+          </div>
+        ) : activeTaskData ? (
+          <AiTaskBackplate
+            tasks={activeTaskData.tasks}
+            collapsed={taskCollapsed}
+            onToggleCollapsed={() => setTaskCollapsed((v) => !v)}
+          />
+        ) : null}
+
+        <div
+          // 两块浮层（「+」动作菜单与 `@` 面板）的锚点 —— 它们都贴在这一层的上沿浮出来
+          ref={composerRef}
+          // 粘贴收图挂在外层：事件从 textarea 冒泡上来，不必给 Kumo 的 Textarea 透传 onPaste
+          onPaste={handlePaste}
+          className={cn(
+            // `relative` 只用于内部绝对定位（附件卡片的删除按钮）；浮层由 Kumo portal 出去、以本层为锚点
+            'relative z-1 flex flex-col rounded-2xl bg-kumo-control ring-1 ring-kumo-line transition-all shadow-xs',
+            // 焦点态：整块外框换成品牌色细环（`ring-1` 无变体、`has-[…]` 带变体，后者在后、能覆盖）
+            'has-[textarea:focus]:ring-[1.5px] has-[textarea:focus]:ring-kumo-brand/50',
+            hasBackplate && '-mt-2.5',
+            className,
+          )}
+        >
+          <Textarea
+            ref={textareaRef}
+            value={value}
+            onValueChange={handleValueChange}
+            onKeyDown={handleKeyDown}
+            autoResize
+            minRows={2}
+            maxRows={8}
+            aria-label={t('inputLabel', 'AI 输入框')}
+            placeholder={t('inputPlaceholder', '输入你的问题…')}
+            // 清零 Kumo 输入框的默认外观：底色 / 圆角 / padding / 自身 ring 全部让给外层框。
+            // 用方向后缀（`px-4 pt-4 pb-0`）而不是 `p-4`，避免与 Kumo 的 `py-2` 拼出多余的上下留白。
+            className="min-h-0 rounded-none border-0 bg-transparent px-4 pt-4 pb-0 ring-0 focus:ring-0"
+          />
 
       {/*
         待发送的附件：夹在输入区与工具行之间。**图片给缩略图，其余给文件卡片**
@@ -1143,8 +1243,9 @@ export function AiComposer({
             <ArrowUpIcon size={14} />
           </Tooltip>
         )}
+        </div>
       </div>
     </div>
-    </div>
+  </div>
   )
 }

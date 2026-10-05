@@ -14,7 +14,7 @@ import {
  * - 未写入过时用 `initial` 兜底（`initial` 只在首次渲染求值一次，可放心传函数）；
  * - 想恢复默认用 `useTableUiStore.getState().resetTable(tableKey)`。
  *
- * @param tableKey 表格的唯一标识（页面内保持稳定），如 `example/user`
+ * @param tableKey 表格的唯一标识（页面内保持稳定），如 `example/table`
  * @param field    状态片段名（`columnVisibility` / `filters` / `page` …）
  * @param initial  没有持久化值时的初始值（或惰性求值函数）
  */

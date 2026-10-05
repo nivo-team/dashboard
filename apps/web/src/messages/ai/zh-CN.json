@@ -132,5 +132,11 @@
     "paused": "已暂停",
     "cancelled": "已取消"
   },
-  "usageStats": "缓存命中 {{cache}} · 输入 {{input}} · 输出 {{output}}"
+  "usageStats": "缓存命中 {{cache}} · 输入 {{input}} · 输出 {{output}}",
+  "copy": "复制",
+  "copied": "已复制",
+  "retry": "重试",
+  "rollback": "回退",
+  "cancelRollback": "取消回退",
+  "rollbackHint": "正在回退修改该消息，发送后将覆盖后续回答"
 }

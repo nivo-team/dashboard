@@ -8,7 +8,7 @@ import { getTableExampleFormMetadata, TableExampleFormView } from './form-view'
 import { tableExampleCreateFeature } from './create-feature'
 
 /**
- * 新建记录页（`/$appId/example/user/new`）。
+ * 新建记录页（`/$appId/example/table/new`）。
  *
  * 页面只负责「外框 + 导航」，表单本体与 AI 表单桥都在 `TableExampleFormView` 里 ——
  * 新建与编辑共用同一份表单实现，两页的差别只有 `mode`。
@@ -21,7 +21,7 @@ export function TableExampleCreatePage({ appId }: { appId: string }) {
   useFeature(tableExampleCreateFeature)
 
   const handleBack = () => {
-    navigate({ to: '/$appId/example/user', params: { appId } })
+    navigate({ to: '/$appId/example/table', params: { appId } })
   }
 
   return (

@@ -8,7 +8,7 @@ import { getTableExampleFormMetadata, TableExampleFormView } from './form-view'
 import { tableExampleEditFeature } from './edit-feature'
 
 /**
- * 编辑记录页（`/$appId/example/user/$id/edit`）。
+ * 编辑记录页（`/$appId/example/table/$id/edit`）。
  *
  * 与新建页同构：外框 + 导航在这里，表单本体与 AI 表单桥在 `TableExampleFormView`。
  * 路由参数由薄路由文件传入，页面里没有路由字面量。
@@ -21,7 +21,7 @@ export function TableExampleEditPage({ appId, id }: { appId: string; id: string 
   useFeature(tableExampleEditFeature)
 
   const handleBack = () => {
-    navigate({ to: '/$appId/example/user', params: { appId } })
+    navigate({ to: '/$appId/example/table', params: { appId } })
   }
 
   return (

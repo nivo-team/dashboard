@@ -4,7 +4,7 @@ import { defineFeature } from '#/lib/features'
 import type { FeatureSpec } from '#/lib/features'
 
 /**
- * 表格示例页的特性声明（`/$appId/example/user`）—— **这一页对 AI 暴露的全部能力都在这一个文件里**。
+ * 表格示例页的特性声明（`/$appId/example/table`）—— **这一页对 AI 暴露的全部能力都在这一个文件里**。
  *
  * 它取代了迁移前散在页面里的四处登记：`usePageCapabilities`（能力）、`useAiFormOpener`
  * （AI 唤起表单）、`useAiPageReload`（写后刷新），以及"什么都没有"的指令与数据源。
@@ -96,7 +96,29 @@ export function createTableExampleListFeature(options: TableExampleListFeatureOp
         // AI 填表只改页面状态、不落库 → `fill`；提交才落库、不可撤销 → `submit`（§1.8）。
         fillPermission: 'table-example:fill',
         submitPermission: 'table-example:submit',
-        description: '录入新记录的昵称、邮箱与头像',
+        description:
+          '录入新记录的昵称、邮箱与头像。用户要求新建或批量生成测试数据时，基于此字段规范构造数据并通过接口 POST /user 提交入库。',
+        fields: [
+          {
+            name: 'nickname',
+            label: '昵称',
+            type: 'text',
+            required: true,
+            description: '必填，记录昵称（2–30 个字符）',
+          },
+          {
+            name: 'email',
+            label: '邮箱地址',
+            type: 'text',
+            description: '选填，邮箱地址',
+          },
+          {
+            name: 'avatar_url',
+            label: '头像 URL',
+            type: 'text',
+            description: '选填，头像图片链接',
+          },
+        ],
         submission: {
           endpoint: { method: 'POST', path: '/user' },
           submitLabel: '创建记录',
@@ -116,6 +138,27 @@ export function createTableExampleListFeature(options: TableExampleListFeatureOp
         // 也会明确提示"请先 list_page_forms"）。
         description:
           '修改指定记录的资料信息；实际挂载的表单 id 形如 table-example-form-edit-<记录id>，以 list_page_forms 为准',
+        fields: [
+          {
+            name: 'nickname',
+            label: '昵称',
+            type: 'text',
+            required: true,
+            description: '必填，记录昵称（2–30 个字符）',
+          },
+          {
+            name: 'email',
+            label: '邮箱地址',
+            type: 'text',
+            description: '选填，邮箱地址',
+          },
+          {
+            name: 'avatar_url',
+            label: '头像 URL',
+            type: 'text',
+            description: '选填，头像图片链接',
+          },
+        ],
         submission: {
           endpoint: { method: 'PUT', path: '/user' },
           submitLabel: '保存修改',

@@ -24,9 +24,9 @@ src/features/complex-table/            ← 一页一目录：另一个示例（�
 
 src/routes/$appId/example/
   route.tsx        模块根：权限守卫 + <Outlet />
-  index.tsx        /example → 重定向到 /example/user
-  user/index.tsx   createFileRoute('…')({ component: TableExampleListPage })   ← 只有这几行
-  user/$id.tsx  user/new.tsx  user/$id.edit.tsx
+  index.tsx        /example → 重定向到 /example/table
+  table/index.tsx  createFileRoute('…')({ component: TableExampleListPage })   ← 只有这几行
+  table/$id.tsx  table/new.tsx  table/$id.edit.tsx
   complex-table/index.tsx
 ```
 
@@ -93,7 +93,7 @@ src/routes/$appId/example/
 
 | 模块 | 状态 |
 | --- | --- |
-| `example/user`（表格示例：list / detail / create / edit / form，全平铺在 `features/table-example/`） | ✅ 已迁移并扁平化（参考实现：`features/table-example/feature.ts`） |
+| `example/table`（表格示例：list / detail / create / edit / form，全平铺在 `features/table-example/`） | ✅ 已迁移并扁平化（参考实现：`features/table-example/feature.ts`） |
 | `example/complex-table`（复杂表格：分组表头 / 展开行 / 列显隐 / 行选择 / 汇总行） | ✅ 新增示例（参考实现：`features/complex-table/`，本地数据无接口） |
 | `system/menus`（功能树 / 功能详情 / 权限点 / 表单） | ✅ 已迁移（`features/menus/`，去掉 `system/` 域层级）。三个页面各一份 `feature.ts`；根视图的数据由 `FeatureContainer` 用 `onData` 上报；功能详情的表单桥早已接好 |
 | `system/data-dict`（分类树 / 字典项 / 两个表单） | ✅ 已迁移（`features/data-dict/`，去掉 `system/` 域层级）。列表只有数据源（弹窗状态在表格组件里，指令待补）；详情：数据源 ×2 + **表单桥**（AI 可填可存） |

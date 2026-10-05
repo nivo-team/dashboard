@@ -41,6 +41,14 @@ const approvalResolvers = new Map<
   (decision: AiApprovalDecision) => void
 >()
 
+interface QueuedApproval {
+  request: AiApprovalRequest
+  resolve: (allowed: boolean) => void
+}
+
+const approvalQueue: QueuedApproval[] = []
+let activeApprovalId: string | null = null
+
 function createApprovalId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID()
@@ -48,11 +56,48 @@ function createApprovalId(): string {
   return `approval-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 }
 
+function processNextApproval(): void {
+  if (activeApprovalId !== null) return
+  const next = approvalQueue.shift()
+  if (!next) {
+    useAiSessionStore.getState().clearPendingApproval()
+    return
+  }
+
+  const activeSessionId = useAiSessionStore.getState().activeSessionId
+  // 检查是否已获得本会话授权（若用户之前在同类工具上选了「本会话不再询问」）
+  if (hasSessionGrant(next.request.toolName, activeSessionId)) {
+    next.resolve(true)
+    processNextApproval()
+    return
+  }
+
+  const id = createApprovalId()
+  activeApprovalId = id
+
+  approvalResolvers.set(id, (decision) => {
+    approvalResolvers.delete(id)
+    activeApprovalId = null
+
+    if (decision === 'session') {
+      addSessionGrant(next.request.toolName, activeSessionId, true)
+    }
+
+    next.resolve(decision !== 'deny')
+    processNextApproval()
+  })
+
+  useAiSessionStore.getState().setPendingApproval({ id, ...next.request })
+}
+
 /**
  * 把一条审批请求交给 UI，并等用户决定。
  *
- * 这是写操作与跳转**唯一**的执行前置：工具里 `await requestApproval(...)`，
- * 拿到 `false` 就抛错（让模型知道用户不同意，工具描述里也写了不要重试）。
+ * 采用互斥排队队列（Approval Queue）：
+ * - 多个并发请求不会互相冲掉覆盖；
+ * - 若用户选择「本会话不再询问」，后续相同工具的队列项出队时将自动放行，无需重复打扰用户；
+ * - 若选择「允许一次」，则依次有序弹出，逐个确认；
+ * - 拿到 false 就抛错，让模型知晓用户不同意。
  */
 function requestApproval(request: AiApprovalRequest): Promise<boolean> {
   const activeSessionId = useAiSessionStore.getState().activeSessionId
@@ -60,41 +105,33 @@ function requestApproval(request: AiApprovalRequest): Promise<boolean> {
     return Promise.resolve(true)
   }
 
-  const id = createApprovalId()
   return new Promise<boolean>((resolve) => {
-    approvalResolvers.set(id, (decision) => {
-      approvalResolvers.delete(id)
-      /*
-        只有「本会话」才落授权（`session-permissions` 按 session 隔离、sessionStorage、
-        刷新失效）。`once` **什么都不写** —— 那是「就这一次」的字面意思。
-      */
-      if (decision === 'session') {
-        addSessionGrant(request.toolName, activeSessionId, true)
-      }
-      resolve(decision !== 'deny')
-    })
-    useAiSessionStore.getState().setPendingApproval({ id, ...request })
+    approvalQueue.push({ request, resolve })
+    processNextApproval()
   })
 }
 
 /**
  * 用户在卡片上的决定。
  *
- * 找不到这个 id 时**什么都不做**（fail-closed）：卡片可能已经被中止流程收掉了，
- * 这时拿不到明确决定就绝不执行。
+ * 找不到这个 id 时什么都不做（fail-closed）：卡片可能已经被中止流程收掉了。
  */
 export function resolveAiApproval(id: string, decision: AiApprovalDecision): void {
   const resolver = approvalResolvers.get(id)
   if (!resolver) return
   resolver(decision)
-  useAiSessionStore.getState().clearPendingApproval()
 }
 
 /** 中止 / 异常收尾：挂起的审批一律按「拒绝」了结，不能让工具永远挂在那里。 */
 function rejectPendingApprovals(): void {
+  activeApprovalId = null
   for (const [id, resolver] of approvalResolvers) {
     approvalResolvers.delete(id)
     resolver('deny')
+  }
+  while (approvalQueue.length > 0) {
+    const item = approvalQueue.shift()
+    item?.resolve(false)
   }
   useAiSessionStore.getState().clearPendingApproval()
 }
@@ -232,34 +269,15 @@ class StreamEventBatcher {
   }
 }
 
-export async function sendAiMessage(
-  text: string,
+/**
+ * 助手回复的核心执行逻辑：从 runtime 消费流式事件并分发到 store。
+ */
+async function executeAssistantTurn(
+  trimmedText: string,
+  assistantId: string,
   mode: AiMode,
-  attachments: readonly AiAttachment[] = [],
-  /**
-   * 当前容器 —— **由渲染处显式传入**（`AiComposer` 的 `surface` prop），
-   * 不要用 `window.location` 反推：路由名的字符串匹配会在重命名后静默失配。
-   */
-  surface: AiSurface = 'panel',
+  surface: AiSurface,
 ): Promise<void> {
-  const trimmed = text.trim()
-  if (!trimmed && attachments.length === 0) return
-
-  const store = useAiSessionStore.getState()
-  if (store.status === 'streaming') return
-
-  const assistantId = store.beginTurn(trimmed, attachments)
-  /*
-    用户的问题**立刻落盘**：助手回复到一半刷新页面，问题也不该丢。
-
-    这里刻意 `await`（而不是 `void`）：**会话级授权按 `activeSessionId` 记账**
-    （见 `session-permissions.ts`），新对话在第一次落盘之前只有草稿作用域 ——
-    不等这次写入完成，工具在这一轮里写下的授权（例如跳转的 `navigate`）就会挂到草稿上，
-    等会话拿到真实 id 后凭空失效，表现成「刚同意过又问一次」。
-    落盘失败**不阻断这一轮**：对话照常跑，只是刷新后可能丢这一笔。
-  */
-  await useAiSessionStore.getState().persist().catch(() => undefined)
-
   const controller = new AbortController()
   activeController = controller
   let batcher: StreamEventBatcher | null = null
@@ -272,7 +290,7 @@ export async function sendAiMessage(
     */
     const { streamAssistantTurn, toModelMessages } = await import('./runtime')
 
-    // 注意取的是**追加完用户消息之后**的历史：`beginTurn` 已经把本轮问题写进去了
+    // 注意取的是**追加完用户消息之后**的历史：`toModelMessages` 内部自动过滤无效/失败历史轮次
     const messages = toModelMessages(useAiSessionStore.getState().messages)
 
     /*
@@ -340,7 +358,7 @@ export async function sendAiMessage(
         toolCatalogText: buildToolCatalogText(catalogTools),
       }),
       toolPolicy,
-      toolContext: buildToolContext(mode, surface, trimmed),
+      toolContext: buildToolContext(mode, surface, trimmedText),
       abortSignal: controller.signal,
       /*
         一轮的 token 账与工具选择 —— 只打一行日志。
@@ -355,31 +373,76 @@ export async function sendAiMessage(
     batcher = new StreamEventBatcher(assistantId)
 
     for await (const event of stream) {
+      if (event.type === 'error') {
+        throw new Error(describeError(event.error))
+      }
       batcher.push(event)
     }
 
     batcher.flush()
     useAiSessionStore.getState().endTurn()
+    // 只有在成功生成完毕后，才落盘到当前会话的 IndexedDB
+    await useAiSessionStore.getState().persist().catch(() => undefined)
   } catch (error) {
     batcher?.flush()
     // 用户主动停止会走到这里（AbortError），不该报成错误
     if (controller.signal.aborted) {
       useAiSessionStore.getState().endTurn()
+      await useAiSessionStore.getState().persist().catch(() => undefined)
     } else {
+      // 失败时不记录到当前会话的 IndexedDB，将消息自动回退到输入框草稿并保留在 drafts 存储中
       useAiSessionStore.getState().failTurn(describeError(error))
     }
   } finally {
     batcher?.flush()
     // 无论是正常结束、用户停止还是报错：挂起的审批都要了结，否则工具会一直等着
     rejectPendingApprovals()
-    /*
-      一轮结束（含失败与中止）统一落盘一次。
-      流式期间**不写**：IDB 虽然异步，但为一轮回复开几十上百次事务没有意义，
-      刷新丢的也只是半句话。
-    */
-    void useAiSessionStore.getState().persist()
     if (activeController === controller) activeController = null
   }
+}
+
+export async function sendAiMessage(
+  text: string,
+  mode: AiMode,
+  attachments: readonly AiAttachment[] = [],
+  /**
+   * 当前容器 —— **由渲染处显式传入**（`AiComposer` 的 `surface` prop），
+   * 不要用 `window.location` 反推：路由名的字符串匹配会在重命名后静默失配。
+   */
+  surface: AiSurface = 'panel',
+): Promise<void> {
+  const trimmed = text.trim()
+  if (!trimmed && attachments.length === 0) return
+
+  const store = useAiSessionStore.getState()
+  if (store.status === 'streaming') return
+
+  // 若处于回退修改记录状态，真正发送时舍弃该消息及之后的所有历史回答与提问
+  store.commitRewind()
+
+  const assistantId = store.beginTurn(trimmed, attachments)
+
+  await executeAssistantTurn(trimmed, assistantId, mode, surface)
+}
+
+/**
+ * 重试指定的一条用户消息：
+ * 重新加载该提问并清理对应失败的助手回复，恢复会话流式并再次向模型发起推理。
+ */
+export async function retryAiMessage(
+  userMessageId: string,
+  mode: AiMode = 'ask',
+  surface: AiSurface = 'panel',
+): Promise<void> {
+  const store = useAiSessionStore.getState()
+  if (store.status === 'streaming') return
+
+  const retryData = store.prepareRetryTurn(userMessageId)
+  if (!retryData) return
+
+  await useAiSessionStore.getState().persist().catch(() => undefined)
+
+  await executeAssistantTurn(retryData.text, retryData.assistantId, mode, surface)
 }
 
 /** 中止当前这一轮（用户点停止）。 */

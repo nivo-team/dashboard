@@ -142,7 +142,7 @@ export function collectGroupFeatureRequirements(group: NavGroup): PermissionRequ
  *
  * 约定：导航层级与 `src/routes/$appId/` 下的模块目录一一对应。
  * 一个模块 = 一个目录，模块下的子模块 = 子目录，
- * 因此「示例（/example）→ 表格示例（/example/user）」也是「目录 → 子目录」。
+ * 因此「示例（/example）→ 表格示例（/example/table）」也是「目录 → 子目录」。
  */
 export const NAV_GROUPS: NavGroup[] = [
   {
@@ -178,7 +178,7 @@ export const NAV_GROUPS: NavGroup[] = [
           {
             label: '表格示例',
             labelKey: 'nav.tableExample',
-            to: '/example/user',
+            to: '/example/table',
             features: 'table-example:read',
           },
           {

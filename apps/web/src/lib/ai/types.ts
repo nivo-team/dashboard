@@ -264,6 +264,17 @@ export interface AiMessage {
   role: 'user' | 'assistant'
   parts: AiMessagePart[]
   /**
+   * 消息创建时间（0 时区 UTC ISO 8601 格式，如 2026-10-05T08:00:00.000Z）。
+   * 随会话落盘存储，展示时经由统一时间格式化工具转换。
+   */
+  createdAt?: string
+  /**
+   * 当前消息状态：流式中、成功或失败。
+   */
+  status?: 'streaming' | 'success' | 'error'
+  /** 失败时的错误信息摘要 */
+  error?: string
+  /**
    * 这一轮的 token 用量（只有 assistant 消息有）。
    *
    * 存下来是为了**能看见缓存有没有命中** —— 它是判断「提示词拼接是否对齐」的唯一客观依据，

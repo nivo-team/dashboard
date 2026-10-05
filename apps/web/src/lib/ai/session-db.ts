@@ -1,4 +1,4 @@
-import type { AiMessage } from './types'
+import type { AiAttachment, AiMessage } from './types'
 
 /**
  * AI 会话的本地存储（IndexedDB）。
@@ -7,11 +7,12 @@ import type { AiMessage } from './types'
  * 几十上百 KB 很常见；localStorage 有 5 MB 硬上限、而且是**同步** API，
  * 每次落盘都会卡住主线程（流式回复期间尤其明显）。IndexedDB 异步、容量按配额走。
  *
- * 三个 store 的分工（**元数据与消息分开存**很关键）：
+ * 四个 store 的分工（**元数据、消息与草稿分开存**很关键）：
  * - `sessions`：只存 `{ id, appId, title, createdAt, updatedAt }` —— 会话列表要按时间排序展示，
  *   如果消息也塞在这里，每次开面板都要把全部会话的正文反序列化一遍；
  * - `messages`：`{ sessionId, messages }` —— 只有真正打开某个会话时才读；
- * - `meta`：每个 app 记住「上次打开的是哪个会话」。
+ * - `meta`：每个 app 记住「上次打开的是哪个会话」；
+ * - `drafts`：每个 session（及新会话）缓存对应的输入框未发送草稿内容（文本 + 附件）。
  *
  * **失败一律降级、不阻断对话**：隐私模式、配额耗尽、被别的标签页占着旧版本……
  * IndexedDB 打不开是完全可能的。所以每个函数都吞掉异常并返回安全值，
@@ -19,11 +20,12 @@ import type { AiMessage } from './types'
  */
 
 const DB_NAME = 'admin.ai'
-const DB_VERSION = 1
+const DB_VERSION = 2
 
 const SESSION_STORE = 'sessions'
 const MESSAGE_STORE = 'messages'
 const META_STORE = 'meta'
+const DRAFT_STORE = 'drafts'
 
 /** 会话列表项（不含消息体）。 */
 export interface AiSessionSummary {
@@ -37,6 +39,17 @@ export interface AiSessionSummary {
 /** 一条完整会话（保存时用）。 */
 export interface AiSessionRecord extends AiSessionSummary {
   messages: AiMessage[]
+}
+
+/** 输入框草稿项。 */
+export interface AiComposerDraft {
+  /** 复合键：`${appId}:${sessionId ?? '__new__'}` */
+  key: string
+  appId: string
+  sessionId: string | null
+  text: string
+  attachments: AiAttachment[]
+  updatedAt: number
 }
 
 function warn(action: string, error: unknown): void {
@@ -93,6 +106,9 @@ function openDb(): Promise<IDBDatabase | null> {
       }
       if (!db.objectStoreNames.contains(META_STORE)) {
         db.createObjectStore(META_STORE, { keyPath: 'appId' })
+      }
+      if (!db.objectStoreNames.contains(DRAFT_STORE)) {
+        db.createObjectStore(DRAFT_STORE, { keyPath: 'key' })
       }
     }
 
@@ -156,15 +172,21 @@ export async function saveSession(record: AiSessionRecord): Promise<void> {
   }
 }
 
-/** 删除会话（连同消息；如果它正是当前会话，顺手清掉 meta 里的指向）。 */
+/** 删除会话（连同消息与草稿；如果它正是当前会话，顺手清掉 meta 里的指向）。 */
 export async function deleteSession(sessionId: string, appId: string): Promise<void> {
   const db = await openDb()
   if (!db) return
 
   try {
-    const tx = db.transaction([SESSION_STORE, MESSAGE_STORE, META_STORE], 'readwrite')
+    const storeNames: string[] = [SESSION_STORE, MESSAGE_STORE, META_STORE]
+    if (db.objectStoreNames.contains(DRAFT_STORE)) storeNames.push(DRAFT_STORE)
+
+    const tx = db.transaction(storeNames, 'readwrite')
     tx.objectStore(SESSION_STORE).delete(sessionId)
     tx.objectStore(MESSAGE_STORE).delete(sessionId)
+    if (db.objectStoreNames.contains(DRAFT_STORE)) {
+      tx.objectStore(DRAFT_STORE).delete(makeDraftKey(appId, sessionId))
+    }
 
     const metaStore = tx.objectStore(META_STORE)
     const meta = await requestToPromise<{ appId: string; activeSessionId?: string } | undefined>(
@@ -208,5 +230,86 @@ export async function setActiveSessionId(appId: string, sessionId: string | null
     await transactionDone(tx)
   } catch (error) {
     warn('setActiveSessionId', error)
+  }
+}
+
+function makeDraftKey(appId: string, sessionId: string | null): string {
+  return `${appId}:${sessionId ?? '__new__'}`
+}
+
+/**
+ * 读取输入框未发送的草稿内容（按 appId 与 sessionId 隔离，new session 使用独立 key）。
+ */
+export async function getComposerDraft(
+  appId: string,
+  sessionId: string | null,
+): Promise<{ text: string; attachments: AiAttachment[] } | null> {
+  const db = await openDb()
+  if (!db) return null
+
+  try {
+    if (!db.objectStoreNames.contains(DRAFT_STORE)) return null
+    const tx = db.transaction(DRAFT_STORE, 'readonly')
+    const row = await requestToPromise<AiComposerDraft | undefined>(
+      tx.objectStore(DRAFT_STORE).get(makeDraftKey(appId, sessionId)),
+    )
+    return row ? { text: row.text, attachments: row.attachments ?? [] } : null
+  } catch (error) {
+    warn('getComposerDraft', error)
+    return null
+  }
+}
+
+/**
+ * 保存输入框未发送的草稿内容（文本为空且无附件时自动清除）。
+ */
+export async function saveComposerDraft(
+  appId: string,
+  sessionId: string | null,
+  text: string,
+  attachments: readonly AiAttachment[] = [],
+): Promise<void> {
+  const db = await openDb()
+  if (!db) return
+
+  try {
+    if (!db.objectStoreNames.contains(DRAFT_STORE)) return
+    const tx = db.transaction(DRAFT_STORE, 'readwrite')
+    const key = makeDraftKey(appId, sessionId)
+    if (!text.trim() && attachments.length === 0) {
+      tx.objectStore(DRAFT_STORE).delete(key)
+    } else {
+      tx.objectStore(DRAFT_STORE).put({
+        key,
+        appId,
+        sessionId,
+        text,
+        attachments: [...attachments],
+        updatedAt: Date.now(),
+      } satisfies AiComposerDraft)
+    }
+    await transactionDone(tx)
+  } catch (error) {
+    warn('saveComposerDraft', error)
+  }
+}
+
+/**
+ * 清除指定会话的输入框草稿。
+ */
+export async function deleteComposerDraft(
+  appId: string,
+  sessionId: string | null,
+): Promise<void> {
+  const db = await openDb()
+  if (!db) return
+
+  try {
+    if (!db.objectStoreNames.contains(DRAFT_STORE)) return
+    const tx = db.transaction(DRAFT_STORE, 'readwrite')
+    tx.objectStore(DRAFT_STORE).delete(makeDraftKey(appId, sessionId))
+    await transactionDone(tx)
+  } catch (error) {
+    warn('deleteComposerDraft', error)
   }
 }

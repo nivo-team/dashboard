@@ -97,10 +97,10 @@ const AI_ROUTE_REF_SPECS: readonly AiRouteRefModuleSpec[] = [
   {
     key: 'table-example',
     to: '/example',
-    pages: [{ key: 'list', to: '/example/user' }],
+    pages: [{ key: 'list', to: '/example/table' }],
     record: {
       param: 'id',
-      template: '/example/user/{id}',
+      template: '/example/table/{id}',
       nameKey: 'nav.tableExampleDetail',
       name: '表格示例详情',
     },

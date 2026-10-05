@@ -32,7 +32,7 @@ export interface TableUiState {
 export type TableUiField = keyof TableUiState
 
 interface TableUiStore {
-  /** 表格 key → 状态片段（key 由调用方给定，如 `example/user`） */
+  /** 表格 key → 状态片段（key 由调用方给定，如 `example/table`） */
   tables: Record<string, TableUiState>
   patchTable: (tableKey: string, patch: Partial<TableUiState>) => void
   /** 清除某个表格的全部持久化状态（恢复默认） */

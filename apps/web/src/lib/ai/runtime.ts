@@ -688,16 +688,76 @@ function dataUrlToBase64(url: string): string {
   return comma === -1 ? url : url.slice(comma + 1)
 }
 
+/**
+ * 过滤未完成或失败的交互轮次：
+ * 1. 过滤状态为 error 的消息；
+ * 2. 对于历史中的 user 消息，如果其紧随其后的 assistant 消息处于 error 状态或未生成有效输出，
+ *    则这一轮问答视为无效历史，不能作为有效上下文提交给大模型（避免将失败交互带给新请求）；
+ * 3. 始终保留当前轮次最新的一条 user 消息。
+ */
+function sanitizeConversationHistory(messages: readonly AiMessage[]): AiMessage[] {
+  const result: AiMessage[] = []
+  const len = messages.length
+
+  for (let i = 0; i < len; i++) {
+    const msg = messages[i]
+    if (!msg) continue
+
+    if (msg.role === 'user') {
+      const isLatestUser = !messages.slice(i + 1).some((m) => m.role === 'user')
+      // 如果当前是本轮最新发出的 user 消息，不论状态都保留（作为当前请求的主提问）
+      if (isLatestUser) {
+        result.push(msg)
+        continue
+      }
+
+      // 历史消息：如果自身标记了 error，则丢弃
+      if (msg.status === 'error') {
+        continue
+      }
+
+      // 检查后续对应的 assistant 消息
+      const nextMsg = messages[i + 1]
+      if (!nextMsg || nextMsg.role !== 'assistant') {
+        continue
+      }
+      if (nextMsg.status === 'error') {
+        continue
+      }
+      const hasContent = nextMsg.parts.some(
+        (p) =>
+          (p.type === 'text' && p.text.trim().length > 0) ||
+          (p.type === 'tool-call' && p.state === 'done'),
+      )
+      if (!hasContent) {
+        continue
+      }
+
+      result.push(msg)
+    } else if (msg.role === 'assistant') {
+      if (msg.status === 'error') continue
+      // 只有前面存在匹配的 user 消息时，才把该 assistant 消息纳入有效历史
+      const prevMsg = messages[i - 1]
+      if (prevMsg && prevMsg.role === 'user' && result[result.length - 1]?.id === prevMsg.id) {
+        result.push(msg)
+      }
+    }
+  }
+
+  return result
+}
+
 export function toModelMessages(messages: readonly AiMessage[]): ModelMessage[] {
   const result: ModelMessage[] = []
+  const cleanMessages = sanitizeConversationHistory(messages)
 
   /*
     衰减点按**阶梯**前进（不是每轮前移一位）—— 它决定「哪些更早的工具结果走占位」。
     边界稳定 = 前缀稳定 = 缓存能命中，理由见 `resolveRecentBoundary` 的注释。
   */
-  const recentBoundary = resolveRecentBoundary(messages)
+  const recentBoundary = resolveRecentBoundary(cleanMessages)
 
-  for (const [index, message] of messages.entries()) {
+  for (const [index, message] of cleanMessages.entries()) {
     /*
       用户消息里的 `@` 引用（`@table-example:1234`）在这里**追加**一段「模块 / 页面 / 路径」的说明，
       见 `#/lib/ai/route-refs`。**只对 user 消息做**：`@` 是用户打出来的约定，

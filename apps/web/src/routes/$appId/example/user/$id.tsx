@@ -1,12 +1,11 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { TableExampleDetailPage } from '#/features/table-example/detail-page'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
-/** 表格示例详情路由（`/$appId/example/user/$id`）—— 薄适配层，业务在 `src/features`。 */
+/** 旧路由兼容重定向：`/$appId/example/user/$id` -> `/$appId/example/table/$id` */
 export const Route = createFileRoute('/$appId/example/user/$id')({
-  component: TableExampleDetailRoute,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: '/$appId/example/table/$id',
+      params: { appId: params.appId, id: params.id },
+    })
+  },
 })
-
-function TableExampleDetailRoute() {
-  const { appId, id } = Route.useParams()
-  return <TableExampleDetailPage appId={appId} id={id} />
-}

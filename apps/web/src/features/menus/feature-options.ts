@@ -55,7 +55,7 @@ export const MENU_PLACEHOLDER_COMPONENT = '/ignore'
 
   这里曾有一个 `MENU_PLACEHOLDER_PATH = '/ignore'`，因为旧架构认为「路由路径已废弃」。
   但现在 `path` 是菜单模块的**核心字段**：目录(1)与菜单(2)必须给出自己的路由落点
-  （`/example/user`、`/system/menus` …），侧边栏正是按 `/${appId}${path}` 跳转的；
+  （`/example/table`、`/system/menus` …），侧边栏正是按 `/${appId}${path}` 跳转的；
   操作(3)是按钮级权限点，没有落点，`path` 为空字符串。
 
   数据侧的权威定义见 `apps/mock/server/utils/db.ts` 的 `MenuRow.path`。

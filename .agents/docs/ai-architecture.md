@@ -110,8 +110,10 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
                       （两阶段 system 是两份不同提示词，在 identity 之后分叉；明细按需 get_page_context）
                  （Router 若直接回答、没调 select_tools，就没有 execution 阶段）
   └─ for await (event of stream) → StreamEventBatcher (~25ms 缓冲) → session-store.applyEvent
+       │  （若流事件中捕获 type === 'error'，立即中断并由 failTurn 接管）
        └─ UI 随之平滑重渲染（PretextStreamText 段落隔离 + 滚动容器 RAF 调度，规避 Layout Thrashing）
-  └─ endTurn() → 落盘
+  └─ 成功：endTurn() → 落盘当前会话（persist）并清除该会话的输入框草稿
+  └─ 失败：failTurn() → 不写入会话库，移除失败轮次（空会话自动切回新会话空态），失败提示词自动回退输入框并落盘 drafts 表
 
 工具执行时（由 SDK 的 stopWhen 循环触发）
   └─ tool.execute(input, ctx)
@@ -131,7 +133,9 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
   不出现在权限清单里** —— 权限清单列的是「AI 能做什么」，一个"选工具的工具"列进去没有意义。
   Router 若**直接回答**（没调 `select_tools`），流程自然结束、没有执行阶段（「你好 / 谢谢」只付 Router 的钱）；
 - **审批发生在工具内部**，注册表那层不拦截 —— 否则模型不知道有写的能力，只会回答"我做不到"；
-- **落盘只在三处**（发送后 / 一轮结束后 / 切删会话时），流式期间不写盘；
+- **落盘严格收口在终态**：流式期间不写盘；发送时不再提前落盘；只有一轮正常成功（或用户主动点停止）时才写入当前会话的 `sessions` / `messages` 表；发送失败绝不写入当前会话数据库；未成功的问题与附件自动回退输入框，并同步保存到独立草稿表 `drafts`；
+- **多任务模式（批量创建/处理）与 Todo 防卡死**：
+  处理多个对象（2 项及以上，如批量创建多条记录）时进入多任务模式。**严禁循环调用 open_form 逐个弹窗打开表单**（开关表单极易状态冲突且最后一步卡住），**直接调用写接口（call_write_api）连续提交入库**；推进时严格按 `manage_tasks` 维护状态；处理完最后一项**必须显式将最后一项置为 completed 终结清单**，并在正文以 Markdown 结构化表格完整记录所有已创建信息；输入框上方的实时任务卡片统一采用后置层叠卡片展示，支持折叠仅看数字完成度，图标全纯色；定稿态对末项未结算提供自动归一化保障，杜绝卡在进行中；
 - **附件是消息 part，分两类**（`attachment` 带 `kind` 判别）：
   `kind: 'image'`（data URL）→ `toModelMessages` 转成 AI SDK v7 的 **`FilePart`**
   （`{ type: 'file', mediaType, filename, data: base64 }`；旧的 `ImagePart` 在 v7 已 deprecated，
@@ -850,9 +854,18 @@ useAiPageContext(Route.id, {
   按需获取；路由能力靠**外壳桥**注入（`AppShell` 注册）——
   `router` 没有全局单例，不要从工具模块直接 import router。`toModelMessages` 里工具结果必须是
   紧跟 assistant 的独立 `tool` 消息，只有 `state === 'done'` 的调用进历史。
-- **会话持久化在 IndexedDB**（`#/lib/ai/session-db`）、按 app 分区，元数据与消息分两个 store；
-  **流式期间不写盘**（只写三处：发送后 / 一轮结束后 / 切删会话时）；`loadHistory` 对同一 app 早退 ——
-  面板关掉再打开是重挂载，少了它会用旧版本**覆盖掉流式回复的增量**。
+- **会话持久化在 IndexedDB**（`#/lib/ai/session-db`）、按 app 分区，维护四个 store（`sessions`、`messages`、`meta` 与未发送草稿表 `drafts`）；
+  **流式期间与发送时前置不写盘**：只有一轮正常成功（或用户主动点停止）时才将对话消息存入当前会话；**发送失败绝不记录到当前会话数据库**；
+  若新会话首轮失败，自动清理可能残留的空会话记录并切回新会话空态（大头像 + 问候语 + 单一错误卡），失败提示词与附件自动回退输入框并落盘独立草稿表 `drafts`；
+  `loadHistory` 对同一 app 早退 —— 面板关掉再打开是重挂载，少了它会用旧版本**覆盖掉流式回复的增量**。
+- **权限授权严格限定于单个 Chat Session**（`#/lib/ai/session-permissions`）：
+  用户选择「本会话不再询问」的授权**仅在当前特定 Chat Session 内生效**，绝不是整个浏览器 Session 生效；
+  新开会话（`startNewSession`）自动重置专属作用域 ID 并清空所有授权，**新会话与上一个会话权限完全隔离，绝不继承旧会话授权**。
+- **消息操作栏、任务卡片与层叠零漂移布局**：
+  - 用户消息底部：相对时间（悬浮 Tooltip 纯净显示对应时区的绝对时间）、纯图标复制、纯图标回退（`ArrowCounterClockwiseIcon`，回退修改历史记录）；
+  - 助手消息底部：纯图标复制、相对时间（悬浮 Tooltip 纯净显示对应时区的绝对时间）；
+  - 任务推进卡片与回退修改条作为后置底卡向上自适应展开，**输入框始终保持完整四周大圆角（rounded-2xl）**，采用自然流与负边距紧密贴合，**杜绝写死 padding 导致的布局漂移**；
+  - 错误展示统一收拢：失败时不产生带 bot 头像的错误回复块，不在用户消息下留重试按钮，统一在会话底部显示单条警示卡。
 
 ---
 

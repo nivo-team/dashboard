@@ -117,7 +117,7 @@ export interface CapabilitySearchParams {
  * 统一页面能力规格声明（标准 JSON 结构）
  */
 export interface PageCapabilitiesSpec {
-  /** 页面唯一路由标识或模板，如 '/$appId/example/user/' */
+  /** 页面唯一路由标识或模板，如 '/$appId/example/table/' */
   routeId: string
   /** 页面中文业务名称，如「用户管理」 */
   title: string

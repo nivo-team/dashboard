@@ -3,7 +3,7 @@ import { defineFeature } from '#/lib/features'
 import type { FeatureSpec } from '#/lib/features'
 
 /**
- * 表格示例详情页的特性声明（`/$appId/example/user/$id`）。
+ * 表格示例详情页的特性声明（`/$appId/example/table/$id`）。
  *
  * **它是只读页**：页面上没有会改数据的按钮，所以这里**没有 `commands`** ——
  * 指令应当与页面上真实存在的入口一一对应，凭空造一条"AI 才能用"的指令，

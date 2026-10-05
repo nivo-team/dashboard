@@ -1,7 +1,7 @@
 import { defineFeature } from '#/lib/features'
 
 /**
- * 新建记录页的特性声明（`/$appId/example/user/new`）。
+ * 新建记录页的特性声明（`/$appId/example/table/new`）。
  *
  * 表单本体由 `TableExampleFormView` 承载（它自己通过 `useAiFormFields` / `useAiFormSubmit`
  * 把字段与提交交给 AI 表单桥），这里只声明这一页的业务语义与它用到的接口。

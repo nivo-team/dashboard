@@ -1,7 +1,7 @@
 import { defineFeature } from '#/lib/features'
 
 /**
- * 编辑记录页的特性声明（`/$appId/example/user/$id/edit`）。
+ * 编辑记录页的特性声明（`/$appId/example/table/$id/edit`）。
  *
  * 与新建页同构（表单本体同样是 `TableExampleFormView`），差别只在 `action: 'edit'` 与接口。
  */

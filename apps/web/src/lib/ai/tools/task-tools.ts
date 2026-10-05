@@ -41,9 +41,9 @@ export function getLatestSessionTasks(
  */
 export const manageTasksTool: AiToolDefinition = {
   name: 'manage_tasks',
-  catalogDescription: '创建和更新任务清单',
+  catalogDescription: '创建和更新任务清单（多任务或批量处理必选）',
   description:
-    '用户指令包含多个任务时，用它创建任务清单；执行前把当前项置为 in_progress，完成后置为 completed，取消则置为 cancelled。',
+    '用户指令包含多个任务或批量处理多条记录时用它创建清单；执行前把当前项置为 in_progress，完成后置为 completed，取消则置为 cancelled。',
   inputSchema: {
     type: 'object',
     properties: {

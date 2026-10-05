@@ -314,9 +314,9 @@ function isPathAllowedForTemplate(template: string, path: string): boolean {
  */
 export const callWriteApiTool: AiToolDefinition = {
   name: 'call_write_api',
-  catalogDescription: '调用写入业务接口改数据',
+  catalogDescription: '调用写入业务接口改数据（批量创建、批量录入必选）',
   description:
-    '调用会修改数据的接口（POST / PUT / PATCH / DELETE）。path 与参数名必须来自 search_api 清单，不得猜测；每次调用系统都会请用户确认，删除不可撤销，被拒绝后不要重试同一请求，改为向用户说明。',
+    '调用会修改数据的接口（POST / PUT / PATCH / DELETE），批量录入多条数据直接调它。path 与参数名必须来自 search_api 或页面接口清单，不得猜测；每次调用系统都会请用户确认，删除不可撤销，被拒绝后不要重试同一请求，改为向用户说明。',
   inputSchema: {
     type: 'object',
     properties: {

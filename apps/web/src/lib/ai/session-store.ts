@@ -1,15 +1,18 @@
 import { create } from 'zustand'
 import { getAppScope } from '#/lib/store/app-scope'
 import {
+  deleteComposerDraft,
   deleteSession as deleteSessionFromDb,
   getActiveSessionId,
+  getComposerDraft,
   getSessionMessages,
   listSessions,
+  saveComposerDraft,
   saveSession,
   setActiveSessionId,
   type AiSessionSummary,
 } from './session-db'
-import { clearSessionGrants } from './session-permissions'
+import { clearSessionGrants, resetDraftSessionScope } from './session-permissions'
 import type {
   AiApprovalRequest,
   AiAttachment,
@@ -102,6 +105,37 @@ interface AiSessionState {
   setPendingApproval: (approval: PendingApproval) => void
   /** 收起审批请求（用户已决定，或这一轮被中止） */
   clearPendingApproval: () => void
+  /**
+   * 准备重试指定的一条用户消息。
+   * 重置该轮后续未成功的助手回复，将状态设为 streaming，并返回提示词与附件。
+   */
+  prepareRetryTurn: (userMessageId: string) => {
+    text: string
+    attachments: readonly AiAttachment[]
+    assistantId: string
+  } | null
+  /**
+   * 待回退的用户消息 ID（若处于回退修改记录模式）。
+   * 当用户点击某条已成功的消息的「回退」按钮时设置。
+   */
+  rewindMessageId: string | null
+  /** 外部注入给输入框的草稿文本（例如回退时回填给输入框） */
+  draftText: string | null
+  /** 外部注入给输入框的草稿附件 */
+  draftAttachments: AiAttachment[]
+  /** 设置或清空外部草稿 */
+  setDraft: (text: string | null, attachments?: AiAttachment[]) => void
+  /**
+   * 触发回退到某条用户消息：
+   * 将该消息的文本与附件回填到输入框草稿中，标记 rewindMessageId。
+   */
+  rollbackToMessage: (userMessageId: string) => void
+  /** 取消回退状态 */
+  cancelRollback: () => void
+  /**
+   * 执行回退截断：若存在 rewindMessageId，截断该条消息及之后的所有历史消息并重置标记
+   */
+  commitRewind: () => void
   /** 递增并返回某个工具的会话内调用次数（限流用） */
   bumpToolCounter: (key: string) => number
   /**
@@ -231,9 +265,13 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
   error: null,
   pendingApproval: null,
   toolCounters: {},
+  rewindMessageId: null,
+  draftText: null,
+  draftAttachments: [],
 
   beginTurn: (text, attachments = []) => {
     const assistantId = createId()
+    const now = new Date().toISOString()
     // 文本在前、附件在后：与用户「先写话、再补附件」的输入顺序一致
     const parts: AiMessagePart[] = [
       ...(text ? [{ type: 'text' as const, text }] : []),
@@ -246,8 +284,20 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
       error: null,
       messages: [
         ...state.messages,
-        { id: createId(), role: 'user', parts },
-        { id: assistantId, role: 'assistant', parts: [] },
+        {
+          id: createId(),
+          role: 'user',
+          parts,
+          createdAt: now,
+          status: 'success',
+        },
+        {
+          id: assistantId,
+          role: 'assistant',
+          parts: [],
+          createdAt: now,
+          status: 'streaming',
+        },
       ],
     }))
     return assistantId
@@ -315,8 +365,17 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
             }),
           )
 
-        case 'error':
-          return { error: describeUnknown(event.error) }
+        case 'error': {
+          const errDesc = describeUnknown(event.error)
+          return {
+            error: errDesc,
+            messages: state.messages.map((item) =>
+              item.id === assistantId
+                ? { ...item, status: 'error', error: errDesc }
+                : item,
+            ),
+          }
+        }
 
         case 'finish':
           return {
@@ -325,6 +384,8 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
               item.id === assistantId
                 ? {
                     ...item,
+                    status: 'success',
+                    createdAt: new Date().toISOString(),
                     parts: finishPendingReasoning(item.parts),
                     // 只在真有用量时写，别给消息塞一个 `undefined`
                     ...(event.usage ? { usage: event.usage } : {}),
@@ -339,46 +400,200 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
     })
   },
 
-  endTurn: () =>
+  endTurn: () => {
+    void deleteComposerDraft(getAppScope(), get().activeSessionId)
     set((state) => ({
       status: 'idle',
       messages: state.messages.map((item) =>
         item.role === 'assistant'
           ? {
               ...item,
+              status: item.status === 'streaming' ? 'success' : item.status,
               parts: finishPendingReasoning(item.parts),
             }
           : item,
       ),
-    })),
+    }))
+  },
 
   failTurn: (message) =>
-    set((state) => ({
-      status: 'error',
-      error: message,
-      // 失败时把审批卡一起收掉：这一轮已经结束了，留着它点也没用
+    set((state) => {
+      let lastAssistantIndex = -1
+      for (let i = state.messages.length - 1; i >= 0; i--) {
+        if (state.messages[i]?.role === 'assistant') {
+          lastAssistantIndex = i
+          break
+        }
+      }
+
+      let failedText = ''
+      let failedAttachments: AiAttachment[] = []
+      if (lastAssistantIndex > 0 && state.messages[lastAssistantIndex - 1]?.role === 'user') {
+        const userMsg = state.messages[lastAssistantIndex - 1]
+        const textPart = userMsg.parts.find((p) => p.type === 'text')
+        failedText = textPart && textPart.type === 'text' ? textPart.text : ''
+        failedAttachments = userMsg.parts
+          .filter(
+            (p): p is Extract<AiMessagePart, { type: 'attachment' }> =>
+              p.type === 'attachment',
+          )
+          .map((p) => {
+            const { type: _type, ...att } = p
+            return att as unknown as AiAttachment
+          })
+      }
+
+      // 失败时不留下半截失败的 user 与 assistant 消息，不出现带 bot 头像的错误助手卡片
+      const newMessages =
+        lastAssistantIndex > 0
+          ? state.messages.slice(0, lastAssistantIndex - 1)
+          : state.messages.filter((_, index) => index !== lastAssistantIndex)
+
+      const isResetToNew = newMessages.length === 0
+      const currentActiveId = isResetToNew ? null : state.activeSessionId
+
+      // 失败的提示词与附件自动回退到输入框，并持久化到 IndexedDB 草稿（按 session 隔离，新会话独立保存）
+      if (failedText || failedAttachments.length > 0) {
+        void saveComposerDraft(
+          getAppScope(),
+          currentActiveId,
+          failedText,
+          failedAttachments,
+        )
+      }
+
+      // 若整个会话已无任何消息，从数据库清理可能残留的空会话记录与活跃指向
+      if (isResetToNew && state.activeSessionId) {
+        void deleteSessionFromDb(state.activeSessionId, getAppScope())
+        void setActiveSessionId(getAppScope(), null)
+      }
+
+      return {
+        status: 'error',
+        error: message,
+        // 失败时把审批卡一起收掉
+        pendingApproval: null,
+        activeSessionId: currentActiveId,
+        sessions:
+          isResetToNew && state.activeSessionId
+            ? state.sessions.filter((s) => s.id !== state.activeSessionId)
+            : state.sessions,
+        messages: newMessages,
+        draftText: failedText || state.draftText,
+        draftAttachments:
+          failedAttachments.length > 0 ? failedAttachments : state.draftAttachments,
+      }
+    }),
+
+  prepareRetryTurn: (userMessageId) => {
+    const { messages } = get()
+    const targetIndex = messages.findIndex(
+      (m) => m.id === userMessageId && m.role === 'user',
+    )
+    if (targetIndex === -1) return null
+
+    const targetMsg = messages[targetIndex]
+    if (!targetMsg) return null
+
+    const textPart = targetMsg.parts.find((p) => p.type === 'text')
+    const text = textPart && textPart.type === 'text' ? textPart.text : ''
+    const attachments: AiAttachment[] = targetMsg.parts
+      .filter(
+        (p): p is Extract<AiMessagePart, { type: 'attachment' }> =>
+          p.type === 'attachment',
+      )
+      .map((p) => {
+        const { type: _type, ...att } = p
+        return att as unknown as AiAttachment
+      })
+
+    const assistantId = createId()
+    const now = new Date().toISOString()
+    const newAssistantMsg: AiMessage = {
+      id: assistantId,
+      role: 'assistant',
+      parts: [],
+      createdAt: now,
+      status: 'streaming',
+    }
+
+    const updatedUserMsg: AiMessage = {
+      ...targetMsg,
+      status: 'success',
+      error: undefined,
+    }
+
+    const nextMsg = messages[targetIndex + 1]
+    const newMessages = [...messages]
+    newMessages[targetIndex] = updatedUserMsg
+
+    if (nextMsg && nextMsg.role === 'assistant') {
+      newMessages[targetIndex + 1] = newAssistantMsg
+    } else {
+      newMessages.splice(targetIndex + 1, 0, newAssistantMsg)
+    }
+
+    set({
+      status: 'streaming',
+      error: null,
       pendingApproval: null,
-      // 失败时把最后一条助手消息里的「执行中」工具和正在进行的思考标记为终态，
-      // 否则 UI 上会永远转圈
-      messages: state.messages.map((item) =>
-        item.role === 'assistant'
-          ? {
-              ...item,
-              parts: finishPendingReasoning(
-                item.parts.map((part) =>
-                  part.type === 'tool-call' && part.state === 'running'
-                    ? { ...part, state: 'error' as const, error: message }
-                    : part,
-                ),
-              ),
-            }
-          : item,
-      ),
-    })),
+      messages: newMessages,
+    })
+
+    return { text, attachments, assistantId }
+  },
 
   setPendingApproval: (approval) => set({ pendingApproval: approval }),
 
   clearPendingApproval: () => set({ pendingApproval: null }),
+
+  setDraft: (text, attachments = []) =>
+    set({ draftText: text, draftAttachments: [...attachments] }),
+
+  rollbackToMessage: (userMessageId) => {
+    const { messages } = get()
+    const target = messages.find((m) => m.id === userMessageId && m.role === 'user')
+    if (!target) return
+
+    const textPart = target.parts.find((p) => p.type === 'text')
+    const text = textPart && textPart.type === 'text' ? textPart.text : ''
+    const attachments: AiAttachment[] = target.parts
+      .filter(
+        (p): p is Extract<AiMessagePart, { type: 'attachment' }> =>
+          p.type === 'attachment',
+      )
+      .map((p) => {
+        const { type: _type, ...att } = p
+        return att as unknown as AiAttachment
+      })
+
+    set({
+      rewindMessageId: userMessageId,
+      draftText: text,
+      draftAttachments: attachments,
+    })
+  },
+
+  cancelRollback: () =>
+    set({
+      rewindMessageId: null,
+      draftText: null,
+      draftAttachments: [],
+    }),
+
+  commitRewind: () => {
+    const { rewindMessageId, messages } = get()
+    if (!rewindMessageId) return
+    const index = messages.findIndex((m) => m.id === rewindMessageId)
+    if (index !== -1) {
+      set({
+        messages: messages.slice(0, index),
+        rewindMessageId: null,
+      })
+    } else {
+      set({ rewindMessageId: null })
+    }
+  },
 
   bumpToolCounter: (key) => {
     const next = (get().toolCounters[key] ?? 0) + 1
@@ -413,9 +628,19 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
 
   persist: async () => {
     const { messages, activeSessionId, sessions } = get()
-    if (messages.length === 0) return
-
     const appId = getAppScope()
+
+    if (messages.length === 0) {
+      if (activeSessionId) {
+        await deleteSessionFromDb(activeSessionId, appId)
+        set((state) => ({
+          activeSessionId: null,
+          sessions: state.sessions.filter((item) => item.id !== activeSessionId),
+        }))
+      }
+      return
+    }
+
     const now = Date.now()
     const existing = sessions.find((item) => item.id === activeSessionId)
     const id = existing?.id ?? createId()
@@ -474,6 +699,11 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
     */
     if (options?.fresh) {
       set({ sessions, historyLoaded: true })
+      void getComposerDraft(appId, null).then((draft) => {
+        if (draft && get().activeSessionId === null) {
+          set({ draftText: draft.text, draftAttachments: draft.attachments })
+        }
+      })
       return
     }
 
@@ -484,6 +714,11 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
 
     if (!active) {
       set({ sessions, historyLoaded: true })
+      void getComposerDraft(appId, null).then((draft) => {
+        if (draft && get().activeSessionId === null) {
+          set({ draftText: draft.text, draftAttachments: draft.attachments })
+        }
+      })
       return
     }
 
@@ -494,19 +729,38 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
       messages,
       historyLoaded: true,
     })
+    void getComposerDraft(appId, active.id).then((draft) => {
+      if (draft && get().activeSessionId === active.id) {
+        set({ draftText: draft.text, draftAttachments: draft.attachments })
+      }
+    })
   },
 
   startNewSession: () => {
+    const appId = getAppScope()
+    // 每次新开会话，彻底重置草稿权限作用域，与上一个会话权限完全隔离
+    resetDraftSessionScope()
     set({
       activeSessionId: null,
       messages: [],
       status: 'idle',
       error: null,
       pendingApproval: null,
+      rewindMessageId: null,
+      draftText: null,
+      draftAttachments: [],
       // 新会话 = 新的限流窗口
       toolCounters: {},
     })
-    void setActiveSessionId(getAppScope(), null)
+    void setActiveSessionId(appId, null)
+    void getComposerDraft(appId, null).then((draft) => {
+      if (get().activeSessionId === null) {
+        set({
+          draftText: draft?.text ?? '',
+          draftAttachments: draft?.attachments ?? [],
+        })
+      }
+    })
   },
 
   switchSession: async (sessionId) => {
@@ -518,10 +772,21 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
       status: 'idle',
       error: null,
       pendingApproval: null,
+      rewindMessageId: null,
+      draftText: null,
+      draftAttachments: [],
       // 换会话 = 新的限流窗口
       toolCounters: {},
     })
     void setActiveSessionId(appId, sessionId)
+    void getComposerDraft(appId, sessionId).then((draft) => {
+      if (get().activeSessionId === sessionId) {
+        set({
+          draftText: draft?.text ?? '',
+          draftAttachments: draft?.attachments ?? [],
+        })
+      }
+    })
   },
 
   hasSession: async (sessionId) => {

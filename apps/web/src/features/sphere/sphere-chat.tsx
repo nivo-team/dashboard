@@ -49,6 +49,7 @@ export function SphereChat() {
       {/* 与 AI 面板共用同一份滚动行为（跟随滚动 / 上翻暂停 / 回到底部按钮） */}
       <AiConversationScroller
         manageHistory={false}
+        surface="sphere"
         stableScrollbarGutter={boxed}
         // 宽度约束挂在**滚动内容**上：滚动容器铺满，滚动条才留在面板边缘
         contentClassName={widthClass}

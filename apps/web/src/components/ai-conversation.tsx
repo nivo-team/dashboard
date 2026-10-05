@@ -1,13 +1,16 @@
-import { Button, Collapsible } from '@cloudflare/kumo'
+import { Button, Collapsible, Tooltip } from '@cloudflare/kumo'
 import {
+  ArrowCounterClockwiseIcon,
   BrainIcon,
   CaretDownIcon,
   CheckCircleIcon,
+  CheckIcon,
   CircleNotchIcon,
+  CopyIcon,
   FileIcon,
   WarningCircleIcon,
 } from '@phosphor-icons/react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AiBotAvatar } from '#/components/ai-bot-avatar'
 import { MarkdownContent } from '#/components/markdown-content'
@@ -20,11 +23,67 @@ import {
   useAiSessionStore,
   type AiMessage,
   type AiMessagePart,
+  type AiSurface,
   type PendingApproval,
 } from '#/lib/ai'
 import { usePreferencesStore } from '#/lib/store'
 import { useTimezone } from '#/lib/timezone'
 import { TaskCardView, type TaskItemData } from '#/components/ai-task-card'
+
+/**
+ * 相对时间展示组件：
+ * 默认显示人性化的相对时间（如「刚刚」、「3 分钟前」），
+ * 鼠标悬浮通过 Tooltip 仅展示对应时区的完整绝对时间。
+ */
+function RelativeTimeTooltip({
+  value,
+}: {
+  value: string | undefined
+}) {
+  const { formatDateTime, formatRelative } = useTimezone()
+  const { i18n } = useTranslation()
+  if (!value) return null
+
+  const absoluteTime = formatDateTime(value)
+  const relativeTime = formatRelative(value, { locale: i18n.language })
+
+  return (
+    <Tooltip content={absoluteTime}>
+      <span className="cursor-default select-none text-[11px] text-kumo-subtle transition-colors hover:text-kumo-default">
+        {relativeTime}
+      </span>
+    </Tooltip>
+  )
+}
+
+/**
+ * 文本一键复制 Hook，1500ms 内展示已复制反馈。
+ */
+function useCopy(text: string) {
+  const [copied, setCopied] = useState(false)
+  const timerRef = useRef<number | null>(null)
+
+  useEffect(
+    () => () => {
+      if (timerRef.current !== null) window.clearTimeout(timerRef.current)
+    },
+    [],
+  )
+
+  const copy = useCallback(async () => {
+    if (!text) return
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      if (timerRef.current !== null) window.clearTimeout(timerRef.current)
+      timerRef.current = window.setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // 剪贴板不可用时静默降级
+    }
+  }, [text])
+
+  return { copied, copy }
+}
 
 /**
  * 会话区：把 store 里的消息渲染出来，并处理「还没内容」的状态。
@@ -130,9 +189,14 @@ export interface AiConversationProps {
    * 两边都调 `loadHistory` 的话，它的「恢复上次会话」会和路由的会话选择互相覆盖。
    */
   manageHistory?: boolean
+  /** 容器类型（面板还是全屏） */
+  surface?: AiSurface
 }
 
-export function AiConversation({ manageHistory = true }: AiConversationProps) {
+export function AiConversation({
+  manageHistory = true,
+  surface = 'panel',
+}: AiConversationProps) {
   const { t } = useTranslation('ai')
   const messages = useAiSessionStore((state) => state.messages)
   const status = useAiSessionStore((state) => state.status)
@@ -191,6 +255,13 @@ export function AiConversation({ manageHistory = true }: AiConversationProps) {
             {t('greetingPrompt', '今天想做点什么？')}
           </p>
         </div>
+
+        {error ? (
+          <div className="flex max-w-sm items-center gap-2 rounded-xl border border-kumo-danger/20 bg-kumo-danger-tint px-3.5 py-2 text-xs text-kumo-danger shadow-xs">
+            <WarningCircleIcon size={16} className="shrink-0" />
+            <span>{error}</span>
+          </div>
+        ) : null}
       </div>
     )
   }
@@ -209,6 +280,7 @@ export function AiConversation({ manageHistory = true }: AiConversationProps) {
             status === 'streaming' && message.id === messages[messages.length - 1]?.id
           }
           pendingApproval={pendingApproval !== null}
+          surface={surface}
         />
       ))}
 
@@ -219,9 +291,10 @@ export function AiConversation({ manageHistory = true }: AiConversationProps) {
       {pendingApproval ? <ApprovalCard approval={pendingApproval} /> : null}
 
       {error ? (
-        <p className="rounded-lg bg-kumo-danger-tint px-3 py-2 text-xs text-kumo-danger">
-          {error}
-        </p>
+        <div className="flex items-center gap-2 rounded-xl border border-kumo-danger/20 bg-kumo-danger-tint px-3 py-2 text-xs text-kumo-danger">
+          <WarningCircleIcon size={16} className="shrink-0" />
+          <span>{error}</span>
+        </div>
       ) : null}
     </div>
   )
@@ -243,6 +316,7 @@ function AiMessageView({
   message: AiMessage
   streaming: boolean
   pendingApproval?: boolean
+  surface?: AiSurface
 }) {
   const outputMode = usePreferencesStore((state) => state.aiOutputMode)
   const showDetails = usePreferencesStore((state) => state.aiShowDetails)
@@ -252,6 +326,9 @@ function AiMessageView({
     const text = message.parts
       .map((part) => (part.type === 'text' ? part.text : ''))
       .join('')
+    const { copied, copy } = useCopy(text)
+    const rollbackToMessage = useAiSessionStore((state) => state.rollbackToMessage)
+
     /*
       用户消息里除了文字还有**附件**，分两类渲染（另有旧存档的 `image` part）：
       - 图片：按原图比例预览、限制最大高度；
@@ -275,7 +352,7 @@ function AiMessageView({
         part.type === 'attachment' && part.kind === 'text',
     )
     return (
-      <div className="flex flex-col items-end gap-2">
+      <div className="flex flex-col items-end gap-1.5">
         {imageParts.length > 0 || textFileParts.length > 0 ? (
           <div className="flex max-w-[85%] flex-wrap justify-end gap-2">
             {imageParts.map((image, index) => (
@@ -302,6 +379,45 @@ function AiMessageView({
             {text}
           </p>
         ) : null}
+
+        {/* 用户消息操作栏：发送时间(相对时间+Tooltip纯时间), 复制(纯图标+Tooltip), 回退(纯图标+Tooltip) */}
+        <div className="flex items-center gap-2 px-1 text-xs text-kumo-subtle justify-end">
+          {message.createdAt ? (
+            <RelativeTimeTooltip value={message.createdAt} />
+          ) : null}
+
+          {text ? (
+            <Tooltip content={copied ? t('copied', '已复制') : t('copy', '复制')}>
+              <button
+                type="button"
+                onClick={copy}
+                aria-label={copied ? t('copied', '已复制') : t('copy', '复制')}
+                className="inline-flex size-6 cursor-pointer items-center justify-center rounded-md text-kumo-subtle transition-colors hover:bg-kumo-tint hover:text-kumo-default focus-visible:outline-none"
+              >
+                {copied ? (
+                  <CheckIcon size={13} weight="bold" className="text-kumo-success" />
+                ) : (
+                  <CopyIcon size={13} />
+                )}
+              </button>
+            </Tooltip>
+          ) : null}
+
+          <Tooltip content={t('rollback', '回退')}>
+            <button
+              type="button"
+              disabled={streaming}
+              onClick={() => rollbackToMessage(message.id)}
+              aria-label={t('rollback', '回退')}
+              className={cn(
+                'inline-flex size-6 cursor-pointer items-center justify-center rounded-md text-kumo-subtle transition-colors hover:bg-kumo-tint hover:text-kumo-default focus-visible:outline-none',
+                streaming && 'cursor-not-allowed opacity-50',
+              )}
+            >
+              <ArrowCounterClockwiseIcon size={13} />
+            </button>
+          </Tooltip>
+        </div>
       </div>
     )
   }
@@ -319,6 +435,12 @@ function AiMessageView({
     4. 若既无可见内容、也不处于思考状态（例如工具被隐藏且正在等审批，或异常中断未输出任何内容），
        则整条消息不渲染，绝不在屏幕上留下一个占据空白的空头像。
   */
+  const assistantText = message.parts
+    .filter((p) => p.type === 'text')
+    .map((p) => (p as { type: 'text'; text: string }).text)
+    .join('')
+  const { copied, copy } = useCopy(assistantText)
+
   const hasVisibleText =
     (outputMode === 'stream' || !streaming) &&
     message.parts.some(
@@ -376,6 +498,9 @@ function AiMessageView({
 
   if (!hasVisibleParts && !showThinking) return null
 
+  const showAssistantActions =
+    !streaming && (assistantText.length > 0 || Boolean(message.createdAt))
+
   return (
     <div className="flex gap-2">
       {/*
@@ -416,8 +541,6 @@ function AiMessageView({
           本轮 token 用量（定稿后才有，流式期间拿不到）—— 它属于「详细信息」，
           与工具卡片**同一个开关**（默认关）：普通用户不关心 token 账，
           要看"缓存命中率"的人本来就在排查问题，那时自然会把这个开关打开。
-          **`cache` 是「提示词拼接是否对齐」的唯一客观证据**：它偏低就说明前缀被改动了
-          （时间戳、历史被改写、拼接顺序抖动…）—— 见 .agents/docs/ai-server-layer.md §7.5 / §7.6。
         */}
         {showDetails && !streaming && message.usage ? (
           <p className="text-xs text-kumo-subtle">
@@ -427,6 +550,32 @@ function AiMessageView({
               output: formatTokenCount(message.usage.outputTokens),
             })}
           </p>
+        ) : null}
+
+        {/* 助手消息操作栏：复制(纯图标+Tooltip), AI回复时间(相对时间+Tooltip纯时间) */}
+        {showAssistantActions ? (
+          <div className="flex items-center gap-2 pt-0.5 text-xs text-kumo-subtle">
+            {assistantText ? (
+              <Tooltip content={copied ? t('copied', '已复制') : t('copy', '复制')}>
+                <button
+                  type="button"
+                  onClick={copy}
+                  aria-label={copied ? t('copied', '已复制') : t('copy', '复制')}
+                  className="inline-flex size-6 cursor-pointer items-center justify-center rounded-md text-kumo-subtle transition-colors hover:bg-kumo-tint hover:text-kumo-default focus-visible:outline-none"
+                >
+                  {copied ? (
+                    <CheckIcon size={13} weight="bold" className="text-kumo-success" />
+                  ) : (
+                    <CopyIcon size={13} />
+                  )}
+                </button>
+              </Tooltip>
+            ) : null}
+
+            {message.createdAt ? (
+              <RelativeTimeTooltip value={message.createdAt} />
+            ) : null}
+          </div>
         ) : null}
       </div>
     </div>

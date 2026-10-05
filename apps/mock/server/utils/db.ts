@@ -185,7 +185,7 @@ function seedMenus(): MenuRow[] {
 
     // 示例（表格示例 / 复杂表格）—— 权限 key 与模块名统一为 `table-example`
     { menu_id: 10, parent_id: 0, menu_name: '示例', menu_type: 1, path: '/example', icon: 'SquaresFourIcon', sort: 2 },
-    { menu_id: 11, parent_id: 10, menu_name: '表格示例', menu_type: 2, path: '/example/user', sort: 1 },
+    { menu_id: 11, parent_id: 10, menu_name: '表格示例', menu_type: 2, path: '/example/table', sort: 1 },
     { menu_id: 12, parent_id: 11, menu_name: '查看表格示例', menu_type: 3, path: '', permission: 'table-example:read', sort: 1 },
     { menu_id: 13, parent_id: 11, menu_name: '新建记录', menu_type: 3, path: '', permission: 'table-example:create', sort: 2 },
     { menu_id: 14, parent_id: 11, menu_name: '编辑记录', menu_type: 3, path: '', permission: 'table-example:edit', sort: 3 },

@@ -6,7 +6,7 @@ import { TableExampleDetailView } from './detail-view'
 import { createTableExampleDetailFeature } from './detail-feature'
 
 /**
- * 表格示例详情页（`/$appId/example/user/$id`）。
+ * 表格示例详情页（`/$appId/example/table/$id`）。
  *
  * 三件事：
  * 1. 渲染详情（`TableExampleDetailView`，与列表页的分屏预览**共用同一份实现**）；
@@ -35,7 +35,7 @@ export function TableExampleDetailPage({ appId, id }: { appId: string; id: strin
   return (
     <TableExampleDetailView
       id={id}
-      onBack={() => navigate({ to: '/$appId/example/user', params: { appId } })}
+      onBack={() => navigate({ to: '/$appId/example/table', params: { appId } })}
       onData={(nextUser, meta) => {
         setUser(nextUser)
         setLoading(meta.loading)

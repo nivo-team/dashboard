@@ -404,7 +404,7 @@ export function DetailPreviewProvider({ children }: { children: ReactNode }) {
  *   preview.open({
  *     key: String(row.id),
  *     title: row.nickname,
- *     onExpand: () => navigate({ to: '/$appId/example/user/$id', params: { appId, id: String(row.id) } }),
+ *     onExpand: () => navigate({ to: '/$appId/example/table/$id', params: { appId, id: String(row.id) } }),
  *     render: ({ variant }) => <UserDetailView id={String(row.id)} variant={variant} />,
  *   })
  * ```

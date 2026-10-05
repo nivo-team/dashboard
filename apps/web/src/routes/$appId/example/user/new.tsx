@@ -1,20 +1,11 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { TableExampleCreatePage } from '#/features/table-example/create-page'
-import { guardRoutePermission } from '#/lib/app-route-guard'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
-/** 新建记录路由（`/$appId/example/user/new`）—— 薄适配层，业务在 `src/features`。 */
+/** 旧路由兼容重定向：`/$appId/example/user/new` -> `/$appId/example/table/new` */
 export const Route = createFileRoute('/$appId/example/user/new')({
-  beforeLoad: async ({ params, location }) => {
-    await guardRoutePermission({
-      appId: params.appId,
-      permission: 'table-example:create',
-      href: location.href,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: '/$appId/example/table/new',
+      params: { appId: params.appId },
     })
   },
-  component: TableExampleCreateRoute,
 })
-
-function TableExampleCreateRoute() {
-  const { appId } = Route.useParams()
-  return <TableExampleCreatePage appId={appId} />
-}

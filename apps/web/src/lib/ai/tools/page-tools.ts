@@ -81,7 +81,7 @@ export function collectNavigation(appId: string | null): NavigationEntry[] {
 /**
  * 站内路径白名单：目标必须落在某个**已知导航项之下**。
  *
- * 为什么用「前缀」而不是「完全相等」：详情页（`/console/example/user/10001`）本来就不在导航清单里，
+ * 为什么用「前缀」而不是「完全相等」：详情页（`/console/example/table/10001`）本来就不在导航清单里，
  * 但它属于「表格示例」这个导航项之下，是合法目标；而 `/evil` 这种凭空来的路径一律拒绝。
  * 这样模型既能带用户去看具体某条记录，又没法把页面导到未知位置。
  */
@@ -173,7 +173,7 @@ export const listNavigationTool: AiToolDefinition = {
  * 目标路径对应的**可读页面名**（给确认卡 / 建议卡显示）。
  *
  * 取名规则与 `isAllowedPath` 同一套：优先精确命中导航项，否则取最长的前缀命中
- * （详情页 `/console/example/user/10001` → 「表格示例」）。取不到就退化成路径本身 ——
+ * （详情页 `/console/example/table/10001` → 「表格示例」）。取不到就退化成路径本身 ——
  * 卡片上永远不能出现空白标题。
  */
 function resolveTargetLabel(path: string, appId: string | null): string {
@@ -196,7 +196,7 @@ export const navigateToTool: AiToolDefinition = {
     properties: {
       path: {
         type: 'string',
-        description: '目标路径，例如 /console/example/user 或 /console/example/user/10001',
+        description: '目标路径，例如 /console/example/table 或 /console/example/table/10001',
       },
       reason: {
         type: 'string',

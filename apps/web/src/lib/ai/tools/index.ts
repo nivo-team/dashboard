@@ -292,6 +292,26 @@ export function resolveTools(
     }
   }
 
+  /*
+    多任务与批量操作智能补齐：
+    当用户或 Router 发起了数据写入或表单意图时，若当前权限允许（available），
+    自动补齐 `manage_tasks`（任务清单管理）与 `call_write_api`（直接写接口能力），
+    确保执行阶段能够顺利开展多任务管理与批量提交，杜绝工具缺失导致的退缩推脱。
+  */
+  const hasWriteOrFormIntent = selected.some((name) =>
+    ['open_form', 'fill_form', 'submit_form', 'call_write_api', 'run_page_command'].includes(name),
+  )
+  if (hasWriteOrFormIntent) {
+    if (available.has('manage_tasks') && !handled.has('manage_tasks')) {
+      handled.add('manage_tasks')
+      addedByDependency.push('manage_tasks')
+    }
+    if (available.has('call_write_api') && !handled.has('call_write_api')) {
+      handled.add('call_write_api')
+      addedByDependency.push('call_write_api')
+    }
+  }
+
   const wanted = new Set([...selected, ...addedByDependency])
   return {
     // 按注册表顺序输出：同一份选择在每轮里逐字节一致（前缀缓存友好）
