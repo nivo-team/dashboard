@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import packageJson from '../../../package.json?raw'
 import { PageHeader } from '#/components/page-header'
 import { SettingsCard, SettingRow } from '#/components/settings-card'
+import { useBrand } from '#/lib/brand'
 
 /**
  * 设置 → 关于（src/features/settings/about.tsx -> "/settings/about"）
@@ -20,6 +21,7 @@ const appVersion = (JSON.parse(packageJson) as { version?: string }).version || 
 
 export function AboutPage() {
   const { t } = useTranslation()
+  const brand = useBrand()
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -30,10 +32,10 @@ export function AboutPage() {
           {/* 应用名 + 一句话说明这个后台是做什么的，两行同属「应用名」这一项 */}
           <div className="flex flex-col gap-0.5 text-end">
             <span className="text-sm font-medium text-kumo-default">
-              {t('about.appName', 'Nivo Admin')}
+              {brand.name}
             </span>
             <span className="text-sm text-kumo-subtle">
-              {t('about.appDescription', '多应用工作空间的后端管理台')}
+              {t('about.appDescription', brand.description)}
             </span>
           </div>
         </SettingRow>

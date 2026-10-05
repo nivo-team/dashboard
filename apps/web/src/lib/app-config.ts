@@ -12,6 +12,8 @@
  *   - 自动开启工作空间选择页 / 与侧边栏应用切换器，支持多应用数据隔离。
  */
 
+import { getBrandConfig } from './brand'
+
 /** 是否开启多应用模式（默认关闭，即单应用模式）。 */
 export function isMultiAppEnabled(): boolean {
   const envVal = import.meta.env.VITE_MULTI_APP
@@ -22,9 +24,9 @@ export function isMultiAppEnabled(): boolean {
 export const DEFAULT_APP_ID: string =
   (import.meta.env.VITE_DEFAULT_APP_ID as string | undefined) || 'nivo'
 
-/** 单应用模式下的默认应用显示名称。 */
+/** 单应用模式下的默认应用显示名称（默认回退至系统品牌简称）。 */
 export const DEFAULT_APP_NAME: string =
-  (import.meta.env.VITE_DEFAULT_APP_NAME as string | undefined) || 'Admin'
+  (import.meta.env.VITE_DEFAULT_APP_NAME as string | undefined) || getBrandConfig().shortName
 
 /** 多应用模式下获取应用列表的 API 路径。 */
 export const APPS_API_PATH: string =

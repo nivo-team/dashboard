@@ -1,7 +1,6 @@
 import { Button, Sidebar, useSidebar } from '@cloudflare/kumo'
 import {
   ArrowBendUpLeftIcon,
-  CloudIcon,
   MagnifyingGlassIcon,
 } from '@phosphor-icons/react'
 import { Outlet, useNavigate, useRouterState } from '@tanstack/react-router'
@@ -12,6 +11,7 @@ import { HeaderActions } from '#/components/header-actions'
 import { ShortcutKbd } from '#/components/kbd'
 import { NotFound } from '#/components/not-found'
 import { ShellSidebarProvider } from '#/components/shell-sidebar-provider'
+import { useBrand } from '#/lib/brand'
 import { cn } from '#/lib/cn'
 import { DEFAULT_APP_ID, isMultiAppEnabled, useAuth } from '#/lib/auth'
 import {
@@ -140,8 +140,9 @@ function SettingsModuleHeader() {
  * 进入设置时它保持不变，变化的是它下面的模块行与菜单。
  */
 function SidebarBrandHeader() {
-  const { t } = useTranslation()
   const { isMobile } = useSidebar()
+  const brand = useBrand()
+  const LogoIcon = brand.logoIcon
 
   return (
     <Sidebar.Header className="flex items-center justify-between gap-1.5 px-2">
@@ -153,11 +154,11 @@ function SidebarBrandHeader() {
         */}
         <div className="flex w-full min-w-0 items-center gap-2 rounded-lg p-1.5 text-start">
           <span className="flex size-7 shrink-0 items-center justify-center rounded-md text-kumo-default">
-            <CloudIcon size={20} />
+            <LogoIcon size={20} />
           </span>
 
           <span className="min-w-0 flex-1 truncate font-semibold text-sm text-kumo-default group-data-[state=collapsed]/sidebar:hidden">
-            {t('profileNav.title', 'Admin')}
+            {brand.shortName}
           </span>
         </div>
       </div>
