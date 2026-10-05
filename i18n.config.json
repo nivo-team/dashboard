@@ -1,6 +1,6 @@
 {
   "sourceLocale": "zh-CN",
-  "targetLocales": ["en-US", "ja-JP", "ar-SA", "hi-IN", "es-ES", "tr-TR"],
+  "targetLocales": ["ar-SA"],
   "messagesDir": "apps/web/src/messages",
   "generatedTypesFile": "apps/web/src/i18n-keys.gen.ts",
   "glossaryFile": "i18n.glossary.json",

@@ -61,11 +61,10 @@ defineRouteMeta({
   },
 })
 
-/** 有权限的语言区域（Mock 里三个账号一致，与语言清单的前三项对应）。 */
+/** 有权限的语言区域（Mock 里三个账号一致，与语言清单对应）。 */
 const MOCK_REGIONS = [
   { value: 'zh-CN', region: 'zh-CN', label: '简体中文', disabled: false },
-  { value: 'en-US', region: 'en-US', label: 'English', disabled: false },
-  { value: 'ja-JP', region: 'ja-JP', label: '日本語', disabled: false },
+  { value: 'ar-SA', region: 'ar-SA', label: 'العربية', disabled: false },
 ]
 
 /**

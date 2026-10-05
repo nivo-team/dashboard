@@ -1053,5 +1053,5 @@ export type I18nAnyKey = {
 }[I18nNamespace]
 
 /** 受支持的语言码（取自 apps/web/src/lib/locale.ts）。 */
-export type I18nLocale = "zh-CN" | "en-US" | "ja-JP" | "ar-SA" | "hi-IN" | "es-ES" | "tr-TR"
+export type I18nLocale = "zh-CN" | "ar-SA"
 

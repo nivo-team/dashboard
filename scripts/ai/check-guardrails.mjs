@@ -41,7 +41,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const LOCALES = ['zh-CN', 'en-US', 'ja-JP', 'ar-SA', 'hi-IN', 'es-ES', 'tr-TR']
+const LOCALES = ['zh-CN', 'ar-SA']
 
 /** 基准语言：键树的唯一真值，也是「开发时只写这一种」的语言。 */
 const SOURCE_LOCALE = 'zh-CN'

@@ -7,12 +7,7 @@
 
 export type LocaleKey =
   | 'zh-CN'
-  | 'en-US'
-  | 'ja-JP'
   | 'ar-SA'
-  | 'hi-IN'
-  | 'es-ES'
-  | 'tr-TR'
 
 export interface LocaleMeta {
   key: LocaleKey
@@ -23,12 +18,7 @@ export interface LocaleMeta {
 
 export const SUPPORTED_LOCALES: LocaleMeta[] = [
   { key: 'zh-CN', label: '简体中文', nativeName: '简体中文' },
-  { key: 'en-US', label: 'English', nativeName: 'English' },
-  { key: 'ja-JP', label: '日本語', nativeName: '日本語' },
   { key: 'ar-SA', label: 'العربية', nativeName: 'العربية', dir: 'rtl' },
-  { key: 'hi-IN', label: 'हिन्दी', nativeName: 'हिन्दी' },
-  { key: 'es-ES', label: 'Español', nativeName: 'Español' },
-  { key: 'tr-TR', label: 'Türkçe', nativeName: 'Türkçe' },
 ]
 
 /**
@@ -71,11 +61,6 @@ export const LOCALE_LOCK: LocaleKey | null = isLocaleKey(RAW_LOCKED_LOCALE)
 export function getBrowserLocale(): LocaleKey {
   if (typeof window === 'undefined') return 'zh-CN'
   const browserLang = window.navigator.language
-  if (browserLang.startsWith('en')) return 'en-US'
-  if (browserLang.startsWith('ja')) return 'ja-JP'
   if (browserLang.startsWith('ar')) return 'ar-SA'
-  if (browserLang.startsWith('hi')) return 'hi-IN'
-  if (browserLang.startsWith('es')) return 'es-ES'
-  if (browserLang.startsWith('tr')) return 'tr-TR'
   return 'zh-CN'
 }
