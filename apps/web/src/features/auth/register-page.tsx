@@ -14,7 +14,7 @@ export interface RegisterPageProps {
  */
 export function RegisterPage({ onSuccess }: RegisterPageProps) {
   return (
-    <div className="relative flex min-h-[calc(100vh-4rem)] w-full flex-1 items-center justify-center bg-kumo-base px-6 py-12 sm:px-10">
+    <div className="relative flex min-h-screen w-full flex-1 items-center justify-center bg-kumo-base px-6 py-12 pt-16 sm:px-10">
       <div className="w-full max-w-105">
         <RegisterForm onSuccess={onSuccess} />
       </div>

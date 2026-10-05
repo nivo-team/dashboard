@@ -1,50 +1,61 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useRouterState } from '@tanstack/react-router'
 import { LocaleSwitcher } from '#/components/locale-switcher'
 import { ThemeSwitcher } from '#/components/theme-switcher'
 import { useBrand } from '#/lib/brand'
 
-interface AuthHeaderProps {
+export interface AuthHeaderProps {
   /** 额外的外层样式类 */
   className?: string
-  /** 是否显示底部细边框（默认 true） */
-  bordered?: boolean
+  /**
+   * 是否在 lg 及以上宽屏对右侧切换器启用白色高对比度样式（适配双栏登录页右侧高饱和度色彩展台）。
+   * 缺省时自动根据当前路由是否为 /login 判定。
+   */
+  rightContrastOnLg?: boolean
 }
 
 /**
  * 认证页面（登录 / 注册）独立通用顶部导航栏
  *
- * 布局契约：
- * - 左侧：全局系统品牌 Logo 图标 + 品牌全称（点击跳转回登录页/首页）；
- * - 右侧：多语言切换下拉（LocaleSwitcher）+ 明暗主题切换下拉（ThemeSwitcher）。
- * - 纯净解耦：使用 Kumo 语义颜色令牌，不依赖任何特定子页面的背景或浮动打补丁。
+ * 视觉风格：
+ * - 纯净无背景：`fixed top-0 inset-x-0` 悬浮在页面最顶层，无背景色与边框；
+ * - 最左侧：系统品牌 Logo 图标 + 品牌全称（点击跳转回登录页/首页）；
+ * - 最右侧：多语言切换下拉（LocaleSwitcher）+ 明暗主题切换下拉（ThemeSwitcher）；
+ * - 外层穿透（pointer-events-none），内部操作按钮响应点击（pointer-events-auto）。
  */
-export function AuthHeader({ className = '', bordered = true }: AuthHeaderProps) {
+export function AuthHeader({ className = '', rightContrastOnLg }: AuthHeaderProps) {
   const brand = useBrand()
   const LogoIcon = brand.logoIcon
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const isSplitLogin =
+    rightContrastOnLg ?? (pathname === '/login' || pathname.endsWith('/login'))
+
+  const switcherClassName = isSplitLogin
+    ? 'text-kumo-default lg:text-white lg:hover:bg-white/10 lg:active:bg-white/20'
+    : 'text-kumo-default'
 
   return (
     <header
-      className={`relative z-20 flex h-16 w-full shrink-0 items-center justify-between px-6 sm:px-10 ${
-        bordered ? 'border-b border-kumo-line' : ''
-      } bg-kumo-base ${className}`}
+      className={`fixed top-0 left-0 right-0 z-50 flex h-16 w-full items-center justify-between px-6 pointer-events-none sm:px-10 ${className}`}
     >
       {/* 最左侧：品牌 Logo 与名称 */}
-      <Link
-        to="/login"
-        className="flex items-center gap-2.5 text-kumo-default transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded-lg"
-      >
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-kumo-tint text-kumo-default">
-          <LogoIcon size={20} />
-        </span>
-        <span className="font-semibold text-base text-kumo-default">
-          {brand.name}
-        </span>
-      </Link>
+      <div className="pointer-events-auto">
+        <Link
+          to="/login"
+          className="flex items-center gap-2.5 text-kumo-default transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded-lg p-1"
+        >
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-kumo-tint text-kumo-default">
+            <LogoIcon size={20} />
+          </span>
+          <span className="font-semibold text-base text-kumo-default">
+            {brand.name}
+          </span>
+        </Link>
+      </div>
 
       {/* 最右侧：语言切换与主题切换 */}
-      <div className="flex items-center gap-1.5">
-        <LocaleSwitcher />
-        <ThemeSwitcher />
+      <div className="pointer-events-auto flex items-center gap-1.5">
+        <LocaleSwitcher className={switcherClassName} />
+        <ThemeSwitcher className={switcherClassName} />
       </div>
     </header>
   )

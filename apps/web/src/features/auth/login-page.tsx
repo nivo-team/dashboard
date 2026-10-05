@@ -8,17 +8,17 @@ export interface LoginPageProps {
 /**
  * 完整登录页面视图组件
  *
- * 采用双栏排版：
+ * 采用双栏全屏排版：
  * - 左侧：居中登录核心表单区（LoginForm）
- * - 右侧：大面积视觉展台与标语展示（大屏幕显示，移动端自动隐藏）
+ * - 右侧：大面积视觉展台与标语展示（大屏幕显示，移动端自动隐藏，贯穿全屏）
  */
 export function LoginPage({ redirect: redirectUrl }: LoginPageProps) {
   return (
-    <div className="relative flex min-h-[calc(100vh-4rem)] w-full flex-1 bg-kumo-base text-kumo-default">
+    <div className="relative flex min-h-screen w-full bg-kumo-base text-kumo-default">
       {/* ====================================================================== */}
       {/* 左侧：表单主交互区域（PC 居中占宽约 50%，移动端 100% 流式）           */}
       {/* ====================================================================== */}
-      <div className="relative flex flex-1 flex-col justify-center px-6 py-10 sm:px-12 md:px-16 lg:max-w-[50%] lg:px-20 xl:px-24">
+      <div className="relative flex flex-1 flex-col justify-center px-6 py-12 pt-16 sm:px-12 md:px-16 lg:max-w-[50%] lg:px-20 xl:px-24">
         <div className="mx-auto w-full max-w-100">
           <LoginForm redirect={redirectUrl} />
         </div>
