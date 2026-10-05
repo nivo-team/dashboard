@@ -1,33 +1,35 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { RegisterPage } from '#/features/auth'
+import { ForgotPasswordPage } from '#/features/auth'
 import { DEFAULT_APP_ID, getAuthSnapshot, isMultiAppEnabled } from '#/lib/auth'
 import { getBrandConfig } from '#/lib/brand'
 
 /**
- * 注册路由（`/_auth/register.tsx` -> "/register"）—— **薄适配层**。
+ * 重置密码路由（`/_auth/forgot-password.tsx` -> "/forgot-password"）
  *
- * 注册表单与交互逻辑收拢在 `#/features/auth`，路由仅负责导航守卫、SEO 与页面挂载。
+ * 薄路由职责：
+ * 1. 守卫已登录用户自动分流；
+ * 2. 注入 SEO Meta 与标题信息；
+ * 3. 挂载 `ForgotPasswordPage` 业务组件。
  */
-export const Route = createFileRoute('/_auth/register')({
+export const Route = createFileRoute('/_auth/forgot-password')({
   head: () => {
     const brand = getBrandConfig()
     return {
       meta: [
         {
-          title: `注册 - ${brand.name}`,
+          title: `重置密码 - ${brand.name}`,
         },
         {
           name: 'description',
-          content: `创建 ${brand.name} 账号`,
+          content: `通过注册邮箱重置您在 ${brand.name} 的登录密码`,
         },
       ],
     }
   },
   beforeLoad: () => {
     const auth = getAuthSnapshot()
-    // 若已登录，直接引导回工作台/应用主页
     if (auth.isAuthenticated) {
       if (!isMultiAppEnabled()) {
         const appId = auth.currentApp?.id || DEFAULT_APP_ID
@@ -39,16 +41,16 @@ export const Route = createFileRoute('/_auth/register')({
       throw redirect({ to: '/' })
     }
   },
-  component: RegisterRoute,
+  component: ForgotPasswordRoute,
 })
 
-function RegisterRoute() {
+function ForgotPasswordRoute() {
   const { t } = useTranslation('auth')
   const brand = getBrandConfig()
 
   useEffect(() => {
-    document.title = `${t('signUp', '注册')} - ${brand.name}`
+    document.title = `${t('forgotPasswordTitle', '重置密码')} - ${brand.name}`
   }, [brand.name, t])
 
-  return <RegisterPage />
+  return <ForgotPasswordPage />
 }

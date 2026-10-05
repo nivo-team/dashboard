@@ -1,6 +1,9 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { LoginPage } from '#/features/auth'
 import { DEFAULT_APP_ID, getAuthSnapshot, isMultiAppEnabled } from '#/lib/auth'
+import { getBrandConfig } from '#/lib/brand'
 
 interface LoginSearch {
   redirect?: string
@@ -9,10 +12,24 @@ interface LoginSearch {
 /**
  * 登录路由（`/_auth/login.tsx` -> "/login"）—— **薄适配层**。
  *
- * `validateSearch` / `beforeLoad` 是路由语义，留在这一层；
+ * `validateSearch` / `beforeLoad` / `head` 是路由语义，留在这一层；
  * 登录表单与逻辑在 `#/features/auth`，`redirect` 通过 props 传入。
  */
 export const Route = createFileRoute('/_auth/login')({
+  head: () => {
+    const brand = getBrandConfig()
+    return {
+      meta: [
+        {
+          title: `登录 - ${brand.name}`,
+        },
+        {
+          name: 'description',
+          content: `${brand.name} 登录入口`,
+        },
+      ],
+    }
+  },
   validateSearch: (search: Record<string, unknown>): LoginSearch => {
     return {
       redirect: typeof search.redirect === 'string' ? search.redirect : undefined,
@@ -52,8 +69,15 @@ export const Route = createFileRoute('/_auth/login')({
   component: LoginRoute,
 })
 
-/** 只做取参：登录表单与逻辑在 `#/features/login`。 */
+/** 只做取参：登录表单与逻辑在 `#/features/auth`。 */
 function LoginRoute() {
   const { redirect: redirectUrl } = Route.useSearch()
+  const { t } = useTranslation('auth')
+  const brand = getBrandConfig()
+
+  useEffect(() => {
+    document.title = `${t('signIn', '登录')} - ${brand.name}`
+  }, [brand.name, t])
+
   return <LoginPage redirect={redirectUrl} />
 }

@@ -17,6 +17,8 @@ import { Route as AppIdSplatRouteImport } from './routes/$appId/$'
 import { Route as AppIdExampleRouteRouteImport } from './routes/$appId/example/route'
 import { Route as AppIdSystemRouteRouteImport } from './routes/$appId/system/route'
 import { Route as AppIdSphereRouteRouteImport } from './routes/$appId_.sphere/route'
+import { Route as AuthForgotEmailRouteImport } from './routes/_auth/forgot-email'
+import { Route as AuthForgotPasswordRouteImport } from './routes/_auth/forgot-password'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
 import { Route as MainIndexRouteImport } from './routes/_main/index'
@@ -86,6 +88,16 @@ const AppIdSphereRouteRoute = AppIdSphereRouteRouteImport.update({
   id: '/$appId_/sphere',
   path: '/$appId/sphere',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthForgotEmailRoute = AuthForgotEmailRouteImport.update({
+  id: '/forgot-email',
+  path: '/forgot-email',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => AuthRouteRoute,
 } as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/login',
@@ -256,6 +268,8 @@ export interface FileRoutesByFullPath {
   '/$appId/sphere': typeof AppIdSphereRouteRouteWithChildren
   '/settings': typeof MainSettingsRouteRouteWithChildren
   '/$appId/$': typeof AppIdSplatRoute
+  '/forgot-email': typeof AuthForgotEmailRoute
+  '/forgot-password': typeof AuthForgotPasswordRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
   '/$': typeof MainSplatRoute
@@ -290,6 +304,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof MainIndexRoute
   '/$appId/$': typeof AppIdSplatRoute
+  '/forgot-email': typeof AuthForgotEmailRoute
+  '/forgot-password': typeof AuthForgotPasswordRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
   '/$': typeof MainSplatRoute
@@ -328,6 +344,8 @@ export interface FileRoutesById {
   '/$appId_/sphere': typeof AppIdSphereRouteRouteWithChildren
   '/_main/settings': typeof MainSettingsRouteRouteWithChildren
   '/$appId/$': typeof AppIdSplatRoute
+  '/_auth/forgot-email': typeof AuthForgotEmailRoute
+  '/_auth/forgot-password': typeof AuthForgotPasswordRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/register': typeof AuthRegisterRoute
   '/_main/$': typeof MainSplatRoute
@@ -370,6 +388,8 @@ export interface FileRouteTypes {
     | '/$appId/sphere'
     | '/settings'
     | '/$appId/$'
+    | '/forgot-email'
+    | '/forgot-password'
     | '/login'
     | '/register'
     | '/$'
@@ -404,6 +424,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$appId/$'
+    | '/forgot-email'
+    | '/forgot-password'
     | '/login'
     | '/register'
     | '/$'
@@ -441,6 +463,8 @@ export interface FileRouteTypes {
     | '/$appId_/sphere'
     | '/_main/settings'
     | '/$appId/$'
+    | '/_auth/forgot-email'
+    | '/_auth/forgot-password'
     | '/_auth/login'
     | '/_auth/register'
     | '/_main/$'
@@ -538,6 +562,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/$appId/sphere'
       preLoaderRoute: typeof AppIdSphereRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_auth/forgot-email': {
+      id: '/_auth/forgot-email'
+      path: '/forgot-email'
+      fullPath: '/forgot-email'
+      preLoaderRoute: typeof AuthForgotEmailRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/_auth/forgot-password': {
+      id: '/_auth/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordRouteImport
+      parentRoute: typeof AuthRouteRoute
     }
     '/_auth/login': {
       id: '/_auth/login'
@@ -875,11 +913,15 @@ const AppIdRouteRouteWithChildren = AppIdRouteRoute._addFileChildren(
 )
 
 interface AuthRouteRouteChildren {
+  AuthForgotEmailRoute: typeof AuthForgotEmailRoute
+  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
+  AuthForgotEmailRoute: AuthForgotEmailRoute,
+  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthRegisterRoute: AuthRegisterRoute,
 }

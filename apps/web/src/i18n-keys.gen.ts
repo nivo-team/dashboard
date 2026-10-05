@@ -1,6 +1,6 @@
 /* eslint-disable */
 // 本文件由 scripts/i18n/gen-types.mjs 生成 —— 不要手改。
-// 源语言：zh-CN｜命名空间：11 个｜键：962 个
+// 源语言：zh-CN｜命名空间：11 个｜键：975 个
 // 重新生成：pnpm i18n:types
 
 /**
@@ -139,12 +139,19 @@ export interface I18nNamespaceKeys {
     | "account"
     | "activeSession"
     | "authFailed"
+    | "backToLogin"
     | "confirmPassword"
     | "email"
     | "emailAddress"
     | "enterApp"
+    | "findEmailSubmit"
+    | "findingEmail"
     | "forgotEmail"
+    | "forgotEmailDesc"
+    | "forgotEmailTitle"
     | "forgotPassword"
+    | "forgotPasswordDesc"
+    | "forgotPasswordTitle"
     | "forgotPrompt"
     | "goToConsole"
     | "hasAccount"
@@ -152,16 +159,22 @@ export interface I18nNamespaceKeys {
     | "inputConfirmPassword"
     | "inputEmail"
     | "inputPassword"
+    | "inputPhoneOrIdentity"
     | "inputUsername"
     | "noAccount"
     | "online"
     | "password"
     | "passwordMismatch"
+    | "phoneOrIdentity"
+    | "resetLinkSent"
+    | "resetLinkSentDesc"
     | "saveDevice"
     | "selectAccount"
     | "selectAccountPlaceholder"
     | "selectAppDesc"
     | "selectAppTitle"
+    | "sendResetLinkSubmit"
+    | "sendingResetLink"
     | "signIn"
     | "signUp"
     | "signUpSubmit"

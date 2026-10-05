@@ -40,5 +40,18 @@
   "toSignUp": "立即注册",
   "forgotPrompt": "忘记了 {{email}} 或 {{password}}？",
   "forgotEmail": "邮箱",
-  "forgotPassword": "密码"
+  "forgotPassword": "密码",
+  "forgotEmailTitle": "找回邮箱",
+  "forgotEmailDesc": "请输入与您账号绑定的手机号码或辅助安全信息以寻回登录邮箱",
+  "phoneOrIdentity": "手机号码或关联信息",
+  "inputPhoneOrIdentity": "请输入手机号码或关联信息",
+  "findEmailSubmit": "找回邮箱",
+  "findingEmail": "正在查询…",
+  "forgotPasswordTitle": "重置密码",
+  "forgotPasswordDesc": "请输入您的注册邮箱，我们将向您发送重置密码的邮件链接",
+  "sendResetLinkSubmit": "发送重置链接",
+  "sendingResetLink": "正在发送…",
+  "resetLinkSent": "重置链接已发送",
+  "resetLinkSentDesc": "密码重置邮件已发送至您的邮箱，请查收并按照邮件指引操作",
+  "backToLogin": "返回登录"
 }

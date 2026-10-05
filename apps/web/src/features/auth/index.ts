@@ -9,3 +9,19 @@ export {
 export { RegisterForm, type RegisterFormProps } from './register-form'
 export { LoginPage, type LoginPageProps } from './login-page'
 export { RegisterPage, type RegisterPageProps } from './register-page'
+export {
+  ForgotEmailForm,
+  type ForgotEmailFormProps,
+} from './forgot-email-form'
+export {
+  ForgotEmailPage,
+  type ForgotEmailPageProps,
+} from './forgot-email-page'
+export {
+  ForgotPasswordForm,
+  type ForgotPasswordFormProps,
+} from './forgot-password-form'
+export {
+  ForgotPasswordPage,
+  type ForgotPasswordPageProps,
+} from './forgot-password-page'
