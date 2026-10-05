@@ -94,7 +94,7 @@ export function LoginForm({
 }: LoginFormProps) {
   const navigate = useNavigate()
   const router = useRouter()
-  const { t, i18n } = useTranslation('auth')
+  const { t } = useTranslation('auth')
   const toast = useKumoToastManager()
 
   // 决定是否渲染测试账号
@@ -333,13 +333,13 @@ export function LoginForm({
             {/* 第一行：注册引导 */}
             {showRegisterLink && (
               <div>
-                <span>{t('noAccount', "Don't have an account?")} </span>
+                <span>{t('noAccount', '还没有账号？')} </span>
                 <RouterLink
                   to={registerHref}
                   variant="plain"
                   className="font-semibold text-kumo-link"
                 >
-                  {t('toSignUp', 'Sign up')}
+                  {t('toSignUp', '立即注册')}
                 </RouterLink>
               </div>
             )}
@@ -347,43 +347,21 @@ export function LoginForm({
             {/* 第二行：忘记邮箱或密码引导 */}
             {showForgotLinks && (
               <div>
-                {i18n.language.startsWith('zh') ? (
-                  <>
-                    <span>忘记了 </span>
-                    <RouterLink
-                      to={forgotEmailHref}
-                      variant="inline"
-                    >
-                      {t('forgotEmail', '邮箱')}
-                    </RouterLink>
-                    <span> 或 </span>
-                    <RouterLink
-                      to={forgotPasswordHref}
-                      variant="inline"
-                    >
-                      {t('forgotPassword', '密码')}
-                    </RouterLink>
-                    <span>？</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Forgot your </span>
-                    <RouterLink
-                      to={forgotEmailHref}
-                      variant="inline"
-                    >
-                      email
-                    </RouterLink>
-                    <span> or </span>
-                    <RouterLink
-                      to={forgotPasswordHref}
-                      variant="inline"
-                    >
-                      password
-                    </RouterLink>
-                    <span>?</span>
-                  </>
-                )}
+                <span>{t('forgotPromptPrefix', '忘记了 ')}</span>
+                <RouterLink
+                  to={forgotEmailHref}
+                  variant="inline"
+                >
+                  {t('forgotEmail', '邮箱')}
+                </RouterLink>
+                <span>{t('forgotPromptOr', ' 或 ')}</span>
+                <RouterLink
+                  to={forgotPasswordHref}
+                  variant="inline"
+                >
+                  {t('forgotPassword', '密码')}
+                </RouterLink>
+                <span>{t('forgotPromptSuffix', '？')}</span>
               </div>
             )}
           </div>

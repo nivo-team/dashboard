@@ -251,13 +251,13 @@ export function RegisterForm({
         {/* 登录跳转引导 */}
         {!hideLoginLink && (
           <div className="mt-2.5 text-center text-sm text-kumo-subtle">
-            <span>{t('hasAccount', 'Already have an account?')} </span>
+            <span>{t('hasAccount', '已有账号？')} </span>
             <RouterLink
               to="/login"
               variant="plain"
               className="font-semibold text-kumo-link"
             >
-              {t('toSignIn', 'Sign in')}
+              {t('toSignIn', '立即登录')}
             </RouterLink>
           </div>
         )}

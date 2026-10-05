@@ -78,13 +78,13 @@ export function ForgotEmailForm({
           <p className="text-sm text-kumo-subtle">查询成功，与该信息绑定的账号邮箱为：</p>
           <span className="font-semibold text-base text-kumo-brand">{foundEmail}</span>
           <div className="mt-2 text-center text-sm text-kumo-subtle">
-            <span>{t('hasAccount', 'Already have an account?')} </span>
+            <span>{t('hasAccount', '已有账号？')} </span>
             <RouterLink
               to={loginHref}
               variant="plain"
               className="font-semibold text-kumo-link"
             >
-              {t('toSignIn', 'Sign in')}
+              {t('toSignIn', '立即登录')}
             </RouterLink>
           </div>
         </div>
@@ -117,13 +117,13 @@ export function ForgotEmailForm({
           </Button>
 
           <div className="mt-2.5 text-center text-sm text-kumo-subtle">
-            <span>{t('hasAccount', 'Already have an account?')} </span>
+            <span>{t('hasAccount', '已有账号？')} </span>
             <RouterLink
               to={loginHref}
               variant="plain"
               className="font-semibold text-kumo-link"
             >
-              {t('toSignIn', 'Sign in')}
+              {t('toSignIn', '立即登录')}
             </RouterLink>
           </div>
         </form>

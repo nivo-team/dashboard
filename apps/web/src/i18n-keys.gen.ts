@@ -1,6 +1,6 @@
 /* eslint-disable */
 // 本文件由 scripts/i18n/gen-types.mjs 生成 —— 不要手改。
-// 源语言：zh-CN｜命名空间：11 个｜键：975 个
+// 源语言：zh-CN｜命名空间：11 个｜键：978 个
 // 重新生成：pnpm i18n:types
 
 /**
@@ -153,6 +153,9 @@ export interface I18nNamespaceKeys {
     | "forgotPasswordDesc"
     | "forgotPasswordTitle"
     | "forgotPrompt"
+    | "forgotPromptOr"
+    | "forgotPromptPrefix"
+    | "forgotPromptSuffix"
     | "goToConsole"
     | "hasAccount"
     | "inputAccount"
