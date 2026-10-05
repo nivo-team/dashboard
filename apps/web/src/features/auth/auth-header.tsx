@@ -38,19 +38,16 @@ export function AuthHeader({ className = '', rightContrastOnLg }: AuthHeaderProp
     <header
       className={`fixed top-0 left-0 right-0 z-50 flex h-16 w-full items-center justify-between px-6 pointer-events-none sm:px-10 ${className}`}
     >
-      {/* 最左侧：品牌 Logo 与名称 */}
+      {/* 最左侧：纯净品牌 Logo 图标（无背景、无文字） */}
       <div className="pointer-events-auto">
         <RouterLink
           to="/login"
           variant="plain"
-          className="flex items-center gap-2.5 text-kumo-default transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded-lg p-1"
+          aria-label={brand.name}
+          title={brand.name}
+          className="flex items-center text-kumo-default transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded-lg p-1"
         >
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-kumo-tint text-kumo-default">
-            <LogoIcon size={20} />
-          </span>
-          <span className="font-semibold text-base text-kumo-default">
-            {brand.name}
-          </span>
+          <LogoIcon size={24} className="shrink-0 text-kumo-default" />
         </RouterLink>
       </div>
 
