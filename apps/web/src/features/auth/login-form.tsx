@@ -13,6 +13,8 @@ import { useNavigate, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RouterLink } from '#/components/router-link'
+import { OAuthButtons } from './oauth-buttons'
+import type { OAuthProviderConfig } from './oauth-config'
 import {
   apiLogin,
   completeLoginWithApp,
@@ -70,6 +72,11 @@ export interface LoginFormProps {
   /** 忘记密码目标路由（默认 '/forgot-password'） */
   forgotPasswordHref?: string
 
+  /** 是否显示第三方 OAuth 登录按钮（默认 true，若未开启任何 provider 则自动隐藏） */
+  showOAuth?: boolean
+  /** 自定义 OAuth 提供商列表（可选） */
+  oauthProviders?: OAuthProviderConfig[]
+
   /** 额外容器类名 */
   className?: string
 }
@@ -90,6 +97,8 @@ export function LoginForm({
   showForgotLinks = true,
   forgotEmailHref = '/forgot-email',
   forgotPasswordHref = '/forgot-password',
+  showOAuth = true,
+  oauthProviders,
   className = '',
 }: LoginFormProps) {
   const navigate = useNavigate()
@@ -324,6 +333,18 @@ export function LoginForm({
         >
           {isLoading ? t('submitting') : t('submit')}
         </Button>
+
+        {/* ====================================================================== */}
+        {/* 第三方 OAuth 登录按钮区（按配置按需展示）                             */}
+        {/* ====================================================================== */}
+        {showOAuth && (
+          <OAuthButtons
+            mode="login"
+            providers={oauthProviders}
+            redirect={redirectUrl}
+            className="pt-1"
+          />
+        )}
 
         {/* ====================================================================== */}
         {/* 底部辅助链接区：注册引导 + 忘记邮箱/密码引导                           */}

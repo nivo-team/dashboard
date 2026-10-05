@@ -1,6 +1,6 @@
 /* eslint-disable */
 // 本文件由 scripts/i18n/gen-types.mjs 生成 —— 不要手改。
-// 源语言：zh-CN｜命名空间：11 个｜键：978 个
+// 源语言：zh-CN｜命名空间：11 个｜键：985 个
 // 重新生成：pnpm i18n:types
 
 /**
@@ -164,8 +164,14 @@ export interface I18nNamespaceKeys {
     | "inputPassword"
     | "inputPhoneOrIdentity"
     | "inputUsername"
+    | "loginWithProvider"
     | "noAccount"
+    | "oauthFailed"
+    | "oauthProcessing"
+    | "oauthProcessingDesc"
+    | "oauthRetry"
     | "online"
+    | "orContinueWith"
     | "password"
     | "passwordMismatch"
     | "phoneOrIdentity"
@@ -184,6 +190,7 @@ export interface I18nNamespaceKeys {
     | "signUpSuccess"
     | "signUpSuccessDesc"
     | "signUpTitle"
+    | "signUpWithProvider"
     | "signingUp"
     | "submit"
     | "submitting"

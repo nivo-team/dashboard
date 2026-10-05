@@ -25,3 +25,17 @@ export {
   ForgotPasswordPage,
   type ForgotPasswordPageProps,
 } from './forgot-password-page'
+export {
+  OAuthButtons,
+  type OAuthButtonsProps,
+} from './oauth-buttons'
+export {
+  OAuthCallbackPage,
+  type OAuthCallbackPageProps,
+} from './oauth-callback-page'
+export {
+  getEnabledOAuthProviders,
+  useOAuthProviders,
+  type OAuthProviderId,
+  type OAuthProviderConfig,
+} from './oauth-config'

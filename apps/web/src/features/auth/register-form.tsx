@@ -11,12 +11,18 @@ import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RouterLink } from '#/components/router-link'
+import { OAuthButtons } from './oauth-buttons'
+import type { OAuthProviderConfig } from './oauth-config'
 
 export interface RegisterFormProps {
   /** 注册成功后的自定义回调（可选） */
   onSuccess?: () => void
   /** 是否隐藏前往登录的链接（默认 false） */
   hideLoginLink?: boolean
+  /** 是否显示第三方 OAuth 注册按钮（默认 true，若未开启任何 provider 则自动隐藏） */
+  showOAuth?: boolean
+  /** 自定义 OAuth 提供商列表（可选） */
+  oauthProviders?: OAuthProviderConfig[]
   /** 额外容器类名 */
   className?: string
 }
@@ -29,6 +35,8 @@ export interface RegisterFormProps {
 export function RegisterForm({
   onSuccess,
   hideLoginLink = false,
+  showOAuth = true,
+  oauthProviders,
   className = '',
 }: RegisterFormProps) {
   const navigate = useNavigate()
@@ -247,6 +255,17 @@ export function RegisterForm({
         >
           {isLoading ? t('signingUp', '正在创建账号…') : t('signUpSubmit', '注 册')}
         </Button>
+
+        {/* ====================================================================== */}
+        {/* 第三方 OAuth 注册按钮区（按配置按需展示）                             */}
+        {/* ====================================================================== */}
+        {showOAuth && (
+          <OAuthButtons
+            mode="signup"
+            providers={oauthProviders}
+            className="pt-1"
+          />
+        )}
 
         {/* 登录跳转引导 */}
         {!hideLoginLink && (

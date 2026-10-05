@@ -19,6 +19,8 @@ export function LoginPage({
   showForgotLinks,
   forgotEmailHref,
   forgotPasswordHref,
+  showOAuth,
+  oauthProviders,
   className = '',
 }: LoginPageProps) {
   return (
@@ -38,6 +40,8 @@ export function LoginPage({
             showForgotLinks={showForgotLinks}
             forgotEmailHref={forgotEmailHref}
             forgotPasswordHref={forgotPasswordHref}
+            showOAuth={showOAuth}
+            oauthProviders={oauthProviders}
           />
         </div>
       </div>

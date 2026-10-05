@@ -56,5 +56,12 @@
   "sendingResetLink": "正在发送…",
   "resetLinkSent": "重置链接已发送",
   "resetLinkSentDesc": "密码重置邮件已发送至您的邮箱，请查收并按照邮件指引操作",
-  "backToLogin": "返回登录"
+  "backToLogin": "返回登录",
+  "orContinueWith": "或使用以下方式继续",
+  "loginWithProvider": "使用 {{provider}} 登录",
+  "signUpWithProvider": "使用 {{provider}} 注册",
+  "oauthProcessing": "正在完成 {{provider}} 授权验证…",
+  "oauthProcessingDesc": "正在与第三方服务交换凭据，请稍候…",
+  "oauthFailed": "第三方授权登录失败",
+  "oauthRetry": "返回重新登录"
 }
