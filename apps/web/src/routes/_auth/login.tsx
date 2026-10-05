@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { LoginPage } from '#/features/login'
+import { LoginPage } from '#/features/auth'
 import { DEFAULT_APP_ID, getAuthSnapshot, isMultiAppEnabled } from '#/lib/auth'
 
 interface LoginSearch {
@@ -10,7 +10,7 @@ interface LoginSearch {
  * 登录路由（`/_auth/login.tsx` -> "/login"）—— **薄适配层**。
  *
  * `validateSearch` / `beforeLoad` 是路由语义，留在这一层；
- * 登录表单与逻辑在 `#/features/login`，`redirect` 通过 props 传入。
+ * 登录表单与逻辑在 `#/features/auth`，`redirect` 通过 props 传入。
  */
 export const Route = createFileRoute('/_auth/login')({
   validateSearch: (search: Record<string, unknown>): LoginSearch => {

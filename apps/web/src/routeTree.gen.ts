@@ -18,6 +18,7 @@ import { Route as AppIdExampleRouteRouteImport } from './routes/$appId/example/r
 import { Route as AppIdSystemRouteRouteImport } from './routes/$appId/system/route'
 import { Route as AppIdSphereRouteRouteImport } from './routes/$appId_.sphere/route'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
+import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
 import { Route as MainIndexRouteImport } from './routes/_main/index'
 import { Route as MainSplatRouteImport } from './routes/_main/$'
 import { Route as MainSelectAppRouteImport } from './routes/_main/select-app'
@@ -89,6 +90,11 @@ const AppIdSphereRouteRoute = AppIdSphereRouteRouteImport.update({
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthRegisterRoute = AuthRegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => AuthRouteRoute,
 } as any)
 const MainIndexRoute = MainIndexRouteImport.update({
@@ -251,6 +257,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof MainSettingsRouteRouteWithChildren
   '/$appId/$': typeof AppIdSplatRoute
   '/login': typeof AuthLoginRoute
+  '/register': typeof AuthRegisterRoute
   '/$': typeof MainSplatRoute
   '/select-app': typeof MainSelectAppRoute
   '/$appId/': typeof AppIdIndexRoute
@@ -284,6 +291,7 @@ export interface FileRoutesByTo {
   '/': typeof MainIndexRoute
   '/$appId/$': typeof AppIdSplatRoute
   '/login': typeof AuthLoginRoute
+  '/register': typeof AuthRegisterRoute
   '/$': typeof MainSplatRoute
   '/select-app': typeof MainSelectAppRoute
   '/$appId': typeof AppIdIndexRoute
@@ -321,6 +329,7 @@ export interface FileRoutesById {
   '/_main/settings': typeof MainSettingsRouteRouteWithChildren
   '/$appId/$': typeof AppIdSplatRoute
   '/_auth/login': typeof AuthLoginRoute
+  '/_auth/register': typeof AuthRegisterRoute
   '/_main/$': typeof MainSplatRoute
   '/_main/select-app': typeof MainSelectAppRoute
   '/$appId/': typeof AppIdIndexRoute
@@ -362,6 +371,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/$appId/$'
     | '/login'
+    | '/register'
     | '/$'
     | '/select-app'
     | '/$appId/'
@@ -395,6 +405,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$appId/$'
     | '/login'
+    | '/register'
     | '/$'
     | '/select-app'
     | '/$appId'
@@ -431,6 +442,7 @@ export interface FileRouteTypes {
     | '/_main/settings'
     | '/$appId/$'
     | '/_auth/login'
+    | '/_auth/register'
     | '/_main/$'
     | '/_main/select-app'
     | '/$appId/'
@@ -532,6 +544,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/_auth/register': {
+      id: '/_auth/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof AuthRegisterRouteImport
       parentRoute: typeof AuthRouteRoute
     }
     '/_main/': {
@@ -857,10 +876,12 @@ const AppIdRouteRouteWithChildren = AppIdRouteRoute._addFileChildren(
 
 interface AuthRouteRouteChildren {
   AuthLoginRoute: typeof AuthLoginRoute
+  AuthRegisterRoute: typeof AuthRegisterRoute
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
   AuthLoginRoute: AuthLoginRoute,
+  AuthRegisterRoute: AuthRegisterRoute,
 }
 
 const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(

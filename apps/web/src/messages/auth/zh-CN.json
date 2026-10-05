@@ -20,5 +20,22 @@
   "verified": "验证通过",
   "unauthorized": "无权访问该页面",
   "selectAccount": "测试账号",
-  "selectAccountPlaceholder": "选择测试账号…"
+  "selectAccountPlaceholder": "选择测试账号…",
+  "signUp": "注册",
+  "signUpTitle": "创建新账号",
+  "username": "用户名",
+  "inputUsername": "请输入用户名",
+  "emailAddress": "邮箱地址",
+  "inputEmail": "请输入邮箱地址",
+  "confirmPassword": "确认密码",
+  "inputConfirmPassword": "请再次输入密码",
+  "passwordMismatch": "两次输入的密码不一致",
+  "signUpSubmit": "注 册",
+  "signingUp": "正在创建账号…",
+  "signUpSuccess": "账号注册成功",
+  "signUpSuccessDesc": "已成功注册，即将为您跳转…",
+  "hasAccount": "已有账号？",
+  "toSignIn": "立即登录",
+  "noAccount": "还没有账号？",
+  "toSignUp": "立即注册"
 }
