@@ -7,9 +7,10 @@ import {
   EyeIcon,
   EyeSlashIcon,
 } from '@phosphor-icons/react'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { RouterLink } from '#/components/router-link'
 
 export interface RegisterFormProps {
   /** 注册成功后的自定义回调（可选） */
@@ -251,12 +252,13 @@ export function RegisterForm({
         {!hideLoginLink && (
           <div className="mt-2.5 text-center text-sm text-kumo-subtle">
             <span>{t('hasAccount', 'Already have an account?')} </span>
-            <Link
+            <RouterLink
               to="/login"
-              className="font-semibold text-kumo-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded"
+              variant="plain"
+              className="font-semibold text-kumo-link"
             >
               {t('toSignIn', 'Sign in')}
-            </Link>
+            </RouterLink>
           </div>
         )}
       </form>

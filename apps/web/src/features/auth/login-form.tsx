@@ -9,9 +9,10 @@ import {
   EyeIcon,
   EyeSlashIcon,
 } from '@phosphor-icons/react'
-import { Link, useNavigate, useRouter } from '@tanstack/react-router'
+import { useNavigate, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { RouterLink } from '#/components/router-link'
 import {
   apiLogin,
   completeLoginWithApp,
@@ -333,12 +334,13 @@ export function LoginForm({
             {showRegisterLink && (
               <div>
                 <span>{t('noAccount', "Don't have an account?")} </span>
-                <Link
-                  to={registerHref as any}
-                  className="font-medium text-kumo-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded"
+                <RouterLink
+                  to={registerHref}
+                  variant="plain"
+                  className="font-semibold text-kumo-link"
                 >
                   {t('toSignUp', 'Sign up')}
-                </Link>
+                </RouterLink>
               </div>
             )}
 
@@ -348,37 +350,37 @@ export function LoginForm({
                 {i18n.language.startsWith('zh') ? (
                   <>
                     <span>忘记了 </span>
-                    <Link
-                      to={forgotEmailHref as any}
-                      className="text-kumo-brand underline underline-offset-4 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded"
+                    <RouterLink
+                      to={forgotEmailHref}
+                      variant="inline"
                     >
                       {t('forgotEmail', '邮箱')}
-                    </Link>
+                    </RouterLink>
                     <span> 或 </span>
-                    <Link
-                      to={forgotPasswordHref as any}
-                      className="text-kumo-brand underline underline-offset-4 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded"
+                    <RouterLink
+                      to={forgotPasswordHref}
+                      variant="inline"
                     >
                       {t('forgotPassword', '密码')}
-                    </Link>
+                    </RouterLink>
                     <span>？</span>
                   </>
                 ) : (
                   <>
                     <span>Forgot your </span>
-                    <Link
-                      to={forgotEmailHref as any}
-                      className="text-kumo-brand underline underline-offset-4 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded"
+                    <RouterLink
+                      to={forgotEmailHref}
+                      variant="inline"
                     >
                       email
-                    </Link>
+                    </RouterLink>
                     <span> or </span>
-                    <Link
-                      to={forgotPasswordHref as any}
-                      className="text-kumo-brand underline underline-offset-4 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded"
+                    <RouterLink
+                      to={forgotPasswordHref}
+                      variant="inline"
                     >
                       password
-                    </Link>
+                    </RouterLink>
                     <span>?</span>
                   </>
                 )}

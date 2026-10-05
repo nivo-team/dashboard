@@ -30,3 +30,6 @@ export const AppLink = forwardRef<
     </Link>
   )
 })
+
+export { RouterLink, type RouterLinkProps } from './router-link'
+
