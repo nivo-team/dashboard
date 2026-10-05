@@ -89,7 +89,7 @@ export function OAuthButtons({
             key={provider.id}
             type="button"
             variant="secondary"
-            size="md"
+            size="base"
             aria-label={actionText}
             title={actionText}
             onClick={() => handleProviderClick(provider.id)}

@@ -17,15 +17,13 @@ declare module '@tanstack/react-router' {
 }
 
 const rootElement = document.getElementById('app')!
+const root = ReactDOM.createRoot(rootElement)
 
-if (!rootElement.innerHTML) {
-  const root = ReactDOM.createRoot(rootElement)
-  root.render(
-    // AppQueryClientProvider 放在 RouterProvider 外层：
-    // 路由切换不会重建缓存实例；缓存按 app 作用域分区（见 #/lib/query-client），
-    // 切换应用时换成对应的 QueryClient，切回来仍命中该应用自己的缓存。
-    <AppQueryClientProvider>
-      <RouterProvider router={router} />
-    </AppQueryClientProvider>,
-  )
-}
+root.render(
+  // AppQueryClientProvider 放在 RouterProvider 外层：
+  // 路由切换不会重建缓存实例；缓存按 app 作用域分区（见 #/lib/query-client），
+  // 切换应用时换成对应的 QueryClient，切回来仍命中该应用自己的缓存。
+  <AppQueryClientProvider>
+    <RouterProvider router={router} />
+  </AppQueryClientProvider>,
+)
