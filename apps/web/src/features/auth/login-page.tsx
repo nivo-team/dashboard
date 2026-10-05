@@ -1,26 +1,44 @@
-import { LoginForm } from './login-form'
+import { LoginForm, type LoginFormProps } from './login-form'
 
-export interface LoginPageProps {
-  /** 登录成功后的跳转目标地址 */
-  redirect?: string
-}
+export interface LoginPageProps extends LoginFormProps {}
 
 /**
  * 完整登录页面视图组件
  *
  * 采用双栏全屏排版：
- * - 左侧：居中登录核心表单区（LoginForm）
+ * - 左侧：居中登录核心表单区（LoginForm），完整透传测试账号与导航链接配置
  * - 右侧：大面积视觉展台与标语展示（大屏幕显示，移动端自动隐藏，贯穿全屏）
  */
-export function LoginPage({ redirect: redirectUrl }: LoginPageProps) {
+export function LoginPage({
+  redirect: redirectUrl,
+  onSuccess,
+  showDemoAccounts,
+  demoAccounts,
+  showRegisterLink,
+  registerHref,
+  showForgotLinks,
+  forgotEmailHref,
+  forgotPasswordHref,
+  className = '',
+}: LoginPageProps) {
   return (
-    <div className="relative flex min-h-screen w-full bg-kumo-base text-kumo-default">
+    <div className={`relative flex min-h-screen w-full bg-kumo-base text-kumo-default ${className}`}>
       {/* ====================================================================== */}
       {/* 左侧：表单主交互区域（PC 居中占宽约 50%，移动端 100% 流式）           */}
       {/* ====================================================================== */}
       <div className="relative flex flex-1 flex-col justify-center px-6 py-12 pt-16 sm:px-12 md:px-16 lg:max-w-[50%] lg:px-20 xl:px-24">
         <div className="mx-auto w-full max-w-100">
-          <LoginForm redirect={redirectUrl} />
+          <LoginForm
+            redirect={redirectUrl}
+            onSuccess={onSuccess}
+            showDemoAccounts={showDemoAccounts}
+            demoAccounts={demoAccounts}
+            showRegisterLink={showRegisterLink}
+            registerHref={registerHref}
+            showForgotLinks={showForgotLinks}
+            forgotEmailHref={forgotEmailHref}
+            forgotPasswordHref={forgotPasswordHref}
+          />
         </div>
       </div>
 

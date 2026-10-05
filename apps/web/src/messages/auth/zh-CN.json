@@ -37,5 +37,8 @@
   "hasAccount": "已有账号？",
   "toSignIn": "立即登录",
   "noAccount": "还没有账号？",
-  "toSignUp": "立即注册"
+  "toSignUp": "立即注册",
+  "forgotPrompt": "忘记了 {{email}} 或 {{password}}？",
+  "forgotEmail": "邮箱",
+  "forgotPassword": "密码"
 }
