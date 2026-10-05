@@ -86,7 +86,9 @@ pnpm i18n:types       # 重新生成 i18n 键类型（改了 zh-CN.json 后跑�
    [i18n-translation-pipeline.md](./.agents/docs/i18n-translation-pipeline.md)。
 2. **禁用 Tailwind 的 `dark:` 变体**（主题由根节点 `data-mode` 驱动）、**禁用 `tracking-*`**、
    **严禁 `font-bold`**（标题 `font-semibold`、强调 `font-medium`）；颜色只用 Kumo 语义令牌
-   （`bg-kumo-base` / `text-kumo-default` / `border-kumo-line` …）。
+   （`bg-kumo-base` / `text-kumo-default` / `border-kumo-line` …）；
+   **全站链接统一用 `#/components/router-link`（`RouterLink`）**，严禁手写 `<a>` 或裸写 TanStack `<Link>` 手拼样式，
+   颜色与下划线由 Kumo 官方链接主色及变体（`variant="plain|inline"`）统一驱动。
 3. **名单与配置只有一个真值**：导航只动 `apps/web/src/lib/navigation.ts`、仪表盘卡片只动
    `src/features/home/widget-registry.tsx`、工具只动 `AI_TOOLS`。**不要在渲染处再硬编码一份平行的名单。**
 4. **给模型的内容都必须经过函数并留过滤点**（提示词 / 导航清单 / 表单清单 / 页面接口），

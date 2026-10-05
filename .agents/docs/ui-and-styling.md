@@ -94,6 +94,11 @@ Kumo 采用语义化颜色系统，通过根节点上的 `data-mode="light|dark"
 - **方向性图标必须镜像**：返回箭头、执行 / 进入箭头、树表折叠 caret 这类**语义随书写方向翻转**的图标一律加 `rtl-flip`（`apps/web/src/styles.css` 的 `[dir='rtl'] .rtl-flip { transform: scaleX(-1) }`）；上下向图标（`CaretDown` / `CaretUpDown`、排序指示）与旋转类（刷新 `ArrowClockwiseIcon`）**不要**加。已按此处理：`main-layout` 的返回箭头、`user-menu` 的登出图标、`command-palette` 的执行箭头、表格示例详情「返回列表」、`DataTable` 树表的折叠 caret。注意 Kumo 自带样式只对日历（`rdp-*`）做了 RTL，**组件内部的方向性图标不会自动镜像** —— 用到的 Kumo 组件若自带箭头（分页器、可折叠分组等），要在 RTL 验收时逐个确认。
 - **数据表格开发规范**：列编排、`useSchemaColumns` 接入步骤、渲染器约定、i18n、排序与默认隐藏列、RTL 对齐、验收清单等表格相关内容，已整体迁移至 skill `table-development`（`.agents/skills/table-development/SKILL.md`）。凡是新增/修改列表页、`DataTable`、表格列、筛选控制栏或列设置下拉，先加载该 skill 再动手；不要在此文件里重复维护表格规范。
 - **可编辑详情页规范**：详情页内嵌表单 + 底部「未保存更改」浮条 + 页头状态开关（草稿 / dirty / 重置 / 切换重置）的完整契约、骨架代码、接入清单与常见坑，见 skill `editable-detail`（`.agents/skills/editable-detail/SKILL.md`）。新增或修改详情页里的可编辑表单、状态开关、保存浮条时先加载它；参考实现是 features 功能详情与数据字典分类详情。
+- **全站路由链接规范（RouterLink 唯一约定）**：全站所有文本链接与页面跳转一律使用通用封装组件 `#/components/router-link`（`RouterLink`，亦可从 `#/components/app-link` 导入）。**严禁**手写 `<a>` 标签或裸用 TanStack `<Link>` 手拼 `text-kumo-brand` / `underline` 散落样式。
+  - **设计系统主色**：颜色由 Kumo 官方语义令牌 `text-kumo-link` 驱动，自带正规 hover 渐变与主题自适应；
+  - **无缝 SPA 路由**：借由根级 `LinkProvider`，自动桥接至 TanStack Router 进行纯客户端跳转；
+  - **变体约定**：操作/辅助链接用 `variant="plain"`（无下划线），正文行内实体链接用 `variant="inline"`（规范下划线微调与偏移）；
+  - **属性兼容**：同时支持 TanStack Router 的 `to` 属性与标准的 `href` 属性，外链支持 `<RouterLink.ExternalIcon />`。
 
 ---
 
@@ -119,4 +124,5 @@ Kumo 采用语义化颜色系统，通过根节点上的 `data-mode="light|dark"
   注意 **Kumo 组件自带的方向性图标不会自动镜像**，RTL 验收时要逐个确认。
 - **危险操作二次确认**用 `#/components/danger-confirm-dialog`：必须原样输入 `confirmationText`
   才能点亮确认按钮。
+- **全站链接统一用 `#/components/router-link`（`RouterLink`）**：严禁裸写 `<a>` 或手拼样式，颜色由 Kumo 官方链接语义（`text-kumo-link`）与变体（`plain` / `inline`）统一定制。
 - 表格与可编辑详情页的完整规范在 skill 里：**`table-development` / `editable-detail`**，改之前先加载。

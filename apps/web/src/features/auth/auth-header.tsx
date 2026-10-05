@@ -1,5 +1,6 @@
-import { Link, useRouterState } from '@tanstack/react-router'
+import { useRouterState } from '@tanstack/react-router'
 import { LocaleSwitcher } from '#/components/locale-switcher'
+import { RouterLink } from '#/components/router-link'
 import { ThemeSwitcher } from '#/components/theme-switcher'
 import { useBrand } from '#/lib/brand'
 
@@ -39,8 +40,9 @@ export function AuthHeader({ className = '', rightContrastOnLg }: AuthHeaderProp
     >
       {/* 最左侧：品牌 Logo 与名称 */}
       <div className="pointer-events-auto">
-        <Link
+        <RouterLink
           to="/login"
+          variant="plain"
           className="flex items-center gap-2.5 text-kumo-default transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded-lg p-1"
         >
           <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-kumo-tint text-kumo-default">
@@ -49,7 +51,7 @@ export function AuthHeader({ className = '', rightContrastOnLg }: AuthHeaderProp
           <span className="font-semibold text-base text-kumo-default">
             {brand.name}
           </span>
-        </Link>
+        </RouterLink>
       </div>
 
       {/* 最右侧：语言切换与主题切换 */}
