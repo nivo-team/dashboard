@@ -236,18 +236,16 @@ export function RegisterForm({
         </div>
 
         {/* 提交注册按钮 */}
-        <div className="mt-2.5">
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            className="h-11 w-full text-base font-medium shadow-sm transition-transform active:scale-[0.99]"
-            loading={isLoading}
-            disabled={isLoading}
-          >
-            {isLoading ? t('signingUp', '正在创建账号…') : t('signUpSubmit', '注 册')}
-          </Button>
-        </div>
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          loading={isLoading}
+          disabled={isLoading}
+          className="mt-3 w-full justify-center"
+        >
+          {isLoading ? t('signingUp', '正在创建账号…') : t('signUpSubmit', '注 册')}
+        </Button>
 
         {/* 登录跳转引导 */}
         {!hideLoginLink && (

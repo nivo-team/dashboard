@@ -295,18 +295,16 @@ export function LoginForm({
         </div>
 
         {/* 提交登录按钮 */}
-        <div className="mt-2">
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            className="h-11 w-full text-base font-medium shadow-sm transition-transform active:scale-[0.99]"
-            loading={isLoading}
-            disabled={isLoading}
-          >
-            {isLoading ? t('submitting') : t('submit')}
-          </Button>
-        </div>
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          loading={isLoading}
+          disabled={isLoading}
+          className="mt-3 w-full justify-center"
+        >
+          {isLoading ? t('submitting') : t('submit')}
+        </Button>
 
         {/* 注册跳转引导 */}
         {!hideRegisterLink && (
