@@ -83,12 +83,15 @@ export function ForgotPasswordForm({
             {t('resetLinkSentDesc', '密码重置邮件已发送至您的邮箱，请查收并按照邮件指引操作')}
           </p>
           <span className="font-semibold text-base text-kumo-brand">{email}</span>
-          <Link
-            to={loginHref as any}
-            className="mt-2 inline-flex items-center justify-center font-medium text-sm text-kumo-default underline underline-offset-4 hover:text-kumo-brand"
-          >
-            {t('backToLogin', '返回登录')}
-          </Link>
+          <div className="mt-2 text-center text-sm text-kumo-subtle">
+            <span>{t('hasAccount', 'Already have an account?')} </span>
+            <Link
+              to={loginHref as any}
+              className="font-semibold text-kumo-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded"
+            >
+              {t('toSignIn', 'Sign in')}
+            </Link>
+          </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
@@ -120,12 +123,13 @@ export function ForgotPasswordForm({
             {isLoading ? t('sendingResetLink', '正在发送…') : t('sendResetLinkSubmit', '发送重置链接')}
           </Button>
 
-          <div className="mt-2 text-center text-sm text-kumo-subtle">
+          <div className="mt-2.5 text-center text-sm text-kumo-subtle">
+            <span>{t('hasAccount', 'Already have an account?')} </span>
             <Link
               to={loginHref as any}
-              className="font-medium text-kumo-default underline underline-offset-4 hover:text-kumo-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded"
+              className="font-semibold text-kumo-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded"
             >
-              {t('backToLogin', '返回登录')}
+              {t('toSignIn', 'Sign in')}
             </Link>
           </div>
         </form>

@@ -77,12 +77,15 @@ export function ForgotEmailForm({
         <div className="mt-8 flex flex-col items-center gap-4 rounded-xl border border-kumo-line bg-kumo-tint p-6 text-center">
           <p className="text-sm text-kumo-subtle">查询成功，与该信息绑定的账号邮箱为：</p>
           <span className="font-semibold text-base text-kumo-brand">{foundEmail}</span>
-          <Link
-            to={loginHref as any}
-            className="mt-2 inline-flex items-center justify-center font-medium text-sm text-kumo-default underline underline-offset-4 hover:text-kumo-brand"
-          >
-            {t('backToLogin', '返回登录')}
-          </Link>
+          <div className="mt-2 text-center text-sm text-kumo-subtle">
+            <span>{t('hasAccount', 'Already have an account?')} </span>
+            <Link
+              to={loginHref as any}
+              className="font-semibold text-kumo-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded"
+            >
+              {t('toSignIn', 'Sign in')}
+            </Link>
+          </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
@@ -112,12 +115,13 @@ export function ForgotEmailForm({
             {isLoading ? t('findingEmail', '正在查询…') : t('findEmailSubmit', '找回邮箱')}
           </Button>
 
-          <div className="mt-2 text-center text-sm text-kumo-subtle">
+          <div className="mt-2.5 text-center text-sm text-kumo-subtle">
+            <span>{t('hasAccount', 'Already have an account?')} </span>
             <Link
               to={loginHref as any}
-              className="font-medium text-kumo-default underline underline-offset-4 hover:text-kumo-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded"
+              className="font-semibold text-kumo-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded"
             >
-              {t('backToLogin', '返回登录')}
+              {t('toSignIn', 'Sign in')}
             </Link>
           </div>
         </form>

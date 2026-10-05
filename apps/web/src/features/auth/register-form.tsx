@@ -249,13 +249,13 @@ export function RegisterForm({
 
         {/* 登录跳转引导 */}
         {!hideLoginLink && (
-          <div className="mt-2 text-center text-sm text-kumo-subtle">
-            <span>{t('hasAccount', '已有账号？')} </span>
+          <div className="mt-2.5 text-center text-sm text-kumo-subtle">
+            <span>{t('hasAccount', 'Already have an account?')} </span>
             <Link
               to="/login"
-              className="font-medium text-kumo-default underline underline-offset-4 hover:text-kumo-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded"
+              className="font-semibold text-kumo-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded"
             >
-              {t('toSignIn', '立即登录')}
+              {t('toSignIn', 'Sign in')}
             </Link>
           </div>
         )}
