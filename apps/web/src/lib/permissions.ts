@@ -20,7 +20,7 @@ export type { ComputedPermissions, PermissionRequirement }
  * | | 谁决定 | 作用 |
  * |---|---|---|
  * | **后端权限点**（本文件） | 后端 RBAC | 用户**真实拥有的**能力 —— AI 授权不能超过它 |
- * | `aiPermission` / `aiAllowedTools` | 用户自己（本机偏好） | 在权限范围内**再收紧**（"我只允许 AI 只读"） |
+ * | `aiPermission` / `aiCapabilities` | 用户自己（本机偏好） | 在权限范围内**再收紧**（"我只允许 AI 只读"） |
  *
  * 两者**都要过滤**，取交集。用户把偏好开到 `full` 也拿不到他没有权限的工具 ——
  * 这一点由这里保证；而真正的硬边界仍是**执行时后端按用户身份校验**（工具在浏览器里

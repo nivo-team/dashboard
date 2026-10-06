@@ -698,6 +698,72 @@ export type MenuTreeResult = {
 };
 
 /**
+ * 工单行
+ */
+export type TicketItem = {
+    /**
+     * 工单 ID
+     */
+    id: number;
+    /**
+     * 标题
+     */
+    title: string;
+    /**
+     * 描述
+     */
+    description?: string;
+    /**
+     * 1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭
+     */
+    status: number;
+    /**
+     * 1 低 / 2 中 / 3 高 / 4 紧急
+     */
+    priority?: number;
+    /**
+     * 负责人
+     */
+    assignee?: string;
+    /**
+     * 分类
+     */
+    category?: string;
+    /**
+     * 创建时间（秒级时间戳）
+     */
+    created_at?: number;
+    /**
+     * 更新时间（秒级时间戳）
+     */
+    updated_at?: number;
+};
+
+export type TicketListResult = {
+    /**
+     * 0 表示成功
+     */
+    code: number;
+    message?: string;
+    result: {
+        /**
+         * 总条数
+         */
+        total: number;
+        items: Array<TicketItem>;
+    };
+};
+
+export type TicketResult = {
+    /**
+     * 0 表示成功
+     */
+    code: number;
+    message?: string;
+    result: TicketItem;
+};
+
+/**
  * 用户列表行
  */
 export type UserItem = {
@@ -1459,6 +1525,227 @@ export type GetSystemMenuTreeResponses = {
 };
 
 export type GetSystemMenuTreeResponse = GetSystemMenuTreeResponses[keyof GetSystemMenuTreeResponses];
+
+export type DeleteTicketByIdData = {
+    body?: never;
+    path: {
+        /**
+         * 工单 ID
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/ticket/{id}';
+};
+
+export type DeleteTicketByIdResponses = {
+    /**
+     * 删除结果
+     */
+    200: {
+        /**
+         * 0 表示成功
+         */
+        code: number;
+        message?: string;
+        /**
+         * 成功时为空
+         */
+        result?: null;
+    };
+};
+
+export type DeleteTicketByIdResponse = DeleteTicketByIdResponses[keyof DeleteTicketByIdResponses];
+
+export type GetTicketByIdData = {
+    body?: never;
+    path: {
+        /**
+         * 工单 ID
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/ticket/{id}';
+};
+
+export type GetTicketByIdResponses = {
+    /**
+     * 工单详情
+     */
+    200: TicketResult;
+};
+
+export type GetTicketByIdResponse = GetTicketByIdResponses[keyof GetTicketByIdResponses];
+
+export type PatchTicketByIdStatusData = {
+    body: {
+        /**
+         * 1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭
+         */
+        status: number;
+    };
+    path: {
+        /**
+         * 工单 ID
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/ticket/{id}/status';
+};
+
+export type PatchTicketByIdStatusResponses = {
+    /**
+     * 更新后的工单
+     */
+    200: TicketResult;
+};
+
+export type PatchTicketByIdStatusResponse = PatchTicketByIdStatusResponses[keyof PatchTicketByIdStatusResponses];
+
+export type GetTicketData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 页码，从 1 开始
+         */
+        page?: number;
+        /**
+         * 每页条数
+         */
+        page_size?: number;
+        /**
+         * 关键词（标题 / 描述 / 负责人 / ID 模糊匹配）
+         */
+        kw?: string;
+        /**
+         * 状态精确匹配：1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭
+         */
+        status?: number;
+        /**
+         * 优先级精确匹配：1 低 / 2 中 / 3 高 / 4 紧急
+         */
+        priority?: number;
+        /**
+         * 分类精确匹配
+         */
+        category?: string;
+        /**
+         * 负责人模糊匹配
+         */
+        assignee?: string;
+        /**
+         * 工单 ID 精确匹配
+         */
+        id?: number;
+        /**
+         * 创建时间下限（秒级时间戳）
+         */
+        created_at_min?: number;
+        /**
+         * 创建时间上限（秒级时间戳）
+         */
+        created_at_max?: number;
+        /**
+         * 排序字段名
+         */
+        field?: 'id' | 'title' | 'status' | 'priority' | 'created_at' | 'updated_at';
+        /**
+         * 排序方向
+         */
+        order?: 'asc' | 'desc';
+    };
+    url: '/ticket';
+};
+
+export type GetTicketResponses = {
+    /**
+     * 工单分页结果
+     */
+    200: TicketListResult;
+};
+
+export type GetTicketResponse = GetTicketResponses[keyof GetTicketResponses];
+
+export type PostTicketData = {
+    body: {
+        /**
+         * 标题
+         */
+        title: string;
+        /**
+         * 描述
+         */
+        description?: string;
+        /**
+         * 1 低 / 2 中 / 3 高 / 4 紧急
+         */
+        priority?: number;
+        /**
+         * 负责人
+         */
+        assignee?: string;
+        /**
+         * 分类
+         */
+        category?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/ticket';
+};
+
+export type PostTicketResponses = {
+    /**
+     * 新建的工单
+     */
+    200: TicketResult;
+};
+
+export type PostTicketResponse = PostTicketResponses[keyof PostTicketResponses];
+
+export type PutTicketData = {
+    body: {
+        /**
+         * 工单 ID
+         */
+        id: number;
+        /**
+         * 标题
+         */
+        title?: string;
+        /**
+         * 描述
+         */
+        description?: string;
+        /**
+         * 1 低 / 2 中 / 3 高 / 4 紧急
+         */
+        priority?: number;
+        /**
+         * 负责人
+         */
+        assignee?: string;
+        /**
+         * 分类
+         */
+        category?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/ticket';
+};
+
+export type PutTicketResponses = {
+    /**
+     * 更新后的工单
+     */
+    200: TicketResult;
+};
+
+export type PutTicketResponse = PutTicketResponses[keyof PutTicketResponses];
 
 export type GetUserData = {
     body?: never;

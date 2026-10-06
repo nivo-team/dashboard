@@ -114,8 +114,7 @@ export const analyzeDataTool: AiToolDefinition = {
     },
     required: ['source', 'pipeline'],
   },
-  access: 'read',
-  group: 'data',
+  capability: 'data:query',
   execute: async (input, ctx) => {
     const routeId = ctx.getPageContext().routePath
     const sourceId = typeof input.source === 'string' ? input.source.trim() : ''

@@ -41,6 +41,8 @@ import { Route as AppIdExampleComplexTableIndexRouteImport } from './routes/$app
 import { Route as AppIdExampleTableIndexRouteImport } from './routes/$appId/example/table/index'
 import { Route as AppIdExampleTableIdRouteImport } from './routes/$appId/example/table/$id'
 import { Route as AppIdExampleTableNewRouteImport } from './routes/$appId/example/table/new'
+import { Route as AppIdExampleTicketsIndexRouteImport } from './routes/$appId/example/tickets/index'
+import { Route as AppIdExampleTicketsNewRouteImport } from './routes/$appId/example/tickets/new'
 import { Route as AppIdExampleUserIndexRouteImport } from './routes/$appId/example/user/index'
 import { Route as AppIdExampleUserIdRouteImport } from './routes/$appId/example/user/$id'
 import { Route as AppIdExampleUserNewRouteImport } from './routes/$appId/example/user/new'
@@ -54,6 +56,7 @@ import { Route as AppIdSystemRolesRoleIdRouteImport } from './routes/$appId/syst
 import { Route as AppIdSphereChatChatIdRouteImport } from './routes/$appId_.sphere/chat/$chatId'
 import { Route as AuthOauthProviderCallbackRouteImport } from './routes/_auth/oauth/$provider/callback'
 import { Route as AppIdExampleTableIdEditRouteImport } from './routes/$appId/example/table/$id.edit'
+import { Route as AppIdExampleTicketsIdEditRouteImport } from './routes/$appId/example/tickets/$id.edit'
 import { Route as AppIdExampleUserIdEditRouteImport } from './routes/$appId/example/user/$id.edit'
 
 const AppIdRouteRoute = AppIdRouteRouteImport.update({
@@ -216,6 +219,17 @@ const AppIdExampleTableNewRoute = AppIdExampleTableNewRouteImport.update({
   path: '/table/new',
   getParentRoute: () => AppIdExampleRouteRoute,
 } as any)
+const AppIdExampleTicketsIndexRoute =
+  AppIdExampleTicketsIndexRouteImport.update({
+    id: '/tickets/',
+    path: '/tickets/',
+    getParentRoute: () => AppIdExampleRouteRoute,
+  } as any)
+const AppIdExampleTicketsNewRoute = AppIdExampleTicketsNewRouteImport.update({
+  id: '/tickets/new',
+  path: '/tickets/new',
+  getParentRoute: () => AppIdExampleRouteRoute,
+} as any)
 const AppIdExampleUserIndexRoute = AppIdExampleUserIndexRouteImport.update({
   id: '/user/',
   path: '/user/',
@@ -285,6 +299,12 @@ const AppIdExampleTableIdEditRoute = AppIdExampleTableIdEditRouteImport.update({
   path: '/edit',
   getParentRoute: () => AppIdExampleTableIdRoute,
 } as any)
+const AppIdExampleTicketsIdEditRoute =
+  AppIdExampleTicketsIdEditRouteImport.update({
+    id: '/tickets/$id/edit',
+    path: '/tickets/$id/edit',
+    getParentRoute: () => AppIdExampleRouteRoute,
+  } as any)
 const AppIdExampleUserIdEditRoute = AppIdExampleUserIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -320,6 +340,7 @@ export interface FileRoutesByFullPath {
   '/settings/': typeof MainSettingsIndexRoute
   '/$appId/example/table/$id': typeof AppIdExampleTableIdRouteWithChildren
   '/$appId/example/table/new': typeof AppIdExampleTableNewRoute
+  '/$appId/example/tickets/new': typeof AppIdExampleTicketsNewRoute
   '/$appId/example/user/$id': typeof AppIdExampleUserIdRouteWithChildren
   '/$appId/example/user/new': typeof AppIdExampleUserNewRoute
   '/$appId/system/data-dict/$typeId': typeof AppIdSystemDataDictTypeIdRoute
@@ -330,11 +351,13 @@ export interface FileRoutesByFullPath {
   '/oauth/$provider/callback': typeof AuthOauthProviderCallbackRoute
   '/$appId/example/complex-table/': typeof AppIdExampleComplexTableIndexRoute
   '/$appId/example/table/': typeof AppIdExampleTableIndexRoute
+  '/$appId/example/tickets/': typeof AppIdExampleTicketsIndexRoute
   '/$appId/example/user/': typeof AppIdExampleUserIndexRoute
   '/$appId/system/data-dict/': typeof AppIdSystemDataDictIndexRoute
   '/$appId/system/menus/': typeof AppIdSystemMenusIndexRoute
   '/$appId/system/roles/': typeof AppIdSystemRolesIndexRoute
   '/$appId/example/table/$id/edit': typeof AppIdExampleTableIdEditRoute
+  '/$appId/example/tickets/$id/edit': typeof AppIdExampleTicketsIdEditRoute
   '/$appId/example/user/$id/edit': typeof AppIdExampleUserIdEditRoute
 }
 export interface FileRoutesByTo {
@@ -358,6 +381,7 @@ export interface FileRoutesByTo {
   '/settings': typeof MainSettingsIndexRoute
   '/$appId/example/table/$id': typeof AppIdExampleTableIdRouteWithChildren
   '/$appId/example/table/new': typeof AppIdExampleTableNewRoute
+  '/$appId/example/tickets/new': typeof AppIdExampleTicketsNewRoute
   '/$appId/example/user/$id': typeof AppIdExampleUserIdRouteWithChildren
   '/$appId/example/user/new': typeof AppIdExampleUserNewRoute
   '/$appId/system/data-dict/$typeId': typeof AppIdSystemDataDictTypeIdRoute
@@ -368,11 +392,13 @@ export interface FileRoutesByTo {
   '/oauth/$provider/callback': typeof AuthOauthProviderCallbackRoute
   '/$appId/example/complex-table': typeof AppIdExampleComplexTableIndexRoute
   '/$appId/example/table': typeof AppIdExampleTableIndexRoute
+  '/$appId/example/tickets': typeof AppIdExampleTicketsIndexRoute
   '/$appId/example/user': typeof AppIdExampleUserIndexRoute
   '/$appId/system/data-dict': typeof AppIdSystemDataDictIndexRoute
   '/$appId/system/menus': typeof AppIdSystemMenusIndexRoute
   '/$appId/system/roles': typeof AppIdSystemRolesIndexRoute
   '/$appId/example/table/$id/edit': typeof AppIdExampleTableIdEditRoute
+  '/$appId/example/tickets/$id/edit': typeof AppIdExampleTicketsIdEditRoute
   '/$appId/example/user/$id/edit': typeof AppIdExampleUserIdEditRoute
 }
 export interface FileRoutesById {
@@ -407,6 +433,7 @@ export interface FileRoutesById {
   '/_main/settings/': typeof MainSettingsIndexRoute
   '/$appId/example/table/$id': typeof AppIdExampleTableIdRouteWithChildren
   '/$appId/example/table/new': typeof AppIdExampleTableNewRoute
+  '/$appId/example/tickets/new': typeof AppIdExampleTicketsNewRoute
   '/$appId/example/user/$id': typeof AppIdExampleUserIdRouteWithChildren
   '/$appId/example/user/new': typeof AppIdExampleUserNewRoute
   '/$appId/system/data-dict/$typeId': typeof AppIdSystemDataDictTypeIdRoute
@@ -417,11 +444,13 @@ export interface FileRoutesById {
   '/_auth/oauth/$provider/callback': typeof AuthOauthProviderCallbackRoute
   '/$appId/example/complex-table/': typeof AppIdExampleComplexTableIndexRoute
   '/$appId/example/table/': typeof AppIdExampleTableIndexRoute
+  '/$appId/example/tickets/': typeof AppIdExampleTicketsIndexRoute
   '/$appId/example/user/': typeof AppIdExampleUserIndexRoute
   '/$appId/system/data-dict/': typeof AppIdSystemDataDictIndexRoute
   '/$appId/system/menus/': typeof AppIdSystemMenusIndexRoute
   '/$appId/system/roles/': typeof AppIdSystemRolesIndexRoute
   '/$appId/example/table/$id/edit': typeof AppIdExampleTableIdEditRoute
+  '/$appId/example/tickets/$id/edit': typeof AppIdExampleTicketsIdEditRoute
   '/$appId/example/user/$id/edit': typeof AppIdExampleUserIdEditRoute
 }
 export interface FileRouteTypes {
@@ -455,6 +484,7 @@ export interface FileRouteTypes {
     | '/settings/'
     | '/$appId/example/table/$id'
     | '/$appId/example/table/new'
+    | '/$appId/example/tickets/new'
     | '/$appId/example/user/$id'
     | '/$appId/example/user/new'
     | '/$appId/system/data-dict/$typeId'
@@ -465,11 +495,13 @@ export interface FileRouteTypes {
     | '/oauth/$provider/callback'
     | '/$appId/example/complex-table/'
     | '/$appId/example/table/'
+    | '/$appId/example/tickets/'
     | '/$appId/example/user/'
     | '/$appId/system/data-dict/'
     | '/$appId/system/menus/'
     | '/$appId/system/roles/'
     | '/$appId/example/table/$id/edit'
+    | '/$appId/example/tickets/$id/edit'
     | '/$appId/example/user/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -493,6 +525,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/$appId/example/table/$id'
     | '/$appId/example/table/new'
+    | '/$appId/example/tickets/new'
     | '/$appId/example/user/$id'
     | '/$appId/example/user/new'
     | '/$appId/system/data-dict/$typeId'
@@ -503,11 +536,13 @@ export interface FileRouteTypes {
     | '/oauth/$provider/callback'
     | '/$appId/example/complex-table'
     | '/$appId/example/table'
+    | '/$appId/example/tickets'
     | '/$appId/example/user'
     | '/$appId/system/data-dict'
     | '/$appId/system/menus'
     | '/$appId/system/roles'
     | '/$appId/example/table/$id/edit'
+    | '/$appId/example/tickets/$id/edit'
     | '/$appId/example/user/$id/edit'
   id:
     | '__root__'
@@ -541,6 +576,7 @@ export interface FileRouteTypes {
     | '/_main/settings/'
     | '/$appId/example/table/$id'
     | '/$appId/example/table/new'
+    | '/$appId/example/tickets/new'
     | '/$appId/example/user/$id'
     | '/$appId/example/user/new'
     | '/$appId/system/data-dict/$typeId'
@@ -551,11 +587,13 @@ export interface FileRouteTypes {
     | '/_auth/oauth/$provider/callback'
     | '/$appId/example/complex-table/'
     | '/$appId/example/table/'
+    | '/$appId/example/tickets/'
     | '/$appId/example/user/'
     | '/$appId/system/data-dict/'
     | '/$appId/system/menus/'
     | '/$appId/system/roles/'
     | '/$appId/example/table/$id/edit'
+    | '/$appId/example/tickets/$id/edit'
     | '/$appId/example/user/$id/edit'
   fileRoutesById: FileRoutesById
 }
@@ -792,6 +830,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIdExampleTableNewRouteImport
       parentRoute: typeof AppIdExampleRouteRoute
     }
+    '/$appId/example/tickets/': {
+      id: '/$appId/example/tickets/'
+      path: '/tickets'
+      fullPath: '/$appId/example/tickets/'
+      preLoaderRoute: typeof AppIdExampleTicketsIndexRouteImport
+      parentRoute: typeof AppIdExampleRouteRoute
+    }
+    '/$appId/example/tickets/new': {
+      id: '/$appId/example/tickets/new'
+      path: '/tickets/new'
+      fullPath: '/$appId/example/tickets/new'
+      preLoaderRoute: typeof AppIdExampleTicketsNewRouteImport
+      parentRoute: typeof AppIdExampleRouteRoute
+    }
     '/$appId/example/user/': {
       id: '/$appId/example/user/'
       path: '/user'
@@ -883,6 +935,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIdExampleTableIdEditRouteImport
       parentRoute: typeof AppIdExampleTableIdRoute
     }
+    '/$appId/example/tickets/$id/edit': {
+      id: '/$appId/example/tickets/$id/edit'
+      path: '/tickets/$id/edit'
+      fullPath: '/$appId/example/tickets/$id/edit'
+      preLoaderRoute: typeof AppIdExampleTicketsIdEditRouteImport
+      parentRoute: typeof AppIdExampleRouteRoute
+    }
     '/$appId/example/user/$id/edit': {
       id: '/$appId/example/user/$id/edit'
       path: '/edit'
@@ -919,22 +978,28 @@ interface AppIdExampleRouteRouteChildren {
   AppIdExampleIndexRoute: typeof AppIdExampleIndexRoute
   AppIdExampleTableIdRoute: typeof AppIdExampleTableIdRouteWithChildren
   AppIdExampleTableNewRoute: typeof AppIdExampleTableNewRoute
+  AppIdExampleTicketsNewRoute: typeof AppIdExampleTicketsNewRoute
   AppIdExampleUserIdRoute: typeof AppIdExampleUserIdRouteWithChildren
   AppIdExampleUserNewRoute: typeof AppIdExampleUserNewRoute
   AppIdExampleComplexTableIndexRoute: typeof AppIdExampleComplexTableIndexRoute
   AppIdExampleTableIndexRoute: typeof AppIdExampleTableIndexRoute
+  AppIdExampleTicketsIndexRoute: typeof AppIdExampleTicketsIndexRoute
   AppIdExampleUserIndexRoute: typeof AppIdExampleUserIndexRoute
+  AppIdExampleTicketsIdEditRoute: typeof AppIdExampleTicketsIdEditRoute
 }
 
 const AppIdExampleRouteRouteChildren: AppIdExampleRouteRouteChildren = {
   AppIdExampleIndexRoute: AppIdExampleIndexRoute,
   AppIdExampleTableIdRoute: AppIdExampleTableIdRouteWithChildren,
   AppIdExampleTableNewRoute: AppIdExampleTableNewRoute,
+  AppIdExampleTicketsNewRoute: AppIdExampleTicketsNewRoute,
   AppIdExampleUserIdRoute: AppIdExampleUserIdRouteWithChildren,
   AppIdExampleUserNewRoute: AppIdExampleUserNewRoute,
   AppIdExampleComplexTableIndexRoute: AppIdExampleComplexTableIndexRoute,
   AppIdExampleTableIndexRoute: AppIdExampleTableIndexRoute,
+  AppIdExampleTicketsIndexRoute: AppIdExampleTicketsIndexRoute,
   AppIdExampleUserIndexRoute: AppIdExampleUserIndexRoute,
+  AppIdExampleTicketsIdEditRoute: AppIdExampleTicketsIdEditRoute,
 }
 
 const AppIdExampleRouteRouteWithChildren =

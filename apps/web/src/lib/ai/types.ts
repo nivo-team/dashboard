@@ -1,4 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query'
+import type { AiCapabilityGrant } from './capabilities'
 
 /**
  * AI 工具层与运行时的公共类型。
@@ -9,32 +10,25 @@ import type { QueryClient } from '@tanstack/react-query'
  */
 
 /**
- * 工具的权限等级 —— **由工具自己声明**。
+ * 工具占用的**能力格子** —— 见 `./capabilities`（`page:read` / `data:write` / `form:submit` …）。
  *
- * - `read`：只读 —— **不改数据，也不改页面上的内容**。**导航属于这一档**：
- *   `navigate_to` 只是移动视角，「看哪里」不是「改什么」，所以只读档同样给。
- *   ⚠️ **只读 ≠ 免确认**：跳转仍归 `read`，但它会把用户带离当前页面，所以默认**要用户确认**
- *   （面板弹确认卡、全屏落建议卡，见 `AiApprovalRequest` 的 `navigate` 形态与
- *   `NAVIGATION_GRANT`）。「属于哪一档」与「要不要先问」是两个维度，别揉在一起；
- * - `act`：改变**页面上的内容**（目前只有填表），但不产生持久数据；
- * - `commit`：发起写请求（POST/PUT/DELETE、提交表单）—— 在自己的 `execute` 里
- *   `await ctx.requestApproval(...)`，用户点了「允许」才真正发请求；
- *   拿不到明确决定一律不执行（fail-closed）。
+ * 继承自 `AiCapabilityGrant` 而不是各写一份字符串：格子键是「界面勾选」与「运行时过滤」
+ * 的公共语言，任何一处写错都会让某个工具**永远发不出去**（静默失效，最难查）。
  *
- * **它不决定「能不能用」**：可用性由设置里的 AI 权限（`full` / `readonly` / `custom`）
- * 决定（见 `getAllowedTools`）；**要不要审批**由模式决定（见 `AiToolContext.mode`）。
- * 权限与模式是**正交**的两个维度 —— 早先把 `act` / `commit` 写死成「只有 auto 可用」，
- * 那让 `ask` 变成了一个连表都填不了的模式。
+ * ## 「属于哪一格」与「要不要先问」是两个维度，别揉在一起
+ *
+ * - 格子只回答「**能不能用**」（由用户在前端的 AI 权限里勾，后端权限点再收一道）；
+ * - 「**要不要先问**」由模式（`ask` / `auto`）决定，各工具在自己的 `execute` 里读
+ *   `ctx.mode` —— 见 `AiToolContext.mode`。
+ *
+ * 举例：`navigate_to` 占 `page:navigate`，它**不改任何数据**，所以只读档也放行；
+ * 但它会把用户带离当前页面，所以询问模式下仍要用户点头。早先把「只读」与「免确认」
+ * 写死在一起，于是只读档的 AI 连「带我去某页」都做不到 —— 别再退回去。
+ *
+ * 需要写请求的工具（`data:write` / `form:submit` / `page:operate`）必须在自己的
+ * `execute` 里 `await ctx.requestApproval(...)`，拿不到明确决定一律不执行（fail-closed）。
  */
-export type AiToolAccess = 'read' | 'act' | 'commit'
-
-/**
- * 工具在权限界面里的分组。
- *
- * 设置页按它折叠、显示计数；它同时是「AI 到底能做什么」对人解释时的归类 ——
- * 用户勾权限时面对的是「数据 4 项 / 表单 3 项」，不是一串工具名。
- */
-export type AiToolGroup = 'page' | 'data' | 'form'
+export type AiToolAccess = AiCapabilityGrant
 
 /** 与输入面板的模式一一对应（见 `#/lib/store` 的 `AiComposerMode`）。 */
 export type AiMode = 'ask' | 'auto'
@@ -61,7 +55,7 @@ export type AiSurface = 'panel' | 'sphere'
  *
  * - `full`：全部工具；
  * - `readonly`：只给 `read` 类；
- * - `custom`：只给用户在设置里勾选的那些（`aiAllowedTools`）。
+ * - `custom`：只给用户在设置里勾选的那些能力格子（`aiCapabilities`，见 `./capabilities`）。
  *
  * 它与 `AiMode` **正交**：权限回答「**能不能用**」，模式回答「**用起来要不要问**」。
  * 默认是 `readonly` —— AI 默认只能看，要动数据得用户自己去开。
@@ -184,6 +178,86 @@ export interface AiToolContext {
    * 计数随会话走（新建 / 切换会话归零），**不落盘**。
    */
   bumpToolCounter: (key: string) => number
+  /**
+   * **按名字取本轮真正可用的工具**（`getAllowedTools` 的产物，已过权限 / 容器 / 表单 / 后端权限点）。
+   *
+   * `manage_tasks` 的批量执行**必须**经它解析计划里的 `action.tool`：那是模型写的字符串，
+   * 万一写了一个用户没被授权的工具（例如只有 `task:plan` 却写了 `call_write_api`），
+   * 那就是实打实的**提权**。取不到就是不可用 —— 这就是批量执行的白名单。
+   *
+   * 走这个访问器而不是让 `task-tools` 直接 import 注册表，还有一个硬理由：
+   * `task-tools` ← → `tools/index` 会形成**循环 import**，模块初始化期 `AI_TOOLS`
+   * 里会混进 `undefined`（真实踩到：`findTool` 在 `AI_TOOLS.find(t => t.name)` 上抛
+   * `Cannot read properties of undefined`）。工具集由上下文注入，环就断了。
+   */
+  resolveTool: (name: string) => AiToolDefinition | undefined
+  /**
+   * 上报**批量任务的执行进度**（`manage_tasks` 每完成一步调一次）。
+   *
+   * 为什么需要它：批量计划是在**一次**工具调用内部顺序跑完的，中途不返回给模型 ——
+   * 如果不主动上报，界面在整批跑完前一直是"静止"的，用户看不到步骤在推进。
+   * 由 `chat.ts` 实现为写进会话 store 的 `liveTasks`，输入区的任务卡订阅它。
+   */
+  reportTaskProgress: (tasks: readonly TaskProgressItem[]) => void
+  /**
+   * 取**用户浏览器此刻的时间事实** —— 见 `AiTimeFacts`。
+   *
+   * 它由浏览器（而不是模型或服务端）提供，因为只有浏览器知道：用户此刻真实的本地时间、
+   * 操作系统时区、以及用户在本系统「外观」里选的展示时区。模型据此把「最近 3 天」
+   * 这类相对时间换算成接口需要的绝对时间戳或 ISO 串。
+   */
+  getTimeFacts: () => AiTimeFacts
+}
+
+/** 任务推进中的一项（`manage_tasks` 逐步上报，见 `AiToolContext.reportTaskProgress`）。 */
+export interface TaskProgressItem {
+  id: string
+  title: string
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled'
+  /** 该步的结果摘要（完成 / 失败后回填） */
+  result?: string
+}
+
+/**
+ * **当前时间事实** —— 由浏览器采集，供模型做相对时间换算。
+ *
+ * ## 为什么必须由浏览器给
+ *
+ * 模型的训练数据只到某个时间点，它**永远不知道"现在"**；服务端（Worker）跑在 UTC、
+ * 也不知道用户装的时区。只有浏览器同时掌握三件事：
+ * - `nowUtc` / `nowIso`：此刻的绝对时间（用于「最近 24 小时」这类窗口的边界计算）；
+ * - `browserTimeZone`：操作系统时区（`Intl.DateTimeFormat().resolvedOptions().timeZone`）；
+ * - `displayTimeZone` + 偏移标签：用户在「外观 → 时区」里选的展示时区（全站时间格式化用它）。
+ *
+ * ## 三个时间字段的分工（别混）
+ *
+ * | 字段 | 形如 | 用途 |
+ * |---|---|---|
+ * | `nowUtc` | `2026-10-05T08:00:00.000Z` | **给接口/后端用**：绝对时刻，与时区无关 |
+ * | `nowLocal` | `2026-10-05 16:00:00` | **给人的界面看**：已在 `displayTimeZone` 下格式化 |
+ * | `dayOfWeekLocal` | `星期日` | 已按展示时区换算 —— 模型自己算星期几容易错一天 |
+ *
+ * 接口要的多是**秒级时间戳**（如 `/user` 的 `createtime_min`），所以额外给 `nowUnixSeconds`。
+ */
+export interface AiTimeFacts {
+  /** 绝对时刻，UTC ISO 8601（毫秒精度） */
+  nowIso: string
+  /** 秒级 Unix 时间戳（接口筛选参数常用这个单位） */
+  nowUnixSeconds: number
+  /** 绝对时刻，UTC 格式化（`YYYY-MM-DD HH:mm:ss`），不含偏移 */
+  nowUtc: string
+  /** 在**展示时区**下格式化的本地时间（`YYYY-MM-DD HH:mm:ss`） */
+  nowLocal: string
+  /** 浏览器（操作系统）时区 IANA 名，如 `Asia/Shanghai` */
+  browserTimeZone: string
+  /** 用户在本系统选择的展示时区 IANA 名（全站时间格式化用它） */
+  displayTimeZone: string
+  /** 展示时区的偏移标签，如 `GMT+8` / `UTC` */
+  displayTimeZoneOffset: string
+  /** 展示时区下的星期几（`星期日`…），已本地化 */
+  dayOfWeekLocal: string
+  /** 展示时区下的今天日期 `YYYY-MM-DD`，便于模型按"今天/昨天"取区间 */
+  todayLocal: string
 }
 
 /**
@@ -229,9 +303,13 @@ export interface AiToolDefinition<Input = Record<string, unknown>> {
    */
   execution?: boolean
   inputSchema: Record<string, unknown>
-  access: AiToolAccess
-  /** 权限界面里的分组（页面 / 数据 / 表单）：设置页按它折叠、计数 */
-  group: AiToolGroup
+  /**
+   * 这个工具占用的**能力格子**（`page:read` / `data:write` / `form:submit` …）。
+   *
+   * 它就是「这一项由哪个勾选放行」的答案：设置页勾上这个格子 → 运行时把这个工具交给模型。
+   * 格子键的清单（以及每一格放行到什么程度）在 `./capabilities`，**不要**在这里另立枚举。
+   */
+  capability: AiToolAccess
   /**
    * 必须**全部**具备的权限点（AND）。空 / 不声明 = 人人可用（例如纯上下文工具）。
    *

@@ -30,8 +30,7 @@ export const requestPermissionTool: AiToolDefinition = {
     required: ['action', 'reason'],
     additionalProperties: false,
   },
-  access: 'act',
-  group: 'page',
+  capability: 'task:grant',
   execute: async (input, ctx) => {
     const action = (input as { action?: string }).action || 'form'
     const reason = (input as { reason?: string }).reason || '执行自动化操作'

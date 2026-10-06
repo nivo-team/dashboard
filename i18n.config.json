@@ -1,20 +1,46 @@
 {
   "sourceLocale": "zh-CN",
-  "targetLocales": ["ar-SA"],
+  "targetLocales": [
+    "ar-SA"
+  ],
   "messagesDir": "apps/web/src/messages",
   "generatedTypesFile": "apps/web/src/i18n-keys.gen.ts",
   "glossaryFile": "i18n.glossary.json",
   "modules": {
-    "ai": { "enabled": true },
-    "auth": { "enabled": true },
-    "common": { "enabled": true },
-    "dashboard": { "enabled": true },
-    "dataDict": { "enabled": true },
-    "langs": { "enabled": false, "reason": "仅 zh-CN 的遗留命名空间，待确认后删除" },
-    "menus": { "enabled": true },
-    "roles": { "enabled": true },
-    "system": { "enabled": true },
-    "users": { "enabled": true }
+    "ai": {
+      "enabled": true
+    },
+    "auth": {
+      "enabled": true
+    },
+    "common": {
+      "enabled": true
+    },
+    "dashboard": {
+      "enabled": true
+    },
+    "dataDict": {
+      "enabled": true
+    },
+    "langs": {
+      "enabled": false,
+      "reason": "仅 zh-CN 的遗留命名空间，待确认后删除"
+    },
+    "menus": {
+      "enabled": true
+    },
+    "roles": {
+      "enabled": true
+    },
+    "system": {
+      "enabled": true
+    },
+    "users": {
+      "enabled": true
+    },
+    "tickets": {
+      "enabled": true
+    }
   },
   "cache": {
     "dir": ".cache/i18n",

@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteDataDictByIdData, DeleteDataDictByIdResponses, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponses, DeleteRoleByIdData, DeleteRoleByIdResponses, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponses, DeleteUserByIdData, DeleteUserByIdResponses, GetApiData, GetApiResponses, GetAppsData, GetAppsResponses, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponses, GetDataDictResponses, GetDataDictTypeTreeData, GetDataDictTypeTreeResponses, GetMenusNavigationData, GetMenusNavigationResponses, GetPermissionsData, GetPermissionsResponses, GetProfileData, GetProfileResponses, GetRoleByIdData, GetRoleByIdResponses, GetRoleData, GetRoleMenusData, GetRoleMenusResponses, GetRoleResponses, GetSystemMenuTreeData, GetSystemMenuTreeResponses, GetUserByIdData, GetUserByIdResponses, GetUserData, GetUserResponses, PostDataDictData, PostDataDictResponses, PostDataDictTypeData, PostDataDictTypeResponses, PostLoginData, PostLoginResponses, PostLogoutData, PostLogoutResponses, PostRoleData, PostRoleResponses, PostSystemMenuData, PostSystemMenuResponses, PostUserBatchDeleteData, PostUserBatchDeleteResponses, PostUserData, PostUserResponses, PutDataDictData, PutDataDictResponses, PutDataDictTypeData, PutDataDictTypeResponses, PutRoleData, PutRoleMenusData, PutRoleMenusResponses, PutRoleResponses, PutSystemMenuData, PutSystemMenuResponses, PutUserData, PutUserResponses } from './types.gen';
+import type { DeleteDataDictByIdData, DeleteDataDictByIdResponses, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponses, DeleteRoleByIdData, DeleteRoleByIdResponses, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponses, DeleteTicketByIdData, DeleteTicketByIdResponses, DeleteUserByIdData, DeleteUserByIdResponses, GetApiData, GetApiResponses, GetAppsData, GetAppsResponses, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponses, GetDataDictResponses, GetDataDictTypeTreeData, GetDataDictTypeTreeResponses, GetMenusNavigationData, GetMenusNavigationResponses, GetPermissionsData, GetPermissionsResponses, GetProfileData, GetProfileResponses, GetRoleByIdData, GetRoleByIdResponses, GetRoleData, GetRoleMenusData, GetRoleMenusResponses, GetRoleResponses, GetSystemMenuTreeData, GetSystemMenuTreeResponses, GetTicketByIdData, GetTicketByIdResponses, GetTicketData, GetTicketResponses, GetUserByIdData, GetUserByIdResponses, GetUserData, GetUserResponses, PatchTicketByIdStatusData, PatchTicketByIdStatusResponses, PostDataDictData, PostDataDictResponses, PostDataDictTypeData, PostDataDictTypeResponses, PostLoginData, PostLoginResponses, PostLogoutData, PostLogoutResponses, PostRoleData, PostRoleResponses, PostSystemMenuData, PostSystemMenuResponses, PostTicketData, PostTicketResponses, PostUserBatchDeleteData, PostUserBatchDeleteResponses, PostUserData, PostUserResponses, PutDataDictData, PutDataDictResponses, PutDataDictTypeData, PutDataDictTypeResponses, PutRoleData, PutRoleMenusData, PutRoleMenusResponses, PutRoleResponses, PutSystemMenuData, PutSystemMenuResponses, PutTicketData, PutTicketResponses, PutUserData, PutUserResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -222,6 +222,57 @@ export const putSystemMenu = <ThrowOnError extends boolean = false>(options: Opt
  * 获取功能菜单树（顶层节点数组，后代嵌在 children 中）
  */
 export const getSystemMenuTree = <ThrowOnError extends boolean = false>(options?: Options<GetSystemMenuTreeData, ThrowOnError>): RequestResult<GetSystemMenuTreeResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetSystemMenuTreeResponses, unknown, ThrowOnError>({ url: '/system/menu/tree', ...options });
+
+/**
+ * 根据 ID 删除单个工单（不提供批量删除接口）
+ */
+export const deleteTicketById = <ThrowOnError extends boolean = false>(options: Options<DeleteTicketByIdData, ThrowOnError>): RequestResult<DeleteTicketByIdResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteTicketByIdResponses, unknown, ThrowOnError>({ url: '/ticket/{id}', ...options });
+
+/**
+ * 根据工单 ID 查询详情
+ */
+export const getTicketById = <ThrowOnError extends boolean = false>(options: Options<GetTicketByIdData, ThrowOnError>): RequestResult<GetTicketByIdResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetTicketByIdResponses, unknown, ThrowOnError>({ url: '/ticket/{id}', ...options });
+
+/**
+ * 变更单条工单的状态
+ */
+export const patchTicketByIdStatus = <ThrowOnError extends boolean = false>(options: Options<PatchTicketByIdStatusData, ThrowOnError>): RequestResult<PatchTicketByIdStatusResponses, unknown, ThrowOnError> => (options.client ?? client).patch<PatchTicketByIdStatusResponses, unknown, ThrowOnError>({
+    url: '/ticket/{id}/status',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 工单分页列表，支持关键词、状态/优先级/分类筛选与服务端排序
+ */
+export const getTicket = <ThrowOnError extends boolean = false>(options?: Options<GetTicketData, ThrowOnError>): RequestResult<GetTicketResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetTicketResponses, unknown, ThrowOnError>({ url: '/ticket', ...options });
+
+/**
+ * 新建工单
+ */
+export const postTicket = <ThrowOnError extends boolean = false>(options: Options<PostTicketData, ThrowOnError>): RequestResult<PostTicketResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostTicketResponses, unknown, ThrowOnError>({
+    url: '/ticket',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 更新单条工单（标题 / 描述 / 优先级 / 负责人 / 分类）
+ */
+export const putTicket = <ThrowOnError extends boolean = false>(options: Options<PutTicketData, ThrowOnError>): RequestResult<PutTicketResponses, unknown, ThrowOnError> => (options.client ?? client).put<PutTicketResponses, unknown, ThrowOnError>({
+    url: '/ticket',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * 用户分页列表，支持关键词、多字段精确/范围筛选与服务端排序

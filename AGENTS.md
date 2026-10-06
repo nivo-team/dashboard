@@ -69,6 +69,7 @@ pnpm i18n:types       # 重新生成 i18n 键类型（改了 zh-CN.json 后跑�
 | 改菜单管理（菜单树）/ 角色管理 | [features-module.md](./.agents/docs/features-module.md)（术语已从「功能」改为**目录 / 菜单 / 操作**；菜单与角色数据模型见 [apps/mock/README.md](./apps/mock/README.md)） |
 | 改数据字典分类 | [data-dict-module.md](./.agents/docs/data-dict-module.md) |
 | **改任何 AI 代码** | [ai-architecture.md](./.agents/docs/ai-architecture.md)（架构 / 数据流 / 扩展点 / 踩过的坑）· [ai-integration.md](./.agents/docs/ai-integration.md)（设计蓝图） |
+| **加/改 AI 工具、AI 权限粒度、批量任务编排** | [ai-architecture.md](./.agents/docs/ai-architecture.md) §3.1（能力矩阵）· §7.1（Todo 编排）· 清单 [ai-module-inventory.md](./.agents/docs/ai-module-inventory.md) §6 |
 | **改 AI 开发流水线 / issue 模板 / CI 门控** | [docs/ai-dev-pipeline.md](./docs/ai-dev-pipeline.md)（触发层 + 执行层 + 门控层，含标签状态机与铁律对应表） |
 | 想知道「当初为什么这么选」 | [docs/](./docs/README.md)（调研与设计记录，相对稳定） |
 | 要跑校验 | skill **`verify`** —— **只有使用者点名时才跑** |

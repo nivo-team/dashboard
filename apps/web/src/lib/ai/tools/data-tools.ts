@@ -102,8 +102,7 @@ export const searchApiTool: AiToolDefinition = {
     required: ['keyword'],
     additionalProperties: false,
   },
-  access: 'read',
-  group: 'data',
+  capability: 'data:query',
   execute: async (input, ctx) => {
     const keyword = typeof input.keyword === 'string' ? input.keyword.trim().toLowerCase() : ''
     if (!keyword) throw new Error('缺少检索关键词')
@@ -159,8 +158,7 @@ export const callReadApiTool: AiToolDefinition = {
     required: ['path'],
     additionalProperties: false,
   },
-  access: 'read',
-  group: 'data',
+  capability: 'data:query',
   // 通用读通道：只要能读**任一**模块就放行；具体接口的权限在执行时按模块再校验
   requiredPermissionsAny: ['*:read'],
   execute: async (input, ctx) => {
@@ -221,8 +219,7 @@ export const listDictOptionsTool: AiToolDefinition = {
     },
     additionalProperties: false,
   },
-  access: 'read',
-  group: 'data',
+  capability: 'data:query',
   execute: async (input, ctx) => {
     const data = await ctx.queryClient.fetchQuery({
       ...getDataDictOptionsQueryOptions(),
@@ -346,8 +343,7 @@ export const callWriteApiTool: AiToolDefinition = {
     required: ['path', 'method'],
     additionalProperties: false,
   },
-  access: 'commit',
-  group: 'data',
+  capability: 'data:write',
   // 通用写通道：需要**任一**写权限；精确到接口的校验在执行时做，后端再按身份兜底
   requiredPermissionsAny: ['*:create', '*:edit', '*:update', '*:delete', '*:write'],
   execute: async (input, ctx) => {

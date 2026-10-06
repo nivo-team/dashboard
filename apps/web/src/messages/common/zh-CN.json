@@ -144,39 +144,9 @@
         "custom": "自定义"
       },
       "aiPermissionModeHints": {
-        "readonly": "只能查看与读取：看页面数据、查接口、列导航；不能填表、提交或调用写接口",
-        "full": "可以使用全部工具：填表、提交、调用写接口；写操作每一次仍会请你确认",
-        "custom": "逐项勾选 AI 能用的工具。只读与完全访问由上方档位决定，切到「自定义」才能逐项调整"
-      },
-      "aiToolGroups": {
-        "page": "页面",
-        "data": "数据",
-        "form": "表单"
-      },
-      "aiToolGroupHints": {
-        "page": "读取当前页面、列出导航、跳转",
-        "data": "查接口、读数据；写接口每次都会请你确认",
-        "form": "读取页面表单、填写、提交"
-      },
-      "aiToolNames": {
-        "get_page_context": "读取页面上下文",
-        "list_navigation": "列出导航菜单",
-        "navigate_to": "跳转到页面",
-        "search_api": "搜索接口",
-        "call_read_api": "调用读接口",
-        "list_dict_options": "读取字典选项",
-        "call_write_api": "调用写接口",
-        "list_page_forms": "列出页面表单",
-        "fill_form": "填写表单",
-        "submit_form": "提交表单",
-        "get_page_data": "读取页面数据",
-        "update_search_params": "更新筛选参数",
-        "manage_tasks": "管理任务清单",
-        "request_permission": "申请操作权限",
-        "open_form": "打开表单",
-        "run_page_command": "执行页面操作",
-        "check_result_match": "核对数据匹配",
-        "analyze_data": "统计分析数据"
+        "readonly": "只能查看与读取：看页面数据、查接口、列导航、读表单、编排任务；不能填表、提交或调用写接口",
+        "full": "放行全部能力：填表、提交、调用写接口；写操作每一次仍会请你确认",
+        "custom": "逐项勾选 AI 能用的能力。切到「自定义」才能逐格调整"
       },
       "aiOutputLanguage": "输出语言",
       "aiOutputLanguageHint": "AI 用什么语言回答；默认跟随界面语言",
@@ -190,7 +160,43 @@
         "split": "分屏协同",
         "page": "独立页面"
       },
-      "currentApp": "当前应用："
+      "currentApp": "当前应用：",
+      "aiCapabilityRows": {
+        "page": "页面",
+        "data": "数据",
+        "form": "表单",
+        "task": "任务"
+      },
+      "aiCapabilityRowHints": {
+        "page": "与当前页面有关的能力：看懂自己在哪里、把界面带到别的页面、执行页面自己的操作",
+        "data": "绕过页面、直接与后端接口打交道的能力",
+        "form": "页面表单的三段能力：看清结构、替你填好、提交入库",
+        "task": "多步骤 / 批量任务的编排与推进"
+      },
+      "aiCapabilityActions": {
+        "page:read": "读取",
+        "page:navigate": "跳转",
+        "page:operate": "操作",
+        "data:query": "查询",
+        "data:write": "修改",
+        "form:read": "读取",
+        "form:update": "更新",
+        "form:submit": "提交",
+        "task:plan": "编排",
+        "task:grant": "授权"
+      },
+      "aiCapabilityActionHints": {
+        "page:read": "读取当前位置、当前时间、这一页用到的接口与已加载的数据；也能按描述检索后台有哪些页面",
+        "page:navigate": "把界面带到后台里的另一个页面（不改任何数据，但仍会按模式确认）",
+        "page:operate": "执行页面自己提供的操作（新建 / 删除 / 批量处理 / 导出）；有副作用的会先请你确认",
+        "data:query": "调只读接口取数，支持把多个页面的数据聚合成一份统计；也可做分析与存在性核对",
+        "data:write": "调写入接口新增 / 修改 / 删除数据；每一次都会弹确认卡，删除不可撤销",
+        "form:read": "读取页面上表单的结构与字段定义",
+        "form:update": "打开表单并替你把字段填好（只改页面上的内容，尚未入库）",
+        "form:submit": "把填好的表单提交入库（会写入真实数据）",
+        "task:plan": "把一批操作编排成任务清单，一次性生成整组步骤并由客户端顺序执行完，再把结果交回 AI 总结",
+        "task:grant": "在继续上一轮任务前，主动向你申请所需的操作授权"
+      }
     },
     "loadError": "资料接口暂不可用，当前展示本地登录信息",
     "sections": {
@@ -233,7 +239,8 @@
     "example": "示例",
     "tableExample": "表格示例",
     "tableExampleDetail": "表格示例详情",
-    "complexTable": "复杂表格"
+    "complexTable": "复杂表格",
+    "tickets": "工单管理"
   },
   "notFound": {
     "backHome": "返回首页",

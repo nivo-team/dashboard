@@ -1,4 +1,6 @@
 import { isToolGranted } from '../tool-permission'
+import type { AiCapabilityGrant } from '../capabilities'
+import { presetCapabilityGrants } from '../capabilities'
 import type { AiPermissionMode, AiSurface, AiToolDefinition } from '../types'
 import {
   callReadApiTool,
@@ -19,17 +21,22 @@ import { requestPermissionTool } from './permission-tools'
 import { updateSearchParamsTool } from './search-tools'
 import { checkResultMatchTool } from './check-result-match-tool'
 import { analyzeDataTool } from './analyze-tool'
+import { getCurrentTimeTool, reloadPageDataTool } from './time-tools'
+import { searchPagesTool } from './catalog-tools'
 
 /**
  * 工具注册表 —— 「AI 能做什么」的**唯一真值**。
  *
- * 加一个工具 = 写一个 `AiToolDefinition`（名字 / 描述 / JSON Schema / access / execute）
+ * 加一个工具 = 写一个 `AiToolDefinition`（名字 / 描述 / JSON Schema / capability / execute）
  * 然后加到这个数组里，**不要**在运行时或 UI 里再维护一份名单：
  * 权限过滤、给模型的定义、执行时的查找都从这里来。
  */
 export const AI_TOOLS: readonly AiToolDefinition[] = [
   getPageContextTool,
+  searchPagesTool,
+  getCurrentTimeTool,
   getPageDataTool,
+  reloadPageDataTool,
   listNavigationTool,
   searchApiTool,
   callReadApiTool,
@@ -49,28 +56,27 @@ export const AI_TOOLS: readonly AiToolDefinition[] = [
 ]
 
 /**
- * 权限档 → **一组工具名**。
+ * 权限档 → **一组能力格子**。
  *
- * 三档本质是同一件事：**一份勾选清单**。
- * - `full`：全选；
- * - `readonly`：**预设**勾了那几个只读工具（它不是一条特殊分支，只是一组预设的勾）；
+ * 三档本质是同一件事：**一份格子勾选集**。
+ * - `full`：全部格子；
+ * - `readonly`：**预设**勾了那几个只读格子（它不是一条特殊分支，只是一组预设的勾）；
  * - `custom`：用户自己勾的。
  *
- * 把它显式化成"一组名字"有实际好处：界面上能如实显示「只读 = 勾了这 7 项」，
+ * 把它显式化成"一组格子"有实际好处：界面上能如实显示「只读 = 勾了这几格」，
  * 用户从只读切到自定义时也能**从当前这组继续改**，而不是清空重来。
  *
- * 返回的是注册表里确实存在的名字（`custom` 里可能残留已下线的工具名，在这里剔掉）。
+ * 返回的是矩阵里确实存在的格子（`custom` 里可能残留已下线的格子，在这里剔掉）。
  */
-export function resolveAllowedToolNames(
+export function resolveAllowedGrants(
   permission: AiPermissionMode,
-  customTools: readonly string[] = [],
-): string[] {
-  const all = AI_TOOLS.map((tool) => tool.name)
-  if (permission === 'full') return all
-  if (permission === 'readonly') {
-    return AI_TOOLS.filter((tool) => tool.access === 'read').map((tool) => tool.name)
+  customGrants: readonly string[] = [],
+): AiCapabilityGrant[] {
+  if (permission === 'readonly' || permission === 'full') {
+    return presetCapabilityGrants(permission)
   }
-  return customTools.filter((name) => all.includes(name))
+  const known = new Set<string>(presetCapabilityGrants('full'))
+  return customGrants.filter((grant): grant is AiCapabilityGrant => known.has(grant))
 }
 
 /**
@@ -86,14 +92,16 @@ export function resolveAllowedToolNames(
  */
 /**
  * **依赖「当前挂载了业务页面」的工具** —— 全屏对话页里没有页面，它们调用只会拿到一句报错
- * （`get_page_data` / `run_page_command` 读页面特性注册表，`update_search_params` 要表格调度器，
- * `check_result_match` / `analyze_data` 读页面数据源），白费一次往返。
+ * （`get_page_data` / `reload_page_data` / `run_page_command` 读页面特性注册表，
+ * `update_search_params` 要表格调度器，`check_result_match` / `analyze_data` 读页面数据源），
+ * 白费一次往返。
  *
  * 收成一处真值：以后有新的"页面绑定"工具，加到这个数组即可 —— 不要在过滤里再写一串 `||`。
  */
 const PAGE_BOUND_TOOLS: readonly string[] = [
   'update_search_params',
   'get_page_data',
+  'reload_page_data',
   'run_page_command',
   'check_result_match',
   'analyze_data',
@@ -101,7 +109,7 @@ const PAGE_BOUND_TOOLS: readonly string[] = [
 
 export function getAllowedTools(
   permission: AiPermissionMode,
-  customTools: readonly string[] = [],
+  customGrants: readonly string[] = [],
   options: {
     hasForms?: boolean
     surface?: AiSurface
@@ -109,9 +117,9 @@ export function getAllowedTools(
     permissions?: readonly string[]
   } = {},
 ): AiToolDefinition[] {
-  const allowed = new Set(resolveAllowedToolNames(permission, customTools))
+  const allowed = new Set(resolveAllowedGrants(permission, customGrants))
   return AI_TOOLS.filter((tool) => {
-    if (!allowed.has(tool.name)) return false
+    if (!allowed.has(tool.capability)) return false
 
     /*
       权限点过滤 —— **在把工具交给模型之前**的第一道闸。
@@ -120,16 +128,16 @@ export function getAllowedTools(
     */
     if (options.permissions && !isToolGranted(tool, options.permissions)) return false
     /*
-      页面上**一张表单都没有**时，表单组那三个工具（列出 / 填写 / 提交）纯属占位 ——
+      页面上**一张表单都没有**时，表单组那几个工具（读取 / 打开 / 填写 / 提交）纯属占位 ——
       而它们的定义（描述 + JSON Schema）是**每一轮都要发**的固定开销。
       权限档已经把范围说清楚了，这里只是再省掉一组明知用不上的定义。
 
       传 `undefined` 表示"不知道"，那就照旧全给（宁多勿缺）。
     */
-    if (options.hasForms === false && tool.group === 'form') return false
+    if (options.hasForms === false && tool.capability.startsWith('form:')) return false
     /*
       **容器的过滤点**（`AiSurface`）：全屏对话页里没有挂载的业务页面，
-      这三样"只对当前页面成立"的工具不发给模型：
+      这几样"只对当前页面成立"的工具不发给模型：
       - `update_search_params` 依赖页面表格注册的调度器（`useTableQuery` → `search-params-bridge`），
         在全屏里调用只会走兜底分支、把参数拼到 `/$appId/sphere` 自己的 URL 上 —— 原地打转、
         既没用又会让模型以为"筛选已生效"；
@@ -207,7 +215,7 @@ export interface AiToolSelection {
 
 export interface ResolveToolsOptions {
   permission: AiPermissionMode
-  customTools: readonly string[]
+  customGrants: readonly string[]
   hasForms?: boolean
   surface?: AiSurface
   /** 后端权限点；不传表示不按权限点过滤（与 `getAllowedTools` 同义） */
@@ -230,7 +238,7 @@ export function resolveTools(
   selectedNames: readonly string[],
   options: ResolveToolsOptions,
 ): AiToolSelection {
-  const allowed = getAllowedTools(options.permission, options.customTools, {
+  const allowed = getAllowedTools(options.permission, options.customGrants, {
     hasForms: options.hasForms,
     surface: options.surface,
     permissions: options.permissions,
@@ -293,23 +301,20 @@ export function resolveTools(
   }
 
   /*
-    多任务与批量操作智能补齐：
-    当用户或 Router 发起了数据写入或表单意图时，若当前权限允许（available），
-    自动补齐 `manage_tasks`（任务清单管理）与 `call_write_api`（直接写接口能力），
-    确保执行阶段能够顺利开展多任务管理与批量提交，杜绝工具缺失导致的退缩推脱。
+    多任务编排的确定性补齐：只要这一轮**选中了任何会改动数据的能力**
+    （写接口 / 表单提交 / 页面指令），就把 `manage_tasks` 一并给上 —— 即便模型忘了选它。
+
+    为什么值得在这个"确定性"层做：批量任务（尤其是后端没有批量接口、只能逐条调用的场景）
+    离开任务清单就会变成"一串各自为政的调用"，模型中途断掉就没人知道还剩几件没做。
+    清单是**顺序推进 + 结果回传**的载体，属于基础设施而不是可选装饰。
   */
-  const hasWriteOrFormIntent = selected.some((name) =>
-    ['open_form', 'fill_form', 'submit_form', 'call_write_api', 'run_page_command'].includes(name),
-  )
-  if (hasWriteOrFormIntent) {
-    if (available.has('manage_tasks') && !handled.has('manage_tasks')) {
-      handled.add('manage_tasks')
-      addedByDependency.push('manage_tasks')
-    }
-    if (available.has('call_write_api') && !handled.has('call_write_api')) {
-      handled.add('call_write_api')
-      addedByDependency.push('call_write_api')
-    }
+  const hasWriteIntent = selected.some((name) => {
+    const capability = findTool(name)?.capability
+    return capability === 'data:write' || capability === 'form:submit' || capability === 'page:operate'
+  })
+  if (hasWriteIntent && available.has('manage_tasks') && !handled.has('manage_tasks')) {
+    handled.add('manage_tasks')
+    addedByDependency.push('manage_tasks')
   }
 
   const wanted = new Set([...selected, ...addedByDependency])
@@ -325,3 +330,5 @@ export function resolveTools(
 export * from './data-tools'
 export * from './page-tools'
 export * from './select-tools'
+export * from './catalog-tools'
+export * from './time-tools'

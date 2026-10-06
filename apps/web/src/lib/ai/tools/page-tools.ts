@@ -1,5 +1,7 @@
 import i18n from '#/lib/i18n'
 import { ALL_NAV_TARGETS } from '#/lib/navigation'
+import type { AiPageCatalogEndpoint } from '../page-catalog'
+import { findPageCatalogEntry } from '../page-catalog'
 import { describeEndpointParams, findEndpointSpec } from '../endpoint-specs'
 import { getAiShellBridge, getPageContext, resolveNavLabel } from '../page-context'
 import { resolveActivePageCapabilities } from '../page-capabilities'
@@ -95,18 +97,39 @@ export function isAllowedPath(path: string, appId: string | null): boolean {
 
 export const getPageContextTool: AiToolDefinition = {
   name: 'get_page_context',
-  catalogDescription: '获取当前页面与接口信息',
+  catalogDescription: '获取当前页面或指定页面的接口信息',
   description:
-    '读取用户此刻所在页面：地址、应用、页面名称与标题，以及该页面用到的接口和参数明细（参数名 / 位置 / 是否必填）。查数据或调接口前先调用它，接口路径以返回为准、不要猜测。',
-  inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-  access: 'read',
-  group: 'page',
-  execute: async () => {
-    const context = getPageContext()
+    '读取页面用到的接口和参数明细（参数名 / 位置 / 是否必填）。不传 path 时读用户此刻所在页面；传 path（来自 search_pages / list_navigation）则读**指定页面**——跨页面统计时用它逐页拿接口，不必真的跳过去。查数据或调接口前先调用它，接口路径与参数以返回为准、不要猜测。',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      path: {
+        type: 'string',
+        description:
+          '可选。要读取的页面路径（相对 appId，如 /system/roles），取自 search_pages 或 list_navigation；不传则读当前所在页面。',
+      },
+    },
+    additionalProperties: false,
+  },
+  capability: 'page:read',
+  execute: async (input, ctx) => {
+    const requested = typeof input.path === 'string' ? input.path.trim() : ''
+
+    /*
+      指定了 path 就**读那一页**（跨页面聚合的入口）：按目录项反查，
+      都取不到时如实说明"这一页没有登记接口"。
+
+      上下文一律经 `ctx.getPageContext()` 取（与 `get_page_data` / `run_page_command` 一致）——
+      不要直接调模块级的 `getPageContext()`：两者在生产里同源，但工具层统一走 ctx
+      才能在非浏览器环境（自检 / 测试）里注入一份可控快照。
+    */
+    const context = ctx.getPageContext()
+    if (requested) return readRequestedPage(requested, context.appId)
+
     const capabilities = resolveActivePageCapabilities(context.routePath)
     const page = capabilities || resolveAiPageContext(context.routePath)
     // 页面没声明上下文就只给基础信息 —— 不编造「这个页面大概会用到什么」
-    if (!page) return context
+    if (!page) return { ...context, note: PAGE_NOT_DECLARED }
 
     return {
       ...context,
@@ -116,24 +139,79 @@ export const getPageContextTool: AiToolDefinition = {
         ...(page.forms?.length ? { forms: page.forms } : {}),
         ...(capabilities?.actions?.length ? { actions: capabilities.actions } : {}),
         ...(capabilities?.searchParams ? { searchParams: capabilities.searchParams } : {}),
-        endpoints: await Promise.all(
-          (page.endpoints ?? []).map(async (ref) => {
-            const spec = await findEndpointSpec(ref.method, ref.path)
-            const params = describeEndpointParams(spec)
-            return {
-              method: ref.method,
-              path: ref.path,
-              // purpose 是本页面视角的用途，比接口自己的 summary 更贴合当前场景
-              ...(ref.purpose ? { purpose: ref.purpose } : {}),
-              ...(spec?.summary ? { summary: spec.summary } : {}),
-              // 参数明细：**模型最常错的三个信息**（名字 / 位置 / 是否必填）都在这一行里
-              ...(params ? { params } : {}),
-            }
-          }),
-        ),
+        endpoints: await describeEndpoints(page.endpoints ?? []),
       },
     }
   },
+}
+
+/** 页面没登记接口时的统一说明（两条分支共用，避免措辞分叉）。 */
+const PAGE_NOT_DECLARED =
+  '这一页没有向 AI 登记接口与字段。若需要取数，请用 search_api + call_read_api 按模块检索接口。'
+
+/** 按页面路径读取**指定页面**（来自 `search_pages` / `list_navigation`）。 */
+async function readRequestedPage(requested: string, appId: string | null): Promise<unknown> {
+  const entry = findPageCatalogEntry(normalizeCatalogPath(requested, appId))
+  const page = entry ?? undefined
+
+  if (!page) {
+    return {
+      requested,
+      found: false,
+      note: `页面目录里没有「${requested}」。请先用 search_pages 按功能描述检索出准确的路径，不要猜路径。`,
+    }
+  }
+
+  return {
+    found: true,
+    path: page.path,
+    title: page.title,
+    description: page.desc,
+    ...(page.entities?.length ? { entities: page.entities } : {}),
+    ...(page.permission ? { permission: page.permission } : {}),
+    endpoints: await describeEndpoints(page.endpoints ?? []),
+    note: '这是**指定页面**的接口清单（参数明细已补）。可直接按它调 call_read_api 取数；要真正打开这一页用 navigate_to。',
+  }
+}
+
+/**
+ * 路径归一化：目录里存的是 `/example/table`（**相对 appId**），
+ * 而模型可能给出带 appId 的绝对路径（`/app1/example/table`）或带尾斜杠的形式。
+ * 三者都收敛到目录里的形态，避免因为一个前缀就查不到。
+ *
+ * `appId` **由调用方传入**（取 `getPageContext()` 的那一份）：函数内部再去读一次
+ * 模块级上下文，既多算一遍，也会在测试 / 非浏览器环境里读到与调用方不同的快照。
+ */
+function normalizeCatalogPath(path: string, appId: string | null): string {
+  let normalized = path.trim()
+  if (appId && normalized.startsWith(`/${appId}/`)) {
+    normalized = normalized.slice(appId.length + 1)
+  }
+  if (normalized.length > 1 && normalized.endsWith('/')) {
+    normalized = normalized.slice(0, -1)
+  }
+  return normalized.startsWith('/') ? normalized : `/${normalized}`
+}
+
+/** 把接口引用补成带参数明细的一行（`get_page_context` 两处共用）。 */
+async function describeEndpoints(
+  refs: readonly AiPageCatalogEndpoint[],
+): Promise<unknown[]> {
+  return Promise.all(
+    refs.map(async (ref) => {
+      const spec = await findEndpointSpec(ref.method, ref.path)
+      const params = describeEndpointParams(spec)
+      return {
+        method: ref.method,
+        path: ref.path,
+        // purpose 是本页面视角的用途，比接口自己的 summary 更贴合当前场景
+        ...(ref.purpose ? { purpose: ref.purpose } : {}),
+        ...(spec?.summary ? { summary: spec.summary } : {}),
+        // 参数明细：**模型最常错的三个信息**（名字 / 位置 / 是否必填）都在这一行里
+        ...(params ? { params } : {}),
+      }
+    }),
+  )
 }
 
 export const listNavigationTool: AiToolDefinition = {
@@ -150,8 +228,7 @@ export const listNavigationTool: AiToolDefinition = {
     },
     additionalProperties: false,
   },
-  access: 'read',
-  group: 'page',
+  capability: 'page:read',
   execute: async (input) => {
     const keyword = typeof input.keyword === 'string' ? input.keyword.trim().toLowerCase() : ''
     const entries = collectNavigation(getPageContext().appId)
@@ -219,8 +296,7 @@ export const navigateToTool: AiToolDefinition = {
     - **全屏**：不跳、不阻塞 —— 返回一份建议，由运行时翻成 `nav-proposal` part，
       用户点卡片才真正跳（那一跳是用户自己的动作）。
   */
-  access: 'read',
-  group: 'page',
+  capability: 'page:navigate',
   execute: async (input, ctx) => {
     const path = typeof input.path === 'string' ? input.path.trim() : ''
     if (!path) throw new Error('缺少目标路径')

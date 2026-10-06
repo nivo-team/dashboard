@@ -24,8 +24,9 @@
 | 项 | 现状 |
 |---|---|
 | 系统提示词 | **14 层**（`PROMPT_LAYERS`，stable 9 + volatile 5），唯一出口 `buildSystemPrompt(facts, stage?)` / `buildTurnContext(facts, stage?)`（服务端），**每轮重算**；按 `promptStage`（router / execution）选层 —— 两阶段的 system 是**两份不同提示词**（identity 后分叉），同一阶段跨轮逐字节一致 |
-| 工具 | **18 个**（`AI_TOOLS`），按 `group` 分 页面 / 数据 / 表单；权限界面按 `access` 解释风险。另有 Router 阶段的虚拟工具 `select_tools`（不进 `AI_TOOLS`） |
+| 工具 | **21 个**（`AI_TOOLS`），每个工具声明自己占的能力格子（见下）。另有 Router 阶段的虚拟工具 `select_tools`（不进 `AI_TOOLS`） |
 | 运行容器 | 2 个：`panel`（分屏 / 浮窗）、`sphere`（全屏对话页）；**由渲染处显式传入**，不靠路由字符串反推 |
+| 权限模型 | **能力矩阵**（`lib/ai/capabilities.ts`）：四行（页面 / 数据 / 表单 / 任务）× 各行动作 = 可独立授权的格子（`page:read` / `data:write` / `form:submit` …）。工具声明 `capability` 落在哪一格；权限界面一行一个能力、行内多权限；运行时按格子过滤 |
 | 正交维度 | **权限**（能不能用） × **模式**（用起来要不要问） × **容器**（策略与工具清单） |
 | 运行时 | `lib/ai/runtime.ts` 是全仓唯一 `import 'ai'`（Vercel AI SDK v7）之处，**动态加载** |
 | 持久化 | 会话在 IndexedDB（按 app 分区）；本机偏好与 AI 设置项在 localStorage（`admin.preferences:<appId>` 按 app）。**原 `admin.ai`（厂商 / 模型）已删除**，该键不再被写入或读取 |
@@ -41,7 +42,7 @@ L1 UI        AiComposer ──sendAiMessage(text, mode, attachments, surface)─
              AiPanel / sphere 全屏页 / AiConversation / AiActivityGlow      │
 L2 状态      useAiSessionStore（消息 / status / pendingApproval / IDB 落盘） │
 L3 驱动      chat.ts ─────────────────────────────────────────────────────┘
-               ├─ 读偏好：aiPermission / aiAllowedTools / aiOutputLanguage / locale / aiAutoNavigate
+               ├─ 读偏好：aiPermission / aiCapabilities / aiOutputLanguage / locale / aiAutoNavigate
                ├─ getAllowedTools(permission, allowed, { hasForms, surface })   ← 权限与容器的唯一过滤点
                ├─ beginTurn() → await persist()
                ├─ await import('./runtime')                                     ← 懒加载
@@ -136,14 +137,14 @@ L7 上下文    page-context / page-context-registry / page-capabilities / endpo
 
 | | **权限** | **模式** | **容器** |
 |---|---|---|---|
-| 存哪 | `aiPermission` + `aiAllowedTools` | `aiComposerMode` | 渲染处传入（`AiComposer.surface`） |
+| 存哪 | `aiPermission` + `aiCapabilities` | `aiComposerMode` | 渲染处传入（`AiComposer.surface`） |
 | 回答 | **能不能用**这个工具 | 用起来**要不要问** | 策略与**能发哪些工具** |
 | 落点 | `getAllowedTools()`（唯一过滤点） | 各工具内部读 `ctx.mode` | `workflow.ts` + `getAllowedTools` | 
 | 默认 | `readonly`（只读） | `ask`（询问） | 面板 / 全屏 |
 
-**权限三档本质是同一份勾选清单**（`resolveAllowedToolNames`）：`full` = 全选、
-`readonly` = 预设勾了所有 `access === 'read'` 的工具、`custom` = 用户勾的（并剔掉已下线的名字）。
-从预设档切到「自定义」要**继承当前档实际勾选的集合**。
+**权限三档本质是同一份格子勾选集**（`resolveAllowedGrants`）：`full` = 全部格子、
+`readonly` = 预设勾了只读那几格（`page:read` / `page:navigate` / `data:query` / `form:read` / `task:plan`）、
+`custom` = 用户勾的（并剔掉矩阵里不存在的脏值）。从预设档切到「自定义」要**继承当前档实际勾选的集合**。
 
 ### 3.2 工具全表（18 个，`AI_TOOLS` 是唯一真值）
 
@@ -169,7 +170,13 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 | 15 | `fill_form` | form | act | 仅 `ask` 确认；`auto` 直接写 | — | `form-tools.ts` |
 | 16 | `submit_form` | form | commit | 先过表单 `canSubmit()`，再弹审批（见 §5 待修） | — | `form-tools.ts` |
 | 17 | `check_result_match` | data | read | **每次必问**（不写任何会话授权） | **全屏不下发** | `check-result-match-tool.ts` |
-| 18 | `analyze_data` | data | read | 首次读页面数据前申请 `DATA_READ_GRANT`（本会话允许后免问） | **全屏不下发** | `analyze-tool.ts` |
+| 18 | `analyze_data` | data | `data:query` | 首次读页面数据前申请 `DATA_READ_GRANT`（本会话允许后免问） | **全屏不下发** | `analyze-tool.ts` |
+| 19 | `search_pages` | page | `page:read` | — | — | `catalog-tools.ts` |
+| 20 | `get_current_time` | page | `page:read` | 不问（纯本地读取） | — | `time-tools.ts` |
+| 21 | `reload_page_data` | page | `page:read` | 不问（只读，不改数据） | **全屏不下发** | `time-tools.ts` |
+
+> 表中第 4 列（旧表是 `access`：read / act / commit）已换成**能力格子**（`page:read` …）——
+> 它就是权限界面上的勾选项，见 `lib/ai/capabilities.ts`。
 
 **双层描述 + 依赖**（`AiToolDefinition`）：`catalogDescription`（**必需**，一句话、10~25 个中文字）
 只给 Router；`description` 保留但**大幅精简**（只留：做什么 / 关键输入约束 / 调用前置条件 /
@@ -257,7 +264,7 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 | `aiAutoScroll` | boolean | `true` | 默认跟随滚动（运行时「暂停」是另一件事） |
 | `aiAutoNavigate` | boolean | `false` | 询问模式下跳转也免问（**只影响面板**） |
 | `aiPermission` | `full \| readonly \| custom` | `readonly` | **权限** |
-| `aiAllowedTools` | `string[]` | `[]` | 自定义档勾选 |
+| `aiCapabilities` | `AiCapabilityGrant[]` | `[]` | 自定义档勾选的**能力格子**（`page:read` …） |
 | `aiOutputLanguage` | `auto \| LocaleKey` | `auto` | AI 输出语言（与界面语言两个维度） |
 
 另有两个**外壳级**（`admin.shell-ui`，同样不持久化展开态）：`aiPanelWidth`、`aiFloatWidth` / `aiFloatHeight`。
@@ -301,14 +308,19 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 | `types.ts` | 435 | 公共类型：`AiToolAccess` / `AiToolGroup` / `AiMode` / `AiSurface` / `AiPermissionMode` / `AiApprovalDecision` / `AiToolContext` / `AiToolDefinition`（含 `catalogDescription` / `dependencies` / `catalog` / `execution`）/ `AiMessage(Part)` / `AiTurnUsage` / `AiTurnMetrics` / `AiStreamEvent` |
 | `index.ts` | 34 | 能力出口 barrel；**刻意不导出 `runtime`**（避免 SDK 进主 bundle） |
 | `prompt-facts.ts` | 90 | **事实采集**（页面摘要 / 工具目录 / 导航 / 任务 / 语言）—— 随请求上报给中间层；**规则不在这里**（在服务端） |
-| `tools/index.ts` | 307 | `AI_TOOLS` 注册表（唯一真值）+ `resolveAllowedToolNames` + `getAllowedTools`（权限 / 表单组 / 容器 / 后端权限点过滤）+ `findTool` + **Tool Catalog**（`listToolCatalog` / `buildToolCatalogText`）+ **Context Resolver**（`resolveTools`） |
+| `tools/index.ts` | 307 | `AI_TOOLS` 注册表（唯一真值）+ `resolveAllowedGrants` + `getAllowedTools`（权限 / 表单组 / 容器 / 后端权限点过滤）+ `findTool` + **Tool Catalog**（`listToolCatalog` / `buildToolCatalogText`）+ **Context Resolver**（`resolveTools`） |
 | `tools/select-tools.ts` | 77 | **Router 阶段的虚拟工具** `select_tools`（`SELECT_TOOLS_NAME` / `SELECT_TOOLS_SPEC`；必填 `intent` + `tools`，`intent` 只进日志）；`execute` 落在 runtime 闭包，**不进 `AI_TOOLS`** |
 | `tools/page-tools.ts` | 275 | `get_page_context` / `list_navigation` / `navigate_to`；`collectNavigation`（导航清单唯一出口）+ `isAllowedPath`（站内路径白名单，前缀匹配，支持详情页） |
 | `tools/data-tools.ts` | 439 | `search_api` / `call_read_api` / `list_dict_options` / `call_write_api`；白名单解析（模板 + `pathParams`）、`truncatePayload`、写后刷新 |
 | `tools/form-tools.ts` | 340 | `open_form` / `list_page_forms` / `fill_form` / `submit_form`；字段白名单（只放行表单声明的字段） |
 | `tools/feature-tools.ts` | 229 | `get_page_data` / `run_page_command`（页面特性层消费方） |
 | `tools/search-tools.ts` | 83 | `update_search_params`（页面调度器优先，URL 兜底） |
-| `tools/task-tools.ts` | 93 | `manage_tasks` + `getLatestSessionTasks`（任务清单层的数据源） |
+| `tools/task-tools.ts` | 320 | **`manage_tasks` + 编排执行引擎**：计划里的 `action: { tool, input }` 由客户端**顺序执行**（前一步完成才做下一步），整批只在执行前确认一次，结果整批回传；逐步上报进度（`ctx.reportTaskProgress`）；`ctx.resolveTool` 做**提权白名单** |
+| `tools/time-tools.ts` | 110 | `get_current_time`（浏览器时间事实）+ `reload_page_data`（按页面语义重新取数） |
+| `tools/catalog-tools.ts` | 95 | `search_pages`（按功能描述模糊检索页面目录，返回标题 + desc + 接口清单） |
+| `capabilities.ts` | 150 | **AI 能力矩阵**：格子定义 / 预设档 / 清洗。权限界面、运行时过滤、工具声明共用这一份 |
+| `page-catalog.ts` | 180 | **页面目录**（每页一条 `desc` + 接口清单）：`search_pages` 的数据源，也是"不全量下发页面明细"的落点 |
+| `time-facts.ts` | 70 | 浏览器侧**时间事实采集**（UTC 绝对时刻 + 操作系统时区 + 用户展示时区） |
 | `tools/permission-tools.ts` | 57 | `request_permission`（主动申请授权） |
 | `tools/check-result-match-tool.ts` | 277 | `check_result_match`（存在性查询，只回 `{ exists }`；每次必问） |
 | `tools/analyze-tool.ts` | 901 | `analyze_data`（JSON 操作链表达式分析，AI 不接触数据；走 `DATA_READ_GRANT`） |
@@ -422,3 +434,61 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 
 > 更新本文的时机：**新增 / 删除工具、加一层提示词、加一个 AI 设置项、加一个 AI 文件**。
 > 叙述与理由仍以 [`ai-architecture.md`](./ai-architecture.md) 为准 —— 本文只保证「清单不缺项」。
+
+---
+
+## 6. 这一版新增/改造的能力（2026-10）
+
+> 本节只记"哪些是新东西、落在哪个文件"，细节以对应文件的注释与
+> [ai-architecture.md](./ai-architecture.md) 为准。
+
+### 6.1 AI 能力矩阵（权限粒度）
+
+- 旧模型：三档 + 一份**工具名**勾选清单（用户看到的是 `call_write_api` 这类实现名）。
+- 新模型：**行 = 能力、列 = 动作**的矩阵，每个格子可独立授权：
+  ```
+  页面   读取 · 跳转 · 操作
+  数据   查询 · 修改
+  表单   读取 · 更新 · 提交
+  任务   编排 · 授权
+  ```
+- 唯一真值 `lib/ai/capabilities.ts`；工具用 `capability: 'page:read'` 声明自己在哪一格；
+  偏好字段由 `aiAllowedTools`（工具名）改为 `aiCapabilities`（格子键）。
+- 权限界面（`components/ai-permission-config.tsx`）随之改为**一行一个能力、行内多权限**
+  （每行一个 `Checkbox.Group`，标题走行名 + tooltip）。
+- **「打开表单」算哪一格**：算 `form:update`（更新）—— 打开表单的唯一目的就是改数据；
+  只看不改的路径是详情页，不是表单。`open_form` / `fill_form` 都落在 `form:update`。
+
+### 6.2 AI 自主 Todo 编排（后端无批量接口时的正道）
+
+- `manage_tasks` 的每个 task 可带 `action: { tool, input }`：模型一次给全整组步骤。
+- 执行：在**一次**工具调用内部**顺序**跑完（`for ... await`，前一步完成才做下一步），
+  中途不返回模型；执行前**整批确认一次**（用户看到完整步骤清单）。
+- 结果：`outcomes`（逐步 id / 成败 / 结果 / 错误）一次性回传给模型 → 模型写总结。
+- 进度：`ctx.reportTaskProgress` 逐步上报，输入区的任务卡实时推进（`liveTasks`）。
+- 安全：`ctx.resolveTool` 只认本轮已授权的工具 —— 防模型借 `manage_tasks` 提权。
+- **坑（务必记住）**：`task-tools` 不能 import `tools/index`（循环 import 会让
+  `AI_TOOLS` 里混进 `undefined`）。工具集必须由 `ctx` 注入。
+
+### 6.3 基础工具与页面检索
+
+| 工具 | 干什么 | 为什么 |
+|---|---|---|
+| `get_current_time` | 浏览器的时间事实（UTC 绝对时刻 + 操作系统时区 + 用户展示时区 + 秒级时间戳 + 星期 + 今天日期） | 模型不知道"现在"；相对时间查询必须换算成精确时间戳 |
+| `reload_page_data` | 让页面按自己的语义重新取数 | 把"AI 手里的数据"对齐到"屏幕上此刻的数据" |
+| `search_pages` | 按功能描述**模糊检索页面目录**（标题 + 一句话 desc + 接口清单） | 页面明细不再全量下发；检索命中后再取明细 |
+
+### 6.4 跨页面数据聚合
+
+- `search_pages` 返回每页的**接口清单**（method + path + 用途），`get_page_context` 接受
+  `path` 参数读**指定页面**（不必跳过去）—— 两者配合就能"自己把相关页面的数据取全再汇总"。
+- 页面必须有 `desc` 才能被检索到：登记在 `lib/ai/page-catalog.ts` 的 `AI_PAGE_CATALOG`。
+
+### 6.5 示例路由：工单管理（`/example/tickets`）
+
+- **mock 刻意只提供单条接口**（`GET/POST/PUT /ticket`、`DELETE /ticket/{id}`、
+  `PATCH /ticket/{id}/status`），**没有** `/ticket/batch-delete`。
+- 用途：验收 AI 的编排能力 —— 批量操作时它应当用 `manage_tasks` 编排 N 次单条调用，
+  而不是循环调用（那样每条一次模型往返）。
+- 页面侧也**不提供批量按钮**、`feature.ts` 里**不声明批量指令**（后端没有的能力不要声明，
+  否则 AI 会以为有捷径）。

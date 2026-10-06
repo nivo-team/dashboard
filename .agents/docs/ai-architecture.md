@@ -94,7 +94,7 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
 ```
 用户按 Enter（AiComposer）
   └─ sendAiMessage(text, mode, images)            chat.ts
-       ├─ 读偏好：aiPermission / aiAllowedTools / aiOutputLanguage / locale
+       ├─ 读偏好：aiPermission / aiCapabilities / aiOutputLanguage / locale
        ├─ getAllowedTools(permission, allowed, { hasForms })      ← 权限过滤的唯一入口
        ├─ beginTurn(text, images)（用户消息写进 store，并立刻落盘）
        ├─ await import('./runtime')                                ← 懒加载
@@ -157,14 +157,39 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
 
 | | **权限** | **模式** |
 |---|---|---|
-| 存哪 | `aiPermission` + `aiAllowedTools` | `aiComposerMode` |
+| 存哪 | `aiPermission` + `aiCapabilities`（能力格子） | `aiComposerMode` |
 | 回答 | **能不能用**这个工具 | 用起来**要不要问** |
 | 落点 | `getAllowedTools()` | 各工具里的 `ctx.mode` |
 | 默认 | `readonly`（只读） | `ask`（询问） |
 
-**权限三档本质是同一份勾选清单**（`resolveAllowedToolNames`）：`full` = 全选、
-`readonly` = 预设勾了那几个只读工具、`custom` = 用户勾的。所以从预设档切到「自定义」时
-要**继承当前档实际勾选的工具**。新增一档也只是加一条预设，别再写一条 `if` 分支。
+### 3.1 权限是**能力矩阵**，不是一串工具名
+
+真值在 `lib/ai/capabilities.ts`：**行 = 能力、列 = 动作**，每个格子可独立授权。
+
+```
+页面   读取(page:read) · 跳转(page:navigate) · 操作(page:operate)
+数据   查询(data:query) · 修改(data:write)
+表单   读取(form:read) · 更新(form:update) · 提交(form:submit)
+任务   编排(task:plan) · 授权(task:grant)
+```
+
+工具用 `capability: 'page:read'` **声明自己占哪一格**；`getAllowedTools` 按格子过滤 ——
+于是「设置页勾了什么」与「模型拿到什么工具」是同一件事的两种呈现，不可能分叉。
+**加一个工具 = 在它身上填一个已有格子**；只有确实属于新动作时才加格子（加格子会改变
+所有既有用户的勾选集，是破坏性的）。
+
+**权限三档本质是同一份格子集合**（`resolveAllowedGrants` / `presetCapabilityGrants`）：
+`full` = 全部格子、`readonly` = 预设那几格、`custom` = 用户勾的。从预设档切到「自定义」
+要**继承当前档实际勾选的集合**。
+
+几个刻意的格子归属，别想当然：
+- `navigate_to` → `page:navigate`（不是 `page:operate`）：跳转**不改任何东西**，
+  「看哪里」不是「改什么」，所以只读档也放行；但它会把用户带离上下文，所以询问模式仍要确认。
+- `open_form` / `fill_form` → `form:update`（**打开表单算「更新」不是「读取」**）：
+  打开表单的唯一目的就是改数据；只看不改的路径是详情页。`list_page_forms` 才是 `form:read`。
+- `manage_tasks` → `task:plan`：编排本身是只读的（它只驱动**已被允许**的工具），
+  所以只读档必须有它，否则只读的 AI 连"把这件事拆成 5 步"都做不到。
+- `request_permission` → `task:grant`。
 
 **模式与工具的关系**（哪些工具受模式影响）：
 
@@ -198,7 +223,15 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
 | 导航清单（能去哪） | `collectNavigation(appId)` → `list_navigation` | 模型调用工具时 |
 | 表单清单 | `listAiForms()` → `list_page_forms` | 模型调用工具时 |
 | **页面用到的接口 + 参数明细** | `resolveAiPageContext(routePath)` + `findEndpointSpec()` → `get_page_context` | 模型调用工具时 |
+| **页面目录（有哪些页、各页干什么）** | `searchPageCatalog(keyword)`（`#/lib/ai/page-catalog`）→ `search_pages` | 模型调用工具时 |
 | **用户 `@` 指定的位置** | `expandRouteRefs(text)`（`#/lib/ai/route-refs`），在 `toModelMessages` 里追加到 user 消息末尾 | 每轮请求 |
+
+> **页面明细不再全量下发**：每页的完整声明（接口 / 字段 / 表单）几 KB，全量发给模型既费
+> token 又稀释重点。改成两步：先用 `search_pages` **按功能模糊检索**（只拿标题 + 一句话
+> desc + 接口清单），认准目标页再用 `get_page_context`（传 `path`）取该页明细。
+> 这既是**上下文约束**，也是一道**过滤点**（将来按权限收窄可见页面，条件加在
+> `searchPageCatalog` 一处）。**代价**：每页必须在 `AI_PAGE_CATALOG` 里有一条 `desc`，
+> 否则检索不到、AI 当它不存在。
 
 **`@` 引用**（`@user` / `@user:list` / `@user:1234`）的展开只做一件事：把用户打的那串
 **追加**一段「模块 / 页面 / 路径」的说明（不替换原文，模型两边都能看到）。认不出来的 `@foo`
@@ -289,7 +322,7 @@ useAiPageContext(Route.id, {
 
 **加一档权限**
 
-只改 `resolveAllowedToolNames` 里加一条预设。界面上多一项 `Tabs`。
+只改 `presetCapabilityGrants` 里加一条预设。界面上多一项 `Tabs`。
 
 **改系统提示词 / 加一层**
 
@@ -369,6 +402,51 @@ useAiPageContext(Route.id, {
     （`tool_choice: 'required'`），重试仍失败发一条明确错误；执行阶段不重试（文本已输出，
     且重试可能重放写操作），只打告警。检测规则见 `runtime.ts` 的 `TOOL_CALL_LEAK_PATTERNS`。
     **别把这段兜底删掉**：它挡的是"模型协议泄漏"，而不是偶发网络错误。
+
+## 7.1 AI 自主 Todo 编排（后端没有批量接口时怎么做批量操作）
+
+### 问题
+
+后端常常只给**单条**的增删改（`DELETE /x/{id}`、`PUT /x`），没有批量端点。
+于是「把这一屏待处理的都关掉」这类请求，模型只能一条一条调 —— 而**每次调用都是
+一轮模型往返**（工具结果回给模型 → 模型再决定下一次）。20 条就是 20 次：慢、贵，
+且模型中途"忘了还剩几条"是常态。
+
+### 做法：编排与执行分离
+
+```
+① 模型调 manage_tasks，一次给出整组步骤（每步 = action: { tool, input }）
+② 用户看一份完整计划、点一次「允许」
+③ 客户端顺序执行每一步（for ... await，前一步完成才做下一步），全程不打扰模型
+④ 全部跑完，把每步结果（outcomes）作为这一次工具调用的返回值交给模型
+⑤ 模型据此写总结
+```
+
+于是 N 条记录只花**一次**模型往返。这也正是需求里「一个任务完成后才接着继续下一个」
+的落地：③ 的 `await` 是串行的。
+
+### 三个关键实现点
+
+| 点 | 落点 | 说明 |
+|---|---|---|
+| **步骤格式** | `task-tools.ts` 的 `TaskAction` | `{ tool, input }`；`tool` 取**本轮可用工具名**，`input` 与那个工具的参数完全一致 |
+| **提权闸** | `ctx.resolveTool(name)` | 计划里的 `tool` 是模型写的字符串，**必须**落在本轮已授权的工具集里 —— 否则模型能借 `manage_tasks` 调用它没被授权的工具。审批卡防用户手滑，这道闸防模型越权，两者都要 |
+| **进度上报** | `ctx.reportTaskProgress` → store 的 `liveTasks` | 整批在一次调用内跑完，不上报界面就一直静止；输入区任务卡订阅它实时推进 |
+
+### 两条硬约定
+
+1. **不带 `action` 的清单是纯进度卡**（老行为保留）：只在"需要看一步结果再决定下一步"
+   （探测式）时才用。批量且顺序固定 → 带 `action` 的可执行计划。
+2. **预授权只覆盖计划里真正用到的工具**（`BatchGrant`）：用户同意的是"这一批里这几步"，
+   不是"放行所有写工具"。子工具自己的 `requestApproval` 对已同意的工具直接放行，
+   其余仍走原通道。
+
+### 坑：`task-tools` 不能 import `tools/index`
+
+那会形成**循环 import**（`tools/index` → `task-tools` → `tools/index`），
+模块初始化期 `AI_TOOLS` 里会混进 `undefined` —— 表现为 `findTool` 在
+`AI_TOOLS.find(t => t.name)` 上抛 `Cannot read properties of undefined`（真实踩到）。
+**工具集必须由 `ctx` 注入**（`ctx.resolveTool`）。
 
 ## 8. 系统提示词的分层与范围闸
 
@@ -660,8 +738,8 @@ useAiPageContext(Route.id, {
   菜单项是**两行**（模式名 + 一句说明，`modeAskHint` / `modeAutoHint`），说清它管的是
   「表单要不要确认」——只写「询问 / 自动」没人知道指的是什么；因此 `Content` 用 `w-64`，
   且项上要 `items-start` 顶掉 Kumo 基类的 `items-center`（两行文字时图标 / 勾跟首行对齐）。
-- **AI 权限**（`aiPermission` + `aiAllowedTools`，**默认 `readonly`**，设置 → AI）：**能用哪些工具**
-  只看这里。三档 `full` / `readonly` / `custom`，自定义时按 `aiAllowedTools` 逐项放行；
+- **AI 权限**（`aiPermission` + `aiCapabilities`，**默认 `readonly`**，设置 → AI）：**能用哪些能力格子**
+  只看这里。三档 `full` / `readonly` / `custom`，自定义时按 `aiCapabilities` 逐格放行；
   `getAllowedTools(permission, customTools)` 是**唯一**过滤点。它与模式**正交** ——
   权限回答"能不能用"、模式回答"用起来要不要问"，**别再把两者揉成一个开关**（早先
   `getToolsForMode` 拿模式当权限用，于是"询问模式"连表都填不了）。工具的分组
@@ -805,7 +883,7 @@ useAiPageContext(Route.id, {
   （`listAiForms`）。**不要在别处再遍历 `ALL_NAV_TARGETS`、或直接读表单注册表拼一份给模型的
   清单** —— 那会把"将来按权限收窄"的落点焊死；过滤条件一律加在这些函数**内部一处**。
   提示词里任何可能随权限变化的内容同理（当前是 `formatPageSummary` 与模式描述）。
-- **权限三档本质是同一份勾选清单**（`resolveAllowedToolNames`，`getAllowedTools` 基于它过滤）：
+- **权限三档本质是同一份格子勾选集**（`resolveAllowedGrants`，`getAllowedTools` 基于它过滤）：
   `full` = 全选、`readonly` = **预设**勾了那几个只读工具、`custom` = 用户勾的。
   所以从预设档切到「自定义」时要**继承当前档实际勾选的工具**（否则用户得从零重点一遍），
   界面上也能如实说清"只读等于勾了哪几项"。新增一档时只在这里加一条预设，别再写一条 if 分支。

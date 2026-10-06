@@ -324,7 +324,7 @@ export async function* streamAssistantTurn(
   */
   const availableTools = getAllowedTools(
     options.toolPolicy.permission,
-    options.toolPolicy.customTools,
+    options.toolPolicy.customGrants,
     {
       hasForms: options.toolPolicy.hasForms,
       surface: options.toolPolicy.surface,

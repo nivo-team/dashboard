@@ -406,8 +406,8 @@ export function AiSettingsPage() {
   const setAiOutputLanguage = usePreferencesStore((state) => state.setAiOutputLanguage)
   const aiPermission = usePreferencesStore((state) => state.aiPermission)
   const setAiPermission = usePreferencesStore((state) => state.setAiPermission)
-  const aiAllowedTools = usePreferencesStore((state) => state.aiAllowedTools)
-  const setAiAllowedTools = usePreferencesStore((state) => state.setAiAllowedTools)
+  const aiCapabilities = usePreferencesStore((state) => state.aiCapabilities)
+  const setAiCapabilities = usePreferencesStore((state) => state.setAiCapabilities)
   // 头像网格里每个 canvas 都要知道坐在什么底色上（包的 auto 读不到本项目的 data-mode）
   const { resolved } = useColorMode()
   // 预览缩略图的品牌位（面板头行的 sparkle、底部输入位）跟着用户选的强调色走
@@ -827,9 +827,9 @@ export function AiSettingsPage() {
         */}
         <AiPermissionConfig
           permission={aiPermission}
-          allowedTools={aiAllowedTools}
+          capabilities={aiCapabilities}
           onPermissionChange={setAiPermission}
-          onAllowedToolsChange={setAiAllowedTools}
+          onCapabilitiesChange={setAiCapabilities}
         />
       </SettingsCard>
     </div>

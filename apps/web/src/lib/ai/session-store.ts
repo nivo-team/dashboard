@@ -19,6 +19,7 @@ import type {
   AiMessage,
   AiMessagePart,
   AiStreamEvent,
+  TaskProgressItem,
 } from './types'
 
 /**
@@ -87,6 +88,14 @@ interface AiSessionState {
    * **不落盘**，新建 / 切换会话即归零。
    */
   toolCounters: Record<string, number>
+  /**
+   * **正在执行的批量任务清单**（`manage_tasks` 逐步上报，见 `AiToolContext.reportTaskProgress`）。
+   *
+   * 它与 `pendingApproval` 一样是**运行时状态、不落盘**：整批跑完（或这一轮结束）就清空。
+   * 输入区的任务卡订阅它 —— 于是用户在计划执行过程中能看到每一步在推进，
+   * 而不是盯着一个静止的卡片等整批结束。
+   */
+  liveTasks: readonly TaskProgressItem[] | null
 
   /**
    * 追加一条用户消息，并开一条空的助手消息（返回它的 id，后续事件都往它身上写）。
@@ -138,6 +147,8 @@ interface AiSessionState {
   commitRewind: () => void
   /** 递增并返回某个工具的会话内调用次数（限流用） */
   bumpToolCounter: (key: string) => number
+  /** 更新 / 清空正在执行的批量任务清单（传 null 清空） */
+  setLiveTasks: (tasks: readonly TaskProgressItem[] | null) => void
   /**
    * 认领**全屏建议卡**上的一次点击（带我去 / 不用了）。
    *
@@ -265,6 +276,7 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
   error: null,
   pendingApproval: null,
   toolCounters: {},
+  liveTasks: null,
   rewindMessageId: null,
   draftText: null,
   draftAttachments: [],
@@ -601,6 +613,8 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
     return next
   },
 
+  setLiveTasks: (tasks) => set({ liveTasks: tasks }),
+
   resolveNavProposal: (id, state) => {
     const has = (parts: AiMessagePart[]) =>
       parts.some((part) => part.type === 'nav-proposal' && part.id === id)
@@ -751,6 +765,7 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
       draftAttachments: [],
       // 新会话 = 新的限流窗口
       toolCounters: {},
+      liveTasks: null,
     })
     void setActiveSessionId(appId, null)
     void getComposerDraft(appId, null).then((draft) => {
@@ -777,6 +792,7 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
       draftAttachments: [],
       // 换会话 = 新的限流窗口
       toolCounters: {},
+      liveTasks: null,
     })
     void setActiveSessionId(appId, sessionId)
     void getComposerDraft(appId, sessionId).then((draft) => {
@@ -817,6 +833,7 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
       pendingApproval: null,
       // 删掉当前会话后切到别的会话 = 新的限流窗口
       toolCounters: {},
+      liveTasks: null,
     })
     void setActiveSessionId(appId, next?.id ?? null)
   },

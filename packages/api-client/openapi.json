@@ -1115,6 +1115,374 @@
         "description": "获取功能菜单树（顶层节点数组，后代嵌在 children 中）"
       }
     },
+    "/ticket/{id}": {
+      "delete": {
+        "tags": [
+          "工单"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "工单 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "0 表示成功"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "null",
+                      "description": "成功时为空"
+                    }
+                  },
+                  "required": [
+                    "code"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "根据 ID 删除单个工单（不提供批量删除接口）"
+      },
+      "get": {
+        "tags": [
+          "工单"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "工单 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "工单详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "根据工单 ID 查询详情"
+      }
+    },
+    "/ticket/{id}/status": {
+      "patch": {
+        "tags": [
+          "工单"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "工单 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "更新后的工单",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "变更单条工单的状态",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "integer",
+                    "description": "1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ticket": {
+      "get": {
+        "tags": [
+          "工单"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "页码，从 1 开始"
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "每页条数"
+          },
+          {
+            "in": "query",
+            "name": "kw",
+            "schema": {
+              "type": "string"
+            },
+            "description": "关键词（标题 / 描述 / 负责人 / ID 模糊匹配）"
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "状态精确匹配：1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭"
+          },
+          {
+            "in": "query",
+            "name": "priority",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "优先级精确匹配：1 低 / 2 中 / 3 高 / 4 紧急"
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            },
+            "description": "分类精确匹配"
+          },
+          {
+            "in": "query",
+            "name": "assignee",
+            "schema": {
+              "type": "string"
+            },
+            "description": "负责人模糊匹配"
+          },
+          {
+            "in": "query",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "工单 ID 精确匹配"
+          },
+          {
+            "in": "query",
+            "name": "created_at_min",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "创建时间下限（秒级时间戳）"
+          },
+          {
+            "in": "query",
+            "name": "created_at_max",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "创建时间上限（秒级时间戳）"
+          },
+          {
+            "in": "query",
+            "name": "field",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "id",
+                "title",
+                "status",
+                "priority",
+                "created_at",
+                "updated_at"
+              ]
+            },
+            "description": "排序字段名"
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "description": "排序方向"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "工单分页结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketListResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "工单分页列表，支持关键词、状态/优先级/分类筛选与服务端排序"
+      },
+      "post": {
+        "tags": [
+          "工单"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "新建的工单",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "新建工单",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "标题"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "描述"
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "description": "1 低 / 2 中 / 3 高 / 4 紧急"
+                  },
+                  "assignee": {
+                    "type": "string",
+                    "description": "负责人"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "分类"
+                  }
+                },
+                "required": [
+                  "title"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "工单"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "更新后的工单",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "更新单条工单（标题 / 描述 / 优先级 / 负责人 / 分类）",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "工单 ID"
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "标题"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "描述"
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "description": "1 低 / 2 中 / 3 高 / 4 紧急"
+                  },
+                  "assignee": {
+                    "type": "string",
+                    "description": "负责人"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "分类"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "/user": {
       "get": {
         "tags": [
@@ -2513,6 +2881,107 @@
             "items": {
               "$ref": "#/components/schemas/MenuNode"
             }
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "TicketItem": {
+        "type": "object",
+        "description": "工单行",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "工单 ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "标题"
+          },
+          "description": {
+            "type": "string",
+            "description": "描述"
+          },
+          "status": {
+            "type": "integer",
+            "description": "1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭"
+          },
+          "priority": {
+            "type": "integer",
+            "description": "1 低 / 2 中 / 3 高 / 4 紧急"
+          },
+          "assignee": {
+            "type": "string",
+            "description": "负责人"
+          },
+          "category": {
+            "type": "string",
+            "description": "分类"
+          },
+          "created_at": {
+            "type": "integer",
+            "description": "创建时间（秒级时间戳）"
+          },
+          "updated_at": {
+            "type": "integer",
+            "description": "更新时间（秒级时间戳）"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "status"
+        ]
+      },
+      "TicketListResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "description": "总条数"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TicketItem"
+                }
+              }
+            },
+            "required": [
+              "total",
+              "items"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "TicketResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/TicketItem"
           }
         },
         "required": [

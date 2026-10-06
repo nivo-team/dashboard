@@ -47,8 +47,7 @@ export const getPageDataTool: AiToolDefinition = {
     },
     additionalProperties: false,
   },
-  access: 'read',
-  group: 'page',
+  capability: 'page:read',
   execute: async (input, ctx) => {
     const context = getPageContext()
     const routeId = context.routePath
@@ -173,8 +172,7 @@ export const runPageCommandTool: AiToolDefinition = {
     required: ['command'],
     additionalProperties: false,
   },
-  access: 'commit',
-  group: 'page',
+  capability: 'page:operate',
   execute: async (input, ctx) => {
     const routeId = ctx.getPageContext().routePath
     const commandId = typeof input.command === 'string' ? input.command.trim() : ''

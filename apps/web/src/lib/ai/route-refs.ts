@@ -105,6 +105,13 @@ const AI_ROUTE_REF_SPECS: readonly AiRouteRefModuleSpec[] = [
       name: '表格示例详情',
     },
   },
+  {
+    // 工单：**没有批量接口**的模块，`@tickets:70001` 引用某一条时模型会看到它的详情路径。
+    // 没有独立的详情页（用分屏预览），所以不给 `record`。
+    key: 'tickets',
+    to: '/example',
+    pages: [{ key: 'list', to: '/example/tickets' }],
+  },
 ]
 
 /** 按相对路径找导航项 —— 名字 / 关键词 / 是否存在都以导航清单为准 */
@@ -273,7 +280,7 @@ export function expandRouteRefs(text: string): string {
     text,
     '',
     '# 用户 @ 引用的位置',
-    '（用户手动指定了具体页面位置。对于针对该位置的查询或查看需求，必须优先通过 navigate_to 前往该路径，并配合 update_search_params 在界面上直接呈现检索结果，切勿直接调用只读接口。）',
+    '（用户手动指向了后台里的某个具体位置。按这一页的**位置与接口**去满足他的需求：定位/看这一页用 `navigate_to`（**全屏容器里它落成建议卡**，就地取数由 `search_pages` → `get_page_context` → `call_read_api` 完成）；若要在他面前直接呈现筛选结果，用 `update_search_params`（**该工具只在面板容器下发**，拿不到时就改用接口参数取数并在对话里给出）。**不要凭印象拼接口路径**。）',
     ...lines,
   ].join('\n')
 }

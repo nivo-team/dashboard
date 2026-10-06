@@ -21,6 +21,7 @@ src/features/table-example/            ← 一个示例模块 = 一个扁平目�
   demo-data.ts  display.tsx             模块级共享（扁平放在模块根，不再有 -data/ -components/）
 
 src/features/complex-table/            ← 一页一目录：另一个示例（本地数据，无接口）
+src/features/tickets/                  ← 一页一目录：**没有批量接口**的 CRUD 示例（AI 编排样板）
 
 src/routes/$appId/example/
   route.tsx        模块根：权限守卫 + <Outlet />
@@ -28,6 +29,7 @@ src/routes/$appId/example/
   table/index.tsx  createFileRoute('…')({ component: TableExampleListPage })   ← 只有这几行
   table/$id.tsx  table/new.tsx  table/$id.edit.tsx
   complex-table/index.tsx
+  tickets/index.tsx
 ```
 
 ## 2. 三条规则
@@ -72,6 +74,9 @@ src/routes/$appId/example/
 | `get_page_context` | 页面描述 / 接口 / 表单 / 搜索参数 | 原有能力，数据来自 `useFeature` 的转换器 |
 | `get_page_data` | `dataSources` + 可用指令清单 | **面板模式的核心**：这一屏的数据不用再调接口 |
 | `run_page_command` | `commands` | `write` 类指令必过审批卡；`navigate` 类（打开表单）直接执行 |
+| `search_pages` | `AI_PAGE_CATALOG`（`page-catalog.ts`） | **按功能描述模糊检索页面**：返回标题 + 一句话 desc + 接口清单，不把每页明细全量下发 |
+| `get_page_context`（传 `path`） | 目录项 | 读**指定页面**的接口明细 —— 跨页面聚合时不必真的跳过去 |
+| `reload_page_data` | `reload` | 让页面按自己的语义重新取数（保留筛选 / 分页） |
 
 注册键是**当前路由模板**（`router.state.matches.at(-1).routeId`，与 `getPageContext().routePath` 同源），
 由 `useFeature` 自动登记 —— 页面里不写路由字符串。
@@ -87,7 +92,10 @@ src/routes/$appId/example/
    `commands` / `dataSources` / `reload` / `openForm` 写全。
 3. 页面里 `useFeature(...)` 一次，把 state 与处理函数交给工厂。
 4. `src/routes/...` 加薄路由：`createFileRoute` + 取参 + 渲染 feature 组件。
-5. 导航项（`src/lib/navigation.ts`）与 i18n 文案（7 语言）照常。
+5. 导航项（`src/lib/navigation.ts`）；i18n 只写 `zh-CN`（其它语言交给 `pnpm i18n`）。
+6. **把这一页登记进页面目录**（`src/lib/ai/page-catalog.ts` 的 `AI_PAGE_CATALOG`）：
+   补一条 `{ path, title, desc, endpoints }` —— 否则 AI 的 `search_pages` 检索不到它、
+   也做不了跨页面聚合。`path` 必须与导航项逐字一致。
 
 ## 6. 迁移现状
 
@@ -97,6 +105,7 @@ src/routes/$appId/example/
 | `example/complex-table`（复杂表格：分组表头 / 展开行 / 列显隐 / 行选择 / 汇总行） | ✅ 新增示例（参考实现：`features/complex-table/`，本地数据无接口） |
 | `system/menus`（功能树 / 功能详情 / 权限点 / 表单） | ✅ 已迁移（`features/menus/`，去掉 `system/` 域层级）。三个页面各一份 `feature.ts`；根视图的数据由 `FeatureContainer` 用 `onData` 上报；功能详情的表单桥早已接好 |
 | `system/data-dict`（分类树 / 字典项 / 两个表单） | ✅ 已迁移（`features/data-dict/`，去掉 `system/` 域层级）。列表只有数据源（弹窗状态在表格组件里，指令待补）；详情：数据源 ×2 + **表单桥**（AI 可填可存） |
+| `example/tickets`（工单管理：单条 CRUD + 状态接口，**刻意没有批量端点**） | ✅ 新增示例（参考实现：`features/tickets/`）。批量操作要靠 AI 用 `manage_tasks` 编排 N 次单条调用 —— 见 [ai-architecture.md](./ai-architecture.md) 的编排一节 |
 | `home`（仪表盘：栅格 + 卡片注册表） | ✅ 已迁移（`features/home/`）。**没有接口的页面**：数据源给"现在有哪些卡片"，指令给"加 / 移 / 重置布局"（`add-widget` 免确认，移除与重置要确认） |
 
 **业务模块已全部迁完并扁平化**（table-example / complex-table / home / menus / data-dict / roles）——

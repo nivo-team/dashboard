@@ -219,11 +219,12 @@ Router 的输出**不被信任**：`resolveTools` 会做 名字存在性 → 权
 
 | 维度 | 取值 | 回答的问题 | 落点 |
 |---|---|---|---|
-| **权限** `aiPermission` | `full` / `readonly` / `custom` | **能不能用**这个工具 | `getAllowedTools(permission, customTools)` |
+| **权限** `aiPermission` | `full` / `readonly` / `custom` | **能不能用**这个工具 | `getAllowedTools(permission, customGrants)` |
 | **模式** `aiComposerMode` | `ask` / `auto` | 用起来**要不要问** | 各工具的 `execute` 读 `ctx.mode` |
 
 **权限**默认 `readonly`（AI 默认只能看，要它动数据得用户自己去开）；`custom` 档按
-`aiAllowedTools` 里勾选的工具名放行。**模式**下只有与"替用户做主"有关的动作才过审批：
+`aiCapabilities` 里勾选的**能力格子**放行（`page:read` / `data:write` / `form:submit` …，
+真值在 `lib/ai/capabilities.ts`）。**模式**下只有与"替用户做主"有关的动作才过审批：
 
 | 工具 | ask | auto |
 |---|---|---|

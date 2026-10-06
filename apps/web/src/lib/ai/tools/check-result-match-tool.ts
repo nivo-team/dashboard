@@ -137,8 +137,7 @@ export const checkResultMatchTool: AiToolDefinition = {
     required: ['field', 'value', 'mode'],
     additionalProperties: false,
   },
-  access: 'read',
-  group: 'data',
+  capability: 'data:query',
   execute: async (input, ctx) => {
     // ── 1. 入参校验（不打扰用户，也不动数据）──────────────────────────────
     const field = typeof input.field === 'string' ? input.field.trim() : ''

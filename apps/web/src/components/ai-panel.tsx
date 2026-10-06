@@ -25,6 +25,7 @@ import {
   SidePanelResizeHandle,
 } from '#/components/side-panel'
 import { useAiSessionStore, type AiPermissionMode } from '#/lib/ai'
+import type { AiCapabilityGrant } from '#/lib/ai/capabilities'
 import { cn } from '#/lib/cn'
 import {
   AI_FLOAT_MAX_HEIGHT,
@@ -986,30 +987,30 @@ function AiPanelSurface({
 function AiPermissionView({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation('ai')
   const aiPermission = usePreferencesStore((state) => state.aiPermission)
-  const aiAllowedTools = usePreferencesStore((state) => state.aiAllowedTools)
+  const aiCapabilities = usePreferencesStore((state) => state.aiCapabilities)
   const setAiPermission = usePreferencesStore((state) => state.setAiPermission)
-  const setAiAllowedTools = usePreferencesStore((state) => state.setAiAllowedTools)
+  const setAiCapabilities = usePreferencesStore((state) => state.setAiCapabilities)
 
   /*
     副本只在**挂载时**拷一次（每次进入权限视图本组件都重新挂载），之后与 store 解耦 ——
     以它是初值而不是「每次 store 变就同步」，否则用户在别处改了设置会把草稿顶掉。
   */
   const [permission, setPermission] = useState<AiPermissionMode>(aiPermission)
-  const [allowedTools, setAllowedTools] = useState<string[]>(aiAllowedTools)
+  const [capabilities, setCapabilities] = useState<AiCapabilityGrant[]>([...aiCapabilities])
 
   /*
-    有没有改动：档位不同，或工具**集合**不同。
+    有没有改动：档位不同，或能力**集合**不同。
     集合按「成员」比较而不是顺序 —— `custom` 的勾选顺序跟着点击走，按顺序比会在
     内容没变时报「有未保存的更改」。
   */
   const dirty =
     permission !== aiPermission ||
-    allowedTools.length !== aiAllowedTools.length ||
-    allowedTools.some((name) => !aiAllowedTools.includes(name))
+    capabilities.length !== aiCapabilities.length ||
+    capabilities.some((grant) => !aiCapabilities.includes(grant))
 
   const save = () => {
     setAiPermission(permission)
-    setAiAllowedTools(allowedTools)
+    setAiCapabilities(capabilities)
     onDone()
   }
 
@@ -1023,9 +1024,9 @@ function AiPermissionView({ onDone }: { onDone: () => void }) {
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
         <AiPermissionConfig
           permission={permission}
-          allowedTools={allowedTools}
+          capabilities={capabilities}
           onPermissionChange={setPermission}
-          onAllowedToolsChange={setAllowedTools}
+          onCapabilitiesChange={(next) => setCapabilities(next)}
           variant="panel"
         />
       </div>

@@ -7,6 +7,7 @@ import { resolveAiPageContext } from './page-context-registry'
 import { collectPromptFacts, resolveOutputLanguageName } from './prompt-facts'
 import { addSessionGrant, hasSessionGrant } from './session-permissions'
 import { useAiSessionStore } from './session-store'
+import { collectTimeFacts } from './time-facts'
 import { buildToolCatalogText, getAllowedTools } from './tools'
 import type {
   AiApprovalDecision,
@@ -16,6 +17,7 @@ import type {
   AiStreamEvent,
   AiSurface,
   AiToolContext,
+  AiToolDefinition,
 } from './types'
 
 /**
@@ -154,6 +156,8 @@ function buildToolContext(
   surface: AiSurface,
   /** 本轮用户消息的原始文本（`check_result_match` 校验探测值来源用） */
   userMessageText: string,
+  /** 本轮已授权的工具（`manage_tasks` 的批量执行用它做提权白名单） */
+  allowedTools: readonly AiToolDefinition[],
 ): AiToolContext {
   return {
     queryClient: getQueryClient(),
@@ -168,6 +172,12 @@ function buildToolContext(
     requestApproval,
     getUserMessageText: () => userMessageText,
     bumpToolCounter: (key) => useAiSessionStore.getState().bumpToolCounter(key),
+    // 批量任务逐步上报进度（输入区的任务卡订阅它）—— 整批是在一次调用里跑完的，
+    // 不上报的话界面会一直"静止"到结束
+    reportTaskProgress: (tasks) => useAiSessionStore.getState().setLiveTasks(tasks),
+    resolveTool: (name) => allowedTools.find((tool) => tool.name === name),
+    // 浏览器才知道"现在几点、用户在哪个时区" —— 见 `AiTimeFacts`
+    getTimeFacts: collectTimeFacts,
   }
 }
 
@@ -298,7 +308,7 @@ async function executeAssistantTurn(
       - **权限**（能用到哪些工具）→ 决定 `tools` 里有什么；
       - **模式**（要不要问）→ 通过 `toolContext.mode` 交给各工具自己判断。
     */
-    const { aiPermission, aiAllowedTools, aiOutputLanguage, locale } =
+    const { aiPermission, aiCapabilities, aiOutputLanguage, locale } =
       usePreferencesStore.getState()
     /*
       「跟随界面语言」在这里落地：设置是 `auto` 就用界面语言，否则用用户单独指定的那门，
@@ -327,7 +337,7 @@ async function executeAssistantTurn(
     */
     const toolPolicy = {
       permission: aiPermission,
-      customTools: aiAllowedTools,
+      customGrants: aiCapabilities,
       hasForms,
       surface,
       // 后端权限（上限）∩ 用户偏好（在权限内收紧）
@@ -338,7 +348,7 @@ async function executeAssistantTurn(
       Router 的目录**在这里生成**：`collectPromptFacts` 只带事实，不重复算过滤；
       目录只列当前权限下可用的工具（列了拿不到的，模型就会选它、然后回头说"我没权限"）。
     */
-    const catalogTools = getAllowedTools(aiPermission, aiAllowedTools, {
+    const catalogTools = getAllowedTools(aiPermission, aiCapabilities, {
       hasForms,
       surface,
       permissions,
@@ -358,7 +368,7 @@ async function executeAssistantTurn(
         toolCatalogText: buildToolCatalogText(catalogTools),
       }),
       toolPolicy,
-      toolContext: buildToolContext(mode, surface, trimmedText),
+      toolContext: buildToolContext(mode, surface, trimmedText, catalogTools),
       abortSignal: controller.signal,
       /*
         一轮的 token 账与工具选择 —— 只打一行日志。
@@ -381,6 +391,8 @@ async function executeAssistantTurn(
 
     batcher.flush()
     useAiSessionStore.getState().endTurn()
+    // 整批执行完毕（或这一轮没有批量计划）：清掉进行中的任务清单
+    useAiSessionStore.getState().setLiveTasks(null)
     // 只有在成功生成完毕后，才落盘到当前会话的 IndexedDB
     await useAiSessionStore.getState().persist().catch(() => undefined)
   } catch (error) {
@@ -388,9 +400,11 @@ async function executeAssistantTurn(
     // 用户主动停止会走到这里（AbortError），不该报成错误
     if (controller.signal.aborted) {
       useAiSessionStore.getState().endTurn()
+      useAiSessionStore.getState().setLiveTasks(null)
       await useAiSessionStore.getState().persist().catch(() => undefined)
     } else {
       // 失败时不记录到当前会话的 IndexedDB，将消息自动回退到输入框草稿并保留在 drafts 存储中
+      useAiSessionStore.getState().setLiveTasks(null)
       useAiSessionStore.getState().failTurn(describeError(error))
     }
   } finally {

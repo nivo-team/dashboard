@@ -30,8 +30,7 @@ export const updateSearchParamsTool: AiToolDefinition = {
     required: ['params'],
     additionalProperties: false,
   },
-  access: 'read',
-  group: 'page',
+  capability: 'page:read',
   execute: async (input, ctx) => {
     const rawParams = (input as { params?: Record<string, unknown> }).params ?? {}
     const resetOthers = Boolean((input as { resetOthers?: boolean }).resetOthers)

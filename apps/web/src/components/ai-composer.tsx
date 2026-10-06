@@ -48,7 +48,11 @@ import {
   type AiComposerMode,
 } from '#/lib/store'
 import { getAppScope } from '#/lib/store/app-scope'
-import { AiTaskBackplate, getActiveTaskData } from '#/components/ai-task-card'
+import {
+  AiTaskBackplate,
+  getActiveTaskData,
+  type TaskItemData,
+} from '#/components/ai-task-card'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 
 export interface AiComposerProps {
@@ -262,7 +266,16 @@ export function AiComposer({
 
   const messages = useAiSessionStore((state) => state.messages)
   const sessionStatus = useAiSessionStore((state) => state.status)
-  const activeTaskData = getActiveTaskData(messages, sessionStatus)
+  /*
+    任务卡的数据源有两路，**liveTasks 优先**：
+    - `liveTasks`：批量计划正在执行时由 `manage_tasks` 逐步上报（每一步的状态都是真的）；
+    - 否则回退到从历史消息里提取的清单（纯进度清单 / 任务已结束的留档形态）。
+    后者只看得到"上一次 manage_tasks 调用时的状态"，批量执行期间它是静止的 —— 所以前者优先。
+  */
+  const liveTasks = useAiSessionStore((state) => state.liveTasks)
+  const activeTaskData = liveTasks
+    ? { tasks: liveTasks as unknown as TaskItemData[] }
+    : getActiveTaskData(messages, sessionStatus)
   const [taskCollapsed, setTaskCollapsed] = useState(true)
 
   /*

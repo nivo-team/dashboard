@@ -43,8 +43,7 @@ export const openFormTool: AiToolDefinition = {
     required: ['action'],
     additionalProperties: false,
   },
-  access: 'act',
-  group: 'form',
+  capability: 'form:update',
   execute: async (input, ctx) => {
     const rawAction = (input as { action?: string }).action
     const action = rawAction === 'edit' ? 'edit' : 'create'
@@ -130,8 +129,7 @@ export const listPageFormsTool: AiToolDefinition = {
   description:
     '列出当前页面的表单、字段与当前值；填表前必须先调用它取字段名，不得猜测。',
   inputSchema: { type: 'object', properties: {}, additionalProperties: false },
-  access: 'read',
-  group: 'form',
+  capability: 'form:read',
   execute: async () => {
     const forms = listAiForms()
     return {
@@ -171,8 +169,7 @@ export const fillFormTool: AiToolDefinition = {
     required: ['formId', 'values'],
     additionalProperties: false,
   },
-  access: 'act',
-  group: 'form',
+  capability: 'form:update',
   execute: async (input, ctx) => {
     /*
       读表单 = **读数据**：表单里可能有用户已经填过的内容。
@@ -261,8 +258,7 @@ export const submitFormTool: AiToolDefinition = {
     required: ['formId'],
     additionalProperties: false,
   },
-  access: 'commit',
-  group: 'form',
+  capability: 'form:submit',
   execute: async (input, ctx) => {
     const formId = typeof input.formId === 'string' ? input.formId.trim() : ''
     if (!formId) throw new Error('缺少表单 id')

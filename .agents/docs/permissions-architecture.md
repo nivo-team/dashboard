@@ -142,6 +142,7 @@ export async function guardRoutePermission({ appId, href, permission, fallbackTo
 | `/$appId/example` | `table-example:read` |
 | `/$appId/example/user/new` | `table-example:create` |
 | `/$appId/example/user/$id/edit` | `table-example:edit` |
+| `/$appId/example/tickets` | `ticket:read`（示例模块根守卫仍是 `table-example:read`） |
 | `/$appId/system` | `{ any: ['feature:read', 'dict:read'] }` |
 | `/$appId/system/features` | `feature:read` |
 | `/$appId/system/features/new` | `feature:create` |

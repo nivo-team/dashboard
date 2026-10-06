@@ -17,7 +17,7 @@ import type { AiToolDefinition } from './types'
  * | | 来源 | 作用 |
  * |---|---|---|
  * | **后端权限点**（本函数的 `permissions`） | 后端 RBAC | 上限 —— 用户**真实拥有**的能力 |
- * | 用户偏好（`aiPermission` / `aiAllowedTools`） | 本机偏好 | 在权限范围内**再收紧** |
+ * | 用户偏好（`aiPermission` / `aiCapabilities`） | 本机偏好 | 在权限范围内**再收紧** |
  *
  * 两者取交集；真正的硬边界仍是**执行时**用用户身份调后端（见 `.agents/docs/ai-server-layer.md`）。
  */

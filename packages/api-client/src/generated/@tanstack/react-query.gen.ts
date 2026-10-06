@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { deleteDataDictById, deleteDataDictTypeById, deleteRoleById, deleteSystemMenuById, deleteUserById, getApi, getApps, getDataDict, getDataDictOptions, getDataDictTypeTree, getMenusNavigation, getPermissions, getProfile, getRole, getRoleById, getRoleMenus, getSystemMenuTree, getUser, getUserById, type Options, postDataDict, postDataDictType, postLogin, postLogout, postRole, postSystemMenu, postUser, postUserBatchDelete, putDataDict, putDataDictType, putRole, putRoleMenus, putSystemMenu, putUser } from '../sdk.gen';
-import type { DeleteDataDictByIdData, DeleteDataDictByIdResponse, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponse, DeleteRoleByIdData, DeleteRoleByIdResponse, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponse, DeleteUserByIdData, DeleteUserByIdResponse, GetApiData, GetApiResponse, GetAppsData, GetAppsResponse, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponse, GetDataDictResponse, GetDataDictTypeTreeData, GetDataDictTypeTreeResponse, GetMenusNavigationData, GetMenusNavigationResponse, GetPermissionsData, GetPermissionsResponse, GetProfileData, GetProfileResponse, GetRoleByIdData, GetRoleByIdResponse, GetRoleData, GetRoleMenusData, GetRoleMenusResponse, GetRoleResponse, GetSystemMenuTreeData, GetSystemMenuTreeResponse, GetUserByIdData, GetUserByIdResponse, GetUserData, GetUserResponse, PostDataDictData, PostDataDictResponse, PostDataDictTypeData, PostDataDictTypeResponse, PostLoginData, PostLoginResponse, PostLogoutData, PostLogoutResponse, PostRoleData, PostRoleResponse, PostSystemMenuData, PostSystemMenuResponse, PostUserBatchDeleteData, PostUserBatchDeleteResponse, PostUserData, PostUserResponse, PutDataDictData, PutDataDictResponse, PutDataDictTypeData, PutDataDictTypeResponse, PutRoleData, PutRoleMenusData, PutRoleMenusResponse, PutRoleResponse, PutSystemMenuData, PutSystemMenuResponse, PutUserData, PutUserResponse } from '../types.gen';
+import { deleteDataDictById, deleteDataDictTypeById, deleteRoleById, deleteSystemMenuById, deleteTicketById, deleteUserById, getApi, getApps, getDataDict, getDataDictOptions, getDataDictTypeTree, getMenusNavigation, getPermissions, getProfile, getRole, getRoleById, getRoleMenus, getSystemMenuTree, getTicket, getTicketById, getUser, getUserById, type Options, patchTicketByIdStatus, postDataDict, postDataDictType, postLogin, postLogout, postRole, postSystemMenu, postTicket, postUser, postUserBatchDelete, putDataDict, putDataDictType, putRole, putRoleMenus, putSystemMenu, putTicket, putUser } from '../sdk.gen';
+import type { DeleteDataDictByIdData, DeleteDataDictByIdResponse, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponse, DeleteRoleByIdData, DeleteRoleByIdResponse, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponse, DeleteTicketByIdData, DeleteTicketByIdResponse, DeleteUserByIdData, DeleteUserByIdResponse, GetApiData, GetApiResponse, GetAppsData, GetAppsResponse, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponse, GetDataDictResponse, GetDataDictTypeTreeData, GetDataDictTypeTreeResponse, GetMenusNavigationData, GetMenusNavigationResponse, GetPermissionsData, GetPermissionsResponse, GetProfileData, GetProfileResponse, GetRoleByIdData, GetRoleByIdResponse, GetRoleData, GetRoleMenusData, GetRoleMenusResponse, GetRoleResponse, GetSystemMenuTreeData, GetSystemMenuTreeResponse, GetTicketByIdData, GetTicketByIdResponse, GetTicketData, GetTicketResponse, GetUserByIdData, GetUserByIdResponse, GetUserData, GetUserResponse, PatchTicketByIdStatusData, PatchTicketByIdStatusResponse, PostDataDictData, PostDataDictResponse, PostDataDictTypeData, PostDataDictTypeResponse, PostLoginData, PostLoginResponse, PostLogoutData, PostLogoutResponse, PostRoleData, PostRoleResponse, PostSystemMenuData, PostSystemMenuResponse, PostTicketData, PostTicketResponse, PostUserBatchDeleteData, PostUserBatchDeleteResponse, PostUserData, PostUserResponse, PutDataDictData, PutDataDictResponse, PutDataDictTypeData, PutDataDictTypeResponse, PutRoleData, PutRoleMenusData, PutRoleMenusResponse, PutRoleResponse, PutSystemMenuData, PutSystemMenuResponse, PutTicketData, PutTicketResponse, PutUserData, PutUserResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -598,6 +598,140 @@ export const getSystemMenuTreeQueryOptions = (options?: Options<GetSystemMenuTre
     },
     queryKey: getSystemMenuTreeQueryKey(options)
 });
+
+/**
+ * 根据 ID 删除单个工单（不提供批量删除接口）
+ */
+export const deleteTicketByIdMutation = (options?: Partial<Options<DeleteTicketByIdData>>): UseMutationOptions<DeleteTicketByIdResponse, DefaultError, Options<DeleteTicketByIdData>> => {
+    const mutationOptions: UseMutationOptions<DeleteTicketByIdResponse, DefaultError, Options<DeleteTicketByIdData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteTicketById({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getTicketByIdQueryKey = (options: Options<GetTicketByIdData>) => createQueryKey('getTicketById', options);
+
+/**
+ * 根据工单 ID 查询详情
+ */
+export const getTicketByIdQueryOptions = (options: Options<GetTicketByIdData>) => queryOptions<GetTicketByIdResponse, DefaultError, GetTicketByIdResponse, ReturnType<typeof getTicketByIdQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getTicketById({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getTicketByIdQueryKey(options)
+});
+
+/**
+ * 变更单条工单的状态
+ */
+export const patchTicketByIdStatusMutation = (options?: Partial<Options<PatchTicketByIdStatusData>>): UseMutationOptions<PatchTicketByIdStatusResponse, DefaultError, Options<PatchTicketByIdStatusData>> => {
+    const mutationOptions: UseMutationOptions<PatchTicketByIdStatusResponse, DefaultError, Options<PatchTicketByIdStatusData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await patchTicketByIdStatus({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getTicketQueryKey = (options?: Options<GetTicketData>) => createQueryKey('getTicket', options);
+
+/**
+ * 工单分页列表，支持关键词、状态/优先级/分类筛选与服务端排序
+ */
+export const getTicketQueryOptions = (options?: Options<GetTicketData>) => queryOptions<GetTicketResponse, DefaultError, GetTicketResponse, ReturnType<typeof getTicketQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getTicket({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getTicketQueryKey(options)
+});
+
+export const getTicketInfiniteQueryKey = (options?: Options<GetTicketData>): QueryKey<Options<GetTicketData>> => createQueryKey('getTicket', options, true);
+
+/**
+ * 工单分页列表，支持关键词、状态/优先级/分类筛选与服务端排序
+ */
+export const getTicketInfiniteOptions = (options?: Options<GetTicketData>) => {
+    const opts = infiniteQueryOptions<GetTicketResponse, DefaultError, InfiniteData<GetTicketResponse>, QueryKey<Options<GetTicketData>>, number | Pick<QueryKey<Options<GetTicketData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<GetTicketData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await getTicket({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: getTicketInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * 新建工单
+ */
+export const postTicketMutation = (options?: Partial<Options<PostTicketData>>): UseMutationOptions<PostTicketResponse, DefaultError, Options<PostTicketData>> => {
+    const mutationOptions: UseMutationOptions<PostTicketResponse, DefaultError, Options<PostTicketData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await postTicket({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 更新单条工单（标题 / 描述 / 优先级 / 负责人 / 分类）
+ */
+export const putTicketMutation = (options?: Partial<Options<PutTicketData>>): UseMutationOptions<PutTicketResponse, DefaultError, Options<PutTicketData>> => {
+    const mutationOptions: UseMutationOptions<PutTicketResponse, DefaultError, Options<PutTicketData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putTicket({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const getUserQueryKey = (options?: Options<GetUserData>) => createQueryKey('getUser', options);
 

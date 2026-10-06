@@ -4,6 +4,7 @@ import {
   DatabaseIcon,
   EyeIcon,
   InfoIcon,
+  ListChecksIcon,
   ShieldCheckIcon,
   SlidersHorizontalIcon,
   TextboxIcon,
@@ -11,7 +12,14 @@ import {
 } from '@phosphor-icons/react'
 import { useTranslation } from 'react-i18next'
 import { SettingRow } from '#/components/settings-card'
-import { AI_TOOLS, resolveAllowedToolNames, type AiPermissionMode } from '#/lib/ai'
+import {
+  AI_CAPABILITIES,
+  isKnownCapabilityGrant,
+  presetCapabilityGrants,
+  type AiCapabilityGrant,
+  type AiCapabilityKey,
+} from '#/lib/ai/capabilities'
+import type { AiPermissionMode } from '#/lib/ai'
 
 interface AiPermissionOption {
   key: AiPermissionMode
@@ -34,64 +42,48 @@ const AI_PERMISSION_OPTIONS: AiPermissionOption[] = [
     key: 'readonly',
     labelKey: 'profile.settings.aiPermissionModes.readonly',
     fallback: '只读',
-    hintFallback: '只能查看与读取：看页面数据、查接口、列导航；不能填表、提交或调用写接口',
+    hintFallback:
+      '只能查看与读取：看页面数据、查接口、列导航、读表单、编排任务；不能填表、提交或调用写接口',
     icon: EyeIcon,
   },
   {
     key: 'full',
     labelKey: 'profile.settings.aiPermissionModes.full',
     fallback: '完全访问',
-    hintFallback: '可以使用全部工具：填表、提交、调用写接口；写操作每一次仍会请你确认',
+    hintFallback: '放行全部能力：填表、提交、调用写接口；写操作每一次仍会请你确认',
     icon: ShieldCheckIcon,
   },
   {
     key: 'custom',
     labelKey: 'profile.settings.aiPermissionModes.custom',
     fallback: '自定义',
-    hintFallback: '逐项勾选 AI 能用的工具。只读与完全访问由上方档位决定，切到「自定义」才能逐项调整',
+    hintFallback: '逐项勾选 AI 能用的能力。切到「自定义」才能逐格调整',
     icon: SlidersHorizontalIcon,
   },
 ]
 
 /**
- * 工具清单按注册表里的 `group` 分堆 —— **只有 `AI_TOOLS` 一份真值**，
- * 这里不另抄名单（加工具时只改工具文件，界面自动跟上）。
+ * 能力行的图标与行级说明 —— 行的**名称与动作**来自矩阵本身（`AI_CAPABILITIES`），
+ * 这里只补「界面上怎么显示」（图标 + 一句话），**不另抄一份格子名单**。
  */
-const TOOL_GROUPS = [
-  {
-    key: 'page',
-    fallback: '页面',
-    hintFallback: '读取当前页面、列出导航、跳转',
-    icon: BrowserIcon,
-  },
-  {
-    key: 'data',
-    fallback: '数据',
-    hintFallback: '查接口、读数据；写接口每次都会请你确认',
-    icon: DatabaseIcon,
-  },
-  {
-    key: 'form',
-    fallback: '表单',
-    hintFallback: '读取页面表单、填写、提交',
-    icon: TextboxIcon,
-  },
-].map((group) => ({
-  ...group,
-  tools: AI_TOOLS.filter((tool) => tool.group === group.key),
-}))
+const CAPABILITY_ROW_META: Record<AiCapabilityKey, { icon: Icon; hintFallback: string }> = {
+  page: { icon: BrowserIcon, hintFallback: '当前页面相关：读取、跳转、执行页面操作' },
+  data: { icon: DatabaseIcon, hintFallback: '直接调接口：只读查询与写库' },
+  form: { icon: TextboxIcon, hintFallback: '页面表单三段：读结构、替你填、提交入库' },
+  task: { icon: ListChecksIcon, hintFallback: '批量任务的编排与推进' },
+}
 
 export interface AiPermissionConfigProps {
   /** 当前权限档（受控：草稿版由调用方持有，见 AI 面板的权限视图） */
   permission: AiPermissionMode
-  /** `custom` 档下已勾选的工具名（类型跟 Kumo `Checkbox.Group` 的 `value` 对齐，不用 readonly 数组） */
-  allowedTools: string[]
+  /** `custom` 档下已勾选的**能力格子**（`page:read` / `data:write` …） */
+  capabilities: readonly AiCapabilityGrant[]
   onPermissionChange: (permission: AiPermissionMode) => void
-  onAllowedToolsChange: (allowedTools: string[]) => void
+  onCapabilitiesChange: (capabilities: AiCapabilityGrant[]) => void
   /**
    * 布局形态：
-   * - `settings`（默认）：设置页使用，嵌在 SettingsCard 内，左 label 右 Tabs，工具列表连通；
-   * - `panel`：AI 面板专属形态，Tabs 直接居中在容器内（不包外层卡片），三个工具分组分别用独立的 LayerCard 包裹。
+   * - `settings`（默认）：设置页使用，嵌在 SettingsCard 内；
+   * - `panel`：AI 面板专属形态，Tabs 居中、每个能力行用独立的 LayerCard 包裹。
    */
   variant?: 'settings' | 'panel'
 }
@@ -99,57 +91,52 @@ export interface AiPermissionConfigProps {
 /**
  * 「AI 权限」的配置体 —— 支持设置页与 AI 面板两种布局形态。
  *
- * 两处共用同一份状态联动逻辑（预设切换继承、工具分组与勾选计算），但视觉上做出区分：
- * - 设置页（`variant="settings"`）：标准的设置卡片行布局；
- * - AI 面板（`variant="panel"`）：Tabs 居中凸显、页面/数据/表单三组工具各自独立包裹 LayerCard
- *   （标题后一枚 Info 图标，说明走它的 tooltip）。
+ * ## 一行一个能力、行内是该能力的动作
  *
- * 两处的**档位 tooltip** 共用（`renderTabs`）：三档各自说明自己放行到哪一步；
- * **分组的说明一律不常显**（走标题上的 tooltip），把版面留给清单本身。
+ * 这是这次权限改造的**核心呈现**：用户看到的不是 18 个工具名，而是四行
+ * 「页面 / 数据 / 表单 / 任务」，每行右侧列出该行可授权的动作（读取 · 跳转 · 操作 / …）。
+ * 每个动作是一枚 `Checkbox`，它们的值就是**能力格子键**，与运行时过滤用的是同一批键 ——
+ * 界面上勾了什么，模型就拿到什么工具，不可能分叉。
+ *
+ * 「打开表单算读取还是更新」的答案在矩阵里：**打开表单与填写同属「表单·更新」** ——
+ * 打开表单的唯一目的就是改数据，只看不改的路径是详情页。
  */
 export function AiPermissionConfig({
   permission,
-  allowedTools,
+  capabilities,
   onPermissionChange,
-  onAllowedToolsChange,
+  onCapabilitiesChange,
   variant = 'settings',
 }: AiPermissionConfigProps) {
   const { t } = useTranslation('common')
 
   /*
-    清单里勾选的集合 —— 两档 preset **按档位派生**，而不是去读 `allowedTools`：
-    - `readonly` → `read` 类工具（`resolveAllowedToolNames` 的预设）；
-    - `full` → 全部工具；
+    清单里勾选的集合 —— 两档 preset **按档位派生**，而不是去读 `capabilities`：
+    - `readonly` → 预设的只读格子；
+    - `full` → 全部格子；
     - `custom` → 用户自己勾的那些。
 
     这样切档时清单不闪、不跳：只是勾选跟着变，用户能直接对比「只读」和「完全访问」差在哪。
-    切到 `custom` 时把这份派生集合继承进 `allowedTools`（见下面的 `onValueChange`），
+    切到 `custom` 时把这份派生集合继承进 `capabilities`（见下面的 `onValueChange`），
     于是从预设档过去是「接着改」，不是「从零勾」。
   */
-  const checkedTools =
-    permission === 'custom' ? allowedTools : resolveAllowedToolNames(permission)
+  const checked: string[] =
+    permission === 'custom' ? [...capabilities] : [...presetCapabilityGrants(permission)]
   /** 只有「自定义」能勾：preset 档的勾选由档位决定，点它没有意义 */
   const locked = permission !== 'custom'
 
-  /**
-   * 三档权限的公共 Tabs —— 设置页与 AI 面板共用同一份（含每档的 tooltip 说明）。
-   *
-   * **每一档都有自己的 tooltip**（挂在档位文字上、悬停才出）：说明文字常显会把
-   * 这一屏撑得很吵，而三档的差别（能不能填表 / 提交 / 调写接口）恰恰是需要解释的那部分 ——
-   * 放在 tooltip 里，既不占版面，又能逐档单独查看。
-   */
   const renderTabs = () => (
     <Tabs
       value={permission}
       onValueChange={(next) => {
         const mode = next as AiPermissionMode
         /*
-          从预设档（只读 / 完全访问）切到「自定义」时**继承当前档实际勾选的工具**，
+          从预设档（只读 / 完全访问）切到「自定义」时**继承当前档实际勾选的能力**，
           而不是从空开始 —— 三档本来就是对同一份勾选清单的预设，
-          用户在只读下看到的那几项，切过去应当还勾着，否则他得从零再点一遍。
+          用户在只读下看到的那几格，切过去应当还勾着，否则他得从零再点一遍。
         */
         if (mode === 'custom' && permission !== 'custom') {
-          onAllowedToolsChange(resolveAllowedToolNames(permission, allowedTools))
+          onCapabilitiesChange(presetCapabilityGrants(permission))
         }
         onPermissionChange(mode)
       }}
@@ -157,10 +144,7 @@ export function AiPermissionConfig({
       tabs={AI_PERMISSION_OPTIONS.map((item) => {
         const ItemIcon = item.icon
         const label = t(item.labelKey, item.fallback)
-        const hint = t(
-          `profile.settings.aiPermissionModeHints.${item.key}`,
-          item.hintFallback,
-        )
+        const hint = t(`profile.settings.aiPermissionModeHints.${item.key}`, item.hintFallback)
         return {
           value: item.key,
           label: (
@@ -168,8 +152,6 @@ export function AiPermissionConfig({
               <ItemIcon size={16} className="text-kumo-subtle" />
               {/*
                 触发元素是**文字本身**（不是整颗 tab）：悬停文字看说明、点 tab 切换档位互不打扰。
-                说明只是「补充」——档位名本身就是可访问名，所以这里不放 `sr-only`
-                （那会把 tab 的读屏名撑成一句话）。
               */}
               <Tooltip content={hint} delay={120}>
                 <span className="cursor-default">{label}</span>
@@ -181,26 +163,63 @@ export function AiPermissionConfig({
     />
   )
 
-  const renderToolCheckboxes = (group: (typeof TOOL_GROUPS)[number]) => {
-    const names = group.tools.map((tool) => tool.name)
+  /**
+   * 一行能力：行首是行名（+ tooltip），行内是该行的动作勾选。
+   *
+   * 用 `Checkbox.Group` 包一行（它渲染成 fieldset + legend，读屏能听出分组），
+   * `onValueChange` 拿到的是**这一行所有格子的当前勾选值** —— 所以增删只影响本行，
+   * 不会与其它行互相覆盖（这正是"一行一个 Group"而不是一个大 Group 的原因）。
+   */
+  const renderCapabilityRow = (capability: (typeof AI_CAPABILITIES)[number]) => {
+    const meta = CAPABILITY_ROW_META[capability.key]
+    const RowIcon = meta.icon
+    const rowLabel = t(`profile.settings.aiCapabilityRows.${capability.key}`, capability.label)
+    const rowHint = t(`profile.settings.aiCapabilityRowHints.${capability.key}`, meta.hintFallback)
+    const grants: string[] = capability.actions.map((action) => action.grant)
+
     return (
       <Checkbox.Group
-        value={checkedTools}
+        key={capability.key}
+        value={checked}
         disabled={locked}
-        onValueChange={(next) =>
-          onAllowedToolsChange([
-            ...allowedTools.filter((name) => !names.includes(name)),
-            ...next,
-          ])
-        }
+        onValueChange={(next) => {
+          // Group 交回的是"这一行现在勾了哪些"，与其它行的勾选取并集
+          const rowGrants = new Set<string>(grants)
+          const others = capabilities.filter((grant) => !rowGrants.has(grant))
+          const picked = next.filter(isKnownCapabilityGrant)
+          onCapabilitiesChange([...others, ...picked])
+        }}
       >
-        {group.tools.map((tool) => (
-          <Checkbox.Item
-            key={tool.name}
-            value={tool.name}
-            label={t(`profile.settings.aiToolNames.${tool.name}`, tool.name)}
-          />
-        ))}
+        <Checkbox.Legend className="flex items-center gap-2">
+          <RowIcon size={16} className="text-kumo-subtle" />
+          <span className="text-sm font-medium text-kumo-default">{rowLabel}</span>
+          <Tooltip content={rowHint} delay={120}>
+            <span className="flex cursor-pointer text-kumo-subtle transition-colors hover:text-kumo-default">
+              <InfoIcon size={14} />
+              <span className="sr-only">{rowHint}</span>
+            </span>
+          </Tooltip>
+        </Checkbox.Legend>
+
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          {capability.actions.map((action) => {
+            const actionLabel = t(
+              `profile.settings.aiCapabilityActions.${action.grant}`,
+              action.label,
+            )
+            const actionHint = t(
+              `profile.settings.aiCapabilityActionHints.${action.grant}`,
+              action.hint,
+            )
+            return (
+              <Tooltip key={action.grant} content={actionHint} delay={120}>
+                <span className="cursor-default">
+                  <Checkbox.Item value={action.grant} label={actionLabel} />
+                </span>
+              </Tooltip>
+            )
+          })}
+        </div>
       </Checkbox.Group>
     )
   }
@@ -208,7 +227,6 @@ export function AiPermissionConfig({
   if (variant === 'panel') {
     return (
       <div className="flex flex-col gap-3">
-        {/* Tabs 直接居中放在容器中，不需要任何卡片包裹 */}
         <div
           role="group"
           aria-label={t('profile.settings.aiPermissionMode', '权限范围')}
@@ -217,31 +235,31 @@ export function AiPermissionConfig({
           {renderTabs()}
         </div>
 
-        {/* 页面、数据、表单 三组工具单独用 LayerCard 包裹：标题后附带 Info 图标，悬停 Tooltip 查看说明 */}
+        {/* 每个能力行独立包一张 LayerCard：标题后一枚 Info 图标，说明走它的 tooltip */}
         <div className="flex flex-col gap-3">
-          {TOOL_GROUPS.map((group) => {
-            const GroupIcon = group.icon
-            const hint = t(
-              `profile.settings.aiToolGroupHints.${group.key}`,
-              group.hintFallback,
+          {AI_CAPABILITIES.map((capability) => {
+            const RowIcon = CAPABILITY_ROW_META[capability.key].icon
+            const rowHint = t(
+              `profile.settings.aiCapabilityRowHints.${capability.key}`,
+              CAPABILITY_ROW_META[capability.key].hintFallback,
             )
             return (
-              <LayerCard key={group.key} className="p-0">
+              <LayerCard key={capability.key} className="p-0">
                 <LayerCard.Secondary className="my-0 items-center gap-2 px-3.5 py-2">
-                  <GroupIcon size={16} className="text-kumo-subtle" />
+                  <RowIcon size={16} className="text-kumo-subtle" />
                   <span className="text-sm font-semibold text-kumo-default">
-                    {t(`profile.settings.aiToolGroups.${group.key}`, group.fallback)}
+                    {t(`profile.settings.aiCapabilityRows.${capability.key}`, capability.label)}
                   </span>
-                  <Tooltip content={hint} delay={120}>
+                  <Tooltip content={rowHint} delay={120}>
                     <span className="flex cursor-pointer text-kumo-subtle transition-colors hover:text-kumo-default">
                       <InfoIcon size={14} />
-                      <span className="sr-only">{hint}</span>
+                      <span className="sr-only">{rowHint}</span>
                     </span>
                   </Tooltip>
                 </LayerCard.Secondary>
 
                 <LayerCard.Primary className="gap-2.5 p-3">
-                  {renderToolCheckboxes(group)}
+                  {renderCapabilityRow(capability)}
                 </LayerCard.Primary>
               </LayerCard>
             )
@@ -266,65 +284,12 @@ export function AiPermissionConfig({
       </SettingRow>
 
       {/*
-        三组清单**始终列出来**，preset 档整组 `disabled`：
+        四行能力清单**始终列出来**，preset 档整行 `disabled`：
         档位之间只差「勾了哪些」，不是「有没有清单」—— 切到「完全访问」下面不会突然空掉，
-        用户也一眼能看清这一档到底放行了哪些工具。想逐项改就切到「自定义」。
-
-        每个分组一个 `Checkbox.Group`（它渲染成 fieldset + legend，读屏能听出分组），
-        但 `onValueChange` 拿到的是**该组自己**的勾选值 —— 所以合并时要先把这一组原有的
-        成员摘掉、再并上新的，否则组与组之间会互相覆盖。
-
-        **分组的说明不常显**：走 `Checkbox.Legend` 子元素（`legend` 字符串属性放不下
-        图标与 tooltip），标题后挂一枚 Info 图标、悬停才出说明 —— 与 AI 面板那个形态同一套。
-        （ListHint 那句「想逐项调整就切到自定义」也已并入「自定义」档的 tooltip。）
+        用户也一眼能看清这一档到底放行了哪些能力。
       */}
-      <div className="flex flex-col gap-4 px-4 py-3.5">
-        {TOOL_GROUPS.map((group) => {
-          const names = group.tools.map((tool) => tool.name)
-          const GroupIcon = group.icon
-          const groupLabel = t(
-            `profile.settings.aiToolGroups.${group.key}`,
-            group.fallback,
-          )
-          const groupHint = t(
-            `profile.settings.aiToolGroupHints.${group.key}`,
-            group.hintFallback,
-          )
-          return (
-            <Checkbox.Group
-              key={group.key}
-              value={checkedTools}
-              disabled={locked}
-              onValueChange={(next) =>
-                onAllowedToolsChange([
-                  ...allowedTools.filter((name) => !names.includes(name)),
-                  ...next,
-                ])
-              }
-            >
-              <Checkbox.Legend className="flex items-center gap-2">
-                <GroupIcon size={16} className="text-kumo-subtle" />
-                <span className="text-sm font-medium text-kumo-default">
-                  {groupLabel}
-                </span>
-                <Tooltip content={groupHint} delay={120}>
-                  <span className="flex cursor-pointer text-kumo-subtle transition-colors hover:text-kumo-default">
-                    <InfoIcon size={14} />
-                    <span className="sr-only">{groupHint}</span>
-                  </span>
-                </Tooltip>
-              </Checkbox.Legend>
-
-              {group.tools.map((tool) => (
-                <Checkbox.Item
-                  key={tool.name}
-                  value={tool.name}
-                  label={t(`profile.settings.aiToolNames.${tool.name}`, tool.name)}
-                />
-              ))}
-            </Checkbox.Group>
-          )
-        })}
+      <div className="flex flex-col gap-5 px-4 py-3.5">
+        {AI_CAPABILITIES.map(renderCapabilityRow)}
       </div>
     </>
   )

@@ -17,6 +17,7 @@
 | 表格示例详情（`$appId/example/user/$id`） | ✅ 已迁移 | 只读页：数据源 `record`、无指令 / 3 条测试 |
 | 表格示例 新建 · 编辑（`…/new`、`…/$id/edit`） | ✅ 已迁移 | 表单桥（fill_form / submit_form）/ 4 条测试 |
 | 复杂表格（`$appId/example/complex-table`） | ✅ 新增 | 分组表头 / 展开行 / 列显隐 / 行选择 / 汇总行 / 数据源 `rows` + 3 条 UI 指令 / 6 条测试 |
+| 工单管理（`$appId/example/tickets`） | ✅ 新增 | **无批量接口**的 CRUD 样板：数据源 `tickets` + 4 条单条指令 / 10 条测试（含 AI 编排） |
 | 功能菜单树 · 详情（`$appId/system/features`） | ✅ 已迁移 | 三落点 / 数据源 ×3 + 表单桥（详情）/ 18 条测试 |
 | 数据字典分类列表（`$appId/system/data-dict`） | ✅ 已迁移 | 功能 / 接口 / 数据源 `dict-types`（无指令）/ 12 条测试 |
 | 数据字典分类详情（`$appId/system/data-dict/$typeId`） | ✅ 已迁移 | 三段式页面 / 数据源 ×2 + 表单桥 / 15 条测试 |
@@ -138,6 +139,51 @@
 | 4 | 勾选若干行 | 头部出现「已选择 N 项」与清空按钮 |
 | 5 | 底部汇总行 | 订单数 / 合计数量 / 合计金额随筛选变化 |
 | 6 | **AI·面板**：说「展开全部」「折叠全部」 | 调 `run_page_command(expand-all-rows / collapse-all-rows)`，表格展开态随之变化 |
+
+## example / 工单管理（`$appId/example/tickets`）
+
+**代码**：`src/features/tickets/{index.tsx,feature.ts,columns.tsx,form-view.tsx,form-dialog.tsx,form-page.tsx}` · 路由 `src/routes/$appId/example/tickets/{index,new,$id.edit}.tsx`
+
+**这一页为什么存在**：它是「**后端没有批量接口**」的标准样板，用来验收 AI 的**自主编排**能力。
+
+**功能**
+- 分页浏览工单，关键词搜索、状态 / 优先级 / 分类 / 负责人筛选、服务端排序
+- 新建 / 编辑（弹窗 / 分屏 / 独立页三种形态，随用户偏好）
+- 行内「开始处理 / 标记完成 / 关闭工单」（走独立的状态接口）、删除单条
+- **没有批量删除按钮** —— 后端没有批量端点
+
+**权限点**：`ticket:read` / `ticket:create` / `ticket:edit` / `ticket:update` / `ticket:delete`
+
+**接口**（**全部是单条**，刻意没有 `batch-delete`）
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| GET | `/ticket` | 分页查询（`kw` / `status` / `priority` / `category` / `assignee`） |
+| POST / PUT | `/ticket` | 新建 / 更新单条（PUT 的 body 带 `id`） |
+| DELETE | `/ticket/{id}` | 删除单条 |
+| PATCH | `/ticket/{id}/status` | 变更单条状态（body `{ status }`） |
+
+**AI 指令**（**只有单条**，意图不声明批量 —— 后端没有的能力不要声明）
+- `create-ticket` / `edit-ticket`（`navigate`）
+- `delete-ticket`（`write` + `approval: always` + `destructive`）
+- `set-ticket-status`（`write` + `approval: always`）
+
+**AI 数据源**：`tickets` —— 当前这一屏 + 状态（关键词 / 筛选 / 分页 / 排序 / 选中项）。
+
+**页面目录**：`lib/ai/page-catalog.ts` 里登记了 `desc` 与 6 条接口 —— AI 的 `search_pages`
+能检索到它，也能据此做跨页面聚合。
+
+| # | 步骤 | 预期 |
+| --- | --- | --- |
+| 1 | 打开 `/nivo/example/tickets` | 列表渲染、状态 / 优先级显示为中文、无控制台报错 |
+| 2 | 搜索某关键词 / 改筛选 / 排序 | 服务端重新取数，URL 与列表一致 |
+| 3 | 行菜单「开始处理」「标记完成」「关闭工单」 | 状态随之更新、toast 提示、列表刷新 |
+| 4 | 行菜单「删除」 | 二次确认弹窗 → 删除成功 → 列表刷新 |
+| 5 | 新建 / 编辑（三种打开方式） | 表单按偏好以弹窗 / 分屏 / 独立页出现，保存后列表刷新 |
+| 6 | **AI·面板**：说「把这一屏待处理的工单都关闭」 | **不循环调用**：先 `manage_tasks` 一次给出整组步骤 → 弹**一张**计划卡（列出全部步骤）→ 点允许 → 客户端**顺序**执行、任务卡逐步推进 → 全部完成后 AI 用表格汇总 |
+| 7 | **AI·面板**：说「删除名称为 X 的那条」 | 先 `get_page_data` 定位 id，再 `run_page_command(delete-ticket)` 单条删除（不需要编排） |
+| 8 | **AI·面板**：说「最近三天新建的工单」 | 先 `get_current_time` 拿时间戳，再按 `created_at_min` 取数（**不凭印象猜时间**） |
+| 9 | **AI·穿权限**：用只有 `task:plan` 而无 `data:write` 的档，让它编排一次 `call_write_api` | 该步**失败**并如实说明"当前不可用这个工具"（`ctx.resolveTool` 白名单挡住，不越权） |
+| 10 | **AI·全屏**：说「统计各模块的记录数」 | 用 `search_pages` 检索出相关页面 → `get_page_context(path)` 取各页接口 → `call_read_api` 取数 → 对话里用 Markdown 表格汇总（不逐页跳过去） |
 
 ## system / 数据字典分类列表（`$appId/system/data-dict`）
 
@@ -325,6 +371,20 @@
    **表单字段仍在表单组件里**用 `useAiFormFields` + 页面侧 `useAiFormSubmit`（同一个 `id` 拼成一条记录，这条没变）。
    测试时如果某个页面读不到数据/没有指令，先确认它是否已迁移 —— 迁移现状见
    [features-architecture.md](./features-architecture.md) §6（当前：users 已迁移，features / data-dict / home 未迁移）。
+
+### 本版新增（测试时对照）
+
+- **AI 权限是能力矩阵**（`lib/ai/capabilities.ts`）：设置 → AI 的权限区应显示**四行**
+  （页面 / 数据 / 表单 / 任务），每行右侧是该行的动作勾选；预设档（只读 / 完全访问）
+  勾选固定且不可点，切「自定义」后才能逐格改，且**继承当前档的勾选**。
+- **批量任务编排**：任何"处理多个对象"的请求，正确行为是**一次 `manage_tasks` 编排**
+  + 顺序执行 + 结果整批回传；**反例**是循环调用单条接口（表现为任务卡不动、大量审批卡）。
+- **时间事实**：涉及"今天 / 最近 N 天"时必须先调 `get_current_time`（返回 UTC 时刻 +
+  浏览器时区 + 用户展示时区 + 秒级时间戳），不得凭印象编时间戳。
+- **页面检索**：不确定该去哪一页时先 `search_pages`（按功能描述模糊搜），
+  再用 `get_page_context({ path })` 取该页明细；**跨页面统计不逐页跳转**。
+- **脱敏不变**：`sensitive: true` 的字段值一律掩码（见 `lib/ai/content-redact.ts`），
+  模型知道"有这个字段"但看不到值。
 
 ## system / 功能菜单树 · 功能详情（`$appId/system/features`）
 
