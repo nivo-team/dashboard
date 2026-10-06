@@ -20,7 +20,7 @@ import { useDashboardStore } from '#/lib/store/dashboard-store'
 import { AddWidgetDialog } from './add-widget-dialog'
 import { DashboardGrid } from './dashboard-grid'
 import { DASHBOARD_WIDGETS, getWidgetDefinition } from './widget-registry'
-import { useFeature } from '#/lib/features'
+import { useFeature } from '#/features/ai/page'
 import { createDashboardFeature } from './feature'
 
 /**

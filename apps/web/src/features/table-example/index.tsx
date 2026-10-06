@@ -19,7 +19,7 @@ import {
 } from '#/api'
 import type { GetUserData, UserItem } from '#/api'
 import { USER_FILTER_FIELDS } from '#/api'
-import { useFeature } from '#/lib/features'
+import { useFeature } from '#/features/ai/page'
 import { createTableExampleListFeature, TABLE_EXAMPLE_SORTABLE_FIELDS as SORTABLE_FIELDS } from './feature'
 import {
   DataTable,

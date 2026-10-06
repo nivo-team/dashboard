@@ -169,7 +169,7 @@
 
 **AI 数据源**：`tickets` —— 当前这一屏 + 状态（关键词 / 筛选 / 分页 / 排序 / 选中项）。
 
-**页面目录**：`lib/ai/page-catalog.ts` 里登记了 `desc` 与 6 条接口 —— AI 的 `search_pages`
+**页面目录**：`features/ai/core/page-catalog.ts` 里登记了 `desc` 与 6 条接口 —— AI 的 `search_pages`
 能检索到它，也能据此做跨页面聚合。
 
 | # | 步骤 | 预期 |
@@ -321,8 +321,8 @@
 
 ## AI 助手（面板 / 全屏）
 
-**代码**：`components/{ai-panel,ai-composer,ai-conversation,ai-conversation-scroller,ai-session-list,ai-session-picker,ai-activity-glow}.tsx` ·
-`routes/$appId_.sphere/**`（全屏对话页）· `routes/_main/settings/AI.tsx`（设置）· 逻辑在 `lib/ai/**`、提示词真值在 `packages/ai-prompt`（由 `apps/ai` 每轮注入）
+**代码**：`components/{ai-panel,composer,conversation,conversation-scroller,session-list,session-picker,activity-glow}.tsx` ·
+`routes/$appId_.sphere/**`（全屏对话页）· `routes/_main/settings/AI.tsx`（设置）· 逻辑在 `features/ai/core/**`、提示词真值在 `packages/ai-prompt`（由 `apps/ai` 每轮注入）
 
 **功能**
 - **入口**：顶栏「Ask AI」（只在 `$appId` 外壳显示）；面板两种形态 —— **分屏**（挤压内容、可拖宽 300–720）与**浮窗**（可拖宽高、可折叠成只有头行的一条、移动端整屏）
@@ -374,7 +374,7 @@
 
 ### 本版新增（测试时对照）
 
-- **AI 权限是能力矩阵**（`lib/ai/capabilities.ts`）：设置 → AI 的权限区应显示**四行**
+- **AI 权限是能力矩阵**（`features/ai/core/capabilities.ts`）：设置 → AI 的权限区应显示**四行**
   （页面 / 数据 / 表单 / 任务），每行右侧是该行的动作勾选；预设档（只读 / 完全访问）
   勾选固定且不可点，切「自定义」后才能逐格改，且**继承当前档的勾选**。
 - **批量任务编排**：任何"处理多个对象"的请求，正确行为是**一次 `manage_tasks` 编排**
@@ -383,7 +383,7 @@
   浏览器时区 + 用户展示时区 + 秒级时间戳），不得凭印象编时间戳。
 - **页面检索**：不确定该去哪一页时先 `search_pages`（按功能描述模糊搜），
   再用 `get_page_context({ path })` 取该页明细；**跨页面统计不逐页跳转**。
-- **脱敏不变**：`sensitive: true` 的字段值一律掩码（见 `lib/ai/content-redact.ts`），
+- **脱敏不变**：`sensitive: true` 的字段值一律掩码（见 `features/ai/core/content-redact.ts`），
   模型知道"有这个字段"但看不到值。
 
 ## system / 功能菜单树 · 功能详情（`$appId/system/features`）

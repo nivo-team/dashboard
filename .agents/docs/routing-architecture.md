@@ -34,7 +34,7 @@ apps/web/src/routes/
     │                          #     面板的进出场动画也在这一层（scale + 透明度）
     ├── index.tsx              #   /$appId/sphere        新会话
     ├── chat/$chatId.tsx       #   /$appId/sphere/chat/$chatId  指定会话（找不到 → 404）
-    └── （页面实现在 src/features/sphere/：sphere-chat / sphere-sidebar / session-search-dialog）
+    └── （页面实现在 src/features/ai/sphere/：sphere-chat / sphere-sidebar / session-search-dialog）
 ```
 
 > **模块目录化（强制）**：业务模块一律用目录承载（`route.tsx` = 模块根与边界、`index.tsx` = 入口）；
@@ -81,7 +81,7 @@ chat 页面，自己的侧边栏是 AI 会话列表。
    （`navigate` / `getRoutePath`）不会跟着过来，`$appId_.sphere/route.tsx` 里重新注册一次
    （两者互斥挂载，单槽注册不会互相覆盖）。
 
-AI 状态（`lib/ai/session-store`）是模块级 zustand store，与路由无关，
+AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与路由无关，
 所以面板「最大化」到本页时当前这段对话**原样续上**，不存在两套会话。
 「最大化」的落点按**面板里有没有会话**分两种：有 → `sphere/chat/$chatId`，没有 → `sphere/`。
 
@@ -99,26 +99,26 @@ AI 状态（`lib/ai/session-store`）是模块级 zustand store，与路由无�
   记录在当前应用里存在，不存在 `throw notFound()` → `SphereNotFound`（AI 形象 + 文案，
   **不用**通用线框 404）；存在才让组件把 store 切过去（`activeSessionId` 已一致时不切，
   避免把流式增量冲掉）；
-- `features/sphere/sphere-header.tsx`：**头行挂在布局上**（三列等宽网格 → 标题居中，行首是
+- `features/ai/sphere/sphere-header.tsx`：**头行挂在布局上**（三列等宽网格 → 标题居中，行首是
   侧边栏收起时才出现的展开按钮、行尾是「收起」）。放在布局而不是页面里，是为了让会话 404
   也留着头行（`notFoundComponent` 只替换路由组件）；标题因此按路由推导 ——
   `sphere/` 用当前会话，`sphere/chat/$chatId` 从会话列表按 id 取，**列表里没有就留空**
   （这正是「404 时 header 还在、只是不显示内容」）；
-- `features/sphere/sphere-chat.tsx`：两个路由共用的 chat 本体（**只有会话区 + 输入区**），
+- `features/ai/sphere/sphere-chat.tsx`：两个路由共用的 chat 本体（**只有会话区 + 输入区**），
   输入区上沿不画分隔线；会话区用与面板共用的 `AiConversationScroller`（跟随滚动 / 回到底部）；
   宽度档位见设置 → AI → 页面宽度（`#/lib/page-width` 的 `aiChatWidthClass`：跟随外观 /
   全宽 / 限宽居中，上限是 `max-w-4xl`）——**约束挂在「内容」那一层，滚动容器仍铺满**，
   滚动条才始终贴在面板边缘（限宽模式下也是）；配合 `scrollbar-gutter: stable both-edges`
   让内容不跳动、中心与下方输入区对齐；
-- `features/sphere/use-sphere-collapse.ts`：收起全屏 = 回到**点「最大化」时所在的那一页**
-  （href 记在 sessionStorage，见 `#/lib/ai/panel-session`；没有记录才回落应用首页）；
-- `features/sphere/sphere-not-found.tsx`：会话 404 的空态（AI 形象 + 文案 + 「新对话」）；
+- `features/ai/sphere/use-sphere-collapse.ts`：收起全屏 = 回到**点「最大化」时所在的那一页**
+  （href 记在 sessionStorage，见 `#/features/ai/core/panel-session`；没有记录才回落应用首页）；
+- `features/ai/sphere/sphere-not-found.tsx`：会话 404 的空态（AI 形象 + 文案 + 「新对话」）；
   头行还在，所以这里不再重复放「收起」；
-- `features/sphere/sphere-sidebar.tsx`：Kumo `Sidebar` 组件写的会话侧边栏，头行 = 品牌 + 标题 +
+- `features/ai/sphere/sphere-sidebar.tsx`：Kumo `Sidebar` 组件写的会话侧边栏，头行 = 品牌 + 标题 +
   **展开态下的收起按钮**；内外分隔线也归它（展开时才画 `border-e`，收起后随整列一起消失）；
   会话选择走 **URL 导航**而不是直接调 store（一个落点只有一个所有者）；
   收起按钮**一次只显示一个**：展开态在侧边栏头行、收起态在 chat 头行；
-- `features/sphere/session-search-dialog.tsx`：只搜会话标题的独立弹窗，形态同命令面板。
+- `features/ai/sphere/session-search-dialog.tsx`：只搜会话标题的独立弹窗，形态同命令面板。
 
 ### 外壳持久化（Zero-Remount）
 `AppShell` 与 `MainLayout` 分别挂载在 `$appId/route.tsx` 和 `_main/route.tsx` 上。子路由切换时：

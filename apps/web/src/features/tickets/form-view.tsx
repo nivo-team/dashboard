@@ -4,7 +4,7 @@ import type { FormEvent } from 'react'
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { getTicketById, postTicket, putTicket, type TicketItem } from '#/api'
-import { useAiFormFields, useAiFormSubmit, type AiFormField } from '#/lib/ai'
+import { useAiFormFields, useAiFormSubmit, type AiFormField } from '#/features/ai/core'
 import { appToastManager } from '#/lib/toast'
 
 /**

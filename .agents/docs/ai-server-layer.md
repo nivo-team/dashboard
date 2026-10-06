@@ -13,7 +13,7 @@
 | | 状态 |
 |---|---|
 | **已落地** | ① `packages/ai-prompt` 提示词唯一真值；② `apps/ai` 的提示词服务与 **OpenAI 兼容透传管道**；③ **前端已切换**（不再持有提示词，也不再需要配置模型与凭证）；④ 缓存对齐（两段式装配 + 阶梯式衰减 + 指标可见）；⑤ **两阶段按需加载**（Router → Execution，`promptStage` 取层 + 工具目录 + 虚拟 `select_tools`） |
-| **前端** | ✅ **已切换**：`runtime.ts` 出站指向中间层、`prompt-facts.ts` 采集事实上报；前端 `lib/ai/prompt/**` 已删除。迁移记录见 §5 |
+| **前端** | ✅ **已切换**：`runtime.ts` 出站指向中间层、`prompt-facts.ts` 采集事实上报；前端 `features/ai/core/prompt/**` 已删除。迁移记录见 §5 |
 | **凭证** | 只在 Worker（`AI_GATEWAY_TOKEN` / `AI_PROVIDER_API_KEY` 走 secret） |
 | **provider / 模型** | 归 **AI Gateway**；Worker 只保留「上游地址 + 鉴权形态 + 是否覆盖 model」 |
 | **鉴权** | **尚未校验**（`/health` 自述 `auth: 'unverified'`）；目标是与后端统一 token，落点见 §8 |
@@ -75,7 +75,7 @@ Cloudflare AI Gateway（provider 路由 / 模型 / 重试回退 / 缓存 / 限�
 > 设计依据与优先级清单：[`docs/ai-agent-prompt-optimization.md`](../../docs/ai-agent-prompt-optimization.md)
 > （P0–P3⑪ 已落地，文首有逐条对照表）。
 
-前端 `apps/web/src/lib/ai/runtime.ts` 用 AI SDK v7 的 `prepareStep` + `activeTools` 实现，
+前端 `apps/web/src/features/ai/core/runtime.ts` 用 AI SDK v7 的 `prepareStep` + `activeTools` 实现，
 **没有额外往返**：同一次 `streamText` 的第 0 步是 Router，≥1 步是 Execution。
 
 | step | 阶段 | 服务端注入（按 `promptStage` 取层） | 发给模型的工具 |
@@ -88,7 +88,7 @@ Cloudflare AI Gateway（provider 路由 / 模型 / 重试回退 / 缓存 / 限�
   **两个阶段都在**。**同一阶段跨轮**的 system 仍逐字节一致（前缀缓存前提不变）。
 - **`page-context` 层已删除**：完整页面明细（接口 / 字段 / 表单 / 搜索参数）不再每轮注入，改由执行阶段调
   `get_page_context` 按需获取。`PromptFacts` 删除 `pageContextText`，只保留 `pageSummaryText`（两阶段都带）。
-- **`select_tools` 是虚拟工具**（`apps/web/src/lib/ai/tools/select-tools.ts`，`SELECT_TOOLS_SPEC`）：
+- **`select_tools` 是虚拟工具**（`apps/web/src/features/ai/core/tools/select-tools.ts`，`SELECT_TOOLS_SPEC`）：
   **不加入 `AI_TOOLS`**，也不出现在权限清单里；它的 `execute` 写在 runtime 的**本轮闭包**里
   （选择结果要落进本轮运行时，而不是一个可独立执行的业务动作）。
 - **`select_tools` 新增必填参数 `intent`**（枚举：greeting / translation / navigation / page_query /
@@ -100,7 +100,7 @@ Cloudflare AI Gateway（provider 路由 / 模型 / 重试回退 / 缓存 / 限�
 - **`activeTools` 是按需的关键**：AI SDK 在组装每一步请求前会 `filterActiveTools(...)`，
   只有 active 的工具定义才会发给模型（已从 ai@7.0.116 的 dist 源码确认）。
 - **Router 输出的工具名不被信任**：一律经 `resolveTools(selectedNames, toolPolicy)`
-  （`apps/web/src/lib/ai/tools/index.ts`）确定性解析 —— ①名字真实存在；②在当前权限 / 容器 /
+  （`apps/web/src/features/ai/core/tools/index.ts`）确定性解析 —— ①名字真实存在；②在当前权限 / 容器 /
   表单 / 后端权限点下可用（复用 `getAllowedTools`，不另写一套）；③`dependencies` 自动补齐；
   ④`execution: false` 的过滤掉。返回 `{ tools, selected, addedByDependency, rejected }`，
   `rejected` 只用于日志；runtime 把它映射成 `dropped`（`unknown` → `unsupported`，
@@ -222,7 +222,7 @@ Cloudflare AI Gateway（provider 路由 / 模型 / 重试回退 / 缓存 / 限�
 
 ### 3.6 本轮 token / 选择日志（前端侧）
 
-runtime 有可选的 `onMetrics` 回调，`apps/web/src/lib/ai/chat.ts` 打一行
+runtime 有可选的 `onMetrics` 回调，`apps/web/src/features/ai/core/chat.ts` 打一行
 `console.info('[ai:turn]', metrics)`；字段（`AiTurnMetrics`）：
 
 | 字段 | 含义 |
@@ -239,11 +239,11 @@ runtime 有可选的 `onMetrics` 回调，`apps/web/src/lib/ai/chat.ts` 打一�
 
 ## 4. 提示词真值与漂移门控
 
-`packages/ai-prompt` 是**唯一真值**，前端只上报事实（`apps/web/src/lib/ai/prompt-facts.ts`）。
+`packages/ai-prompt` 是**唯一真值**，前端只上报事实（`apps/web/src/features/ai/core/prompt-facts.ts`）。
 
 **切换期**曾有一道机器门控：剥掉注释后提取两侧**中文字符串字面量**做集合比较
 （`${...}` 归一成同一占位符），证明服务端与前端那份规则**逐字一致**（当时两侧各 115 条指纹）。
-它随前端 `lib/ai/prompt/**` 一起删除了 —— **现在前端已经没有提示词代码，不存在漂移的可能**。
+它随前端 `features/ai/core/prompt/**` 一起删除了 —— **现在前端已经没有提示词代码，不存在漂移的可能**。
 
 > 历史：脚本是 `scripts/ai/check-prompt-drift.mjs`、命令是 `pnpm guardrails:prompt`。
 > 在旧分支上看到它们，那是切换前的状态。
@@ -253,8 +253,8 @@ runtime 有可选的 `onMetrics` 回调，`apps/web/src/lib/ai/chat.ts` 打一�
 ## 5. 前端切换：**已完成**（迁移记录）
 
 > 本仓库已落地：`runtime.ts` 的出站端点改为中间层（`createOpenAICompatible` + 自定义 `fetch`
-> 注入 `promptFacts`），`streamText` **不再传 `system`**；前端 `lib/ai/prompt/**` 与漂移门控脚本
-> 已删除；事实改由 `apps/web/src/lib/ai/prompt-facts.ts` 采集上报。
+> 注入 `promptFacts`），`streamText` **不再传 `system`**；前端 `features/ai/core/prompt/**` 与漂移门控脚本
+> 已删除；事实改由 `apps/web/src/features/ai/core/prompt-facts.ts` 采集上报。
 > 设置页的厂商 / 模型 / Key 卡片**已随本次清理删除** —— 见 §5.3。
 
 ### 5.1 唯一的技术难点：怎么把 `promptFacts` 带上
@@ -263,7 +263,7 @@ AI SDK 的 `streamText` 没有「自定义请求体字段」的入口，但它�
 所以在 `sendAiMessage`（每轮）构造 provider，闭包捕获当轮事实：
 
 ```ts
-// apps/web/src/lib/ai/runtime.ts（示意）
+// apps/web/src/features/ai/core/runtime.ts（示意）
 const facts = collectPromptFacts(mode, surface)          // 页面摘要/导航/任务/语言自名
 const provider = createOpenAICompatible({
   name: 'nivo-ai',
@@ -285,7 +285,7 @@ const provider = createOpenAICompatible({
 | # | 动作 |
 |---|---|
 | 1 | `runtime.ts`：provider 换成上面那个；`streamText` **不再传 `system`**（Worker 注入） |
-| 2 | 删掉 `apps/web/src/lib/ai/prompt/**`（切完并核对输出一致之后） |
+| 2 | 删掉 `apps/web/src/features/ai/core/prompt/**`（切完并核对输出一致之后） |
 | 3 | 删掉设置页的厂商 / 模型卡片（含导入导出弹窗）与 `ai-store`：`admin.ai` 键不再被写入或读取，输入区不再有「选择模型 / 思考程度」子菜单，图片 / 文件入口不再按模型能力置灰（**已完成**） |
 | 4 | 删 `scripts/ai/check-prompt-drift.mjs` 与 `pnpm guardrails:prompt` |
 | 5 | 环境变量加 `VITE_AI_SERVICE_BASE_URL`；`ALLOWED_ORIGINS` 加真实域名 |
@@ -478,7 +478,7 @@ return new Response(upstream.body, { status: upstream.status, headers })   // �
    ⚠️ Anthropic 的 **thinking block 不能直接打断点**（但随历史 assistant turn 会被缓存）。
 2. **别把「改写历史」当优化** —— 历史衰减的边界每轮前移，等于**每轮改写一处历史**；
    在命中价只要 1/10 ~ 1/50 的世界里，「省 token」的账要重算。
-   ✅ **已实现**：`apps/web/src/lib/ai/history-boundary.ts` 把衰减改成**阶梯式** ——
+   ✅ **已实现**：`apps/web/src/features/ai/core/history-boundary.ts` 把衰减改成**阶梯式** ——
    边界每 `DROP_STEP_TURNS`（3）轮才前进一次，只在跨档时改写历史。
    实测 15 轮里改写次数从 14 次降到 **4 次**，保留轮数在 3~5 之间浮动（下限之上最多多留 2 轮）。
 

@@ -1,6 +1,6 @@
 import type { MenuNode } from '#/api'
-import { defineFeature } from '#/lib/features'
-import type { FeatureSpec } from '#/lib/features'
+import { defineFeature } from '#/features/ai/page'
+import type { FeatureSpec } from '#/features/ai/page'
 
 /**
  * **节点视图**的特性声明（`/$appId/system/menus/$featureId`）。

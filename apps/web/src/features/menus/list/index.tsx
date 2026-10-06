@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useFeature } from '#/lib/features'
+import { useFeature } from '#/features/ai/page'
 import { FeatureContainer } from '../feature-container'
 import type { FeatureContainerSnapshot } from '../feature-container'
 import { createFeatureTreeListFeature } from './feature'

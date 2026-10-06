@@ -4,7 +4,7 @@ import { DataTable, treeTableFeatures, useTable } from '#/components/data-table'
 import type { ColumnVisibilityState, ExpandedState, RowSelectionState } from '#/components/data-table'
 import { PageHeader } from '#/components/page-header'
 import { TableControls } from '#/components/table-controls'
-import { useFeature } from '#/lib/features'
+import { useFeature } from '#/features/ai/page'
 import { filterTreeByMatch } from '#/lib/tree-search'
 import { useComplexTableColumns } from './columns'
 import {

@@ -4,6 +4,18 @@
 > 路由与外壳拓扑见 [routing-architecture.md](./routing-architecture.md)；
 > AI 侧的分层与提示词见 [ai-architecture.md](./ai-architecture.md) §8。
 
+## 0. 框架在哪
+
+**页面声明框架（`defineFeature` / `useFeature` / 注册表）已随 AI 核心收进
+[`src/features/ai/page/`](../../apps/web/src/features/ai/page/index.ts)** —— 页面侧一律：
+
+```ts
+import { defineFeature, useFeature } from '#/features/ai/page'
+```
+
+**不要**从 `#/features/ai`（根 barrel）导入：那会把 AI 面板与会话 store 拖进页面 chunk。
+AI 核心的整体结构见 [features/ai/README.md](../../apps/web/src/features/ai/README.md)。
+
 ## 1. 一句话
 
 **路由文件只做「路径 → 组件」的薄适配；业务一律在 `src/features/**`，一个业务一个文件夹（扁平）；
@@ -93,7 +105,7 @@ src/routes/$appId/example/
 3. 页面里 `useFeature(...)` 一次，把 state 与处理函数交给工厂。
 4. `src/routes/...` 加薄路由：`createFileRoute` + 取参 + 渲染 feature 组件。
 5. 导航项（`src/lib/navigation.ts`）；i18n 只写 `zh-CN`（其它语言交给 `pnpm i18n`）。
-6. **把这一页登记进页面目录**（`src/lib/ai/page-catalog.ts` 的 `AI_PAGE_CATALOG`）：
+6. **把这一页登记进页面目录**（`src/features/ai/core/page-catalog.ts` 的 `AI_PAGE_CATALOG`）：
    补一条 `{ path, title, desc, endpoints }` —— 否则 AI 的 `search_pages` 检索不到它、
    也做不了跨页面聚合。`path` 必须与导航项逐字一致。
 

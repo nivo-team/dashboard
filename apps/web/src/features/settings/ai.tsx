@@ -23,8 +23,8 @@ import {
   GLOW_COLOR_VARIANT,
   GLOW_REDUCED_MOTION_CSS,
   GLOW_STRENGTH,
-} from '#/components/ai-activity-glow'
-import { AiPermissionConfig } from '#/components/ai-permission-config'
+} from '#/features/ai/components/activity-glow'
+import { AiPermissionConfig } from '#/features/ai/components/permission-config'
 import { PageHeader } from '#/components/page-header'
 import {
   SettingChoicePreview,
@@ -244,7 +244,7 @@ function AiPageWidthPreview({
  * 光晕预览：先演「页面四周什么都没有」的基线，停一下再让光带亮起。
  *
  * 光本身交给真品 `border-beam`，**家族取 Pulse（呼吸，不旋转）**，档位 `pulse-inner`
- * （「收在边界内呼吸」）—— 运行时那层页面级光晕（`#/components/ai-activity-glow`）用的是**同一档**，
+ * （「收在边界内呼吸」）—— 运行时那层页面级光晕（`#/features/ai/components/activity-glow`）用的是**同一档**，
  * 参数也只差一个按尺寸调的 `glowSize`（这边默认 1，满视口那边 4），两处观感由此由同一份实现保证。
  * 另一族 Rotate（`md` / `sm` / `line`）是沿边框绕圈的旋转光带，那是「多了一条边框」的观感，
  * 不是光晕，所以不在这里用；Pulse 里的 `pulse-outside` 也不合适 —— 它的光晕长在元素外面，
@@ -504,7 +504,7 @@ export function AiSettingsPage() {
           **不做悬浮预览**：它描述的是"刷新那一刻发生什么"，一张静态缩略图演不出来，
           硬做反而是误导（与「跟随输出滚动」同一个理由）。
 
-          真正生效的地方只有一处：`#/lib/ai/session-store` 的 `loadHistory({ fresh })`
+          真正生效的地方只有一处：`#/features/ai/core/session-store` 的 `loadHistory({ fresh })`
           （`AiConversation` 挂载时传 `sessionMode === 'new' && isDocumentReload()`）。
           界面这里只管改值，**改完要等下一次刷新才见效**（判据每份文档只算一次）。
         */}
@@ -725,7 +725,7 @@ export function AiSettingsPage() {
 
         {/*
           输出方式：两项短枚举，与「显示方式」同一套分段控件 + 悬浮预览。
-          这一项直接在会话区生效（见 `#/components/ai-conversation` 的 AiMessageView / showThinking）：
+          这一项直接在会话区生效（见 `#/features/ai/components/conversation` 的 AiMessageView / showThinking）：
           `wait` 下正在生成的那条整条不渲染、只留「正在思考…」，结束后一次给出。
         */}
         <SettingRow
@@ -822,7 +822,7 @@ export function AiSettingsPage() {
       */}
       <SettingsCard title={t('profile.settings.aiPermission', 'AI 权限')}>
         {/*
-          配置体与 AI 面板的权限视图**共用同一份**（见 `#/components/ai-permission-config`）。
+          配置体与 AI 面板的权限视图**共用同一份**（见 `#/features/ai/components/permission-config`）。
           这里即时生效（直接写偏好 store）；面板那边先存草稿、点保存才写回。
         */}
         <AiPermissionConfig

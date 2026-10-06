@@ -1,7 +1,7 @@
 import { Input, InputArea, Radio, Switch } from '@cloudflare/kumo'
 import type { TFunction } from 'i18next'
 import { useCallback, useEffect, useState } from 'react'
-import { useAiFormFields } from '#/lib/ai'
+import { useAiFormFields } from '#/features/ai/core'
 import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import {

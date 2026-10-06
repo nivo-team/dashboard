@@ -20,7 +20,7 @@ import {
 import type { ColumnRenderer, ColumnVisibilityState, RowSelectionState, StockFeatures } from '#/components/data-table'
 import { PageHeader } from '#/components/page-header'
 import { TableControls } from '#/components/table-controls'
-import { useFeature } from '#/lib/features'
+import { useFeature } from '#/features/ai/page'
 import { defineFilterParsers, useTableQuery } from '#/lib/list-query'
 import type { QueryFilterField } from '#/api'
 import { useHasPermission } from '#/lib/permissions'

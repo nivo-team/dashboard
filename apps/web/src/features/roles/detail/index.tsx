@@ -16,7 +16,7 @@ import type { MenuNode } from '#/api'
 import { PageHeader } from '#/components/page-header'
 import { UnsavedChangesBar } from '#/components/unsaved-changes-bar'
 import { extractApiErrorMessage } from '#/lib/api-error'
-import { useFeature } from '#/lib/features'
+import { useFeature } from '#/features/ai/page'
 import { useHasPermission } from '#/lib/permissions'
 import {
   ROLE_STATUS,

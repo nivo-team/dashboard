@@ -1,7 +1,7 @@
 # AI 助手（Ask AI）接入设计
 
 > 本文是「Ask AI 接入真实模型」这件事的**单一真值**：数据模型、工具协议、权限矩阵与后续扩展。
-> 相关代码：`#/lib/ai/*`、`#/lib/ai/tools/select-tools`、`#/components/ai-panel`、`#/components/ai-composer`、`/settings/AI`。
+> 相关代码：`#/features/ai/core/*`、`#/features/ai/core/tools/select-tools`、`#/features/ai/components/panel`、`#/features/ai/components/composer`、`/settings/AI`。
 > **注**：厂商 / 模型配置（原 `#/lib/store/ai-store`、`admin.ai`）已清理，见 §0 与 §2.1。
 > 面板骨架与两种显示方式见 AGENTS.md §9；本文只讲「接上模型之后」的部分。
 
@@ -35,13 +35,13 @@
 - `ask`（只读）/ `auto`（多出「页面操作」）两模式的**权限分级**；
 - **写操作 + 人工审批**：`call_write_api`（`access: 'commit'`）在执行前弹审批卡，
   用户点「允许一次 / 本会话不再询问 / 拒绝」才决定是否发请求；审批链路异常一律 fail-closed；
-- **助手回复渲染 Markdown**（`#/components/markdown-content` → 懒加载的 `markdown-renderer`）：
+- **助手回复渲染 Markdown**（`#/features/ai/markdown/content` → 懒加载的 `markdown-renderer`）：
   标题 / 列表 / 表格 / 代码块 / 链接。三条约定：把 AI 输出当**不可信内容**（`react-markdown`
   默认不渲染 raw HTML、链接一律 `target="_blank"` + `noopener`、图片 `referrerPolicy="no-referrer"`）；
   **流式期间退回纯文本**（省掉每个 token 解析一遍，也避免未闭合语法让渲染来回跳）；
   **必须懒加载**（这个渲染器 gzip 46 kB，静态引入会进主 bundle —— 实测主 bundle 只多了 0.09 kB）。
 
-- **AI 进行中的页面级反馈**：视口四周向内发光的呼吸光晕（`#/components/ai-activity-glow`）。
+- **AI 进行中的页面级反馈**：视口四周向内发光的呼吸光晕（`#/features/ai/components/activity-glow`）。
   运行态与设置页那张预览（`AiActivityGlowPreview`）**都用 `border-beam` 的 Pulse 家族
   `pulse-inner` 档**。运行态要按尺寸补两处：`glowSize={4}` + `--pulse-glow-boost: 4`
   （包的渐变斑块尺寸是按卡片写死的，满视口下不放大就退化成几个孤立的彩点）+
@@ -97,14 +97,14 @@
 ```
 ┌─ L5 UI ────────── ai-panel（消息流 / 工具调用卡 / 审批卡）
 │                   ai-composer（输入区 + 显示方式 + 模式切换）
-├─ L4 工具层 ────── #/lib/ai/tools/*：注册表 + JSON Schema + access + execute
+├─ L4 工具层 ────── #/features/ai/core/tools/*：注册表 + JSON Schema + access + execute
 │                   Router 的虚拟工具 select-tools（不进 AI_TOOLS）
 │                   ctx = { navigate, queryClient, client, getPageContext, requestApproval }
-├─ L3 上下文层 ──── #/lib/ai/page-context：当前 URL / 路由 / appId / 面包屑 / 页面标题
+├─ L3 上下文层 ──── #/features/ai/core/page-context：当前 URL / 路由 / appId / 面包屑 / 页面标题
 │                   packages/ai-prompt：系统提示词分层，按 promptStage（router / execution）
 │                     选层（Router 只给分诊 + 工具目录，Execution 才有操作规约与完整页面上下文）；
 │                     唯一出口 buildSystemPrompt / buildTurnContext
-├─ L2 运行时层 ──── #/lib/ai/runtime：一次 streamText 内的两阶段（prepareStep + activeTools）
+├─ L2 运行时层 ──── #/features/ai/core/runtime：一次 streamText 内的两阶段（prepareStep + activeTools）
 │                   —— 第 0 步只发 select_tools，resolveTools 解析后第 1 步起只发选中的业务工具；
 │                   无额外模型往返。另含 provider adapter
 └─ L1 配置层 ────── 本机偏好（`admin.preferences:<appId>`：权限 / 模式 / 显示相关）
@@ -159,7 +159,7 @@ interface AiSessionSummary {
 }
 ```
 
-**会话持久化在 IndexedDB**（`#/lib/ai/session-db`，库名 `admin.ai`）、**按 app 分区**。
+**会话持久化在 IndexedDB**（`#/features/ai/core/session-db`，库名 `admin.ai`）、**按 app 分区**。
 三个 store 的分工 —— **元数据与消息分开存是关键**：
 
 | store | 内容 | 为什么分开 |
@@ -224,7 +224,7 @@ Router 的输出**不被信任**：`resolveTools` 会做 名字存在性 → 权
 
 **权限**默认 `readonly`（AI 默认只能看，要它动数据得用户自己去开）；`custom` 档按
 `aiCapabilities` 里勾选的**能力格子**放行（`page:read` / `data:write` / `form:submit` …，
-真值在 `lib/ai/capabilities.ts`）。**模式**下只有与"替用户做主"有关的动作才过审批：
+真值在 `features/ai/core/capabilities.ts`）。**模式**下只有与"替用户做主"有关的动作才过审批：
 
 | 工具 | ask | auto |
 |---|---|---|
@@ -314,7 +314,7 @@ interface AiPageContext {
 
 ### 3.5 表单桥：让 AI 填表（而不是操作 DOM）
 
-`#/lib/ai/form-bridge` 是一张**模块级注册表**：当前页面上正在编辑的表单把自己登记进来，
+`#/features/ai/core/form-bridge` 是一张**模块级注册表**：当前页面上正在编辑的表单把自己登记进来，
 AI 通过三个工具操作它（`list_page_forms` / `fill_form` / `submit_form`）。
 
 **为什么不 DOM 驱动**（像 browser-use 那样直接找 input 填值）：本仓库的表单全是**受控组件**，

@@ -25,7 +25,7 @@ AI 工具执行在**用户浏览器里**、用**用户自己的登录态**调后
 
 ### 1.1 字段注解
 
-落在 `apps/web/src/lib/features/types.ts` 的 `FeatureDataSourceSpec` 上（新增可选字段）：
+落在 `apps/web/src/features/ai/page/types.ts` 的 `FeatureDataSourceSpec` 上（新增可选字段）：
 
 ```ts
 /**
@@ -71,7 +71,7 @@ export interface FeatureDataFieldSpec {
 
 ### 1.2 脱敏（一处出口）
 
-新文件 `apps/web/src/lib/ai/content-redact.ts`：
+新文件 `apps/web/src/features/ai/core/content-redact.ts`：
 
 ```ts
 /** 脱敏规则：保留首尾、中间打码。短值（≤ 4 位）整体打码。 */
@@ -101,7 +101,7 @@ export function redactRecords(value: unknown, fields: ...): unknown
 
 ### 1.3 读数据授权（`DATA_READ_GRANT`）
 
-在 `apps/web/src/lib/ai/session-permissions.ts` 里新增一个**会话授权键**（与现有 `NAVIGATION_GRANT` 同款）：
+在 `apps/web/src/features/ai/core/session-permissions.ts` 里新增一个**会话授权键**（与现有 `NAVIGATION_GRANT` 同款）：
 
 ```ts
 /**
@@ -139,7 +139,7 @@ await ctx.requestApproval({
 
 ### 1.4 新工具一：`check_result_match`（存在性查询）
 
-新文件 `apps/web/src/lib/ai/tools/check-result-match-tool.ts`：
+新文件 `apps/web/src/features/ai/core/tools/check-result-match-tool.ts`：
 
 ```ts
 export const checkResultMatchTool: AiToolDefinition = {
@@ -196,7 +196,7 @@ return { exists: matched }
 
 ### 1.5 新工具二：`analyze_data`（表达式分析，**不 eval**）
 
-新文件 `apps/web/src/lib/ai/tools/analyze-tool.ts`。
+新文件 `apps/web/src/features/ai/core/tools/analyze-tool.ts`。
 
 **它解决的问题**：模型要看统计结果，但**不该看数据**。所以它写**表达式**，客户端求值，只把**结果**给它。
 
@@ -247,12 +247,12 @@ return { ok: true, value: /* 标量或 ≤100 项的小数组 */ }
 ### 1.6 计数与限流落点
 
 - **会话级计数**（`check_result_match` 的 20 次、`analyze_data` 的可选计数）落
-  `apps/web/src/lib/ai/session-store.ts`（与 `pendingApproval` 同一层，随会话走）；
+  `apps/web/src/features/ai/core/session-store.ts`（与 `pendingApproval` 同一层，随会话走）；
 - 每次 `check_result_match` 调用后 +1；**切会话 / 新对话时归零**（`startNewSession` / `switchSession` 里清）。
 
 ### 1.7 工具上下文扩展（`AiToolContext`）
 
-`apps/web/src/lib/ai/types.ts` 的 `AiToolContext` 新增**两个只读能力**：
+`apps/web/src/features/ai/core/types.ts` 的 `AiToolContext` 新增**两个只读能力**：
 
 ```ts
   /** 本轮用户消息的原始文本 —— 用于校验"探测值必须来自用户"（§1.4 第 3 条） */
@@ -261,14 +261,14 @@ return { ok: true, value: /* 标量或 ≤100 项的小数组 */ }
   bumpToolCounter: (key: string) => number
 ```
 
-由 `apps/web/src/lib/ai/chat.ts` 的 `buildToolContext` 注入实现。
+由 `apps/web/src/features/ai/core/chat.ts` 的 `buildToolContext` 注入实现。
 
 ### 1.8 权限点细分（页面声明 + 工具）
 
 **命名**：`{模块}:{动作}`，动作取 `read` / `create` / `fill` / `submit` / `update` / `delete`。
 
-`apps/web/src/lib/ai/page-capabilities.ts` 的 `CapabilityForm` 新增两个可选字段
-（⚠️ **勘误**：`CapabilityForm` 定义在 `lib/ai/page-capabilities.ts`，不在 `lib/features/types.ts`
+`apps/web/src/features/ai/core/page-capabilities.ts` 的 `CapabilityForm` 新增两个可选字段
+（⚠️ **勘误**：`CapabilityForm` 定义在 `features/ai/core/page-capabilities.ts`，不在 `features/ai/page/types.ts`
 —— `features/types.ts` 只是 `import type` 复用它的形状）：
 
 ```ts
@@ -327,13 +327,13 @@ return { ok: true, value: /* 标量或 ≤100 项的小数组 */ }
 **加一个工具的步骤**：
 
 1. 写实现：`catalogDescription` 必填、`description` 精简、需要前置工具就写 `dependencies`；
-2. 注册进 `AI_TOOLS`（`lib/ai/tools/index.ts`）—— **唯一真值**，不要另立名单；
+2. 注册进 `AI_TOOLS`（`features/ai/core/tools/index.ts`）—— **唯一真值**，不要另立名单；
 3. 权限点按 §1.8 声明（`requiredPermissions` / `requiredPermissionsAny`，或 `execute` 里查页面声明）；
 4. 不需要出现在 Router 目录的标 `catalog: false`；只该在 Router 存在的标 `execution: false`。
 5. `select_tools` 是**虚拟工具**，**不加入 `AI_TOOLS`**，也不出现在权限清单里
    （它的 `execute` 在 `runtime.ts` 的本轮闭包中）。
 
-**`select_tools` 的输入 schema**（定义在 `lib/ai/tools/select-tools.ts`）：`intent` 与 `tools`
+**`select_tools` 的输入 schema**（定义在 `features/ai/core/tools/select-tools.ts`）：`intent` 与 `tools`
 **都必填**。`tools` 是要加载的工具名数组；`intent` 是这一轮请求的主要意图，**只进日志**
 （`AiTurnMetrics.intent`），Runtime **不据它做业务判断**：
 
@@ -368,10 +368,10 @@ inputSchema: {
 
 | # | 任务 | 写入范围（**只许动这些**） |
 |---|---|---|
-| **T1** | 字段注解 + 脱敏 + 读数据授权 + 权限点细分（一条链） | `lib/features/types.ts`、`lib/ai/page-capabilities.ts`、`lib/ai/content-redact.ts`(新)、`lib/ai/tools/feature-tools.ts`、`lib/ai/session-permissions.ts`、`lib/ai/tools/data-tools.ts`(只加 `*:update`)、`features/table-example/list/feature.ts`、`features/data-dict/list/feature.ts` |
-| **T2** | `check_result_match`（新工具，独占新文件） | `lib/ai/tools/check-result-match-tool.ts`(新) |
-| **T3** | `analyze_data`（新工具，独占新文件） | `lib/ai/tools/analyze-tool.ts`(新) |
-| **T4** | 统一注册 + 上下文扩展 + 计数器（**Lead 做**） | `lib/ai/tools/index.ts`、`lib/ai/types.ts`、`lib/ai/chat.ts`、`lib/ai/session-store.ts` |
+| **T1** | 字段注解 + 脱敏 + 读数据授权 + 权限点细分（一条链） | `features/ai/page/types.ts`、`features/ai/core/page-capabilities.ts`、`features/ai/core/content-redact.ts`(新)、`features/ai/core/tools/feature-tools.ts`、`features/ai/core/session-permissions.ts`、`features/ai/core/tools/data-tools.ts`(只加 `*:update`)、`features/table-example/list/feature.ts`、`features/data-dict/list/feature.ts` |
+| **T2** | `check_result_match`（新工具，独占新文件） | `features/ai/core/tools/check-result-match-tool.ts`(新) |
+| **T3** | `analyze_data`（新工具，独占新文件） | `features/ai/core/tools/analyze-tool.ts`(新) |
+| **T4** | 统一注册 + 上下文扩展 + 计数器（**Lead 做**） | `features/ai/core/tools/index.ts`、`features/ai/core/types.ts`、`features/ai/core/chat.ts`、`features/ai/core/session-store.ts` |
 
 **T2/T3 只写自己的新文件**：不要改 `tools/index.ts`（注册统一由 Lead 在 T4 做），
 否则两个人会同时改同一个数组。
@@ -444,11 +444,11 @@ inputSchema: {
 
 ### 过程中修正的**规范自身错误**（记录以免重犯）
 
-1. **`CapabilityForm` 的位置写错** —— 它在 `lib/ai/page-capabilities.ts`，不在 `lib/features/types.ts`
+1. **`CapabilityForm` 的位置写错** —— 它在 `features/ai/core/page-capabilities.ts`，不在 `features/ai/page/types.ts`
    （后者只是 `import type` 复用形状）。已勘误 §1.8 与 §2 的 T1 scope。
 2. **§1.4 漏了「`field` 必须已注解」** —— 否则拼错字段名会静默退化成 `{ exists: false }`，
    被模型读成"用户说的值不存在"。已补进 §1.4，并由 T2 owner 打补丁实现。
-3. **§2 的 T4 范围不全** —— 漏了 `lib/ai/tools/form-tools.ts`（`list_page_forms` 的审批）
+3. **§2 的 T4 范围不全** —— 漏了 `features/ai/core/tools/form-tools.ts`（`list_page_forms` 的审批）
    与 `apps/mock/server/routes/permissions.get.ts`（新权限点），两者由 Lead 补做。
 
 ### 尚未做（后续）

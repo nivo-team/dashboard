@@ -1,7 +1,7 @@
 import type { UserItem } from '#/api'
 import { USER_FILTER_FIELDS } from '#/api'
-import { defineFeature } from '#/lib/features'
-import type { FeatureSpec } from '#/lib/features'
+import { defineFeature } from '#/features/ai/page'
+import type { FeatureSpec } from '#/features/ai/page'
 
 /**
  * 表格示例页的特性声明（`/$appId/example/table`）—— **这一页对 AI 暴露的全部能力都在这一个文件里**。
@@ -122,7 +122,7 @@ export function createTableExampleListFeature(options: TableExampleListFeatureOp
         submission: {
           endpoint: { method: 'POST', path: '/user' },
           submitLabel: '创建记录',
-          // 不写 requireApproval：提交在 auto 下免问（判定见 lib/ai/approval-policy.ts）
+          // 不写 requireApproval：提交在 auto 下免问（判定见 features/ai/core/approval-policy.ts）
           approvalReason: '将填好的新记录档案提交至服务端入库',
         },
       },
@@ -162,7 +162,7 @@ export function createTableExampleListFeature(options: TableExampleListFeatureOp
         submission: {
           endpoint: { method: 'PUT', path: '/user' },
           submitLabel: '保存修改',
-          // 不写 requireApproval：提交在 auto 下免问（判定见 lib/ai/approval-policy.ts）
+          // 不写 requireApproval：提交在 auto 下免问（判定见 features/ai/core/approval-policy.ts）
           approvalReason: '将修改后的记录资料提交至服务端保存',
         },
       },

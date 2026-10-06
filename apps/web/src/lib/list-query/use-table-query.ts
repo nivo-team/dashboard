@@ -4,7 +4,7 @@ import type { Updater } from '@tanstack/react-table'
 import type { SortingState } from '#/components/data-table'
 import type { QueryFilterField } from '#/api'
 import type { FilterCondition } from '#/components/table-controls'
-import { useAiSearchParamsUpdater } from '#/lib/ai/search-params-bridge'
+import { useAiSearchParamsUpdater } from '#/features/ai/core/search-params-bridge'
 import { filterConditionsToQueryPatch, queryToFilterConditions } from './filter-sync'
 import type { FilterParserConstraint } from './types'
 
