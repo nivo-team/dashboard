@@ -131,6 +131,31 @@ export interface UserRow {
   logintime: number
 }
 
+/**
+ * 工单 —— 「**没有批量接口**」的演示实体。
+ *
+ * 它刻意只提供单条接口（`GET/POST/PUT /ticket`、`DELETE /ticket/{id}`、`PATCH /ticket/{id}/status`），
+ * **不提供** `/ticket/batch-delete` 这类批量端点：用来验证 AI 的**自主编排**能力 ——
+ * 后端只能一条一条改时，它应当用 `manage_tasks` 一次编排整组步骤、顺序执行，
+ * 而不是循环调用单条接口（那样每一条都要一次模型往返）。
+ */
+export interface TicketRow {
+  id: number
+  title: string
+  /** 工单描述 */
+  description: string
+  /** 1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭 */
+  status: number
+  /** 1 低 / 2 中 / 3 高 / 4 紧急 */
+  priority: number
+  /** 负责人（用户名） */
+  assignee: string
+  /** 分类，如「缺陷」「需求」 */
+  category: string
+  created_at: number
+  updated_at: number
+}
+
 export interface AppRow {
   id: string
   name: string
@@ -191,6 +216,12 @@ function seedMenus(): MenuRow[] {
     { menu_id: 14, parent_id: 11, menu_name: '编辑记录', menu_type: 3, path: '', permission: 'table-example:edit', sort: 3 },
     { menu_id: 15, parent_id: 11, menu_name: '删除记录', menu_type: 3, path: '', permission: 'table-example:delete', sort: 4 },
     { menu_id: 16, parent_id: 10, menu_name: '复杂表格', menu_type: 2, path: '/example/complex-table', sort: 2 },
+    // 工单管理：**没有批量接口**的 CRUD 示例，用来演示 AI 自主编排
+    { menu_id: 17, parent_id: 10, menu_name: '工单管理', menu_type: 2, path: '/example/tickets', sort: 3 },
+    { menu_id: 18, parent_id: 17, menu_name: '查看工单', menu_type: 3, path: '', permission: 'ticket:read', sort: 1 },
+    { menu_id: 19, parent_id: 17, menu_name: '新建工单', menu_type: 3, path: '', permission: 'ticket:create', sort: 2 },
+    { menu_id: 101, parent_id: 17, menu_name: '编辑工单', menu_type: 3, path: '', permission: 'ticket:edit', sort: 3 },
+    { menu_id: 102, parent_id: 17, menu_name: '删除工单', menu_type: 3, path: '', permission: 'ticket:delete', sort: 4 },
 
     // 系统管理
     { menu_id: 20, parent_id: 0, menu_name: '系统管理', menu_type: 1, path: '/system', icon: 'GearSixIcon', sort: 3 },
@@ -362,6 +393,46 @@ function seedUsers(): UserRow[] {
 }
 
 /**
+ * 工单种子：40 条，够翻几页、也够演示"批量处理一屏"的场景。
+ *
+ * 状态刻意分布不均（多数是 1 待处理）—— 「把所有待处理的都关掉」这类请求
+ * 才有足够的批量规模去检验编排。
+ */
+function seedTickets(): TicketRow[] {
+  const CATEGORIES = ['缺陷', '需求', '咨询', '运维']
+  const TITLES = [
+    '登录页在 Safari 下样式错位',
+    '导出 CSV 时中文出现乱码',
+    '新增字典项后列表未刷新',
+    '角色授权树勾选状态丢失',
+    '仪表盘卡片加载缓慢',
+    '菜单拖拽排序偶发失效',
+    '批量删除后分页未回到第一页',
+    '用户头像上传失败',
+    '筛选条件与 URL 不同步',
+    '移动端表格横向滚动卡顿',
+  ]
+  const ASSIGNEES = ['林工', '陈工', '王工', '赵工', '未分配']
+
+  return Array.from({ length: 40 }, (_, i) => {
+    // 状态分布：约一半待处理、四分之一处理中、其余完成 / 关闭
+    const status = i % 8 < 4 ? 1 : i % 8 < 6 ? 2 : i % 8 === 6 ? 3 : 4
+    const created = day(-(i + 2))
+    return {
+      id: 70001 + i,
+      title: `${TITLES[i % TITLES.length]}${i >= TITLES.length ? `（第 ${Math.floor(i / TITLES.length) + 1} 例）` : ''}`,
+      description: `由 ${ASSIGNEES[i % ASSIGNEES.length]} 反馈：${TITLES[i % TITLES.length]}。需要进一步定位原因并给出修复方案。`,
+      status,
+      priority: ((i % 4) + 1) as number,
+      assignee: ASSIGNEES[i % ASSIGNEES.length],
+      category: CATEGORIES[i % CATEGORIES.length],
+      created_at: created,
+      updated_at: created + 3600,
+    }
+  })
+}
+
+/**
  * 可选应用列表。
  *
  * **每个应用都指向本 Mock 服务自己** —— 这就是「完全走 mock」的含义：
@@ -409,6 +480,7 @@ export const db = {
   dictTypes: seedDictTypes(),
   dictItems: seedDictItems(),
   users: seedUsers(),
+  tickets: seedTickets(),
   apps: seedApps(),
 }
 
@@ -419,6 +491,7 @@ export const seq = {
   dictType: 100,
   dictItem: 2000,
   user: 20000,
+  ticket: 80000,
 }
 
 export function nextId(kind: keyof typeof seq): number {

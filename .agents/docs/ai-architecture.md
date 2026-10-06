@@ -27,64 +27,64 @@
 ## 1. 分层
 
 ```
-L1  UI          components/ai-panel · ai-conversation · ai-composer · ai-session-picker
-                components/ai-session-list（浮层形态的会话列表：搜索框 + 分组），
+L1  UI          features/ai/components/panel · conversation · composer · session-picker
+                features/ai/components/session-list（浮层形态的会话列表：搜索框 + 分组），
                   ai-session-delete-dialog（两处共用的删除确认）
-                components/ai-conversation-scroller（**面板与全屏对话页共用**的会话区：
+                features/ai/components/conversation-scroller（**面板与全屏对话页共用**的会话区：
                   跟随滚动 / 上翻暂停 / 回到底部按钮 —— 两处行为必须一致）
-                components/ai-bot-avatar · ai-activity-glow · beta-badge
-                routes/$appId_.sphere（全屏 AI 对话页：`ai-panel` 头行「最大化」的落点，
-                  逃离 `$appId` 布局、没应用侧边栏；见 routing-architecture.md §2「逃离父布局」）
-                  ├─ route.tsx  布局里挂 `sphere-header`（头行常驻：会话 404 时也在，
+                features/ai/components/bot-avatar · activity-glow（beta-badge 仍在 components/，非 AI 专属）
+                features/ai/sphere/**（全屏 AI 对话页的本体：`ai-panel` 头行「最大化」的落点）
+                  薄路由在 routes/$appId_.sphere/**（只有 createFileRoute + 布局）——
+                  逃离 `$appId` 布局、没应用侧边栏；见 routing-architecture.md §2「逃离父布局」
+                  ├─ sphere-layout.tsx  布局：挂 `sphere-header`（头行常驻：会话 404 时也在，
                   │     只是标题留空）+ 会话列表加载；整块面板的**进出场动画**也在这里
                   │     （入场 scale 0.8→1 + 淡入，退场缩小淡出后才导航；
                   │     `useMotionEnabled()` 为假时都不播，见 ui-and-styling.md「动效开关」）
-                  ├─ index.tsx   $appId/sphere = 新会话（挂载即 startNewSession）
-                  ├─ chat/$chatId.tsx  $appId/sphere/chat/$chatId = 指定会话，
-                  │     loader 用 store.hasSession 校验，找不到 → sphere-not-found
-                  ├─ -components/sphere-header.tsx  头行：标题居中（按路由推导，
-                  │     找不到的会话 → 空）、侧边栏展开/收起按钮
-                  ├─ -components/sphere-chat.tsx  两路由共用的 chat 本体（只有会话区 +
-                  │     输入区；会话区 manageHistory=false）
-                  ├─ -components/sphere-sidebar  侧边栏：Kumo `Sidebar`，只有会话；
+                  │     路由 index.tsx = $appId/sphere 新会话（挂载即 startNewSession）
+                  │     chat/$chatId.tsx = 指定会话（loader 校验，找不到 → sphere-not-found）
+                  ├─ sphere-header.tsx  头行：标题居中（按路由推导，找不到的会话 → 空）、
+                  │     侧边栏展开/收起按钮
+                  ├─ sphere-chat.tsx  两路由共用的 chat 本体（只有会话区 + 输入区；
+                  │     会话区 manageHistory=false）
+                  ├─ sphere-sidebar.tsx  侧边栏：Kumo `Sidebar`，只有会话；
                   │     展开态下收起按钮在头行标题右侧、分隔线也画在这里（收起即消失）
-                  ├─ -components/sphere-not-found  会话 404（AI 形象 + 文案 + 新对话）
-                  ├─ -components/use-sphere-collapse  收起 = 回 sessionStorage 记的来源页；
+                  ├─ sphere-not-found.tsx  会话 404（AI 形象 + 文案 + 新对话）
+                  ├─ use-sphere-collapse.ts  收起 = 回 sessionStorage 记的来源页；
                   │     出口组件调它即可（有过渡上下文就**先播收起动画再导航**，
                   │     没有就立即导航 —— 动画细节不出现在按钮里）
-                  ├─ -components/sphere-transition  收起过渡的编排：状态 + 「动画跑完
+                  ├─ sphere-transition.tsx  收起过渡的编排：状态 + 「动画跑完
                   │     （或兜底计时到点）才真正导航」，避免动画被打断时用户出不去
-                  └─ -components/session-search-dialog  独立的会话搜索弹窗（只搜标题，
+                  └─ session-search-dialog.tsx  独立的会话搜索弹窗（只搜标题，
                         形态同命令面板但**不占 ⌘K**；⌘K 仍是全局命令面板）
-                lib/ai/session-groups（会话的时间分组 / 相对时间口径，两个列表共用）
-                lib/ai/panel-session（会话级记忆：面板开合状态 + 最大化前的来源 href +
+                features/ai/core/session-groups（会话的时间分组 / 相对时间口径，两个列表共用）
+                features/ai/core/panel-session（会话级记忆：面板开合状态 + 最大化前的来源 href +
                   「面板是被最大化带走的」标记 —— 回来时据此跳过面板重播的入场动画）
-L2  状态        lib/ai/session-store（消息 / 状态 / 审批 / 落盘）
-                lib/ai/session-boot（本次页面载入算不算「重新载入」）
+L2  状态        features/ai/core/session-store（消息 / 状态 / 审批 / 落盘）
+                features/ai/core/session-boot（本次页面载入算不算「重新载入」）
                 lib/store/preferences-store（本机偏好，按 app 隔离）
-L3  驱动        lib/ai/chat.ts —— 一轮消息的编排（读偏好 → 挑工具 → **采集事实快照** → 消费事件）
-                lib/ai/prompt-facts.ts —— **事实采集**（页面摘要 / 导航 / 工具目录 / 任务 / 语言），随请求上报
+L3  驱动        features/ai/core/chat.ts —— 一轮消息的编排（读偏好 → 挑工具 → **采集事实快照** → 消费事件）
+                features/ai/core/prompt-facts.ts —— **事实采集**（页面摘要 / 导航 / 工具目录 / 任务 / 语言），随请求上报
                 ⚠️ 系统提示词的**规则已迁到服务端**：真值是 `packages/ai-prompt`（纯函数、零依赖），
                   由 `apps/ai`（Hono Worker）在每轮请求时拼接。前端**不再有 prompt 层** ——
                   迁移与边界见 [ai-server-layer.md](./ai-server-layer.md)
-L4  运行时      lib/ai/runtime.ts —— **全仓唯一 import `ai`(Vercel AI SDK) 与 provider 的地方**
-L5  工具        lib/ai/tools/{index,page-tools,data-tools,form-tools}.ts
-                lib/ai/tools/select-tools.ts（Router 阶段的虚拟工具，不进 `AI_TOOLS`）
-L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
-                lib/ai/page-context-registry.ts 页面声明的 AI 上下文（这页用什么接口）
-                lib/ai/endpoint-specs.ts        接口参数索引（按需懒加载）
-                lib/ai/form-bridge.ts           表单桥（两半注册）
-                lib/ai/page-reload-bridge.ts    页面把「重新取数」交给 AI
+L4  运行时      features/ai/core/runtime.ts —— **全仓唯一 import `ai`(Vercel AI SDK) 与 provider 的地方**
+L5  工具        features/ai/core/tools/{index,page-tools,data-tools,form-tools}.ts
+                features/ai/core/tools/select-tools.ts（Router 阶段的虚拟工具，不进 `AI_TOOLS`）
+L6  上下文      features/ai/core/page-context.ts          当前页面（我在哪）
+                features/ai/core/page-context-registry.ts 页面声明的 AI 上下文（这页用什么接口）
+                features/ai/core/endpoint-specs.ts        接口参数索引（按需懒加载）
+                features/ai/core/form-bridge.ts           表单桥（两半注册）
+                features/ai/core/page-reload-bridge.ts    页面把「重新取数」交给 AI
                                                   （写操作成功后刷新列表，见坑 17）
-                lib/ai/session-db.ts            会话持久化（IndexedDB，按 app 分区）
-                lib/features/*                  页面特性注册表（一页一份 feature.ts）——
+                features/ai/core/session-db.ts            会话持久化（IndexedDB，按 app 分区）
+                features/ai/page/*                  页面特性注册表（一页一份 feature.ts）——
                                                   get_page_data / run_page_command 读它（见 §4）
 ```
 
 **两条硬边界**：
 
 - **L4 不能被静态 import**：`chat.ts` 用 `await import('./runtime')` 首次发送时才加载它
-  （SDK + `@ai-sdk/openai-compatible` 几百 KB，静态引入会进主 bundle）。`lib/ai/index.ts` 也**不要**
+  （SDK + `@ai-sdk/openai-compatible` 几百 KB，静态引入会进主 bundle）。`features/ai/core/index.ts` 也**不要**
   导出 `runtime`。
 - **L6 的接口索引是懒加载的**：`endpoint-specs.gen.ts` 有 363 KB，只允许 `import type`
   与动态 `import()` 引用它，别改成静态 import。
@@ -94,7 +94,7 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
 ```
 用户按 Enter（AiComposer）
   └─ sendAiMessage(text, mode, images)            chat.ts
-       ├─ 读偏好：aiPermission / aiAllowedTools / aiOutputLanguage / locale
+       ├─ 读偏好：aiPermission / aiCapabilities / aiOutputLanguage / locale
        ├─ getAllowedTools(permission, allowed, { hasForms })      ← 权限过滤的唯一入口
        ├─ beginTurn(text, images)（用户消息写进 store，并立刻落盘）
        ├─ await import('./runtime')                                ← 懒加载
@@ -129,7 +129,7 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
   换成选中的业务工具 —— **没有第二次模型往返**，工具循环、审批、流式事件、`stopWhen` 全部不变，
   用户可见交互也不变。`activeTools` 是「按需」的关键：SDK 组装每一步请求前会 `filterActiveTools(...)`，
   只有 active 的工具定义才发给模型（不再每一轮都发全量 schema）。
-- **`select_tools` 是虚拟工具**（`apps/web/src/lib/ai/tools/select-tools.ts`）：**不加入 `AI_TOOLS`、
+- **`select_tools` 是虚拟工具**（`apps/web/src/features/ai/core/tools/select-tools.ts`）：**不加入 `AI_TOOLS`、
   不出现在权限清单里** —— 权限清单列的是「AI 能做什么」，一个"选工具的工具"列进去没有意义。
   Router 若**直接回答**（没调 `select_tools`），流程自然结束、没有执行阶段（「你好 / 谢谢」只付 Router 的钱）；
 - **审批发生在工具内部**，注册表那层不拦截 —— 否则模型不知道有写的能力，只会回答"我做不到"；
@@ -157,24 +157,84 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
 
 | | **权限** | **模式** |
 |---|---|---|
-| 存哪 | `aiPermission` + `aiAllowedTools` | `aiComposerMode` |
+| 存哪 | `aiPermission` + `aiCapabilities`（能力格子） | `aiComposerMode` |
 | 回答 | **能不能用**这个工具 | 用起来**要不要问** |
 | 落点 | `getAllowedTools()` | 各工具里的 `ctx.mode` |
 | 默认 | `readonly`（只读） | `ask`（询问） |
 
-**权限三档本质是同一份勾选清单**（`resolveAllowedToolNames`）：`full` = 全选、
-`readonly` = 预设勾了那几个只读工具、`custom` = 用户勾的。所以从预设档切到「自定义」时
-要**继承当前档实际勾选的工具**。新增一档也只是加一条预设，别再写一条 `if` 分支。
+### 3.1 权限是**能力矩阵**，不是一串工具名
 
-**模式与工具的关系**（哪些工具受模式影响）：
+真值在 `features/ai/core/capabilities.ts`：**行 = 能力、列 = 动作**，每个格子可独立授权。
 
-| 工具 | `ask` | `auto` |
-|---|---|---|
-| `read` 类 | 直接执行 | 直接执行 |
-| `navigate_to` | **先请用户确认**（面板三选一确认卡） | 直接跳（**自动模式 = 始终允许**） |
-| `fill_form` | 先请用户确认 | 直接写 |
-| `submit_form` | 一律确认 | `canSubmit()` 通过就直接提交 |
-| `call_write_api` | 确认 | **仍然确认**（刻意不读 `ctx.mode`） |
+```
+页面   读取(page:read) · 跳转(page:navigate) · 操作(page:operate)
+数据   查询(data:query) · 修改(data:write)
+表单   读取(form:read) · 更新(form:update) · 提交(form:submit)
+任务   编排(task:plan) · 授权(task:grant)
+```
+
+工具用 `capability: 'page:read'` **声明自己占哪一格**；`getAllowedTools` 按格子过滤 ——
+于是「设置页勾了什么」与「模型拿到什么工具」是同一件事的两种呈现，不可能分叉。
+**加一个工具 = 在它身上填一个已有格子**；只有确实属于新动作时才加格子（加格子会改变
+所有既有用户的勾选集，是破坏性的）。
+
+**权限三档本质是同一份格子集合**（`resolveAllowedGrants` / `presetCapabilityGrants`）：
+`full` = 全部格子、`readonly` = 预设那几格、`custom` = 用户勾的。从预设档切到「自定义」
+要**继承当前档实际勾选的集合**。
+
+几个刻意的格子归属，别想当然：
+- `navigate_to` → `page:navigate`（不是 `page:operate`）：跳转**不改任何东西**，
+  「看哪里」不是「改什么」，所以只读档也放行；但它会把用户带离上下文，所以询问模式仍要确认。
+- `open_form` / `fill_form` → `form:update`（**打开表单算「更新」不是「读取」**）：
+  打开表单的唯一目的就是改数据；只看不改的路径是详情页。`list_page_forms` 才是 `form:read`。
+- `manage_tasks` → `task:plan`：编排本身是只读的（它只驱动**已被允许**的工具），
+  所以只读档必须有它，否则只读的 AI 连"把这件事拆成 5 步"都做不到。
+- `request_permission` → `task:grant`。
+
+### 3.2 审批：**一张表 + 一个判定函数**，工具不再自己判断模式
+
+早先的约定只写了一句话「`ask` 动手前先问、`auto` 能直接做就直接做」——它定义了 `auto`
+**能**做什么，却**没定义 `auto` 下谁还不该问**。于是每个工具各写各的
+`ctx.mode === 'ask'`（抄了七八遍），很快出了实打实的错：
+
+```ts
+// form-tools.ts 的 submit_form：右侧恒为 true，ctx.mode 白读
+const requireApproval = formSpec?.submission?.requireApproval ?? (ctx.mode === 'ask' || true)
+```
+
+后果是**自动模式下提交表单照样弹卡**，与工具描述、能力表格、输入区文案（「自动填写并提交
+表单」）三处全矛盾；而且因为恒真，三个业务表单里显式声明的 `requireApproval` 成了死代码。
+
+现在判定收口在 `features/ai/core/approval-policy.ts`：
+
+```ts
+needsApproval(intent, { mode, planHasWrites? })
+```
+
+`intent` 是**动作的性质**（不是工具名）：`read` / `fill` / `submit` / `write` /
+`navigate` / `plan` / `probe`。策略写成 `Record<AiApprovalIntent, fn>` ——
+漏一个 `intent` 直接编译不过（比 `switch` 的 `default` 静默放行安全）。
+
+| 动作性质 | `ask` | `auto` | 为什么 |
+|---|---|---|---|
+| `read` 读业务数据 | 首次问（会话授权后免） | 不问 | 只读不改变任何东西 |
+| `fill` 填表 / 打开表单 | 问 | 不问 | 只改页面状态、不落库 |
+| `submit` 提交表单 | 问 | **不问** | 表单自带 `canSubmit()`，用户能预览 |
+| `write` 写接口 / 页面写指令 | 问 | **仍问** | 无可预览的表单，自动执行 = 直接改库 |
+| `navigate` 跳转 | 问 | 不问 | 「看哪里」不是「改什么」 |
+| `plan` 批量编排 | 问 | **含写才问** | 写计划是看到完整步骤清单的唯一机会 |
+| `probe` 存在性探测 | 每次问 | **每次问** | 枚举试探的主要通道 |
+
+**两条不随模式松动的口子**：`write` 与 `probe` **不读 `ctx.mode`**。
+`plan` 的"含不含写操作"按**步骤所用工具的能力格子**判（`planHasWriteSteps`），
+不按工具名 —— 新增的写工具自动被认出来。
+
+**读数据在 `auto` 下不弹是刻意的放宽**：前提是权限那一维已经在**把工具交给模型之前**
+收过口（没权限的读工具根本不下发），硬边界仍是执行时后端按用户身份校验。
+`check_result_match` 不受此放宽 —— 它是唯一能逐次试探出"某个值在不在"的工具。
+
+**表单的 `submission.requireApproval`**：不写 = 由策略表决定；显式写 `true` =
+这张表单在两个模式下都强制确认（个别高危表单可用它单独收紧）。
 
 **跳转是一条独立于写操作的规则**：它归 `read` 档（只读档也有这个工具），但会把用户带离
 当前页面，所以**询问模式下**要用户点头 —— 面板弹三选一确认卡（「带我去」只这一次 /
@@ -198,7 +258,15 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
 | 导航清单（能去哪） | `collectNavigation(appId)` → `list_navigation` | 模型调用工具时 |
 | 表单清单 | `listAiForms()` → `list_page_forms` | 模型调用工具时 |
 | **页面用到的接口 + 参数明细** | `resolveAiPageContext(routePath)` + `findEndpointSpec()` → `get_page_context` | 模型调用工具时 |
-| **用户 `@` 指定的位置** | `expandRouteRefs(text)`（`#/lib/ai/route-refs`），在 `toModelMessages` 里追加到 user 消息末尾 | 每轮请求 |
+| **页面目录（有哪些页、各页干什么）** | `searchPageCatalog(keyword)`（`#/features/ai/core/page-catalog`）→ `search_pages` | 模型调用工具时 |
+| **用户 `@` 指定的位置** | `expandRouteRefs(text)`（`#/features/ai/core/route-refs`），在 `toModelMessages` 里追加到 user 消息末尾 | 每轮请求 |
+
+> **页面明细不再全量下发**：每页的完整声明（接口 / 字段 / 表单）几 KB，全量发给模型既费
+> token 又稀释重点。改成两步：先用 `search_pages` **按功能模糊检索**（只拿标题 + 一句话
+> desc + 接口清单），认准目标页再用 `get_page_context`（传 `path`）取该页明细。
+> 这既是**上下文约束**，也是一道**过滤点**（将来按权限收窄可见页面，条件加在
+> `searchPageCatalog` 一处）。**代价**：每页必须在 `AI_PAGE_CATALOG` 里有一条 `desc`，
+> 否则检索不到、AI 当它不存在。
 
 **`@` 引用**（`@user` / `@user:list` / `@user:1234`）的展开只做一件事：把用户打的那串
 **追加**一段「模块 / 页面 / 路径」的说明（不替换原文，模型两边都能看到）。认不出来的 `@foo`
@@ -274,7 +342,7 @@ useAiPageContext(Route.id, {
 
 **加一个可被 `@` 引用的模块**
 
-在 `#/lib/ai/route-refs` 的 `AI_ROUTE_REF_SPECS` 里加一项：模块键（英文小写，用户要打的那个）、
+在 `#/features/ai/core/route-refs` 的 `AI_ROUTE_REF_SPECS` 里加一项：模块键（英文小写，用户要打的那个）、
 模块目录页在**导航里的相对路径**、以及它下面可引用的页面（键 + 导航路径）；
 有详情页的话再补 `record`（`param` / `template` / 名字）。**名字、图标、匹配关键词都从导航清单取**，
 这里只登记键 —— 所以不要在这里抄一遍模块名，也不要在渲染处另拼一份菜单。
@@ -289,7 +357,7 @@ useAiPageContext(Route.id, {
 
 **加一档权限**
 
-只改 `resolveAllowedToolNames` 里加一条预设。界面上多一项 `Tabs`。
+只改 `presetCapabilityGrants` 里加一条预设。界面上多一项 `Tabs`。
 
 **改系统提示词 / 加一层**
 
@@ -370,11 +438,62 @@ useAiPageContext(Route.id, {
     且重试可能重放写操作），只打告警。检测规则见 `runtime.ts` 的 `TOOL_CALL_LEAK_PATTERNS`。
     **别把这段兜底删掉**：它挡的是"模型协议泄漏"，而不是偶发网络错误。
 
+## 7.1 AI 自主 Todo 编排（后端没有批量接口时怎么做批量操作）
+
+### 问题
+
+后端常常只给**单条**的增删改（`DELETE /x/{id}`、`PUT /x`），没有批量端点。
+于是「把这一屏待处理的都关掉」这类请求，模型只能一条一条调 —— 而**每次调用都是
+一轮模型往返**（工具结果回给模型 → 模型再决定下一次）。20 条就是 20 次：慢、贵，
+且模型中途"忘了还剩几条"是常态。
+
+### 做法：编排与执行分离
+
+```
+① 模型调 manage_tasks，一次给出整组步骤（每步 = action: { tool, input }）
+② 用户看一份完整计划、点一次「允许」
+③ 客户端顺序执行每一步（for ... await，前一步完成才做下一步），全程不打扰模型
+④ 全部跑完，把每步结果（outcomes）作为这一次工具调用的返回值交给模型
+⑤ 模型据此写总结
+```
+
+于是 N 条记录只花**一次**模型往返。这也正是需求里「一个任务完成后才接着继续下一个」
+的落地：③ 的 `await` 是串行的。
+
+### 三个关键实现点
+
+| 点 | 落点 | 说明 |
+|---|---|---|
+| **步骤格式** | `task-tools.ts` 的 `TaskAction` | `{ tool, input }`；`tool` 取**本轮可用工具名**，`input` 与那个工具的参数完全一致 |
+| **提权闸** | `ctx.resolveTool(name)` | 计划里的 `tool` 是模型写的字符串，**必须**落在本轮已授权的工具集里 —— 否则模型能借 `manage_tasks` 调用它没被授权的工具。审批卡防用户手滑，这道闸防模型越权，两者都要 |
+| **进度上报** | `ctx.reportTaskProgress` → store 的 `liveTasks` | 整批在一次调用内跑完，不上报界面就一直静止；输入区任务卡订阅它实时推进 |
+
+### 两条硬约定
+
+1. **不带 `action` 的清单是纯进度卡**（老行为保留）：只在"需要看一步结果再决定下一步"
+   （探测式）时才用。批量且顺序固定 → 带 `action` 的可执行计划。
+2. **预授权只覆盖计划里真正用到的工具**（`BatchGrant`）：用户同意的是"这一批里这几步"，
+   不是"放行所有写工具"。子工具自己的 `requestApproval` 对已同意的工具直接放行，
+   其余仍走原通道。
+
+### 坑：批量计划的预授权要同时装**工具名**与**授权键**
+
+`BatchGrant` 只装工具名时，只读计划会在执行中途**逐个弹读授权卡**——
+子步骤弹 `DATA_READ_GRANT` 时 `request.toolName` 装的是**授权键**（`'data:read'`）
+而不是工具名，只比工具名比对不上。修法是两套键都装（见 `withBatchGrant`）。
+
+### 坑：`task-tools` 不能 import `tools/index`
+
+那会形成**循环 import**（`tools/index` → `task-tools` → `tools/index`），
+模块初始化期 `AI_TOOLS` 里会混进 `undefined` —— 表现为 `findTool` 在
+`AI_TOOLS.find(t => t.name)` 上抛 `Cannot read properties of undefined`（真实踩到）。
+**工具集必须由 `ctx` 注入**（`ctx.resolveTool`）。
+
 ## 8. 系统提示词的分层与范围闸
 
 > ⚠️ **规则已迁到服务端**：真值是 [`packages/ai-prompt`](../../packages/ai-prompt)（纯函数、零依赖），
 > 由 `apps/ai`（Hono Worker）在每轮请求时拼接；前端只负责**上报事实**
-> （`apps/web/src/lib/ai/prompt-facts.ts`）。迁移过程、接口契约与验证方式见
+> （`apps/web/src/features/ai/core/prompt-facts.ts`）。迁移过程、接口契约与验证方式见
 > [`ai-server-layer.md`](./ai-server-layer.md)。**下面的层序与口径仍然有效**，只是文件位置变了。
 
 **两个出口**：`packages/ai-prompt` 的 `buildSystemPrompt(facts, stage?)`（稳定前缀 → `system`）与
@@ -472,7 +591,7 @@ useAiPageContext(Route.id, {
 ## 9. AI 面板：Split View / Float (Ask AI)
 
 - **入口与范围**：顶栏 `#/components/header-actions` 的「Ask AI」按钮**只在 `$appId` 外壳
-  （`AppHeader`）显示**（`HeaderActions.showAskAi` 默认 `false`）。面板本体是 `#/components/ai-panel`
+  （`AppHeader`）显示**（`HeaderActions.showAskAi` 默认 `false`）。面板本体是 `#/features/ai/components/panel`
   （`AiPanel`，受控 `open` / `onClose`），展开状态由 `AppShell` 持有、**刻意不持久化**。
 - **按钮是开关（toggle），但折叠态优先展开**：点一次开、再点一次关 —— `AppShell` 的
   `handleToggleAskAi` 负责分流（关着 → 打开完整面板；开着且 Float 折叠 → 展开；
@@ -514,7 +633,7 @@ useAiPageContext(Route.id, {
     于是浮窗会贴到**视口顶端**（曾经就是这个 bug）。
   - **Float 可折叠成一条窄条**：头行里「关闭」左侧那颗按钮（`CaretDown` 收起 / `CaretUp`
     展开，`aria-expanded` 跟着走）把浮窗压成「只有头行」的一条。这条过渡用
-    **`motion/react`**（`#/components/ai-panel`）：
+    **`motion/react`**（`#/features/ai/components/panel`）：
     - **只动外框的宽高**（折叠终点 = `AI_FLOAT_MIN_WIDTH` × 头行高 `AI_PANEL_HEADER_HEIGHT`，
       展开终点 = `floatSize`）；内层那一格的宽高在变形期间被**钉在展开尺寸**上，
       由 `overflow-hidden` 裁切 —— 文字一次都不用重新换行，每帧重排的只有外框。
@@ -525,7 +644,7 @@ useAiPageContext(Route.id, {
     - **折叠态三个手柄一个都不挂**（不只是"不画"）：拖拽会在 `onCommit` 落盘，
       折叠期间的尺寸不该污染存档；`aiFloatWidth` / `aiFloatHeight` 里始终留着上次展开的尺寸，
       展开即原样恢复（头行右侧的会话选择器也在这个阶段才换成「AI 头像 + 当前会话标题」，
-      标题与展开时同源：`#/components/ai-session-picker` 的 `useActiveSessionTitle`；
+      标题与展开时同源：`#/features/ai/components/session-picker` 的 `useActiveSessionTitle`；
       **头像不加圆形底色 / 描边**，与消息行里的那个一致）。
     **按钮只在 Float 出现**：Split 不把回调转给头行（靠回调有无，而不是在组件里判 mode）；
     移动端浮窗是整屏、折叠不成立，按钮也不挂。
@@ -556,7 +675,7 @@ useAiPageContext(Route.id, {
   `SHELL_PANEL_FRAME` 属外壳）；**改面板高度、手柄手感只动这里**，不要在各自组件里再写一份。
   浮窗（可拖两个方向）的手柄是 `ai-panel` 内部的 `AiFloatResizeHandle`（视觉与键盘语义
   照抄 `SidePanelResizeHandle`），拖拽逻辑同上那一个 lib 文件 —— **不要**给浮窗另建一套。
-- **底部输入区**是 `#/components/ai-composer` 的 `AiComposer`（Kumo `Textarea` 的 `autoResize` +
+- **底部输入区**是 `#/features/ai/components/composer` 的 `AiComposer`（Kumo `Textarea` 的 `autoResize` +
   `minRows=2` / `maxRows=8`，最多 8 行、再多在框内滚动）。面板骨架因此是三段 flex 列 ——
   头行与输入区 `shrink-0`、中间内容区 `min-h-0 flex-1 overflow-y-auto`：**输入框不要放进滚动容器**，
   否则内容一长就被顶出视口。外观（圆角框 / 底色 / 聚焦环）**只画在外层框上**（`bg-kumo-control` +
@@ -598,7 +717,7 @@ useAiPageContext(Route.id, {
     或点「+」里的「引用位置」都会浮出这块面板，可以引用「哪个模块 / 哪个页面 / 哪一条记录」：
     `@user` / `@user:list` / `@user:1234`。面板按 `kind` 分段展示（添加 → 模块 → 页面 → 记录），
     行内排版是「名字 + 灰色语法 + 右侧说明 + 选中项 Tab 提示」，找东西看名字比看语法快。
-    行的内容来自 `#/lib/ai/route-refs`（见下），**渲染处不另加名单**。键盘：`↑↓` 换行、`Enter` / `Tab` 选中、`Esc` 收起 ——
+    行的内容来自 `#/features/ai/core/route-refs`（见下），**渲染处不另加名单**。键盘：`↑↓` 换行、`Enter` / `Tab` 选中、`Esc` 收起 ——
     **必须排在「Enter 发送」之前**，否则选中那一下会顺手把消息发出去。
     **⚠️ 这块面板的难点全在「焦点必须一直留在输入框里」**（它是输入框文字驱动的：打 `@` 出、
     继续打字过滤），所以下面三个参数**缺一不可**：
@@ -625,19 +744,19 @@ useAiPageContext(Route.id, {
   浮窗从折叠态展开都会让它重新挂载，于是「打开就能直接打字」；`preventScroll` 是必需的，
   否则 Split 进场（宽度还在从 0 长出来、输入框被裁在外侧）会触发页面横向滚动的补偿；
   **移动端不抢焦点**（软键盘会立刻挡住刚打开的对话），这个判断只在挂载时取一次。
-- **图标按钮一律带 `Tooltip`**：面板头行的折叠 / 关闭（`#/components/ai-panel`）、输入区的
-  发送 / 停止 / 模式（`#/components/ai-composer`）、顶栏的 `Ask AI`（`#/components/header-actions`）。
+- **图标按钮一律带 `Tooltip`**：面板头行的折叠 / 关闭（`#/features/ai/components/panel`）、输入区的
+  发送 / 停止 / 模式（`#/features/ai/components/composer`）、顶栏的 `Ask AI`（`#/components/header-actions`）。
   两个写法上的硬要求：① **必须 `render={<Button/>}`** —— Kumo 的 `Tooltip` 自己就是 trigger，
   把按钮放进 children 会得到嵌套 `<button>`（见 `#/components/settings-card` 的同一条坑）；
   ② 补 `className="cursor-pointer"`，因为 Kumo 会给 trigger 加一个 `cursor-default`。
   已知边界：`disabled` 的按钮收不到指针事件，发送按钮在输入为空时不会弹 tooltip。
 - **什么时候开一段新会话**（设置 → AI 的「新会话时机」）：`admin.preferences:<appId>.aiSessionMode`
   = `continue`（默认，永远续上一个）/ `new`（**每份文档一段新会话**；上一段仍在会话列表里）。
-  判据是 `#/lib/ai/session-boot` 的 `isDocumentReload()`：`sessionStorage` 里放一个标记
+  判据是 `#/features/ai/core/session-boot` 的 `isDocumentReload()`：`sessionStorage` 里放一个标记
   （`admin.ai.sessionBooted`，按标签页隔离），整页卸载时在 `pagehide` 里删掉它 ——
   **注意 sessionStorage 本身能活过刷新**，所以「刷新即清空」是这一步主动做的，不是它自带的；
   `persisted === true`（bfcache 冻结）不算卸载，标记留着、会话不断。
-  唯一生效点是 `loadHistory({ fresh: true })`（`#/lib/ai/session-store`，`AiConversation`
+  唯一生效点是 `loadHistory({ fresh: true })`（`#/features/ai/core/session-store`，`AiConversation`
   传 `sessionMode === 'new' && isDocumentReload()`）：只加载会话列表、不恢复上次那段。
   **面板不参与这件事**（旧实现在 `open` 上升沿用 layout effect 清内存会话，那与「同一页面里
   接着上一段说」相矛盾，已删）：面板关掉再打开是同一份文档，当前会话连同流式增量原样留着，
@@ -660,15 +779,15 @@ useAiPageContext(Route.id, {
   菜单项是**两行**（模式名 + 一句说明，`modeAskHint` / `modeAutoHint`），说清它管的是
   「表单要不要确认」——只写「询问 / 自动」没人知道指的是什么；因此 `Content` 用 `w-64`，
   且项上要 `items-start` 顶掉 Kumo 基类的 `items-center`（两行文字时图标 / 勾跟首行对齐）。
-- **AI 权限**（`aiPermission` + `aiAllowedTools`，**默认 `readonly`**，设置 → AI）：**能用哪些工具**
-  只看这里。三档 `full` / `readonly` / `custom`，自定义时按 `aiAllowedTools` 逐项放行；
+- **AI 权限**（`aiPermission` + `aiCapabilities`，**默认 `readonly`**，设置 → AI）：**能用哪些能力格子**
+  只看这里。三档 `full` / `readonly` / `custom`，自定义时按 `aiCapabilities` 逐格放行；
   `getAllowedTools(permission, customTools)` 是**唯一**过滤点。它与模式**正交** ——
   权限回答"能不能用"、模式回答"用起来要不要问"，**别再把两者揉成一个开关**（早先
   `getToolsForMode` 拿模式当权限用，于是"询问模式"连表都填不了）。工具的分组
   （`AiToolDefinition.group`：页面 / 数据 / 表单）**由工具自己声明**，设置页的清单从
   `AI_TOOLS` 派生、不另抄名单（加工具只改工具文件）。**默认只读是刻意的**：AI 默认只能看，
   要它动数据得用户自己到设置里开。
-  配置界面**只有一份**：`#/components/ai-permission-config` 的 `AiPermissionConfig`（受控：
+  配置界面**只有一份**：`#/features/ai/components/permission-config` 的 `AiPermissionConfig`（受控：
   三档 + **始终列出**的工具清单，清单从 `AI_TOOLS` 派生）。preset 档的勾选**按档位派生**
   （只读 = `read` 类、完全访问 = 全部）且整组 `disabled`，只有 `custom` 能勾 ——
   切档时清单不闪不跳，用户能直接对比两档差在哪；切到 `custom` 时把这份派生集合继承成
@@ -737,7 +856,7 @@ useAiPageContext(Route.id, {
   不是本机时区 —— 这个后台里「现在几点」处处以那个设置为准；`Intl` 必须用
   `hourCycle: 'h23'`（`hour12: false` 在午夜会给出 `"24"`）。问候语加粗用 `font-semibold`
   （本仓库禁用 `font-bold`）。
-- **AI 进行中的页面级反馈**（`#/components/ai-activity-glow`）：视口四周向内发光的呼吸光晕，
+- **AI 进行中的页面级反馈**（`#/features/ai/components/activity-glow`）：视口四周向内发光的呼吸光晕，
   `status === 'streaming'` 或等审批时出现。**两层都用 `border-beam` 的 Pulse 家族
   `pulse-inner`**（「收在边界内呼吸」）：运行态是包在**一个 `fixed inset-0`、不带子元素**的元素上
   （`borderRadius={0}`、`strength={0.7}`、`glowSize={4}` + 下面两处补偿），设置页那张预览
@@ -777,8 +896,8 @@ useAiPageContext(Route.id, {
   `getActiveModel()` / 计算 `supportsTools` —— 工具是否随请求发出**只由权限决定**
   （`chat.ts` 的 `getAllowedTools`）。`runtime.ts` 的 `WORKER_MODEL_ID = 'nivo-ai-server-fixed'`
   只是占位（真实模型由服务端覆盖）。
-- **`#/lib/ai/runtime.ts` 是全仓唯一 import `ai`（Vercel AI SDK v7）的地方，且不要从
-  `#/lib/ai/index.ts` 静态导出它**（SDK + `@ai-sdk/openai-compatible` 几百 KB 会进主 bundle）；
+- **`#/features/ai/core/runtime.ts` 是全仓唯一 import `ai`（Vercel AI SDK v7）的地方，且不要从
+  `#/features/ai/core/index.ts` 静态导出它**（SDK + `@ai-sdk/openai-compatible` 几百 KB 会进主 bundle）；
   `chat.ts` 用 `await import('./runtime')` 首次发送时才加载。
 - **v7 的 API 名与 v5 不同，别凭记忆写**：`stopWhen: isStepCount(n)`（不是 `maxSteps`）、
   `inputSchema`（不是 `parameters`）、`jsonSchema()` 免 zod、`toolApproval` 是审批入口；
@@ -805,7 +924,7 @@ useAiPageContext(Route.id, {
   （`listAiForms`）。**不要在别处再遍历 `ALL_NAV_TARGETS`、或直接读表单注册表拼一份给模型的
   清单** —— 那会把"将来按权限收窄"的落点焊死；过滤条件一律加在这些函数**内部一处**。
   提示词里任何可能随权限变化的内容同理（当前是 `formatPageSummary` 与模式描述）。
-- **权限三档本质是同一份勾选清单**（`resolveAllowedToolNames`，`getAllowedTools` 基于它过滤）：
+- **权限三档本质是同一份格子勾选集**（`resolveAllowedGrants`，`getAllowedTools` 基于它过滤）：
   `full` = 全选、`readonly` = **预设**勾了那几个只读工具、`custom` = 用户勾的。
   所以从预设档切到「自定义」时要**继承当前档实际勾选的工具**（否则用户得从零重点一遍），
   界面上也能如实说清"只读等于勾了哪几项"。新增一档时只在这里加一条预设，别再写一条 if 分支。
@@ -823,7 +942,7 @@ useAiPageContext(Route.id, {
   解析分两层，职责别混：**`chat.ts` 把 `auto` 解析成具体语言**（只有它认识偏好 store），
   **`runtime.ts` 只负责把语言翻成 `nativeName` 写进提示词** —— 用**自名**（「日本語」而不是
   「日语」）是因为模型的语种知识在自名上最可靠，且不必要求它懂当前界面语言里的语种叫法。
-- **页面级 AI 上下文**（`#/lib/ai/page-context-registry` 的 `useAiPageContext`）：**每个新页面都要写**。
+- **页面级 AI 上下文**（`#/features/ai/core/page-context-registry` 的 `useAiPageContext`）：**每个新页面都要写**。
   动机是真实踩坑：全局接口清单有 600+ 条、**且不含参数**，模型去里面搜「用户」再自己猜参数 ——
   它用 `query: { uid }` 调 `GET /user/info`（该接口要 `id`），也曾在路径参数上写 query。
   于是改成让**页面自己声明**「我是干什么的、我用了哪些接口」，`get_page_context` 把它连同
@@ -847,18 +966,18 @@ useAiPageContext(Route.id, {
   → 说明当前权限未开启，可去「设置 → AI → AI 权限」调整；能力系统本身就没有（清单与工具回执里
   都没有）→ 如实说「这个后台没有这项功能」，**不要编**，也不要说成「你的权限没开」；分不清
   → 按「当前不可用」表述并提示可去设置查看，**不要断言系统有这个能力**。
-- **表单桥分两半**（`#/lib/ai/form-bridge`）：字段读写由表单组件 `useAiFormFields`、提交由页面
+- **表单桥分两半**（`#/features/ai/core/form-bridge`）：字段读写由表单组件 `useAiFormFields`、提交由页面
   `useAiFormSubmit`，**两半靠同一个 id 拼成一条记录**；注册表在模块级 Map（不进 state），
   同步 effect **故意不写依赖数组**（否则 `fields` 会停在首次渲染的快照）。
 - **页面事实每轮重新采集**：摘要（`formatPageSummary`）进提示词，完整明细由 `get_page_context`
   按需获取；路由能力靠**外壳桥**注入（`AppShell` 注册）——
   `router` 没有全局单例，不要从工具模块直接 import router。`toModelMessages` 里工具结果必须是
   紧跟 assistant 的独立 `tool` 消息，只有 `state === 'done'` 的调用进历史。
-- **会话持久化在 IndexedDB**（`#/lib/ai/session-db`）、按 app 分区，维护四个 store（`sessions`、`messages`、`meta` 与未发送草稿表 `drafts`）；
+- **会话持久化在 IndexedDB**（`#/features/ai/core/session-db`）、按 app 分区，维护四个 store（`sessions`、`messages`、`meta` 与未发送草稿表 `drafts`）；
   **流式期间与发送时前置不写盘**：只有一轮正常成功（或用户主动点停止）时才将对话消息存入当前会话；**发送失败绝不记录到当前会话数据库**；
   若新会话首轮失败，自动清理可能残留的空会话记录并切回新会话空态（大头像 + 问候语 + 单一错误卡），失败提示词与附件自动回退输入框并落盘独立草稿表 `drafts`；
   `loadHistory` 对同一 app 早退 —— 面板关掉再打开是重挂载，少了它会用旧版本**覆盖掉流式回复的增量**。
-- **权限授权严格限定于单个 Chat Session**（`#/lib/ai/session-permissions`）：
+- **权限授权严格限定于单个 Chat Session**（`#/features/ai/core/session-permissions`）：
   用户选择「本会话不再询问」的授权**仅在当前特定 Chat Session 内生效**，绝不是整个浏览器 Session 生效；
   新开会话（`startNewSession`）自动重置专属作用域 ID 并清空所有授权，**新会话与上一个会话权限完全隔离，绝不继承旧会话授权**。
 - **消息操作栏、任务卡片与层叠零漂移布局**：
@@ -916,7 +1035,7 @@ useAiPageContext(Route.id, {
   视觉 / 思考档位**一律按支持处理**（图片与文件入口始终可用）。
 - **厂商协议收敛为 OpenAI 规范与 Anthropic 规范两大通用体系**（**历史：前端已不再配置厂商**，
   协议细节现由 AI Gateway 负责，此处仅存档）：允许接入任意遵循对应规范的厂商（如 DeepSeek、月之暗面、Ollama、SiliconFlow 等）；OpenAI 规范下支持「Chat Completions 通用兼容格式（原生解析 reasoning_content）」与「Responses 官方标准格式」两种请求格式。
-- **`#/lib/ai/runtime.ts` 是全仓唯一 import `ai`（Vercel AI SDK v7）的地方，不要静态导出它**
+- **`#/features/ai/core/runtime.ts` 是全仓唯一 import `ai`（Vercel AI SDK v7）的地方，不要静态导出它**
   （SDK + `@ai-sdk/openai-compatible` 几百 KB 会进主 bundle）；`chat.ts` 用 `await import('./runtime')` 首次发送才加载。
 - **v7 的 API 名与 v5 不同，别凭记忆写**：`stopWhen: isStepCount(n)`（不是 `maxSteps`）、
   `inputSchema`（不是 `parameters`）、`jsonSchema()` 免 zod、`toolApproval` 是审批入口。

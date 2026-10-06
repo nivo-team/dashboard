@@ -9,7 +9,7 @@ import { extractApiErrorMessage } from '#/lib/api-error'
 import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
 import { FeatureForm } from '../feature-form'
 import type { FeatureFormValues } from '../feature-form'
-import { useFeature } from '#/lib/features'
+import { useFeature } from '#/features/ai/page'
 import { createNewFeatureSpec } from './feature'
 import {
   featureBreadcrumbPath,

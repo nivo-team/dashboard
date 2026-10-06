@@ -1,7 +1,7 @@
 import { Outlet, useNavigate, useParams, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { AiActivityGlow } from '#/components/ai-activity-glow'
-import { AiPanel } from '#/components/ai-panel'
+import { AiActivityGlow } from '#/features/ai/components/activity-glow'
+import { AiPanel } from '#/features/ai/components/panel'
 import { AppHeader } from '#/components/app-header'
 import { AppSidebar } from '#/components/app-sidebar'
 import { CommandPaletteDialog } from '#/components/command-palette'
@@ -16,7 +16,7 @@ import {
   registerAiShellBridge,
   rememberMaximizeOrigin,
   useAiSessionStore,
-} from '#/lib/ai'
+} from '#/features/ai/core'
 import { useUserPermissions } from '#/lib/permissions'
 import { usePreferencesStore } from '#/lib/store'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
@@ -37,14 +37,14 @@ export function AppShell() {
    * `isAskAiOpen` 只用来画 `aria-expanded`，**没有视觉激活态** —— 面板已经占着屏幕了，
    * 按钮再亮一块浅底只是多一处动静）。
    *
-   * 状态存在 **sessionStorage**（`#/lib/ai/panel-session`）：面板头行的「最大化」会跳到
+   * 状态存在 **sessionStorage**（`#/features/ai/core/panel-session`）：面板头行的「最大化」会跳到
    * `/$appId/sphere`，`AppShell` 整体卸载 —— 只放组件 state 的话，返回原页面时面板会被
    * 重置成收起。放会话级存储后「收起全屏 → 面板还是展开的」。只跨路由、不跨浏览器会话
    * （新标签页从收起开始），所以不用偏好 store 也用不着 localStorage。
    */
   const [aiPanelOpen, setAiPanelOpen] = useState(readAiPanelOpen)
   /**
-   * 本次外壳挂载是不是**从最大化返回**（见 `#/lib/ai/panel-session`）。
+   * 本次外壳挂载是不是**从最大化返回**（见 `#/features/ai/core/panel-session`）。
    *
    * 那种情况下面板**一直开着**（`aiPanelOpen` 从 sessionStorage 读回 `true`），只是宿主
    * `AppShell` 在 `/sphere` 期间被卸载过 —— 重新挂载时不该再演一遍「打开」：
@@ -170,7 +170,7 @@ export function AppShell() {
   }
 
   /**
-   * 把「只有 React 侧才拿得到」的两件事交给 AI 工具层（见 `#/lib/ai/page-context` 的外壳桥）：
+   * 把「只有 React 侧才拿得到」的两件事交给 AI 工具层（见 `#/features/ai/core/page-context` 的外壳桥）：
    * `router` 实例由 `main.tsx` 现场创建、没有全局单例，而工具不是 React 组件、
    * 用不了 `useNavigate()`。注册后，`navigate_to` 才能做客户端跳转、
    * `get_page_context` 才能报出路由模板。

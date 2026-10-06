@@ -5,16 +5,19 @@
 > | 文档 | 形态 | 什么时候读 |
 > |---|---|---|
 > | [ai-architecture.md](./ai-architecture.md) | **叙述式**：分层理由、数据流、扩展点、**19 条踩过的坑** | 改任何 AI 代码之前 |
-> | **本文** | **清单式**：提示词 14 层逐层、18 个工具全表、审批矩阵、设置项全表、**AI 相关文件全地图** | 想知道「AI 现在到底有什么 / 在哪个文件」时 |
+> | **本文** | **清单式**：提示词 14 层逐层、21 个工具全表、审批矩阵、设置项全表、**AI 相关文件全地图** | 想知道「AI 现在到底有什么 / 在哪个文件」时 |
 > | [ai-integration.md](./ai-integration.md) | 设计蓝图与选型依据（给人看） | 追溯「当初为什么这么设计」 |
 >
-> 覆盖面：`apps/web/src/lib/ai/**`（33 个文件）、`lib/features/**`、`components/ai-*.tsx`、
-> `routes/$appId_.sphere/**`、`settings/AI.tsx`、`lib/store/preferences-store.ts`、`messages/ai/*`、生成脚本与依赖。
+> 覆盖面：**`apps/web/src/features/ai/**`（108 个文件，AI 核心全部收在这一个目录）**、
+> `lib/store/preferences-store.ts`、`messages/ai/*`、生成脚本与依赖。
 > 本文只描述**当前代码事实**；与旧文档不一致处以本文 + 代码为准（差异见 [§5](#5-现状与文档--代码不一致待修)）。
+>
+> 🗺️ **目录怎么分**看 [src/features/ai/README.md](../../apps/web/src/features/ai/README.md) ——
+> 那是模块地图（core / components / markdown / sphere / page 各是什么、加东西改哪里）。
 
 > ⚠️ **2026-09 迁移**：系统提示词的**规则**已迁到服务端 —— 真值在 `packages/ai-prompt`，
-> 由 `apps/ai`（Hono Worker）拼接。本文里所有 `lib/ai/prompt/**` 路径**均已不存在**；
-> 前端改由 `lib/ai/prompt-facts.ts` 采集**事实**后随请求上报。以
+> 由 `apps/ai`（Hono Worker）拼接。本文里所有 `features/ai/core/prompt/**` 路径**均已不存在**；
+> 前端改由 `features/ai/core/prompt-facts.ts` 采集**事实**后随请求上报。以
 > [`ai-server-layer.md`](./ai-server-layer.md) 为准。
 
 ---
@@ -24,10 +27,11 @@
 | 项 | 现状 |
 |---|---|
 | 系统提示词 | **14 层**（`PROMPT_LAYERS`，stable 9 + volatile 5），唯一出口 `buildSystemPrompt(facts, stage?)` / `buildTurnContext(facts, stage?)`（服务端），**每轮重算**；按 `promptStage`（router / execution）选层 —— 两阶段的 system 是**两份不同提示词**（identity 后分叉），同一阶段跨轮逐字节一致 |
-| 工具 | **18 个**（`AI_TOOLS`），按 `group` 分 页面 / 数据 / 表单；权限界面按 `access` 解释风险。另有 Router 阶段的虚拟工具 `select_tools`（不进 `AI_TOOLS`） |
+| 工具 | **21 个**（`AI_TOOLS`），每个工具声明自己占的能力格子（见下）。另有 Router 阶段的虚拟工具 `select_tools`（不进 `AI_TOOLS`） |
 | 运行容器 | 2 个：`panel`（分屏 / 浮窗）、`sphere`（全屏对话页）；**由渲染处显式传入**，不靠路由字符串反推 |
+| 权限模型 | **能力矩阵**（`features/ai/core/capabilities.ts`）：四行（页面 / 数据 / 表单 / 任务）× 各行动作 = 可独立授权的格子（`page:read` / `data:write` / `form:submit` …）。工具声明 `capability` 落在哪一格；权限界面一行一个能力、行内多权限；运行时按格子过滤 |
 | 正交维度 | **权限**（能不能用） × **模式**（用起来要不要问） × **容器**（策略与工具清单） |
-| 运行时 | `lib/ai/runtime.ts` 是全仓唯一 `import 'ai'`（Vercel AI SDK v7）之处，**动态加载** |
+| 运行时 | `features/ai/core/runtime.ts` 是全仓唯一 `import 'ai'`（Vercel AI SDK v7）之处，**动态加载** |
 | 持久化 | 会话在 IndexedDB（按 app 分区）；本机偏好与 AI 设置项在 localStorage（`admin.preferences:<appId>` 按 app）。**原 `admin.ai`（厂商 / 模型）已删除**，该键不再被写入或读取 |
 | 接入面 | 10 份 `feature.ts`（新）+ 5 处 AI 表单桥（旧路径仍可用） |
 | 7 语言 | `ai` 命名空间 121 个叶键，**7 语言完全一致**（`pnpm guardrails` 全量门控） |
@@ -41,7 +45,7 @@ L1 UI        AiComposer ──sendAiMessage(text, mode, attachments, surface)─
              AiPanel / sphere 全屏页 / AiConversation / AiActivityGlow      │
 L2 状态      useAiSessionStore（消息 / status / pendingApproval / IDB 落盘） │
 L3 驱动      chat.ts ─────────────────────────────────────────────────────┘
-               ├─ 读偏好：aiPermission / aiAllowedTools / aiOutputLanguage / locale / aiAutoNavigate
+               ├─ 读偏好：aiPermission / aiCapabilities / aiOutputLanguage / locale / aiAutoNavigate
                ├─ getAllowedTools(permission, allowed, { hasForms, surface })   ← 权限与容器的唯一过滤点
                ├─ beginTurn() → await persist()
                ├─ await import('./runtime')                                     ← 懒加载
@@ -136,14 +140,14 @@ L7 上下文    page-context / page-context-registry / page-capabilities / endpo
 
 | | **权限** | **模式** | **容器** |
 |---|---|---|---|
-| 存哪 | `aiPermission` + `aiAllowedTools` | `aiComposerMode` | 渲染处传入（`AiComposer.surface`） |
+| 存哪 | `aiPermission` + `aiCapabilities` | `aiComposerMode` | 渲染处传入（`AiComposer.surface`） |
 | 回答 | **能不能用**这个工具 | 用起来**要不要问** | 策略与**能发哪些工具** |
 | 落点 | `getAllowedTools()`（唯一过滤点） | 各工具内部读 `ctx.mode` | `workflow.ts` + `getAllowedTools` | 
 | 默认 | `readonly`（只读） | `ask`（询问） | 面板 / 全屏 |
 
-**权限三档本质是同一份勾选清单**（`resolveAllowedToolNames`）：`full` = 全选、
-`readonly` = 预设勾了所有 `access === 'read'` 的工具、`custom` = 用户勾的（并剔掉已下线的名字）。
-从预设档切到「自定义」要**继承当前档实际勾选的集合**。
+**权限三档本质是同一份格子勾选集**（`resolveAllowedGrants`）：`full` = 全部格子、
+`readonly` = 预设勾了只读那几格（`page:read` / `page:navigate` / `data:query` / `form:read` / `task:plan`）、
+`custom` = 用户勾的（并剔掉矩阵里不存在的脏值）。从预设档切到「自定义」要**继承当前档实际勾选的集合**。
 
 ### 3.2 工具全表（18 个，`AI_TOOLS` 是唯一真值）
 
@@ -169,7 +173,13 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 | 15 | `fill_form` | form | act | 仅 `ask` 确认；`auto` 直接写 | — | `form-tools.ts` |
 | 16 | `submit_form` | form | commit | 先过表单 `canSubmit()`，再弹审批（见 §5 待修） | — | `form-tools.ts` |
 | 17 | `check_result_match` | data | read | **每次必问**（不写任何会话授权） | **全屏不下发** | `check-result-match-tool.ts` |
-| 18 | `analyze_data` | data | read | 首次读页面数据前申请 `DATA_READ_GRANT`（本会话允许后免问） | **全屏不下发** | `analyze-tool.ts` |
+| 18 | `analyze_data` | data | `data:query` | 首次读页面数据前申请 `DATA_READ_GRANT`（本会话允许后免问） | **全屏不下发** | `analyze-tool.ts` |
+| 19 | `search_pages` | page | `page:read` | — | — | `catalog-tools.ts` |
+| 20 | `get_current_time` | page | `page:read` | 不问（纯本地读取） | — | `time-tools.ts` |
+| 21 | `reload_page_data` | page | `page:read` | 不问（只读，不改数据） | **全屏不下发** | `time-tools.ts` |
+
+> 表中第 4 列（旧表是 `access`：read / act / commit）已换成**能力格子**（`page:read` …）——
+> 它就是权限界面上的勾选项，见 `features/ai/core/capabilities.ts`。
 
 **双层描述 + 依赖**（`AiToolDefinition`）：`catalogDescription`（**必需**，一句话、10~25 个中文字）
 只给 Router；`description` 保留但**大幅精简**（只留：做什么 / 关键输入约束 / 调用前置条件 /
@@ -191,24 +201,28 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 **工具循环**由 SDK 负责：执行阶段仍是 `MAX_TOOL_STEPS = 30` 步；`stopWhen` 写成
 `isStepCount(31)` 只为给 Router 的第 0 步让位。
 
-### 3.3 审批矩阵（模式 × 工具）
+### 3.3 审批矩阵（模式 × 动作性质）
 
-| 工具 | `ask` | `auto` | 备注 |
+**判定只有一处**：`features/ai/core/approval-policy.ts` 的 `needsApproval(intent, { mode, planHasWrites? })`。
+工具不再自己写 `ctx.mode === 'ask'`（那是这次修复的根因 —— 抄了七八遍，其中一处写成恒真）。
+
+| 动作性质 `intent` | `ask` | `auto` | 为什么 |
 |---|---|---|---|
-| read 类（1/2/4/5/7/9/10/11/14） | 直接执行 | 直接执行 | — |
-| `check_result_match`（17） | **每次必问**（不写会话授权） | **每次必问** | 能逐次问出未脱敏值，交互层是主要防线 |
-| `analyze_data`（18） | 首次申请 `DATA_READ_GRANT`（本会话允许后免问） | 同左 | 只回聚合结果，仍申请读数据授权 |
-| `navigate_to`（3） | 面板：三选一确认卡（带我去 `once` / 本会话自动跳转 `session` / 先不跳 `deny`）；开「自动跳转」则免问 | 直接跳 | 全屏永远是建议卡，**不写授权** |
-| `open_form`（13） | 首次或带 `values` 时申请 | 不带 `values` 时直接开 | 见 §5 |
-| `fill_form`（15） | 确认 | 直接写 | — |
-| `submit_form`（16） | 确认 | **当前实现仍确认**（见 §5） | 依据 `canSubmit()` |
-| `call_write_api`（12） | 确认 | **仍确认** | 刻意设计：通用写接口没有可预览表单 |
-| `run_page_command`（6） | write 一律确认 | write 一律确认 | 同 `call_write_api` 理由 |
-| `request_permission`（8） | 弹授权卡 | 弹授权卡 | 用来主动申请 |
+| `read` 读业务数据（页面数据 / 只读接口 / 分析） | **首次问**（`DATA_READ_GRANT` 会话授权后免） | 不问 | 只读不改变任何东西 |
+| `fill` 填表 / 打开表单 | 问 | 不问 | 只改页面状态、不落库，可见可撤销 |
+| `submit` 提交表单入库 | 问 | **不问** | 表单自带 `canSubmit()` 把关、用户能预览；auto 免问正是这个模式的意义 |
+| `write` 通用写接口 / 页面写指令 | 问 | **仍问** | 刻意例外：没有可预览的表单，自动执行等于直接改库 |
+| `navigate` 跳转 | 问 | 不问 | 「看哪里」不是「改什么」 |
+| `plan` 批量编排 | 问 | **含写操作才问** | 写计划是用户唯一能看到完整步骤清单的机会；只读计划不打断 |
+| `probe` 存在性探测 | **每次问** | **每次问** | 枚举试探的主要通道，交互层是主要防线 |
 
-**三态决定**（`AiApprovalDecision`）：`deny` / `once`（不写任何授权）/ `session`（写会话授权）。
-**fail-closed**：认不到决定就不执行；中止 / 异常时挂起审批一律按拒绝了结。
-**审批发生在工具内部**（注册表那层不拦截），被拒时**抛错**（不静默跳过，否则模型会谎报成功）。
+**`write` 与 `probe` 不读 `ctx.mode`** —— 这两个口子不随模式松动。
+`plan` 的"含不含写操作"按**步骤所用工具的能力格子**判（`planHasWriteSteps`），
+不按工具名：将来新增的写工具会自动被认出来，不必回来改表。
+
+**批量计划的预授权**（`BatchGrant`）同时装**工具名**与**会话授权键**（`data:read` …）——
+子步骤弹读授权时 `request.toolName` 是**授权键不是工具名**，只比工具名会漏掉它们，
+于是只读计划会在执行中途逐个弹卡（这是修复前的真实表现）。
 
 ### 3.4 页面接入 AI 的两条路
 
@@ -257,7 +271,7 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 | `aiAutoScroll` | boolean | `true` | 默认跟随滚动（运行时「暂停」是另一件事） |
 | `aiAutoNavigate` | boolean | `false` | 询问模式下跳转也免问（**只影响面板**） |
 | `aiPermission` | `full \| readonly \| custom` | `readonly` | **权限** |
-| `aiAllowedTools` | `string[]` | `[]` | 自定义档勾选 |
+| `aiCapabilities` | `AiCapabilityGrant[]` | `[]` | 自定义档勾选的**能力格子**（`page:read` …） |
 | `aiOutputLanguage` | `auto \| LocaleKey` | `auto` | AI 输出语言（与界面语言两个维度） |
 
 另有两个**外壳级**（`admin.shell-ui`，同样不持久化展开态）：`aiPanelWidth`、`aiFloatWidth` / `aiFloatHeight`。
@@ -292,7 +306,7 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 
 ## 4. 代码地图（Code）
 
-### 4.1 `lib/ai/**`（33 个文件；下表列主要 30 个）
+### 4.1 `features/ai/core/**`（33 个文件；下表列主要 30 个）
 
 | 文件 | 行数 | 职责 |
 |---|---:|---|
@@ -301,14 +315,19 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 | `types.ts` | 435 | 公共类型：`AiToolAccess` / `AiToolGroup` / `AiMode` / `AiSurface` / `AiPermissionMode` / `AiApprovalDecision` / `AiToolContext` / `AiToolDefinition`（含 `catalogDescription` / `dependencies` / `catalog` / `execution`）/ `AiMessage(Part)` / `AiTurnUsage` / `AiTurnMetrics` / `AiStreamEvent` |
 | `index.ts` | 34 | 能力出口 barrel；**刻意不导出 `runtime`**（避免 SDK 进主 bundle） |
 | `prompt-facts.ts` | 90 | **事实采集**（页面摘要 / 工具目录 / 导航 / 任务 / 语言）—— 随请求上报给中间层；**规则不在这里**（在服务端） |
-| `tools/index.ts` | 307 | `AI_TOOLS` 注册表（唯一真值）+ `resolveAllowedToolNames` + `getAllowedTools`（权限 / 表单组 / 容器 / 后端权限点过滤）+ `findTool` + **Tool Catalog**（`listToolCatalog` / `buildToolCatalogText`）+ **Context Resolver**（`resolveTools`） |
+| `tools/index.ts` | 307 | `AI_TOOLS` 注册表（唯一真值）+ `resolveAllowedGrants` + `getAllowedTools`（权限 / 表单组 / 容器 / 后端权限点过滤）+ `findTool` + **Tool Catalog**（`listToolCatalog` / `buildToolCatalogText`）+ **Context Resolver**（`resolveTools`） |
 | `tools/select-tools.ts` | 77 | **Router 阶段的虚拟工具** `select_tools`（`SELECT_TOOLS_NAME` / `SELECT_TOOLS_SPEC`；必填 `intent` + `tools`，`intent` 只进日志）；`execute` 落在 runtime 闭包，**不进 `AI_TOOLS`** |
 | `tools/page-tools.ts` | 275 | `get_page_context` / `list_navigation` / `navigate_to`；`collectNavigation`（导航清单唯一出口）+ `isAllowedPath`（站内路径白名单，前缀匹配，支持详情页） |
 | `tools/data-tools.ts` | 439 | `search_api` / `call_read_api` / `list_dict_options` / `call_write_api`；白名单解析（模板 + `pathParams`）、`truncatePayload`、写后刷新 |
 | `tools/form-tools.ts` | 340 | `open_form` / `list_page_forms` / `fill_form` / `submit_form`；字段白名单（只放行表单声明的字段） |
 | `tools/feature-tools.ts` | 229 | `get_page_data` / `run_page_command`（页面特性层消费方） |
 | `tools/search-tools.ts` | 83 | `update_search_params`（页面调度器优先，URL 兜底） |
-| `tools/task-tools.ts` | 93 | `manage_tasks` + `getLatestSessionTasks`（任务清单层的数据源） |
+| `tools/task-tools.ts` | 320 | **`manage_tasks` + 编排执行引擎**：计划里的 `action: { tool, input }` 由客户端**顺序执行**（前一步完成才做下一步），整批只在执行前确认一次，结果整批回传；逐步上报进度（`ctx.reportTaskProgress`）；`ctx.resolveTool` 做**提权白名单** |
+| `tools/time-tools.ts` | 110 | `get_current_time`（浏览器时间事实）+ `reload_page_data`（按页面语义重新取数） |
+| `tools/catalog-tools.ts` | 95 | `search_pages`（按功能描述模糊检索页面目录，返回标题 + desc + 接口清单） |
+| `capabilities.ts` | 150 | **AI 能力矩阵**：格子定义 / 预设档 / 清洗。权限界面、运行时过滤、工具声明共用这一份 |
+| `page-catalog.ts` | 180 | **页面目录**（每页一条 `desc` + 接口清单）：`search_pages` 的数据源，也是"不全量下发页面明细"的落点 |
+| `time-facts.ts` | 70 | 浏览器侧**时间事实采集**（UTC 绝对时刻 + 操作系统时区 + 用户展示时区） |
 | `tools/permission-tools.ts` | 57 | `request_permission`（主动申请授权） |
 | `tools/check-result-match-tool.ts` | 277 | `check_result_match`（存在性查询，只回 `{ exists }`；每次必问） |
 | `tools/analyze-tool.ts` | 901 | `analyze_data`（JSON 操作链表达式分析，AI 不接触数据；走 `DATA_READ_GRANT`） |
@@ -331,15 +350,15 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 
 | 文件 | 行数 | 职责 |
 |---|---:|---|
-| `lib/features/types.ts` | 114 | `FeatureSpec` / `FeatureCommandSpec` / `FeatureDataSourceSpec` 契约 |
-| `lib/features/define.ts` | 33 | `defineFeature` |
-| `lib/features/registry.ts` | 114 | 注册表 + `resolveFeature` / `resolveFeatureCommands`（权限过滤）/ `readFeatureData` |
-| `lib/features/use-feature.ts` | 61 | `useFeature(spec)`：注册特性、同步能力、接表单桥与重载桥 |
-| `lib/features/convert.ts` | 67 | `PageCapabilitiesSpec` / `AiPageContextSpec` 转换 |
-| `lib/features/index.ts` | 27 | barrel |
+| `features/ai/page/types.ts` | 114 | `FeatureSpec` / `FeatureCommandSpec` / `FeatureDataSourceSpec` 契约 |
+| `features/ai/page/define.ts` | 33 | `defineFeature` |
+| `features/ai/page/registry.ts` | 114 | 注册表 + `resolveFeature` / `resolveFeatureCommands`（权限过滤）/ `readFeatureData` |
+| `features/ai/page/use-feature.ts` | 61 | `useFeature(spec)`：注册特性、同步能力、接表单桥与重载桥 |
+| `features/ai/page/convert.ts` | 67 | `PageCapabilitiesSpec` / `AiPageContextSpec` 转换 |
+| `features/ai/page/index.ts` | 27 | barrel |
 | `src/features/**/feature.ts` | 10 份 | 各页面声明（参考实现：`table-example/feature.ts`，279 行） |
 
-### 4.3 UI 组件（`components/ai-*.tsx`，11 个，4411 行）
+### 4.3 UI 组件（`features/ai/components/*.tsx`，11 个，4411 行）
 
 | 文件 | 行数 | 职责 |
 |---|---:|---|
@@ -368,7 +387,7 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 ### 4.5 设置页（1 个文件）
 
 `settings/AI.tsx`(825)：通用设置 + AI 权限两张卡片 + 5 个预览组件。
-（`-components/ai-provider-card.tsx`、`ai-model-card.tsx`、`ai-provider-export-dialog.tsx`、
+（`-features/ai/components/provider-card.tsx`、`ai-model-card.tsx`、`ai-provider-export-dialog.tsx`、
 `ai-provider-import-dialog.tsx` **已删除**。）
 
 ### 4.6 Store（1 个）
@@ -398,8 +417,8 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 - 依赖：`ai@^7.0.116`、`@ai-sdk/anthropic@^4.0.65`（**仍待移除**）、`@ai-sdk/openai@^4.0.77`（**仍待移除**）、
   `@ai-sdk/openai-compatible@^3.0.57`、`bot-avatars@^0.1.1`、`border-beam@^1.4.1`、
   `react-markdown@^10.1.0`、`remark-gfm@^4.0.1`、`motion@^13.4.4`。
-- 被 `#/lib/ai` 引用的**非内部文件共 23 个**：11 个 AI 组件、7 个 sphere 文件、
-  `app-shell.tsx`、`use-table-query.ts`、`lib/features/{use-feature,types,convert,registry}.ts`、
+- 被 `#/features/ai/core` 引用的**非内部文件共 23 个**：11 个 AI 组件、7 个 sphere 文件、
+  `app-shell.tsx`、`use-table-query.ts`、`features/ai/page/{use-feature,types,convert,registry}.ts`、
   业务表单页 5 个。`AI_TOOLS` 与 `sendAiMessage` 各只有**一个**消费点。
 
 ---
@@ -412,13 +431,93 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 |---|---|---|---|
 | 1 | `ai-architecture.md` §5 | ~~写「工具定义 10 个工具（无表单时 7 个）」~~ **已修复**：改为「Router 只发 `select_tools`；Execution 只发选中的工具（候选 **18 个**，无表单时 14 个）」 | — |
 | 2 | `ai-architecture.md` §1 / §3 | §1 的 L5 只列 4 个工具文件（实际 8 个）；§3 的审批表格未覆盖 `open_form` / `run_page_command` / `manage_tasks` / `request_permission` | 按本文 §3.2 / §3.3 同步 |
-| 3 | `ai-architecture.md` §4 / §5、`lib/ai/endpoint-specs.ts` 注释 | 写「接口参数索引 363 KB / gzip 23.6 KB」「全局接口清单 600+ 条」，实际 `endpoint-specs.gen.ts` **7.5 KB / 25 条**；生成脚本已从 `apps/web/scripts/` 迁到 `packages/api-client/scripts/` | 更新量级与路径 |
-| 4 | `lib/ai/chat.ts:159` | 使用 `AiStreamEvent` 但**顶部没有 import 它**（`import type` 列表缺一项）→ `tsc --noEmit` 会报 `Cannot find name` | 补一个 `import type` 即可（用 `verify` skill 确认） |
-| 5 | `lib/ai/tools/form-tools.ts:287` | `formSpec?.submission?.requireApproval ?? (ctx.mode === 'ask' \|\| true)` —— 右侧**恒为 true**，于是 `submit_form` 在 `auto` 模式**仍然弹审批**，与工具描述、`ai-architecture.md` §3 表格（auto 下 `canSubmit()` 通过即提交）矛盾 | 去掉 `\|\| true`，改为按 `ctx.mode` / 声明判定 |
-| 6 | `lib/ai/route-refs.ts:276` | `expandRouteRefs` 追加的说明**硬编码面板策略**（「必须优先 `navigate_to` … 配合 `update_search_params` … 切勿直接调用只读接口」），与 §8.1「策略由提示词按容器给、工具描述保持容器中立」冲突；**全屏容器**里 `update_search_params` 根本不下发，模型会被引向一个不存在的工具 | 改为容器中立的表述（或按 `surface` 分策略，与 `workflow.ts` 同源） |
+| 3 | `ai-architecture.md` §4 / §5、`features/ai/core/endpoint-specs.ts` 注释 | 写「接口参数索引 363 KB / gzip 23.6 KB」「全局接口清单 600+ 条」，实际 `endpoint-specs.gen.ts` **7.5 KB / 25 条**；生成脚本已从 `apps/web/scripts/` 迁到 `packages/api-client/scripts/` | 更新量级与路径 |
+| 4 | `features/ai/core/chat.ts:159` | 使用 `AiStreamEvent` 但**顶部没有 import 它**（`import type` 列表缺一项）→ `tsc --noEmit` 会报 `Cannot find name` | 补一个 `import type` 即可（用 `verify` skill 确认） |
+| 5 | ~~`features/ai/core/tools/form-tools.ts` 的 `?? (ctx.mode === 'ask' \|\| true)`~~ | **已修复（2026-10）**：审批判定收口到 `features/ai/core/approval-policy.ts` 的策略表，`submit_form` 不再恒真；同时发现并修掉批量计划的两处模式泄漏（纯只读计划在 auto 下弹卡、子步骤重复弹读授权） | — |
+| 6 | `features/ai/core/route-refs.ts:276` | `expandRouteRefs` 追加的说明**硬编码面板策略**（「必须优先 `navigate_to` … 配合 `update_search_params` … 切勿直接调用只读接口」），与 §8.1「策略由提示词按容器给、工具描述保持容器中立」冲突；**全屏容器**里 `update_search_params` 根本不下发，模型会被引向一个不存在的工具 | 改为容器中立的表述（或按 `surface` 分策略，与 `workflow.ts` 同源） |
 | 7 | i18n | ~~`common:profile.settings.aiToolNames.*` 只覆盖 10 / 16 个工具…权限界面与工具卡片会显示英文蛇形原名~~ **已修复**：`AI_TOOLS` 现有 **18** 个工具，zh-CN 的 `aiToolNames.*` 与 `ai:tools.*` **各 18 / 18 全齐**；另补了权限三档的 tooltip 说明（`aiPermissionModeHints.*`）、删掉了常显的 `aiToolListHint` | 只剩流水线：跑 `pnpm i18n` 把新增键补到其它 6 语言（铁律 1） |
 
 ---
 
 > 更新本文的时机：**新增 / 删除工具、加一层提示词、加一个 AI 设置项、加一个 AI 文件**。
 > 叙述与理由仍以 [`ai-architecture.md`](./ai-architecture.md) 为准 —— 本文只保证「清单不缺项」。
+
+---
+
+## 6. 这一版新增/改造的能力（2026-10）
+
+> 本节只记"哪些是新东西、落在哪个文件"，细节以对应文件的注释与
+> [ai-architecture.md](./ai-architecture.md) 为准。
+
+### 6.1 AI 能力矩阵（权限粒度）
+
+- 旧模型：三档 + 一份**工具名**勾选清单（用户看到的是 `call_write_api` 这类实现名）。
+- 新模型：**行 = 能力、列 = 动作**的矩阵，每个格子可独立授权：
+  ```
+  页面   读取 · 跳转 · 操作
+  数据   查询 · 修改
+  表单   读取 · 更新 · 提交
+  任务   编排 · 授权
+  ```
+- 唯一真值 `features/ai/core/capabilities.ts`；工具用 `capability: 'page:read'` 声明自己在哪一格；
+  偏好字段由 `aiAllowedTools`（工具名）改为 `aiCapabilities`（格子键）。
+- 权限界面（`features/ai/components/permission-config.tsx`）随之改为**一行一个能力、行内多权限**
+  （每行一个 `Checkbox.Group`，标题走行名 + tooltip）。
+- **「打开表单」算哪一格**：算 `form:update`（更新）—— 打开表单的唯一目的就是改数据；
+  只看不改的路径是详情页，不是表单。`open_form` / `fill_form` 都落在 `form:update`。
+
+### 6.2 AI 自主 Todo 编排（后端无批量接口时的正道）
+
+- `manage_tasks` 的每个 task 可带 `action: { tool, input }`：模型一次给全整组步骤。
+- 执行：在**一次**工具调用内部**顺序**跑完（`for ... await`，前一步完成才做下一步），
+  中途不返回模型；执行前**整批确认一次**（用户看到完整步骤清单）。
+- 结果：`outcomes`（逐步 id / 成败 / 结果 / 错误）一次性回传给模型 → 模型写总结。
+- 进度：`ctx.reportTaskProgress` 逐步上报，输入区的任务卡实时推进（`liveTasks`）。
+- 安全：`ctx.resolveTool` 只认本轮已授权的工具 —— 防模型借 `manage_tasks` 提权。
+- **坑（务必记住）**：`task-tools` 不能 import `tools/index`（循环 import 会让
+  `AI_TOOLS` 里混进 `undefined`）。工具集必须由 `ctx` 注入。
+
+### 6.3 基础工具与页面检索
+
+| 工具 | 干什么 | 为什么 |
+|---|---|---|
+| `get_current_time` | 浏览器的时间事实（UTC 绝对时刻 + 操作系统时区 + 用户展示时区 + 秒级时间戳 + 星期 + 今天日期） | 模型不知道"现在"；相对时间查询必须换算成精确时间戳 |
+| `reload_page_data` | 让页面按自己的语义重新取数 | 把"AI 手里的数据"对齐到"屏幕上此刻的数据" |
+| `search_pages` | 按功能描述**模糊检索页面目录**（标题 + 一句话 desc + 接口清单） | 页面明细不再全量下发；检索命中后再取明细 |
+
+### 6.4 跨页面数据聚合
+
+- `search_pages` 返回每页的**接口清单**（method + path + 用途），`get_page_context` 接受
+  `path` 参数读**指定页面**（不必跳过去）—— 两者配合就能"自己把相关页面的数据取全再汇总"。
+- 页面必须有 `desc` 才能被检索到：登记在 `features/ai/core/page-catalog.ts` 的 `AI_PAGE_CATALOG`。
+
+### 6.5 示例路由：工单管理（`/example/tickets`）
+
+- **mock 刻意只提供单条接口**（`GET/POST/PUT /ticket`、`DELETE /ticket/{id}`、
+  `PATCH /ticket/{id}/status`），**没有** `/ticket/batch-delete`。
+- 用途：验收 AI 的编排能力 —— 批量操作时它应当用 `manage_tasks` 编排 N 次单条调用，
+  而不是循环调用（那样每条一次模型往返）。
+- 页面侧也**不提供批量按钮**、`feature.ts` 里**不声明批量指令**（后端没有的能力不要声明，
+  否则 AI 会以为有捷径）。
+
+### 6.6 AI 核心聚合到 `src/features/ai/`（2026-10）
+
+搬迁前 AI 的东西散在**六处**，想知道「AI 一共有什么」得先记住这些位置：
+
+| 原来 | 现在 | 内容 |
+|---|---|---|
+| `lib/ai/**`（40 文件） | `features/ai/core/**` | 会话 / 运行时 / 工具 / 上下文 / 权限 / 审批 |
+| `components/ai-*.tsx`（11 个） | `features/ai/components/*.tsx` | 面板 / 输入区 / 会话列表 / 权限配置… |
+| `components/markdown-*` + `lib/pretext` | `features/ai/markdown/**` | 助手回复的 Markdown 与流式排版引擎 |
+| `features/sphere/**` | `features/ai/sphere/**` | 全屏对话页 |
+| `lib/features/**` | `features/ai/page/**` | 页面声明框架（`defineFeature` / `useFeature`） |
+
+**两条边界**（搬迁后依然成立，见 `features/ai/index.ts` 与 README）：
+
+1. **业务页只从 `#/features/ai/page` 导入** —— 根 barrel 会把面板与会话 store 拖进页面 chunk。
+   `page/` 是刻意保留的公开面（被 28 个业务文件引用）。
+2. **`core/runtime` 不从任何 barrel 导出** —— 它 import 了 AI SDK（几百 KB），
+   靠 `core/chat.ts` 的动态 `import('./runtime')` 按需加载。约定原样继承，别在 barrel 里补全。
+
+> 搬迁用的是 `git mv`（保留历史），只改了 import 路径与注释里的路径引用，
+> **未改动任何逻辑** —— `typecheck` 错误数与搬迁前逐条相同、21 个工具与能力矩阵行为实测一致。

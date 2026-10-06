@@ -1,4 +1,4 @@
-import { defineFeature } from '#/lib/features'
+import { defineFeature } from '#/features/ai/page'
 
 /**
  * 新建记录页的特性声明（`/$appId/example/table/new`）。

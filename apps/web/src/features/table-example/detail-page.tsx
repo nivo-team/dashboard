@@ -1,7 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { UserItem } from '#/api'
-import { useFeature } from '#/lib/features'
+import { useFeature } from '#/features/ai/page'
 import { TableExampleDetailView } from './detail-view'
 import { createTableExampleDetailFeature } from './detail-feature'
 

@@ -3,7 +3,7 @@ import { ArrowLeftIcon } from '@phosphor-icons/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '#/components/page-header'
-import { useFeature } from '#/lib/features'
+import { useFeature } from '#/features/ai/page'
 import { getTableExampleFormMetadata, TableExampleFormView } from './form-view'
 import { tableExampleEditFeature } from './edit-feature'
 

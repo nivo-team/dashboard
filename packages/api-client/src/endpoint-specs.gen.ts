@@ -306,6 +306,141 @@ export const ENDPOINT_SPECS: Record<string, EndpointSpec> = {
       }
     ]
   },
+  "DELETE /ticket/{id}": {
+    "summary": "根据 ID 删除单个工单（不提供批量删除接口）",
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "工单 ID"
+      }
+    ]
+  },
+  "GET /ticket/{id}": {
+    "summary": "根据工单 ID 查询详情",
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "工单 ID"
+      }
+    ]
+  },
+  "PATCH /ticket/{id}/status": {
+    "summary": "变更单条工单的状态",
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "工单 ID"
+      },
+      {
+        "name": "status",
+        "in": "body",
+        "required": true
+      }
+    ]
+  },
+  "GET /ticket": {
+    "summary": "工单分页列表，支持关键词、状态/优先级/分类筛选与服务端排序",
+    "params": [
+      {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "description": "页码，从 1 开始"
+      },
+      {
+        "name": "page_size",
+        "in": "query",
+        "required": false,
+        "description": "每页条数"
+      },
+      {
+        "name": "kw",
+        "in": "query",
+        "required": false,
+        "description": "关键词（标题 / 描述 / 负责人 / ID 模糊匹配）"
+      },
+      {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "description": "状态精确匹配：1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭"
+      },
+      {
+        "name": "priority",
+        "in": "query",
+        "required": false,
+        "description": "优先级精确匹配：1 低 / 2 中 / 3 高 / 4 紧急"
+      },
+      {
+        "name": "category",
+        "in": "query",
+        "required": false,
+        "description": "分类精确匹配"
+      },
+      {
+        "name": "assignee",
+        "in": "query",
+        "required": false,
+        "description": "负责人模糊匹配"
+      },
+      {
+        "name": "id",
+        "in": "query",
+        "required": false,
+        "description": "工单 ID 精确匹配"
+      },
+      {
+        "name": "created_at_min",
+        "in": "query",
+        "required": false,
+        "description": "创建时间下限（秒级时间戳）"
+      },
+      {
+        "name": "created_at_max",
+        "in": "query",
+        "required": false,
+        "description": "创建时间上限（秒级时间戳）"
+      },
+      {
+        "name": "field",
+        "in": "query",
+        "required": false,
+        "description": "排序字段名"
+      },
+      {
+        "name": "order",
+        "in": "query",
+        "required": false,
+        "description": "排序方向"
+      }
+    ]
+  },
+  "POST /ticket": {
+    "summary": "新建工单",
+    "params": [
+      {
+        "name": "title",
+        "in": "body",
+        "required": true
+      }
+    ]
+  },
+  "PUT /ticket": {
+    "summary": "更新单条工单（标题 / 描述 / 优先级 / 负责人 / 分类）",
+    "params": [
+      {
+        "name": "id",
+        "in": "body",
+        "required": true
+      }
+    ]
+  },
   "GET /user": {
     "summary": "用户分页列表，支持关键词、多字段精确/范围筛选与服务端排序",
     "params": [

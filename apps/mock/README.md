@@ -58,6 +58,11 @@ MOCK_PUBLIC_URL=http://<本机 IP>:3001
 | POST / PUT | `/user` | 新建 / 更新用户 |
 | DELETE | `/user/{id}` | 删除单个用户 |
 | POST | `/user/batch-delete` | 批量删除用户（body `{ ids }`） |
+| GET | `/ticket` | 工单分页列表（`kw` / `status` / `priority` / `category` / `assignee`） |
+| GET | `/ticket/{id}` | 工单详情 |
+| POST / PUT | `/ticket` | 新建 / 更新**单条**工单（PUT 的 body 带 `id`） |
+| DELETE | `/ticket/{id}` | 删除**单条**工单 |
+| PATCH | `/ticket/{id}/status` | 变更**单条**工单状态（body `{ status }`） |
 | GET | `/menus/navigation` | **导航菜单树**：按当前用户角色裁剪，只含目录(1)/菜单(2)，每个节点带 `path` 路由地址 |
 | GET | `/system/menu/tree` | 菜单树（**配置视角**：全量、含操作节点，菜单管理页用） |
 | POST / PUT | `/system/menu` | 新建 / 更新菜单 |
@@ -75,6 +80,16 @@ MOCK_PUBLIC_URL=http://<本机 IP>:3001
 | GET | `/data_dict/type/tree` | 字典分类树 |
 | POST / PUT | `/data_dict/type` | 新建 / 更新字典分类 |
 | DELETE | `/data_dict/type/{id}` | 删除分类（有子分类或字典项时拒绝） |
+
+### 工单模块：**刻意没有批量接口**
+
+`/ticket` 这一族**只提供单条接口**（对比 `/user` 有 `batch-delete`）——
+它是「后端只给单条增删改时，AI 怎么批量操作」的验收场：
+正确的做法是 AI 用 `manage_tasks` 把 N 次单条调用**编排**成一份计划、由客户端顺序执行，
+而不是循环调用单条接口（那样每一条都要一次模型往返）。
+
+所以**不要**给 `/ticket` 补批量端点 —— 那会让这个示例失去意义。
+它对应前端 `/$appId/example/tickets`（见 [features-architecture.md](../../.agents/docs/features-architecture.md)）。
 
 > **`GET /api` 的清单必须与真实接口对齐**：它不只是"功能管理里的 API Keys 选项"，
 > 同时是 **AI 写操作的白名单**（`call_write_api` 按它校验 method + 路径模板）。

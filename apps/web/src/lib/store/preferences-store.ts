@@ -1,6 +1,10 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { AiPermissionMode } from '../ai/types'
+import {
+  isKnownCapabilityGrant,
+  type AiCapabilityGrant,
+} from '#/features/ai/core/capabilities'
+import type { AiPermissionMode } from '#/features/ai/core/types'
 import { getBrowserLocale, isLocaleKey, type LocaleKey } from '../locale'
 import {
   DEFAULT_TIMEZONE,
@@ -108,7 +112,7 @@ export function isAiPageWidthMode(value: unknown): value is AiPageWidthMode {
 }
 
 /**
- * AI 面板（「Ask AI」）的打开方式（见 `#/components/ai-panel`）：
+ * AI 面板（「Ask AI」）的打开方式（见 `#/features/ai/components/panel`）：
  * - `split`：**Split View** —— 与侧边栏同级的整屏高列，从视口顶端齐平，挤压内容区；
  * - `float`：**Float** —— 从页面底部弹出的小窗，停在行尾侧下角、浮在内容之上，不挤压布局。
  *
@@ -128,7 +132,7 @@ export function isAiPanelMode(value: unknown): value is AiPanelMode {
 }
 
 /**
- * AI 输入框左下角的**输入模式**（见 `#/components/ai-composer`）：
+ * AI 输入框左下角的**输入模式**（见 `#/features/ai/components/composer`）：
  * - `ask`：**询问** —— 只回答问题，不动任何数据（默认）；
  * - `auto`：**自动** —— 交给 AI 自行决定要不要执行操作。
  *
@@ -145,7 +149,7 @@ export function isAiComposerMode(value: unknown): value is AiComposerMode {
 }
 
 /**
- * AI 进行中的**页面级光晕**（视口四周的流动光带，见 `#/components/ai-activity-glow`）：
+ * AI 进行中的**页面级光晕**（视口四周的流动光带，见 `#/features/ai/components/activity-glow`）：
  * 默认开启 —— 它只在流式回复 / 等审批时出现，是「AI 还在跑」里最不打扰人的一种反馈；
  * 觉得晃眼可以在 设置 → AI 里关掉。
  */
@@ -220,11 +224,11 @@ export function isAiOutputMode(value: unknown): value is AiOutputMode {
  * - `new`：**每次「重新载入」开一段新的** —— 也就是整页刷新、或在新标签页里打开。
  *   上一段不会丢，它还在会话列表里。
  *
- * 判定「重新载入」的是 `#/lib/ai/session-boot` 的 `isDocumentReload()`（sessionStorage
+ * 判定「重新载入」的是 `#/features/ai/core/session-boot` 的 `isDocumentReload()`（sessionStorage
  * 标记 + 卸载时清除）。所以 `new` 的粒度是**每份文档一段会话**，不是「每次打开面板」：
  * 同一页面里把面板关掉再打开，问的还是同一件事，接着上一段说。
  *
- * 生效点在 `#/lib/ai/session-store` 的 `loadHistory({ fresh })` —— `AiConversation`
+ * 生效点在 `#/features/ai/core/session-store` 的 `loadHistory({ fresh })` —— `AiConversation`
  * 挂载时传 `sessionMode === 'new' && isDocumentReload()`。面板自己不再插手会话
  * （旧实现在打开上升沿清内存会话，那与「同一页面内接着上一段」相矛盾）。
  *
@@ -243,7 +247,7 @@ export function isAiSessionMode(value: unknown): value is AiSessionMode {
  *
  * 关掉之后新内容进来时视图不动，用户自己滚。要读历史时这个开关比"每次都被拽回底部"友好；
  * 而**开着的时候**手动往上翻也会临时暂停跟滚（滚回底部即恢复）—— 那是运行时的临时状态，
- * 不是这个设置，见 `#/components/ai-panel`。
+ * 不是这个设置，见 `#/features/ai/components/panel`。
  */
 export const DEFAULT_AI_AUTO_SCROLL = true
 
@@ -270,8 +274,12 @@ export const DEFAULT_AI_AUTO_NAVIGATE = false
  */
 export const DEFAULT_AI_PERMISSION: AiPermissionMode = 'readonly'
 
-/** `custom` 档下允许的工具名；默认空 —— 选了自定义却什么都没勾，等于只读。 */
-export const DEFAULT_AI_ALLOWED_TOOLS: string[] = []
+/**
+ * `custom` 档下勾选的**能力格子**（`page:read` / `data:write` / `form:submit` …，见 `#/features/ai/core/capabilities`）。
+ *
+ * 默认空 —— 选了自定义却什么都没勾，等于什么都做不了（与「只读」不同：只读还有预设的几格）。
+ */
+export const DEFAULT_AI_CAPABILITIES: readonly AiCapabilityGrant[] = []
 
 export function isAiPermissionMode(value: unknown): value is AiPermissionMode {
   return value === 'full' || value === 'readonly' || value === 'custom'
@@ -415,8 +423,8 @@ interface PreferencesState {
   aiAutoNavigate: boolean
   /** AI 权限档（默认只读）——「能不能用」，与「要不要问」的模式正交 */
   aiPermission: AiPermissionMode
-  /** `custom` 档下勾选的工具名 */
-  aiAllowedTools: string[]
+  /** `custom` 档下勾选的**能力格子**（`page:read` / `data:write` …） */
+  aiCapabilities: readonly AiCapabilityGrant[]
   /** AI 用什么语言回答（默认跟随界面语言） */
   aiOutputLanguage: AiOutputLanguage
   /** AI 功能总开关（默认开）—— 关掉后顶栏不显示入口 */
@@ -440,9 +448,7 @@ interface PreferencesState {
   setAiAutoScroll: (aiAutoScroll: boolean) => void
   setAiAutoNavigate: (aiAutoNavigate: boolean) => void
   setAiPermission: (aiPermission: AiPermissionMode) => void
-  setAiAllowedTools: (aiAllowedTools: string[]) => void
-  /** 勾选/取消单个工具（权限界面的复选框用它，省得每次自己拼数组） */
-  toggleAiAllowedTool: (name: string, enabled: boolean) => void
+  setAiCapabilities: (aiCapabilities: AiCapabilityGrant[]) => void
   setAiOutputLanguage: (aiOutputLanguage: AiOutputLanguage) => void
   setAiEnabled: (aiEnabled: boolean) => void
 }
@@ -468,7 +474,7 @@ type PersistedPreferences = Pick<
   | 'aiAutoScroll'
   | 'aiAutoNavigate'
   | 'aiPermission'
-  | 'aiAllowedTools'
+  | 'aiCapabilities'
   | 'aiOutputLanguage'
   | 'aiEnabled'
 >
@@ -502,7 +508,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       aiAutoScroll: DEFAULT_AI_AUTO_SCROLL,
       aiAutoNavigate: DEFAULT_AI_AUTO_NAVIGATE,
       aiPermission: DEFAULT_AI_PERMISSION,
-      aiAllowedTools: DEFAULT_AI_ALLOWED_TOOLS,
+      aiCapabilities: DEFAULT_AI_CAPABILITIES,
       aiOutputLanguage: DEFAULT_AI_OUTPUT_LANGUAGE,
       aiEnabled: DEFAULT_AI_ENABLED,
       setLocale: (locale) => set({ locale }),
@@ -524,15 +530,9 @@ export const usePreferencesStore = create<PreferencesState>()(
       setAiAutoScroll: (aiAutoScroll) => set({ aiAutoScroll }),
       setAiAutoNavigate: (aiAutoNavigate) => set({ aiAutoNavigate }),
       setAiPermission: (aiPermission) => set({ aiPermission }),
-      setAiAllowedTools: (aiAllowedTools) => set({ aiAllowedTools }),
+      setAiCapabilities: (aiCapabilities) => set({ aiCapabilities }),
       setAiOutputLanguage: (aiOutputLanguage) => set({ aiOutputLanguage }),
       setAiEnabled: (aiEnabled) => set({ aiEnabled }),
-      toggleAiAllowedTool: (name, enabled) =>
-        set((state) => ({
-          aiAllowedTools: enabled
-            ? [...new Set([...state.aiAllowedTools, name])]
-            : state.aiAllowedTools.filter((tool) => tool !== name),
-        })),
     }),
     {
       name: PREFERENCES_STORAGE_KEY,
@@ -563,7 +563,7 @@ export const usePreferencesStore = create<PreferencesState>()(
         aiAutoScroll: state.aiAutoScroll,
         aiAutoNavigate: state.aiAutoNavigate,
         aiPermission: state.aiPermission,
-        aiAllowedTools: state.aiAllowedTools,
+        aiCapabilities: state.aiCapabilities,
         aiOutputLanguage: state.aiOutputLanguage,
         aiEnabled: state.aiEnabled,
       }),
@@ -645,18 +645,14 @@ export const usePreferencesStore = create<PreferencesState>()(
           aiPermission: isAiPermissionMode(saved.aiPermission)
             ? saved.aiPermission
             : current.aiPermission,
-          // 只校验"是字符串"，**不校验它是否仍是当前工具名**：旧存档里可能留着已下线的工具，
-          // 那种名字在过滤时自然匹配不上；在这里清掉反而让用户重开设置时看不出发生过什么
           aiOutputLanguage: isAiOutputLanguage(saved.aiOutputLanguage)
             ? saved.aiOutputLanguage
             : current.aiOutputLanguage,
           aiEnabled:
             typeof saved.aiEnabled === 'boolean' ? saved.aiEnabled : current.aiEnabled,
-          aiAllowedTools: Array.isArray(saved.aiAllowedTools)
-            ? saved.aiAllowedTools.filter(
-                (name): name is string => typeof name === 'string',
-              )
-            : current.aiAllowedTools,
+          aiCapabilities: Array.isArray(saved.aiCapabilities)
+            ? saved.aiCapabilities.filter(isKnownCapabilityGrant)
+            : current.aiCapabilities,
         }
       },
     },

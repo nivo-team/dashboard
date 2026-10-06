@@ -1084,6 +1084,110 @@ export const MenuTreeResultSchema = {
     ]
 } as const;
 
+export const TicketItemSchema = {
+    type: 'object',
+    description: '工单行',
+    properties: {
+        id: {
+            type: 'integer',
+            description: '工单 ID'
+        },
+        title: {
+            type: 'string',
+            description: '标题'
+        },
+        description: {
+            type: 'string',
+            description: '描述'
+        },
+        status: {
+            type: 'integer',
+            description: '1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭'
+        },
+        priority: {
+            type: 'integer',
+            description: '1 低 / 2 中 / 3 高 / 4 紧急'
+        },
+        assignee: {
+            type: 'string',
+            description: '负责人'
+        },
+        category: {
+            type: 'string',
+            description: '分类'
+        },
+        created_at: {
+            type: 'integer',
+            description: '创建时间（秒级时间戳）'
+        },
+        updated_at: {
+            type: 'integer',
+            description: '更新时间（秒级时间戳）'
+        }
+    },
+    required: [
+        'id',
+        'title',
+        'status'
+    ]
+} as const;
+
+export const TicketListResultSchema = {
+    type: 'object',
+    properties: {
+        code: {
+            type: 'integer',
+            description: '0 表示成功'
+        },
+        message: {
+            type: 'string'
+        },
+        result: {
+            type: 'object',
+            properties: {
+                total: {
+                    type: 'integer',
+                    description: '总条数'
+                },
+                items: {
+                    type: 'array',
+                    items: {
+                        $ref: '#/components/schemas/TicketItem'
+                    }
+                }
+            },
+            required: [
+                'total',
+                'items'
+            ]
+        }
+    },
+    required: [
+        'code',
+        'result'
+    ]
+} as const;
+
+export const TicketResultSchema = {
+    type: 'object',
+    properties: {
+        code: {
+            type: 'integer',
+            description: '0 表示成功'
+        },
+        message: {
+            type: 'string'
+        },
+        result: {
+            $ref: '#/components/schemas/TicketItem'
+        }
+    },
+    required: [
+        'code',
+        'result'
+    ]
+} as const;
+
 export const UserItemSchema = {
     type: 'object',
     description: '用户列表行',

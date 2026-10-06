@@ -1,5 +1,5 @@
-import { defineFeature } from '#/lib/features'
-import type { FeatureSpec } from '#/lib/features'
+import { defineFeature } from '#/features/ai/page'
+import type { FeatureSpec } from '#/features/ai/page'
 
 /**
  * 「复杂表格」示例页的特性声明（`/$appId/example/complex-table`）。

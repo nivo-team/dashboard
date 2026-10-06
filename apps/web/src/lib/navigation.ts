@@ -187,6 +187,12 @@ export const NAV_GROUPS: NavGroup[] = [
             to: '/example/complex-table',
             features: 'table-example:read',
           },
+          {
+            label: '工单管理',
+            labelKey: 'nav.tickets',
+            to: '/example/tickets',
+            features: 'ticket:read',
+          },
         ],
       },
     ],

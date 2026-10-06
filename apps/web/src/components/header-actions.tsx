@@ -37,7 +37,7 @@ export interface HeaderActionsProps {
  * `Ask AI`（SparkleIcon，可选）在左、`Support`（QuestionIcon）居中、账号菜单收尾 ——
  * 按钮都用 Kumo 默认尺寸（h-9），与 `UserMenu` 的方形触发器等高对齐。
  *
- * **`Ask AI` 是开关按钮**：它控制 `#/components/ai-panel` 那块面板的显隐，因此带上
+ * **`Ask AI` 是开关按钮**：它控制 `#/features/ai/components/panel` 那块面板的显隐，因此带上
  * `aria-expanded`（读屏听得出来），但**展开态不换皮** —— 保持 `text-kumo-subtle`
  * 与 hover 反馈，与旁边的 `Support` 完全一致，别再加 `bg-*` 之类的激活底色。
  * 开关状态由调用方持有（`askAiExpanded`），这里不存状态，避免和 `AppShell` 里的真值分叉。

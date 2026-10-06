@@ -26,6 +26,14 @@ const API_ITEMS = [
   // 应当保持一致（见 .agents/docs/ai-architecture.md §8.1 的"清单即边界"）。
   { label: '删除表格示例记录', method: 'DELETE', path: '/user/{id}' },
   { label: '批量删除表格示例记录', method: 'POST', path: '/user/batch-delete' },
+  // 工单：**刻意没有批量端点** —— 批量操作靠 AI 用 manage_tasks 编排 N 次单条调用。
+  // 这几个接口在清单里，AI 才动得了它们（清单即写操作白名单）。
+  { label: '工单列表', method: 'GET', path: '/ticket' },
+  { label: '工单详情', method: 'GET', path: '/ticket/{id}' },
+  { label: '新建工单', method: 'POST', path: '/ticket' },
+  { label: '更新工单', method: 'PUT', path: '/ticket' },
+  { label: '删除工单', method: 'DELETE', path: '/ticket/{id}' },
+  { label: '变更工单状态', method: 'PATCH', path: '/ticket/{id}/status' },
   // 导航：按当前用户角色裁剪后的菜单树（只含目录与菜单，不含操作）
   { label: '导航菜单树', method: 'GET', path: '/menus/navigation' },
   { label: '菜单树', method: 'GET', path: '/system/menu/tree' },

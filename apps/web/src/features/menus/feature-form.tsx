@@ -3,7 +3,7 @@ import type { TFunction } from 'i18next'
 import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAiFormFields, type AiFormField } from '#/lib/ai'
+import { useAiFormFields, type AiFormField } from '#/features/ai/core'
 import { MENU_STATUS, MENU_VISIBLE } from './feature-options'
 import { FeatureApiKeysField } from './feature-api-keys-field'
 

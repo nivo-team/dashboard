@@ -9,7 +9,7 @@ import type { UsePanelResizeResult } from '#/lib/use-panel-resize'
  *
  * - `CONTENT_PANEL_FRAME` —— 内容区分屏面板（`#/components/detail-preview` 的 split）：
  *   属于内容区，从**顶栏下沿**开始（58px = 两个 header 的高度），占满视口剩余高度；
- * - `SHELL_PANEL_FRAME` —— 外壳级面板（`#/components/ai-panel`）：与 `Sidebar` **同级**，
+ * - `SHELL_PANEL_FRAME` —— 外壳级面板（`#/features/ai/components/panel`）：与 `Sidebar` **同级**，
  *   整屏高，从视口顶部一直到底部。因此它内部的头行要与 `AppHeader` 同高（58px），
  *   两者的底边线才能连成一条。
  *

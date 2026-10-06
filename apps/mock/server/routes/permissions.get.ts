@@ -46,6 +46,12 @@ const ALL_PERMISSIONS = [
   // AI 填写表单（只改页面状态、不落库）与提交（落库、不可撤销）分开 —— 风险等级不同
   'table-example:fill',
   'table-example:submit',
+  // 工单管理（**没有批量接口**的示例模块：批量操作靠 AI 自主编排）
+  'ticket:read',
+  'ticket:create',
+  'ticket:edit',
+  'ticket:update',
+  'ticket:delete',
   // 数据字典
   'dict:read',
   'dict:create',
