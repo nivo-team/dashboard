@@ -4,6 +4,7 @@ import {
   resolveFeature,
   resolveFeatureCommands,
 } from '#/lib/features/registry'
+import { needsApproval } from '../approval-policy'
 import { redactRecords } from '../content-redact'
 import { getPageContext } from '../page-context'
 import { DATA_READ_GRANT } from '../session-permissions'
@@ -93,7 +94,7 @@ export const getPageDataTool: AiToolDefinition = {
       页面没声明数据源时不问（下面提前返回了），因为没有数据可读。
       被拒**直接抛错**（不静默返回空）：模型必须知道是"用户不同意"，才不会换个说法再试。
     */
-    if (selected.length > 0) {
+    if (selected.length > 0 && needsApproval('read', { mode: ctx.mode })) {
       const approved = await ctx.requestApproval({
         toolName: DATA_READ_GRANT,
         input: {
@@ -197,11 +198,11 @@ export const runPageCommandTool: AiToolDefinition = {
       审批策略：指令自己声明 > 按 kind 推断（write 一律确认）。
       `write` 默认要确认的理由与 `call_write_api` 相同 —— 页面指令同样没有"可预览的表单"这一层兜底。
     */
-    const needsApproval =
+    const needsConfirm =
       command.approval === 'always' ||
-      (command.approval !== 'auto' && command.kind === 'write')
+      (command.approval !== 'auto' && needsApproval('write', { mode: ctx.mode }))
 
-    if (needsApproval) {
+    if (needsConfirm) {
       const approved = await ctx.requestApproval({
         toolName: 'run_page_command',
         input: { command: command.id, title: command.title, input: commandInput },

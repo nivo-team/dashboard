@@ -129,7 +129,7 @@ AI 填报操作由四个原子工具串联完成：
 1. **`open_form`**：接收 `action: 'create' | 'edit'`、可选 `id` 与可选 `values`（一步完成打开与预填），使 AI 在表单未打开时具备主动唤起与填报能力；
 2. **`list_page_forms`**：从表单桥读取当前活跃表单信息，杜绝 AI 凭空臆测字段名；
 3. **`fill_form`**：通过 `setValues` 闭包安全更新组件 State，受白名单保护；
-4. **`submit_form`**：触发组件的保存链路，在 `ask` 模式下必须先经过用户审批卡片。
+4. **`submit_form`**：触发组件的保存链路。审批由 `lib/ai/approval-policy.ts` 的策略表决定 —— `ask` 下弹卡、**`auto` 下免问**（由表单自己的 `canSubmit()` 把关）。表单显式写 `requireApproval: true` 才会在两个模式下都强制确认。
 
 ---
 

@@ -1,5 +1,6 @@
 import i18n from '#/lib/i18n'
 import { ALL_NAV_TARGETS } from '#/lib/navigation'
+import { needsApproval } from '../approval-policy'
 import type { AiPageCatalogEndpoint } from '../page-catalog'
 import { findPageCatalogEntry } from '../page-catalog'
 import { describeEndpointParams, findEndpointSpec } from '../endpoint-specs'
@@ -324,9 +325,10 @@ export const navigateToTool: AiToolDefinition = {
       }
     }
 
-    // 面板容器：**询问模式才问**（自动模式 = 始终允许，"自动"就是不要打断）；
+    // 面板容器：询问模式才问（自动模式 = 始终允许，"自动"就是不要打断）；
     // 「自动跳转」设置开着时连询问模式也不问。grant 的短路在 chat.ts 里。
-    if (ctx.mode === 'ask' && !ctx.autoNavigate) {
+    // 判定走策略表的 `navigate` 那一行，工具不再自己读 `ctx.mode`。
+    if (needsApproval('navigate', { mode: ctx.mode }) && !ctx.autoNavigate) {
       const approved = await ctx.requestApproval({
         kind: 'navigate',
         // 授权键是「跳转」这项能力，不是工具名（见 session-permissions.ts）

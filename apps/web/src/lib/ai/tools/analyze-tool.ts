@@ -1,5 +1,6 @@
 import { readFeatureData, resolveFeature } from '#/lib/features/registry'
 import type { FeatureDataFieldSpec } from '#/lib/features/types'
+import { needsApproval } from '../approval-policy'
 import { DATA_READ_GRANT } from '../session-permissions'
 import type { AiToolDefinition } from '../types'
 
@@ -174,14 +175,16 @@ export const analyzeDataTool: AiToolDefinition = {
       顺序刻意放在**所有静态校验之后、读数据之前**：注定失败的调用不弹卡，
       而只要真要读，就一定先问。
     */
-    const approved = await ctx.requestApproval({
-      toolName: DATA_READ_GRANT,
-      input: { tool: 'analyze_data', source: sourceId },
-      reason:
-        'AI 想统计当前页面的数据（只取聚合结果，不读取明细；敏感字段不参与输出）',
-    })
-    if (!approved) {
-      throw new Error('用户拒绝让 AI 读取数据。不要重试，改为请用户自己查看页面。')
+    if (needsApproval('read', { mode: ctx.mode })) {
+      const approved = await ctx.requestApproval({
+        toolName: DATA_READ_GRANT,
+        input: { tool: 'analyze_data', source: sourceId },
+        reason:
+          'AI 想统计当前页面的数据（只取聚合结果，不读取明细；敏感字段不参与输出）',
+      })
+      if (!approved) {
+        throw new Error('用户拒绝让 AI 读取数据。不要重试，改为请用户自己查看页面。')
+      }
     }
 
     const rows = readRows(routeId, sourceId)

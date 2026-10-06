@@ -26,7 +26,16 @@ export interface CapabilityFormSubmission {
   }
   /** 提交动作按钮文案，如「创建用户」「保存修改」 */
   submitLabel?: string
-  /** 是否强制要求人工确认询问卡片（默认 true） */
+  /**
+   * **强制**要求人工确认（默认关，按 `approval-policy` 的模式判定走）。
+   *
+   * 语义在 2026-10 修正过一次：早先这里写着「默认 true」，而实现里写成
+   * `?? (ctx.mode === 'ask' || true)`（恒真），于是**自动模式下提交表单也弹卡**，
+   * 这张声明等于空操作。
+   *
+   * 现在：**不写** = 由审批策略表决定（`ask` 问、`auto` 免问，交 `canSubmit()` 把关）；
+   * 显式写 `true` = 这张表单在**两个模式下都强制确认**（个别高危表单可用它单独收紧）。
+   */
   requireApproval?: boolean
   /** 弹出确认卡片时的提示说明文案 */
   approvalReason?: string

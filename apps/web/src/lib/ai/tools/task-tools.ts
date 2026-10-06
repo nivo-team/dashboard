@@ -1,3 +1,5 @@
+import { needsApproval, planHasWriteSteps } from '../approval-policy'
+import { DATA_READ_GRANT } from '../session-permissions'
 import type { AiMessage, AiToolContext, AiToolDefinition } from '../types'
 
 /**
@@ -104,21 +106,37 @@ function summarizeOutput(value: unknown, max = 400): string {
   return text.length > max ? `${text.slice(0, max)}…（已截断）` : text
 }
 
-/** 批次的预授权凭据：用户在计划卡上同意的那一组工具名。 */
+/**
+ * 批次的预授权凭据 —— 用户在计划卡上同意的那一组工具。
+ *
+ * **两个键都要装**，缺一不可：
+ * - `tools`：子步骤要执行的**工具名**（`call_write_api` / `run_page_command`…），
+ *   按它们决定"整批只确认一次"；
+ * - `grants`：这些子步骤可能触发的**会话授权键**（`DATA_READ_GRANT` = `'data:read'`、
+ *   `group:form`…）—— 读授权弹卡时 `request.toolName` 装的是**授权键而不是工具名**，
+ *   只比工具名会漏掉它们，于是只读计划会在执行中途**逐个弹卡**，
+ *   把"一次编排、一次确认"的意义抹掉（这正是修复前的表现）。
+ */
 export interface BatchGrant {
   /** 已被用户整批同意的工具名集合 */
   tools: Set<string>
+  /** 已被整批覆盖的会话授权键（`data:read` 等） */
+  grants?: Set<string>
 }
 
 /**
  * 造一个**带批次预授权**的上下文：只把 `requestApproval` 换掉，
- * 且**仅对已同意的工具**直接返回 true，其余仍走原审批通道。
+ * 且**仅对已同意的工具 / 授权键**直接返回 true，其余仍走原审批通道。
+ *
+ * 预授权不会放开计划之外的东西：用户同意的是"这一批里这几步"，
+ * 工具名与授权键都由**计划里真实出现的步骤**推导而来（见 `executePlan` 的调用点）。
  */
 function withBatchGrant(ctx: AiToolContext, grant: BatchGrant): AiToolContext {
   return {
     ...ctx,
     requestApproval: async (request) => {
       if (grant.tools.has(request.toolName)) return true
+      if (grant.grants?.has(request.toolName)) return true
       return ctx.requestApproval(request)
     },
   }
@@ -347,15 +365,33 @@ export const manageTasksTool: AiToolDefinition = {
       )
       .join('\n')
 
-    const approved = await ctx.requestApproval({
-      toolName: 'manage_tasks',
-      input: { steps: rawTasks.map((t) => ({ title: t.title, action: t.action })) },
-      reason: `AI 准备一次执行以下 ${executable.length} 个步骤（顺序执行，中途不再逐条询问）：\n${planLines}`,
+    /*
+      计划卡要不要弹 —— 交给审批策略表的 `plan` 那一行，判据是**这份计划里有没有写操作**：
+
+      - **含写操作** → 两个模式都要用户点头。这是刻意的：`manage_tasks` 一次能改几十条，
+        而这张卡是用户唯一能看到**完整步骤清单**的机会（单条 `call_write_api` 在 auto 下
+        本来就仍会弹，所以卡并不会因此消失）。
+      - **纯只读计划** → `auto` 下不打断（读数据在 auto 下本来就不问，见策略表 `read` 行）。
+
+      "有没有写操作"按**步骤所用工具的能力格子**判（`planHasWriteSteps`），不是按工具名 ——
+      将来新增的写工具会自动被认出来。
+    */
+    const stepCapabilities = executable.flatMap((task) => {
+      const capability = task.action ? ctx.resolveTool(task.action.tool)?.capability : undefined
+      return capability ? [{ capability }] : []
     })
-    if (!approved) {
-      throw new Error(
-        '用户拒绝了这份执行计划，没有任何步骤被执行。不要重试同一份计划，改为向用户说明并询问下一步。',
-      )
+
+    if (needsApproval('plan', { mode: ctx.mode, planHasWrites: planHasWriteSteps(stepCapabilities) })) {
+      const approved = await ctx.requestApproval({
+        toolName: 'manage_tasks',
+        input: { steps: rawTasks.map((t) => ({ title: t.title, action: t.action })) },
+        reason: `AI 准备一次执行以下 ${executable.length} 个步骤（顺序执行，中途不再逐条询问）：\n${planLines}`,
+      })
+      if (!approved) {
+        throw new Error(
+          '用户拒绝了这份执行计划，没有任何步骤被执行。不要重试同一份计划，改为向用户说明并询问下一步。',
+        )
+      }
     }
 
     /*
@@ -365,7 +401,22 @@ export const manageTasksTool: AiToolDefinition = {
     const grantedTools = new Set(
       executable.map((task) => task.action?.tool).filter(Boolean) as string[],
     )
-    const { outcomes, stopped } = await executePlan(rawTasks, ctx, { tools: grantedTools })
+    /*
+      读数据的会话授权键（`data:read`）：这些子步骤里只要有**读类**工具，
+      用户在这张计划卡上就已经同意"整批做下去"了，中途不该再为每一步弹一次读授权。
+      授权键与工具名是两个命名空间（`requestApproval` 收的是前者），所以必须单独装一份。
+    */
+    const grantedGrants = new Set<string>()
+    for (const toolName of grantedTools) {
+      const capability = ctx.resolveTool(toolName)?.capability
+      if (capability === 'data:query' || capability === 'page:read' || capability === 'form:read') {
+        grantedGrants.add(DATA_READ_GRANT)
+      }
+    }
+    const { outcomes, stopped } = await executePlan(rawTasks, ctx, {
+      tools: grantedTools,
+      grants: grantedGrants,
+    })
 
     const successCount = outcomes.filter((item) => item.ok).length
     const failureCount = outcomes.length - successCount

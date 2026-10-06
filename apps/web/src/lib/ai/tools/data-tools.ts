@@ -1,5 +1,6 @@
 import { client, getApiQueryOptions, getDataDictOptionsQueryOptions } from '#/api'
 import { normalizeDictOptions } from '#/lib/dict-options'
+import { needsApproval } from '../approval-policy'
 import { reloadAiPageData } from '../page-reload-bridge'
 import { DATA_READ_GRANT } from '../session-permissions'
 import type { ApiItem } from '#/api'
@@ -184,13 +185,15 @@ export const callReadApiTool: AiToolDefinition = {
       所以先授权过 `get_page_data` 的话，这里不会再弹一次卡。
       被拒**直接抛错**（不发请求、不静默返回空），模型才知道是"用户不同意"。
     */
-    const approved = await ctx.requestApproval({
-      toolName: DATA_READ_GRANT,
-      input: { tool: 'call_read_api', source: path },
-      reason: 'AI 想调用这个接口读取业务数据',
-    })
-    if (!approved) {
-      throw new Error('用户拒绝让 AI 读取数据。不要重试，改为请用户自己查看。')
+    if (needsApproval('read', { mode: ctx.mode })) {
+      const approved = await ctx.requestApproval({
+        toolName: DATA_READ_GRANT,
+        input: { tool: 'call_read_api', source: path },
+        reason: 'AI 想调用这个接口读取业务数据',
+      })
+      if (!approved) {
+        throw new Error('用户拒绝让 AI 读取数据。不要重试，改为请用户自己查看。')
+      }
     }
 
     const result = await client.get({ url: path, query })
@@ -386,7 +389,8 @@ export const callWriteApiTool: AiToolDefinition = {
         ? (input.body as Record<string, unknown>)
         : undefined
 
-    // 审批：把 method / path / 参数原样交给用户看，DELETE 额外标一句不可撤销
+    // 审批：把 method / path / 参数原样交给用户看，DELETE 额外标一句不可撤销。
+    // `write` 那一行**不读 `ctx.mode`** —— 两个模式都要问（没有可预览的表单）
     const approved = await ctx.requestApproval({
       toolName: 'call_write_api',
       input: { method, path, ...(pathParams ? { pathParams } : {}), query, body },

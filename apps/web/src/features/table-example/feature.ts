@@ -122,7 +122,7 @@ export function createTableExampleListFeature(options: TableExampleListFeatureOp
         submission: {
           endpoint: { method: 'POST', path: '/user' },
           submitLabel: '创建记录',
-          requireApproval: true,
+          // 不写 requireApproval：提交在 auto 下免问（判定见 lib/ai/approval-policy.ts）
           approvalReason: '将填好的新记录档案提交至服务端入库',
         },
       },
@@ -162,7 +162,7 @@ export function createTableExampleListFeature(options: TableExampleListFeatureOp
         submission: {
           endpoint: { method: 'PUT', path: '/user' },
           submitLabel: '保存修改',
-          requireApproval: true,
+          // 不写 requireApproval：提交在 auto 下免问（判定见 lib/ai/approval-policy.ts）
           approvalReason: '将修改后的记录资料提交至服务端保存',
         },
       },

@@ -44,7 +44,7 @@ export function createNewFeatureSpec(options: NewFeaturePageOptions): FeatureSpe
         submission: {
           endpoint: { method: 'POST', path: '/system/menu' },
           submitLabel: '创建',
-          requireApproval: true,
+          // 不写 requireApproval：提交在 auto 下免问（判定见 lib/ai/approval-policy.ts）
           approvalReason: '将在功能树里创建一个新节点',
         },
       },

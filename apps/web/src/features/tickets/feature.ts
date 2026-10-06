@@ -108,7 +108,7 @@ export function createTicketsFeature(options: TicketsFeatureOptions): FeatureSpe
         submission: {
           endpoint: { method: 'POST', path: '/ticket' },
           submitLabel: '创建工单',
-          requireApproval: true,
+          // 不写 requireApproval：提交在 auto 下免问（判定见 lib/ai/approval-policy.ts）
           approvalReason: '将填写好的工单提交至服务端入库',
         },
       },
@@ -141,7 +141,7 @@ export function createTicketsFeature(options: TicketsFeatureOptions): FeatureSpe
         submission: {
           endpoint: { method: 'PUT', path: '/ticket' },
           submitLabel: '保存修改',
-          requireApproval: true,
+          // 不写 requireApproval：提交在 auto 下免问（判定见 lib/ai/approval-policy.ts）
           approvalReason: '将修改后的工单提交至服务端保存',
         },
       },

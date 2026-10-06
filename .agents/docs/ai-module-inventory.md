@@ -198,24 +198,28 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 **工具循环**由 SDK 负责：执行阶段仍是 `MAX_TOOL_STEPS = 30` 步；`stopWhen` 写成
 `isStepCount(31)` 只为给 Router 的第 0 步让位。
 
-### 3.3 审批矩阵（模式 × 工具）
+### 3.3 审批矩阵（模式 × 动作性质）
 
-| 工具 | `ask` | `auto` | 备注 |
+**判定只有一处**：`lib/ai/approval-policy.ts` 的 `needsApproval(intent, { mode, planHasWrites? })`。
+工具不再自己写 `ctx.mode === 'ask'`（那是这次修复的根因 —— 抄了七八遍，其中一处写成恒真）。
+
+| 动作性质 `intent` | `ask` | `auto` | 为什么 |
 |---|---|---|---|
-| read 类（1/2/4/5/7/9/10/11/14） | 直接执行 | 直接执行 | — |
-| `check_result_match`（17） | **每次必问**（不写会话授权） | **每次必问** | 能逐次问出未脱敏值，交互层是主要防线 |
-| `analyze_data`（18） | 首次申请 `DATA_READ_GRANT`（本会话允许后免问） | 同左 | 只回聚合结果，仍申请读数据授权 |
-| `navigate_to`（3） | 面板：三选一确认卡（带我去 `once` / 本会话自动跳转 `session` / 先不跳 `deny`）；开「自动跳转」则免问 | 直接跳 | 全屏永远是建议卡，**不写授权** |
-| `open_form`（13） | 首次或带 `values` 时申请 | 不带 `values` 时直接开 | 见 §5 |
-| `fill_form`（15） | 确认 | 直接写 | — |
-| `submit_form`（16） | 确认 | **当前实现仍确认**（见 §5） | 依据 `canSubmit()` |
-| `call_write_api`（12） | 确认 | **仍确认** | 刻意设计：通用写接口没有可预览表单 |
-| `run_page_command`（6） | write 一律确认 | write 一律确认 | 同 `call_write_api` 理由 |
-| `request_permission`（8） | 弹授权卡 | 弹授权卡 | 用来主动申请 |
+| `read` 读业务数据（页面数据 / 只读接口 / 分析） | **首次问**（`DATA_READ_GRANT` 会话授权后免） | 不问 | 只读不改变任何东西 |
+| `fill` 填表 / 打开表单 | 问 | 不问 | 只改页面状态、不落库，可见可撤销 |
+| `submit` 提交表单入库 | 问 | **不问** | 表单自带 `canSubmit()` 把关、用户能预览；auto 免问正是这个模式的意义 |
+| `write` 通用写接口 / 页面写指令 | 问 | **仍问** | 刻意例外：没有可预览的表单，自动执行等于直接改库 |
+| `navigate` 跳转 | 问 | 不问 | 「看哪里」不是「改什么」 |
+| `plan` 批量编排 | 问 | **含写操作才问** | 写计划是用户唯一能看到完整步骤清单的机会；只读计划不打断 |
+| `probe` 存在性探测 | **每次问** | **每次问** | 枚举试探的主要通道，交互层是主要防线 |
 
-**三态决定**（`AiApprovalDecision`）：`deny` / `once`（不写任何授权）/ `session`（写会话授权）。
-**fail-closed**：认不到决定就不执行；中止 / 异常时挂起审批一律按拒绝了结。
-**审批发生在工具内部**（注册表那层不拦截），被拒时**抛错**（不静默跳过，否则模型会谎报成功）。
+**`write` 与 `probe` 不读 `ctx.mode`** —— 这两个口子不随模式松动。
+`plan` 的"含不含写操作"按**步骤所用工具的能力格子**判（`planHasWriteSteps`），
+不按工具名：将来新增的写工具会自动被认出来，不必回来改表。
+
+**批量计划的预授权**（`BatchGrant`）同时装**工具名**与**会话授权键**（`data:read` …）——
+子步骤弹读授权时 `request.toolName` 是**授权键不是工具名**，只比工具名会漏掉它们，
+于是只读计划会在执行中途逐个弹卡（这是修复前的真实表现）。
 
 ### 3.4 页面接入 AI 的两条路
 
@@ -426,7 +430,7 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 | 2 | `ai-architecture.md` §1 / §3 | §1 的 L5 只列 4 个工具文件（实际 8 个）；§3 的审批表格未覆盖 `open_form` / `run_page_command` / `manage_tasks` / `request_permission` | 按本文 §3.2 / §3.3 同步 |
 | 3 | `ai-architecture.md` §4 / §5、`lib/ai/endpoint-specs.ts` 注释 | 写「接口参数索引 363 KB / gzip 23.6 KB」「全局接口清单 600+ 条」，实际 `endpoint-specs.gen.ts` **7.5 KB / 25 条**；生成脚本已从 `apps/web/scripts/` 迁到 `packages/api-client/scripts/` | 更新量级与路径 |
 | 4 | `lib/ai/chat.ts:159` | 使用 `AiStreamEvent` 但**顶部没有 import 它**（`import type` 列表缺一项）→ `tsc --noEmit` 会报 `Cannot find name` | 补一个 `import type` 即可（用 `verify` skill 确认） |
-| 5 | `lib/ai/tools/form-tools.ts:287` | `formSpec?.submission?.requireApproval ?? (ctx.mode === 'ask' \|\| true)` —— 右侧**恒为 true**，于是 `submit_form` 在 `auto` 模式**仍然弹审批**，与工具描述、`ai-architecture.md` §3 表格（auto 下 `canSubmit()` 通过即提交）矛盾 | 去掉 `\|\| true`，改为按 `ctx.mode` / 声明判定 |
+| 5 | ~~`lib/ai/tools/form-tools.ts` 的 `?? (ctx.mode === 'ask' \|\| true)`~~ | **已修复（2026-10）**：审批判定收口到 `lib/ai/approval-policy.ts` 的策略表，`submit_form` 不再恒真；同时发现并修掉批量计划的两处模式泄漏（纯只读计划在 auto 下弹卡、子步骤重复弹读授权） | — |
 | 6 | `lib/ai/route-refs.ts:276` | `expandRouteRefs` 追加的说明**硬编码面板策略**（「必须优先 `navigate_to` … 配合 `update_search_params` … 切勿直接调用只读接口」），与 §8.1「策略由提示词按容器给、工具描述保持容器中立」冲突；**全屏容器**里 `update_search_params` 根本不下发，模型会被引向一个不存在的工具 | 改为容器中立的表述（或按 `surface` 分策略，与 `workflow.ts` 同源） |
 | 7 | i18n | ~~`common:profile.settings.aiToolNames.*` 只覆盖 10 / 16 个工具…权限界面与工具卡片会显示英文蛇形原名~~ **已修复**：`AI_TOOLS` 现有 **18** 个工具，zh-CN 的 `aiToolNames.*` 与 `ai:tools.*` **各 18 / 18 全齐**；另补了权限三档的 tooltip 说明（`aiPermissionModeHints.*`）、删掉了常显的 `aiToolListHint` | 只剩流水线：跑 `pnpm i18n` 把新增键补到其它 6 语言（铁律 1） |
 

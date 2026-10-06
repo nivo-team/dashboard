@@ -1,3 +1,4 @@
+import { needsApproval } from '../approval-policy'
 import { findAiForm, listAiForms, openPageForm } from '../form-bridge'
 import { resolveActivePageCapabilities } from '../page-capabilities'
 import { hasSessionGrant } from '../session-permissions'
@@ -62,7 +63,9 @@ export const openFormTool: AiToolDefinition = {
       hasSessionGrant('open_form', activeSessionId) ||
       hasSessionGrant('group:form', activeSessionId)
 
-    if (!isGranted && (ctx.mode === 'ask' || values)) {
+    // 未获会话授权时：询问模式一定问；带了 `values`（AI 已经替你填好）也先问一句。
+    // 自动模式且不带值（只是把空表单摆出来）直接开 —— 那不算"替用户做决定"。
+    if (!isGranted && (needsApproval('fill', { mode: ctx.mode }) || values)) {
       const pageCtx = ctx.getPageContext()
       const capabilities = resolveActivePageCapabilities(pageCtx.routePath)
       const formSpec = capabilities?.forms?.find(
@@ -173,15 +176,17 @@ export const fillFormTool: AiToolDefinition = {
   execute: async (input, ctx) => {
     /*
       读表单 = **读数据**：表单里可能有用户已经填过的内容。
-      与 get_page_data / call_read_api 同一档 —— `DATA_READ_GRANT`（首次必问 + 本会话允许）。
+      与 get_page_data / call_read_api 同一档（`read`），判定走同一处策略表。
     */
-    const approved = await ctx.requestApproval({
-      toolName: DATA_READ_GRANT,
-      input: { tool: 'list_page_forms' },
-      reason: 'AI 想读取当前页面表单的字段与已填内容',
-    })
-    if (!approved) {
-      throw new Error('用户拒绝让 AI 读取数据。不要重试，改为请用户自己查看。')
+    if (needsApproval('read', { mode: ctx.mode })) {
+      const approved = await ctx.requestApproval({
+        toolName: DATA_READ_GRANT,
+        input: { tool: 'list_page_forms' },
+        reason: 'AI 想读取当前页面表单的字段与已填内容',
+      })
+      if (!approved) {
+        throw new Error('用户拒绝让 AI 读取数据。不要重试，改为请用户自己查看。')
+      }
     }
 
     const formId = typeof input.formId === 'string' ? input.formId.trim() : ''
@@ -216,10 +221,10 @@ export const fillFormTool: AiToolDefinition = {
     }
 
     /*
-      `ask` 下先问一句：填表虽然只改页面状态、不发请求，但用户正盯着表单，
-      AI 突然往里灌一串值会让人措手不及。`auto` 下直接填 —— 那正是这个模式的意义。
+      填表只改页面状态、不发请求，`auto` 下直接填 —— 那正是这个模式的意义。
+      判定交给审批策略表（`fill` 那一行），工具不再自己读 `ctx.mode`。
     */
-    if (ctx.mode === 'ask') {
+    if (needsApproval('fill', { mode: ctx.mode })) {
       const approved = await ctx.requestApproval({
         toolName: 'fill_form',
         input: { formId, title: form.title ?? formId, values: applied },
@@ -294,14 +299,19 @@ export const submitFormTool: AiToolDefinition = {
     )
 
     /*
-      审批策略：
-      - 若页面能力规格明确声明了 requireApproval（或当前处于 ask 模式）：向用户弹出询问卡片，
-        卡片内完整回显表单标题、目标接口以及当前填写的完整 values 快照；
-      - 用户点击「允许一次」后，才真正调用 form.submit() 发起网络请求；
-      - 若用户拒绝，明确终止执行并反馈给模型。
+      审批策略 —— **交给 `needsApproval('submit', ...)`**，不再自己判断模式。
+
+      这里曾经写的是 `formSpec?.submission?.requireApproval ?? (ctx.mode === 'ask' || true)`：
+      右侧恒为 true，于是**自动模式下提交也照样弹卡**（与工具描述、能力表格、输入区文案
+      三处矛盾），而且三个业务表单里显式声明的 `requireApproval` 因为恒真成了死代码。
+      收口到审批策略表之后，"哪种动作在哪种模式下要不要问"只有一处定义。
+
+      `submission.requireApproval === true` 仍然是一个**显式的加强声明**：
+      它让这张表单即使在 `auto` 下也要求确认（个别高危表单可以用它单独收紧）。
     */
     const requireApproval =
-      formSpec?.submission?.requireApproval ?? (ctx.mode === 'ask' || true)
+      formSpec?.submission?.requireApproval ??
+      needsApproval('submit', { mode: ctx.mode })
 
     if (requireApproval) {
       const approved = await ctx.requestApproval({

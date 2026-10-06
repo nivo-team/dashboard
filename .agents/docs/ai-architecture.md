@@ -191,15 +191,50 @@ L6  上下文      lib/ai/page-context.ts          当前页面（我在哪）
   所以只读档必须有它，否则只读的 AI 连"把这件事拆成 5 步"都做不到。
 - `request_permission` → `task:grant`。
 
-**模式与工具的关系**（哪些工具受模式影响）：
+### 3.2 审批：**一张表 + 一个判定函数**，工具不再自己判断模式
 
-| 工具 | `ask` | `auto` |
-|---|---|---|
-| `read` 类 | 直接执行 | 直接执行 |
-| `navigate_to` | **先请用户确认**（面板三选一确认卡） | 直接跳（**自动模式 = 始终允许**） |
-| `fill_form` | 先请用户确认 | 直接写 |
-| `submit_form` | 一律确认 | `canSubmit()` 通过就直接提交 |
-| `call_write_api` | 确认 | **仍然确认**（刻意不读 `ctx.mode`） |
+早先的约定只写了一句话「`ask` 动手前先问、`auto` 能直接做就直接做」——它定义了 `auto`
+**能**做什么，却**没定义 `auto` 下谁还不该问**。于是每个工具各写各的
+`ctx.mode === 'ask'`（抄了七八遍），很快出了实打实的错：
+
+```ts
+// form-tools.ts 的 submit_form：右侧恒为 true，ctx.mode 白读
+const requireApproval = formSpec?.submission?.requireApproval ?? (ctx.mode === 'ask' || true)
+```
+
+后果是**自动模式下提交表单照样弹卡**，与工具描述、能力表格、输入区文案（「自动填写并提交
+表单」）三处全矛盾；而且因为恒真，三个业务表单里显式声明的 `requireApproval` 成了死代码。
+
+现在判定收口在 `lib/ai/approval-policy.ts`：
+
+```ts
+needsApproval(intent, { mode, planHasWrites? })
+```
+
+`intent` 是**动作的性质**（不是工具名）：`read` / `fill` / `submit` / `write` /
+`navigate` / `plan` / `probe`。策略写成 `Record<AiApprovalIntent, fn>` ——
+漏一个 `intent` 直接编译不过（比 `switch` 的 `default` 静默放行安全）。
+
+| 动作性质 | `ask` | `auto` | 为什么 |
+|---|---|---|---|
+| `read` 读业务数据 | 首次问（会话授权后免） | 不问 | 只读不改变任何东西 |
+| `fill` 填表 / 打开表单 | 问 | 不问 | 只改页面状态、不落库 |
+| `submit` 提交表单 | 问 | **不问** | 表单自带 `canSubmit()`，用户能预览 |
+| `write` 写接口 / 页面写指令 | 问 | **仍问** | 无可预览的表单，自动执行 = 直接改库 |
+| `navigate` 跳转 | 问 | 不问 | 「看哪里」不是「改什么」 |
+| `plan` 批量编排 | 问 | **含写才问** | 写计划是看到完整步骤清单的唯一机会 |
+| `probe` 存在性探测 | 每次问 | **每次问** | 枚举试探的主要通道 |
+
+**两条不随模式松动的口子**：`write` 与 `probe` **不读 `ctx.mode`**。
+`plan` 的"含不含写操作"按**步骤所用工具的能力格子**判（`planHasWriteSteps`），
+不按工具名 —— 新增的写工具自动被认出来。
+
+**读数据在 `auto` 下不弹是刻意的放宽**：前提是权限那一维已经在**把工具交给模型之前**
+收过口（没权限的读工具根本不下发），硬边界仍是执行时后端按用户身份校验。
+`check_result_match` 不受此放宽 —— 它是唯一能逐次试探出"某个值在不在"的工具。
+
+**表单的 `submission.requireApproval`**：不写 = 由策略表决定；显式写 `true` =
+这张表单在两个模式下都强制确认（个别高危表单可用它单独收紧）。
 
 **跳转是一条独立于写操作的规则**：它归 `read` 档（只读档也有这个工具），但会把用户带离
 当前页面，所以**询问模式下**要用户点头 —— 面板弹三选一确认卡（「带我去」只这一次 /
@@ -440,6 +475,12 @@ useAiPageContext(Route.id, {
 2. **预授权只覆盖计划里真正用到的工具**（`BatchGrant`）：用户同意的是"这一批里这几步"，
    不是"放行所有写工具"。子工具自己的 `requestApproval` 对已同意的工具直接放行，
    其余仍走原通道。
+
+### 坑：批量计划的预授权要同时装**工具名**与**授权键**
+
+`BatchGrant` 只装工具名时，只读计划会在执行中途**逐个弹读授权卡**——
+子步骤弹 `DATA_READ_GRANT` 时 `request.toolName` 装的是**授权键**（`'data:read'`）
+而不是工具名，只比工具名比对不上。修法是两套键都装（见 `withBatchGrant`）。
 
 ### 坑：`task-tools` 不能 import `tools/index`
 
