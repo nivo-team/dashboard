@@ -35,11 +35,11 @@ jobs:
           fetch-depth: 0
 
       # pnpm 必须早于 setup-node：后者的 cache: pnpm 依赖 pnpm 已存在
+      # 这里**不要**再写 `version`：与 package.json 的 `packageManager: pnpm@11.7.0`
+      # 同时指定会让 action-setup 直接失败（Multiple versions of pnpm specified），
+      # 交给 packageManager 决定即可（pnpm 11 同样读 lockfileVersion 9.0）。
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          # 与 pnpm-lock.yaml 的 lockfileVersion '9.0' 对应
-          version: 10
 
       - name: Setup Node
         uses: actions/setup-node@v4
