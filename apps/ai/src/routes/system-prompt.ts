@@ -56,9 +56,7 @@ systemPromptRoute.post('/', async (c) => {
   const facts = normalizeFacts(raw)
   /* 同样支持 `promptStage`：拿它就能直接对比两个阶段的提示词长度（缺省 execution） */
   const stage = resolvePromptStage(
-    raw && typeof raw === 'object'
-      ? (raw as { promptStage?: unknown }).promptStage
-      : undefined,
+    raw && typeof raw === 'object' ? (raw as { promptStage?: unknown }).promptStage : undefined,
   )
   const system = buildSystemPrompt(facts, stage)
 
@@ -105,9 +103,7 @@ systemPromptRoute.post('/stream', async (c) => {
 
   const facts = normalizeFacts(raw)
   const stage = resolvePromptStage(
-    raw && typeof raw === 'object'
-      ? (raw as { promptStage?: unknown }).promptStage
-      : undefined,
+    raw && typeof raw === 'object' ? (raw as { promptStage?: unknown }).promptStage : undefined,
   )
   const system = buildSystemPrompt(facts, stage)
 

@@ -216,11 +216,7 @@ export function listRouteRefItems(): AiRouteRefItem[] {
 const ROUTE_REF_PATTERN = /(^|\s)@([a-z][a-z0-9-]*)(?::([^\s:]*))?/gi
 
 /** 把一条引用解析成人话 + 路径；认不出来（模块没登记 / 目标不存在）就返回 null */
-function resolveRouteRef(
-  moduleKey: string,
-  target: string,
-  appId: string,
-): string | null {
+function resolveRouteRef(moduleKey: string, target: string, appId: string): string | null {
   const spec = AI_ROUTE_REF_SPECS.find((item) => item.key === moduleKey)
   if (!spec) return null
 

@@ -80,10 +80,7 @@ export function useTableQuery<
       shallow: false,
       clearOnDefault: true,
     },
-  ) as unknown as [
-    ParsedQueryState,
-    (patch: Record<string, unknown>) => void,
-  ]
+  ) as unknown as [ParsedQueryState, (patch: Record<string, unknown>) => void]
 
   // 注册让 AI 能够直接更新当前表格的搜索与筛选参数
   useAiSearchParamsUpdater(

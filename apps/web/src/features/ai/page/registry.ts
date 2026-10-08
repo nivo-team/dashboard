@@ -1,9 +1,5 @@
 import { hasPageCapabilityPermission } from '#/features/ai/core/page-capabilities'
-import type {
-  FeatureCommandSpec,
-  FeatureDataSourceSpec,
-  FeatureSpec,
-} from './types'
+import type { FeatureCommandSpec, FeatureDataSourceSpec, FeatureSpec } from './types'
 
 /**
  * 页面特性注册表（模块级 Map，不进 React state）。
@@ -49,9 +45,7 @@ export function listRegisteredFeatures(): Array<[string, FeatureSpec]> {
 export function resolveFeatureCommands(routeId: string | null): FeatureCommandSpec[] {
   const spec = resolveFeature(routeId)
   if (!spec?.commands?.length) return []
-  return spec.commands.filter((command) =>
-    hasPageCapabilityPermission(command.permission),
-  )
+  return spec.commands.filter((command) => hasPageCapabilityPermission(command.permission))
 }
 
 export function findFeatureCommand(

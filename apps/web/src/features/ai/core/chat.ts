@@ -38,10 +38,7 @@ let activeController: AbortController | null = null
  * 回传的是**三态决定**（`AiApprovalDecision`）而不是布尔：只有 `session` 才写会话授权，
  * `once` 是一次性放行 —— 否则「允许一次」会被内存授权表放大成"本会话不再问"。
  */
-const approvalResolvers = new Map<
-  string,
-  (decision: AiApprovalDecision) => void
->()
+const approvalResolvers = new Map<string, (decision: AiApprovalDecision) => void>()
 
 interface QueuedApproval {
   request: AiApprovalRequest
@@ -320,8 +317,7 @@ async function executeAssistantTurn(
 
     const pageSpec = resolveAiPageContext(getPageContext().routePath)
     const hasForms =
-      hasPageFormCapability() ||
-      Boolean(pageSpec?.forms && pageSpec.forms.length > 0)
+      hasPageFormCapability() || Boolean(pageSpec?.forms && pageSpec.forms.length > 0)
 
     /*
       后端权限点 —— **在把工具交给模型之前先过滤一次**。
@@ -394,14 +390,20 @@ async function executeAssistantTurn(
     // 整批执行完毕（或这一轮没有批量计划）：清掉进行中的任务清单
     useAiSessionStore.getState().setLiveTasks(null)
     // 只有在成功生成完毕后，才落盘到当前会话的 IndexedDB
-    await useAiSessionStore.getState().persist().catch(() => undefined)
+    await useAiSessionStore
+      .getState()
+      .persist()
+      .catch(() => undefined)
   } catch (error) {
     batcher?.flush()
     // 用户主动停止会走到这里（AbortError），不该报成错误
     if (controller.signal.aborted) {
       useAiSessionStore.getState().endTurn()
       useAiSessionStore.getState().setLiveTasks(null)
-      await useAiSessionStore.getState().persist().catch(() => undefined)
+      await useAiSessionStore
+        .getState()
+        .persist()
+        .catch(() => undefined)
     } else {
       // 失败时不记录到当前会话的 IndexedDB，将消息自动回退到输入框草稿并保留在 drafts 存储中
       useAiSessionStore.getState().setLiveTasks(null)
@@ -454,7 +456,10 @@ export async function retryAiMessage(
   const retryData = store.prepareRetryTurn(userMessageId)
   if (!retryData) return
 
-  await useAiSessionStore.getState().persist().catch(() => undefined)
+  await useAiSessionStore
+    .getState()
+    .persist()
+    .catch(() => undefined)
 
   await executeAssistantTurn(retryData.text, retryData.assistantId, mode, surface)
 }

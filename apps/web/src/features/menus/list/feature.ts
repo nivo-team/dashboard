@@ -22,9 +22,7 @@ export interface FeatureTreeListFeatureOptions {
   snapshot: FeatureContainerSnapshot | null
 }
 
-export function createFeatureTreeListFeature(
-  options: FeatureTreeListFeatureOptions,
-): FeatureSpec {
+export function createFeatureTreeListFeature(options: FeatureTreeListFeatureOptions): FeatureSpec {
   const snapshot = options.snapshot
 
   return defineFeature({

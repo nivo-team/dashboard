@@ -87,7 +87,7 @@ interface MenuBody {
 }
 
 export default defineHandler(async (event) => {
-  const body = await readBody<MenuBody>(event).catch(() => ({}) as MenuBody)
+  const body = ((await readBody<MenuBody>(event).catch(() => undefined)) ?? {}) as MenuBody
 
   const name = body?.menu_name?.trim()
   if (!name) return fail(400, '请输入功能名称')

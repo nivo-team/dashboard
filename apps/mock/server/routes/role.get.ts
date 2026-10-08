@@ -17,7 +17,12 @@ defineRouteMeta({
     parameters: [
       { in: 'query', name: 'page', schema: { type: 'integer' }, description: '页码，从 1 开始' },
       { in: 'query', name: 'page_size', schema: { type: 'integer' }, description: '每页条数' },
-      { in: 'query', name: 'kw', schema: { type: 'string' }, description: '关键词（名称 / 角色码 / 描述模糊匹配）' },
+      {
+        in: 'query',
+        name: 'kw',
+        schema: { type: 'string' },
+        description: '关键词（名称 / 角色码 / 描述模糊匹配）',
+      },
       {
         in: 'query',
         name: 'status',
@@ -118,8 +123,11 @@ function withMenuCount(row: RoleRow) {
 
 export default defineHandler((event) => {
   const query = getQuery(event)
-  const kw = String(query.kw ?? '').trim().toLowerCase()
-  const status = query.status !== undefined && query.status !== '' ? Number(query.status) : undefined
+  const kw = String(query.kw ?? '')
+    .trim()
+    .toLowerCase()
+  const status =
+    query.status !== undefined && query.status !== '' ? Number(query.status) : undefined
 
   const rows = db.roles.filter((role) => {
     if (kw) {

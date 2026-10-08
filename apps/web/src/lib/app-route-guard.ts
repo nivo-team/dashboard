@@ -8,11 +8,7 @@ import {
   setAvailableApps,
 } from '#/lib/auth'
 import i18n from '#/lib/i18n'
-import {
-  ensureUserPermissions,
-  hasPermission,
-  type PermissionRequirement,
-} from '#/lib/permissions'
+import { ensureUserPermissions, hasPermission, type PermissionRequirement } from '#/lib/permissions'
 import { getQueryClient } from '#/lib/query-client'
 import { usePermissionStore } from '#/lib/store'
 import { appToastManager } from '#/lib/toast'

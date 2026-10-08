@@ -13,7 +13,13 @@ defineRouteMeta({
     tags: ['工单'],
     description: '根据 ID 删除单个工单（不提供批量删除接口）',
     parameters: [
-      { in: 'path', name: 'id', required: true, schema: { type: 'integer' }, description: '工单 ID' },
+      {
+        in: 'path',
+        name: 'id',
+        required: true,
+        schema: { type: 'integer' },
+        description: '工单 ID',
+      },
     ],
     responses: {
       200: {

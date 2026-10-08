@@ -3,14 +3,7 @@ import {
   renderQueryString,
   unstable_createAdapterProvider as createAdapterProvider,
 } from 'nuqs/adapters/custom'
-import {
-  startTransition,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  type ReactNode,
-} from 'react'
+import { startTransition, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 
 /**
  * 本地实现的 TanStack Router 适配器。
@@ -26,15 +19,12 @@ function useNuqsTanstackRouterAdapter(watchKeys: string[]) {
   const search = useRouterState({
     select: (state) =>
       Object.fromEntries(
-        Object.entries(state.location.search).filter(([key]) =>
-          watchKeys.includes(key),
-        ),
+        Object.entries(state.location.search).filter(([key]) => watchKeys.includes(key)),
       ),
     structuralSharing: true,
   })
   const resolvedPathname = useRouterState({
-    select: (state) =>
-      state.resolvedLocation?.pathname ?? state.location.pathname,
+    select: (state) => state.resolvedLocation?.pathname ?? state.location.pathname,
   })
   const router = useRouter({ warn: false })
   const navigate = router?.navigate
@@ -47,9 +37,7 @@ function useNuqsTanstackRouterAdapter(watchKeys: string[]) {
     cachedSearchRef.current = search
   }
   const activeSearch =
-    !isPathStable && ownedPathnameRef.current !== pathname
-      ? cachedSearchRef.current
-      : search
+    !isPathStable && ownedPathnameRef.current !== pathname ? cachedSearchRef.current : search
 
   return {
     searchParams: useMemo(
@@ -57,8 +45,7 @@ function useNuqsTanstackRouterAdapter(watchKeys: string[]) {
         new URLSearchParams(
           Object.entries(activeSearch).flatMap(([key, value]) => {
             if (Array.isArray(value)) return value.map((v) => [key, String(v)])
-            if (typeof value === 'object' && value !== null)
-              return [[key, JSON.stringify(value)]]
+            if (typeof value === 'object' && value !== null) return [[key, JSON.stringify(value)]]
             return [[key, String(value)]]
           }),
         ),

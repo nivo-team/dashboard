@@ -14,13 +14,7 @@ import packageJson from '../../../package.json?raw'
 /** 构建期已知的版本号；解析失败时用占位符，不编造版本。 */
 const appVersion = (JSON.parse(packageJson) as { version?: string }).version || '—'
 
-type EnvironmentKey =
-  | 'unconfigured'
-  | 'production'
-  | 'test'
-  | 'staging'
-  | 'development'
-  | 'custom'
+type EnvironmentKey = 'unconfigured' | 'production' | 'test' | 'staging' | 'development' | 'custom'
 
 /**
  * 从接口基础地址推断部署环境。

@@ -9,11 +9,7 @@ import {
   UserIcon,
 } from '@phosphor-icons/react'
 import { isMultiAppEnabled } from './app-config'
-import {
-  hasPermission,
-  type PermissionContext,
-  type PermissionRequirement,
-} from './permissions'
+import { hasPermission, type PermissionContext, type PermissionRequirement } from './permissions'
 
 /** 二级导航项，渲染为 `Sidebar.MenuSubButton`。 */
 export interface NavSubItem {
@@ -79,13 +75,11 @@ export interface NavGroup {
  * 提取导航节点声明的 feature 或权限要求。
  * 兼容 features / feature / permission 三种声明方式，并对模块简写（如 'table-example'）智能补全为通配模式。
  */
-export function getNavFeatureRequirement(
-  target?: {
-    features?: string | string[] | PermissionRequirement
-    feature?: string | string[] | PermissionRequirement
-    permission?: PermissionRequirement
-  },
-): PermissionRequirement | undefined {
+export function getNavFeatureRequirement(target?: {
+  features?: string | string[] | PermissionRequirement
+  feature?: string | string[] | PermissionRequirement
+  permission?: PermissionRequirement
+}): PermissionRequirement | undefined {
   const raw = target?.features ?? target?.feature ?? target?.permission
   if (!raw) return undefined
 
@@ -94,9 +88,7 @@ export function getNavFeatureRequirement(
   }
 
   if (Array.isArray(raw)) {
-    return raw.map((item) =>
-      typeof item === 'string' && !item.includes(':') ? `${item}:*` : item,
-    )
+    return raw.map((item) => (typeof item === 'string' && !item.includes(':') ? `${item}:*` : item))
   }
 
   return raw
@@ -371,16 +363,7 @@ export const SETTINGS_NAV_ITEMS: ShellNavItem[] = [
     labelKey: 'profileNav.appearance',
     to: '/settings/appearance',
     icon: SwatchesIcon,
-    keywords: [
-      'appearance',
-      'theme',
-      'swatches',
-      'language',
-      'timezone',
-      '外观',
-      '主题',
-      '偏好',
-    ],
+    keywords: ['appearance', 'theme', 'swatches', 'language', 'timezone', '外观', '主题', '偏好'],
   },
   {
     label: 'AI',
@@ -427,8 +410,7 @@ function createNavRequirementChecker(options?: {
   enablePermissionFilter?: boolean
 }): (requirement?: PermissionRequirement) => boolean {
   if (options?.enablePermissionFilter === false) return () => true
-  return (requirement) =>
-    requirement ? hasPermission(requirement, options?.context) : true
+  return (requirement) => (requirement ? hasPermission(requirement, options?.context) : true)
 }
 
 export interface NavFilterOptions {

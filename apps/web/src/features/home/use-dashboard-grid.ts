@@ -1,8 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import type {
-  KeyboardEvent as ReactKeyboardEvent,
-  PointerEvent as ReactPointerEvent,
-} from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import {
   clampWidgetWidth,
   clampWidgetX,
@@ -75,8 +72,7 @@ export function useDashboardGrid({ widgets, enabled, onCommit }: UseDashboardGri
     if (!grid) return null
     const rect = grid.getBoundingClientRect()
     const metrics = getGridMetrics(rect.width)
-    const rtl =
-      typeof window !== 'undefined' && window.getComputedStyle(grid).direction === 'rtl'
+    const rtl = typeof window !== 'undefined' && window.getComputedStyle(grid).direction === 'rtl'
     return { columnStep: metrics.columnStep, rowStep: metrics.rowStep, rtl }
   }, [])
 
@@ -135,17 +131,13 @@ export function useDashboardGrid({ widgets, enabled, onCommit }: UseDashboardGri
           )
         }
 
-        const w = clampWidgetWidth(
-          session.origin.w + Math.round(dx / session.columnStep),
-        )
+        const w = clampWidgetWidth(session.origin.w + Math.round(dx / session.columnStep))
         // 高度用连续值吸附到档位：直接用 Math.round 会在档位间隔（2 行）中间
         // 出现「拖了一行毫无反应、再拖一点突然跳两行」的顿挫感。
         const h = snapHeight(session.origin.h + dy / session.rowStep)
         return compactLayout(
           base.map((item) =>
-            item.id === session.id
-              ? { ...item, w, h, x: clampWidgetX(item.x, w) }
-              : item,
+            item.id === session.id ? { ...item, w, h, x: clampWidgetX(item.x, w) } : item,
           ),
           session.id,
         )
@@ -193,8 +185,7 @@ export function useDashboardGrid({ widgets, enabled, onCommit }: UseDashboardGri
 
       const horizontal =
         event.key === 'ArrowRight' ? direction : event.key === 'ArrowLeft' ? -direction : 0
-      const vertical =
-        event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : 0
+      const vertical = event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : 0
       if (horizontal === 0 && vertical === 0) return
 
       event.preventDefault()

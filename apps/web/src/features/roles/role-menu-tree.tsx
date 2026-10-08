@@ -114,9 +114,7 @@ export function MenuTreeSelection({
               disabled={disabled}
               onCheckedChange={(next) => toggle(node, Boolean(next))}
             />
-            <span className="min-w-0 flex-1 truncate text-sm text-kumo-default">
-              {node.name}
-            </span>
+            <span className="min-w-0 flex-1 truncate text-sm text-kumo-default">{node.name}</span>
             {node.type === 3 ? (
               <span className="shrink-0 text-xs text-kumo-subtle">
                 {t('menuTree.action', '操作')}

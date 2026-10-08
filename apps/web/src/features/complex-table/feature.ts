@@ -13,7 +13,14 @@ import type { FeatureSpec } from '#/features/ai/page'
 
 export interface ComplexTableFeatureOptions {
   /** 当前展示的行（已应用关键词过滤） */
-  rows: readonly { id: string; name: string; category: string; status: string; qty: number; amount: number }[]
+  rows: readonly {
+    id: string
+    name: string
+    category: string
+    status: string
+    qty: number
+    amount: number
+  }[]
   /** 关键词（本地过滤） */
   keyword: string
   /** 表格勾选的行 id */
@@ -28,9 +35,7 @@ export interface ComplexTableFeatureOptions {
   clearSelection: () => void
 }
 
-export function createComplexTableFeature(
-  options: ComplexTableFeatureOptions,
-): FeatureSpec {
+export function createComplexTableFeature(options: ComplexTableFeatureOptions): FeatureSpec {
   return defineFeature({
     title: '复杂表格',
     description:

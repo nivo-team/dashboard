@@ -29,13 +29,7 @@ interface PageHeaderProps {
 /**
  * 页面标题区：可选页面内面包屑 + 标题 + 描述 + 操作按钮。
  */
-export function PageHeader({
-  title,
-  description,
-  crumbs,
-  actions,
-  children,
-}: PageHeaderProps) {
+export function PageHeader({ title, description, crumbs, actions, children }: PageHeaderProps) {
   return (
     <div className="mb-6 flex flex-col gap-4">
       {crumbs && crumbs.length > 0 ? (
@@ -46,9 +40,7 @@ export function PageHeader({
               <Fragment key={`${crumb.label}-${index}`}>
                 {index > 0 ? <Breadcrumbs.Separator /> : null}
                 {crumb.to && !isLast ? (
-                  <Breadcrumbs.Link href={crumb.to}>
-                    {crumb.label}
-                  </Breadcrumbs.Link>
+                  <Breadcrumbs.Link href={crumb.to}>{crumb.label}</Breadcrumbs.Link>
                 ) : (
                   <Breadcrumbs.Current>{crumb.label}</Breadcrumbs.Current>
                 )}
@@ -62,14 +54,10 @@ export function PageHeader({
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold text-kumo-default">{title}</h1>
           {description ? (
-            <p className="mt-1 max-w-2xl text-sm text-kumo-subtle">
-              {description}
-            </p>
+            <p className="mt-1 max-w-2xl text-sm text-kumo-subtle">{description}</p>
           ) : null}
         </div>
-        {actions ? (
-          <div className="flex shrink-0 items-center gap-2">{actions}</div>
-        ) : null}
+        {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
       </div>
 
       {children}

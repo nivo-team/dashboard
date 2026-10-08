@@ -164,13 +164,15 @@ export function AiActivityGlow() {
       borderRadius={0}
       // 减动效下别把整个反馈一起减掉（见 GLOW_REDUCED_MOTION_CSS）
       css={GLOW_REDUCED_MOTION_CSS}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 30,
-        pointerEvents: 'none',
-        '--pulse-glow-boost': GLOW_VIEWPORT_BOOST,
-      } as CSSProperties}
+      style={
+        {
+          position: 'fixed',
+          inset: 0,
+          zIndex: 30,
+          pointerEvents: 'none',
+          '--pulse-glow-boost': GLOW_VIEWPORT_BOOST,
+        } as CSSProperties
+      }
     >
       {null}
     </BorderBeam>

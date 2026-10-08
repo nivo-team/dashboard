@@ -96,9 +96,7 @@ export function normalizeLocale(input) {
   const hit = supported.find((key) => key.toLowerCase().split('-')[0] === primary)
   if (hit) return hit
 
-  throw new Error(
-    `无法识别的语言码 \`${raw}\`；受支持的语言：${supported.join(', ')}`,
-  )
+  throw new Error(`无法识别的语言码 \`${raw}\`；受支持的语言：${supported.join(', ')}`)
 }
 
 /** 解析逗号分隔的语言清单（CLI / 环境变量共用）。 */
@@ -138,9 +136,7 @@ export function selectModules(names, config = loadConfig()) {
     .filter(Boolean)
   const unknown = requested.filter((name) => !all.includes(name))
   if (unknown.length) {
-    throw new Error(
-      `未知模块：${unknown.join(', ')}；磁盘上的模块：${all.join(', ')}`,
-    )
+    throw new Error(`未知模块：${unknown.join(', ')}；磁盘上的模块：${all.join(', ')}`)
   }
   return requested
 }
@@ -226,9 +222,7 @@ export function diffModule(moduleName, targetLocale, config = loadConfig()) {
   }
 
   // 目标语言里多出来的键（源语言已删）—— 只报告，不自动删（删除需人确认）
-  const orphans = target
-    ? [...target.keys()].filter((key) => !source.has(key))
-    : []
+  const orphans = target ? [...target.keys()].filter((key) => !source.has(key)) : []
 
   return {
     module: moduleName,

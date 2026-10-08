@@ -158,20 +158,38 @@ function parseBindings(body) {
       while (k < body.length && /\s/.test(body[k])) k += 1
       if (body[k] === '{') {
         // 嵌套：ident 作为层名压栈（由后续 `{` 分支复用）——这里先记下
-        out.push({ n: ident, path: stack.map((s) => s.n).filter(Boolean).join('.') })
+        out.push({
+          n: ident,
+          path: stack
+            .map((s) => s.n)
+            .filter(Boolean)
+            .join('.'),
+        })
         continue
       }
       const aStart = k
       while (k < body.length && /[\w$]/.test(body[k])) k += 1
       const alias = body.slice(aStart, k)
       if (alias) {
-        out.push({ n: alias, path: stack.map((s) => s.n).filter(Boolean).join('.') })
+        out.push({
+          n: alias,
+          path: stack
+            .map((s) => s.n)
+            .filter(Boolean)
+            .join('.'),
+        })
         i = k
       }
       continue
     }
 
-    out.push({ n: ident, path: stack.map((s) => s.n).filter(Boolean).join('.') })
+    out.push({
+      n: ident,
+      path: stack
+        .map((s) => s.n)
+        .filter(Boolean)
+        .join('.'),
+    })
   }
 
   return out

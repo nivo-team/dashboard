@@ -105,8 +105,16 @@ export const AI_PAGE_CATALOG: readonly AiPageCatalogEntry[] = [
       { method: 'GET', path: '/ticket/{id}', purpose: '读取单条工单详情' },
       { method: 'POST', path: '/ticket', purpose: '新建工单' },
       { method: 'PUT', path: '/ticket', purpose: '更新单条工单（body 带 id）' },
-      { method: 'DELETE', path: '/ticket/{id}', purpose: '删除单条工单（**无批量端点**，批量需编排多次调用）' },
-      { method: 'PATCH', path: '/ticket/{id}/status', purpose: '变更单条工单状态（body { status }）' },
+      {
+        method: 'DELETE',
+        path: '/ticket/{id}',
+        purpose: '删除单条工单（**无批量端点**，批量需编排多次调用）',
+      },
+      {
+        method: 'PATCH',
+        path: '/ticket/{id}/status',
+        purpose: '变更单条工单状态（body { status }）',
+      },
     ],
   },
   {
@@ -189,9 +197,9 @@ export function searchPageCatalog(
       })
     : [...AI_PAGE_CATALOG]
 
-  const items = matched.slice(0, limit).map((entry) =>
-    withEndpoints ? entry : { ...entry, endpoints: undefined },
-  )
+  const items = matched
+    .slice(0, limit)
+    .map((entry) => (withEndpoints ? entry : { ...entry, endpoints: undefined }))
   return { total: matched.length, items }
 }
 

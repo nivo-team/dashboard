@@ -44,7 +44,8 @@ interface CreateUserBody {
 }
 
 export default defineHandler(async (event) => {
-  const body = await readBody<CreateUserBody>(event).catch(() => ({}) as CreateUserBody)
+  const body = ((await readBody<CreateUserBody>(event).catch(() => undefined)) ??
+    {}) as CreateUserBody
   const nickname = String(body.nickname ?? '').trim()
   if (!nickname) return fail(400, '请输入用户昵称')
 

@@ -20,15 +20,7 @@ if (checkCli.status !== 0) {
 }
 
 try {
-  const args = [
-    'export',
-    '--project',
-    projectId,
-    '--format',
-    'openapi',
-    '--output',
-    outputPath,
-  ]
+  const args = ['export', '--project', projectId, '--format', 'openapi', '--output', outputPath]
 
   // 如果传递了 APIFOX_ACCESS_TOKEN 环境变量，则自动附带
   if (process.env.APIFOX_ACCESS_TOKEN) {

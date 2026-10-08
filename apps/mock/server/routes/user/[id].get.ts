@@ -8,7 +8,13 @@ defineRouteMeta({
     tags: ['用户'],
     description: '根据用户 ID 查询详情',
     parameters: [
-      { in: 'path', name: 'id', required: true, schema: { type: 'integer' }, description: '用户 ID' },
+      {
+        in: 'path',
+        name: 'id',
+        required: true,
+        schema: { type: 'integer' },
+        description: '用户 ID',
+      },
     ],
     responses: {
       200: {

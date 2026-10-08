@@ -104,9 +104,7 @@ export function DangerConfirmDialog({
             </div>
 
             <Input
-              aria-label={
-                labels?.inputAria ?? t('dangerConfirm.inputAria', '确认输入')
-              }
+              aria-label={labels?.inputAria ?? t('dangerConfirm.inputAria', '确认输入')}
               placeholder={confirmationText}
               value={typed}
               onChange={(event) => setTyped(event.target.value)}
@@ -123,9 +121,7 @@ export function DangerConfirmDialog({
           </form>
         </LayerDialog.Body>
 
-        <LayerDialog.Actions
-          dismissLabel={cancelLabel ?? t('dangerConfirm.cancel', '取消')}
-        >
+        <LayerDialog.Actions dismissLabel={cancelLabel ?? t('dangerConfirm.cancel', '取消')}>
           {/*
             用 `form` 属性关联 Body 内的表单（而不是 onClick）：点击按钮、以及焦点在按钮上回车，
             都统一走表单提交；输入框内的回车另走 `Input` 的 `onKeyDown`。

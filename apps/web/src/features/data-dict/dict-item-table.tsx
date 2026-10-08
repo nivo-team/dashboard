@@ -1,34 +1,16 @@
-import {
-  Button,
-  DropdownMenu,
-  LayerDialog,
-  Select,
-  useKumoToastManager,
-} from '@cloudflare/kumo'
+import { Button, DropdownMenu, LayerDialog, Select, useKumoToastManager } from '@cloudflare/kumo'
 import { DotsThree, ListBulletsIcon, PencilSimple, PlusIcon, Trash } from '@phosphor-icons/react'
 import { useMutation } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import {
-  deleteDataDictByIdMutation,
-  postDataDictMutation,
-  putDataDictMutation,
-} from '#/api'
-import {
-  DataTable,
-  createColumnHelper,
-  stockFeatures,
-  useTable,
-} from '#/components/data-table'
+import { deleteDataDictByIdMutation, postDataDictMutation, putDataDictMutation } from '#/api'
+import { DataTable, createColumnHelper, stockFeatures, useTable } from '#/components/data-table'
 import type { ColumnVisibilityState, StockFeatures } from '#/components/data-table'
 import { useAppTableState } from '#/lib/store'
 import { TableControls } from '#/components/table-controls'
 import { extractApiErrorMessage } from '#/lib/api-error'
 import { useHasPermission } from '#/lib/permissions'
-import {
-  DICT_ITEM_DEFAULT_HIDDEN_COLUMNS,
-  useDictItemColumns,
-} from './data-dict-columns'
+import { DICT_ITEM_DEFAULT_HIDDEN_COLUMNS, useDictItemColumns } from './data-dict-columns'
 import { DEFAULT_PAGE_SIZE, DICT_STATUS } from './data-dict-options'
 import type { DictItem, DictItemFormValues } from './data-dict-types'
 import { useDictItems, useInvalidateDictItems } from './use-dict-items'
@@ -69,7 +51,11 @@ export function DictItemTable({ typeId, typeName }: DictItemTableProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
   const [page, setPage] = useAppTableState<number>('system/data-dict/item', 'page', 1)
-  const [pageSize, setPageSize] = useAppTableState<number>('system/data-dict/item', 'pageSize', DEFAULT_PAGE_SIZE)
+  const [pageSize, setPageSize] = useAppTableState<number>(
+    'system/data-dict/item',
+    'pageSize',
+    DEFAULT_PAGE_SIZE,
+  )
 
   // 列设置按应用隔离持久化：同一张表在 Console / Analytics 下各存一份
   const [columnVisibility, setColumnVisibility] = useAppTableState<ColumnVisibilityState>(
@@ -154,9 +140,7 @@ export function DictItemTable({ typeId, typeName }: DictItemTableProps) {
         setEditOpen(false)
         setEditTarget(undefined)
       } catch (submitError) {
-        setFormError(
-          extractApiErrorMessage(submitError, t('form.failed', '操作失败，请稍后重试')),
-        )
+        setFormError(extractApiErrorMessage(submitError, t('form.failed', '操作失败，请稍后重试')))
       }
     },
     [createItemMutation, invalidateItems, t, toast, updateItemMutation],
@@ -420,9 +404,7 @@ export function DictItemTable({ typeId, typeName }: DictItemTableProps) {
       {/* 删除字典项：叶子节点，轻量确认即可 */}
       <LayerDialog.Alert open={deleteOpen} onOpenChange={setDeleteOpen}>
         <LayerDialog.Content size="sm">
-          <LayerDialog.Title>
-            {t('itemDialog.deleteTitle', '删除字典项')}
-          </LayerDialog.Title>
+          <LayerDialog.Title>{t('itemDialog.deleteTitle', '删除字典项')}</LayerDialog.Title>
           <LayerDialog.Description>
             {t('itemDialog.deleteConfirm', '确定要删除「{{name}}」吗？该操作不可撤销。', {
               name: deleteTarget?.label ?? '',

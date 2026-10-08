@@ -4,12 +4,7 @@ import type { SingleParserBuilder } from 'nuqs'
 export type StandardPaginationKeys = 'page' | 'page_size'
 
 /** 标准主查询与排序参数名 */
-export type StandardPrimaryKeys =
-  | 'kw'
-  | 'field'
-  | 'order'
-  | 'time_field'
-  | 'range_time'
+export type StandardPrimaryKeys = 'kw' | 'field' | 'order' | 'time_field' | 'range_time'
 
 /**
  * 从完整 API Query 类型中提取纯筛选字段（剔除 pagination 与 primary 参数）
@@ -26,10 +21,7 @@ export type FilterParamsOf<
 /**
  * 提取主参数（kw、排序等）
  */
-export type PrimaryParamsOf<
-  TQuery,
-  CustomPrimary extends keyof NonNullable<TQuery> = never,
-> = Pick<
+export type PrimaryParamsOf<TQuery, CustomPrimary extends keyof NonNullable<TQuery> = never> = Pick<
   NonNullable<TQuery>,
   Extract<keyof NonNullable<TQuery>, StandardPrimaryKeys | CustomPrimary>
 >

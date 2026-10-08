@@ -2,20 +2,10 @@ import { isToolGranted } from '../tool-permission'
 import type { AiCapabilityGrant } from '../capabilities'
 import { presetCapabilityGrants } from '../capabilities'
 import type { AiPermissionMode, AiSurface, AiToolDefinition } from '../types'
-import {
-  callReadApiTool,
-  callWriteApiTool,
-  listDictOptionsTool,
-  searchApiTool,
-} from './data-tools'
+import { callReadApiTool, callWriteApiTool, listDictOptionsTool, searchApiTool } from './data-tools'
 import { getPageContextTool, listNavigationTool, navigateToTool } from './page-tools'
 import { getPageDataTool, runPageCommandTool } from './feature-tools'
-import {
-  fillFormTool,
-  listPageFormsTool,
-  openFormTool,
-  submitFormTool,
-} from './form-tools'
+import { fillFormTool, listPageFormsTool, openFormTool, submitFormTool } from './form-tools'
 import { manageTasksTool } from './task-tools'
 import { requestPermissionTool } from './permission-tools'
 import { updateSearchParamsTool } from './search-tools'
@@ -175,9 +165,7 @@ export interface AiToolCatalogEntry {
  *
  * `catalog: false` 的工具不进清单（仍可被依赖补齐，只是不摆在选择列表里）。
  */
-export function listToolCatalog(
-  allowedTools: readonly AiToolDefinition[],
-): AiToolCatalogEntry[] {
+export function listToolCatalog(allowedTools: readonly AiToolDefinition[]): AiToolCatalogEntry[] {
   return allowedTools
     .filter((tool) => tool.catalog !== false)
     .map((tool) => ({ name: tool.name, summary: tool.catalogDescription }))
@@ -188,9 +176,7 @@ export function listToolCatalog(
  *
  * 刻意不带 JSON Schema：那是 Execution 阶段才下发的完整定义。
  */
-export function buildToolCatalogText(
-  allowedTools: readonly AiToolDefinition[],
-): string {
+export function buildToolCatalogText(allowedTools: readonly AiToolDefinition[]): string {
   return listToolCatalog(allowedTools)
     .map((entry) => `- ${entry.name}：${entry.summary}`)
     .join('\n')
@@ -310,7 +296,9 @@ export function resolveTools(
   */
   const hasWriteIntent = selected.some((name) => {
     const capability = findTool(name)?.capability
-    return capability === 'data:write' || capability === 'form:submit' || capability === 'page:operate'
+    return (
+      capability === 'data:write' || capability === 'form:submit' || capability === 'page:operate'
+    )
   })
   if (hasWriteIntent && available.has('manage_tasks') && !handled.has('manage_tasks')) {
     handled.add('manage_tasks')

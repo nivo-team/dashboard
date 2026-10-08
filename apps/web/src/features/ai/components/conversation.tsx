@@ -35,11 +35,7 @@ import { TaskCardView, type TaskItemData } from '#/features/ai/components/task-c
  * 默认显示人性化的相对时间（如「刚刚」、「3 分钟前」），
  * 鼠标悬浮通过 Tooltip 仅展示对应时区的完整绝对时间。
  */
-function RelativeTimeTooltip({
-  value,
-}: {
-  value: string | undefined
-}) {
+function RelativeTimeTooltip({ value }: { value: string | undefined }) {
   const { formatDateTime, formatRelative } = useTimezone()
   const { i18n } = useTranslation()
   if (!value) return null
@@ -193,10 +189,7 @@ export interface AiConversationProps {
   surface?: AiSurface
 }
 
-export function AiConversation({
-  manageHistory = true,
-  surface = 'panel',
-}: AiConversationProps) {
+export function AiConversation({ manageHistory = true, surface = 'panel' }: AiConversationProps) {
   const { t } = useTranslation('ai')
   const messages = useAiSessionStore((state) => state.messages)
   const status = useAiSessionStore((state) => state.status)
@@ -276,9 +269,7 @@ export function AiConversation({
             只有**最后一条**消息在流式中（`status === 'streaming'`）时才走纯文本降级；
             之前那些消息都已经定稿，直接渲染 Markdown。
           */
-          streaming={
-            status === 'streaming' && message.id === messages[messages.length - 1]?.id
-          }
+          streaming={status === 'streaming' && message.id === messages[messages.length - 1]?.id}
           pendingApproval={pendingApproval !== null}
           surface={surface}
         />
@@ -323,9 +314,7 @@ function AiMessageView({
   const { t } = useTranslation('ai')
 
   if (message.role === 'user') {
-    const text = message.parts
-      .map((part) => (part.type === 'text' ? part.text : ''))
-      .join('')
+    const text = message.parts.map((part) => (part.type === 'text' ? part.text : '')).join('')
     const { copied, copy } = useCopy(text)
     const rollbackToMessage = useAiSessionStore((state) => state.rollbackToMessage)
 
@@ -342,13 +331,10 @@ function AiMessageView({
       ): part is
         | Extract<AiMessagePart, { type: 'image' }>
         | (Extract<AiMessagePart, { type: 'attachment' }> & { kind: 'image' }) =>
-        part.type === 'image' ||
-        (part.type === 'attachment' && part.kind === 'image'),
+        part.type === 'image' || (part.type === 'attachment' && part.kind === 'image'),
     )
     const textFileParts = message.parts.filter(
-      (
-        part,
-      ): part is Extract<AiMessagePart, { type: 'attachment' }> & { kind: 'text' } =>
+      (part): part is Extract<AiMessagePart, { type: 'attachment' }> & { kind: 'text' } =>
         part.type === 'attachment' && part.kind === 'text',
     )
     return (
@@ -382,9 +368,7 @@ function AiMessageView({
 
         {/* 用户消息操作栏：发送时间(相对时间+Tooltip纯时间), 复制(纯图标+Tooltip), 回退(纯图标+Tooltip) */}
         <div className="flex items-center gap-2 px-1 text-xs text-kumo-subtle justify-end">
-          {message.createdAt ? (
-            <RelativeTimeTooltip value={message.createdAt} />
-          ) : null}
+          {message.createdAt ? <RelativeTimeTooltip value={message.createdAt} /> : null}
 
           {text ? (
             <Tooltip content={copied ? t('copied', '已复制') : t('copy', '复制')}>
@@ -443,16 +427,13 @@ function AiMessageView({
 
   const hasVisibleText =
     (outputMode === 'stream' || !streaming) &&
-    message.parts.some(
-      (part) => part.type === 'text' && part.text.trim().length > 0,
-    )
+    message.parts.some((part) => part.type === 'text' && part.text.trim().length > 0)
 
   const isCurrentlyReasoning = message.parts.some(
     (part) => part.type === 'reasoning' && part.state === 'streaming',
   )
 
-  const showThinking =
-    streaming && !hasVisibleText && !isCurrentlyReasoning && !pendingApproval
+  const showThinking = streaming && !hasVisibleText && !isCurrentlyReasoning && !pendingApproval
 
   // 查找该消息内最后一个 manage_tasks 工具调用的索引
   let lastManageTasksIndex = -1
@@ -572,9 +553,7 @@ function AiMessageView({
               </Tooltip>
             ) : null}
 
-            {message.createdAt ? (
-              <RelativeTimeTooltip value={message.createdAt} />
-            ) : null}
+            {message.createdAt ? <RelativeTimeTooltip value={message.createdAt} /> : null}
           </div>
         ) : null}
       </div>
@@ -748,10 +727,7 @@ function ApprovalCard({ approval }: { approval: PendingApproval }) {
           </span>
         </div>
         <p className="text-xs text-kumo-subtle">
-          {t(
-            'navConfirmHint',
-            '选「本会话自动跳转」后，本次对话里不再询问。',
-          )}
+          {t('navConfirmHint', '选「本会话自动跳转」后，本次对话里不再询问。')}
         </p>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -769,11 +745,7 @@ function ApprovalCard({ approval }: { approval: PendingApproval }) {
           >
             {t('navConfirmSession', '本会话自动跳转')}
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => resolveAiApproval(approval.id, 'deny')}
-          >
+          <Button variant="ghost" size="sm" onClick={() => resolveAiApproval(approval.id, 'deny')}>
             {t('navConfirmSkip', '先不跳')}
           </Button>
         </div>
@@ -796,11 +768,7 @@ function ApprovalCard({ approval }: { approval: PendingApproval }) {
       </pre>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => resolveAiApproval(approval.id, 'once')}
-        >
+        <Button variant="primary" size="sm" onClick={() => resolveAiApproval(approval.id, 'once')}>
           {t('approve', '允许一次')}
         </Button>
         <Button
@@ -810,11 +778,7 @@ function ApprovalCard({ approval }: { approval: PendingApproval }) {
         >
           {t('approveAlways', '本会话不再询问')}
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => resolveAiApproval(approval.id, 'deny')}
-        >
+        <Button variant="ghost" size="sm" onClick={() => resolveAiApproval(approval.id, 'deny')}>
           {t('deny', '拒绝')}
         </Button>
       </div>
@@ -831,11 +795,7 @@ function ApprovalCard({ approval }: { approval: PendingApproval }) {
  *
  * 跳转走外壳桥（与工具层同一条路）：两个容器都注册了桥，所以这里不需要 router 依赖。
  */
-function NavProposalCard({
-  part,
-}: {
-  part: Extract<AiMessagePart, { type: 'nav-proposal' }>
-}) {
+function NavProposalCard({ part }: { part: Extract<AiMessagePart, { type: 'nav-proposal' }> }) {
   const { t } = useTranslation('ai')
   const resolveNavProposal = useAiSessionStore((state) => state.resolveNavProposal)
 
@@ -858,13 +818,9 @@ function NavProposalCard({
       </div>
 
       {part.state === 'accepted' ? (
-        <p className="text-xs text-kumo-subtle">
-          {t('navProposalAccepted', '已打开该页面。')}
-        </p>
+        <p className="text-xs text-kumo-subtle">{t('navProposalAccepted', '已打开该页面。')}</p>
       ) : part.state === 'dismissed' ? (
-        <p className="text-xs text-kumo-subtle">
-          {t('navProposalDismissed', '已留在对话里。')}
-        </p>
+        <p className="text-xs text-kumo-subtle">{t('navProposalDismissed', '已留在对话里。')}</p>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="primary" size="sm" onClick={go}>
@@ -903,11 +859,7 @@ function formatApprovalInput(input: unknown): string {
  * - 用户随时可点击 Trigger 自由展开或重新收起查看完整思考链路；
  * - 纯色语义令牌适配深浅色模式，禁用 dark: 变体。
  */
-function ReasoningPartView({
-  part,
-}: {
-  part: Extract<AiMessagePart, { type: 'reasoning' }>
-}) {
+function ReasoningPartView({ part }: { part: Extract<AiMessagePart, { type: 'reasoning' }> }) {
   const { t } = useTranslation('ai')
   const isStreaming = part.state === 'streaming'
 
@@ -926,12 +878,7 @@ function ReasoningPartView({
 
   // 2. 按照 AI SDK 规范：流式思考结束时，自动平滑折叠收起
   useEffect(() => {
-    if (
-      hasEverStreamedRef.current &&
-      !isStreaming &&
-      isOpen &&
-      !hasAutoClosedRef.current
-    ) {
+    if (hasEverStreamedRef.current && !isStreaming && isOpen && !hasAutoClosedRef.current) {
       const timer = setTimeout(() => {
         setIsOpen(false)
         hasAutoClosedRef.current = true
@@ -961,9 +908,7 @@ function ReasoningPartView({
         ) : (
           <BrainIcon size={13} className="shrink-0 text-kumo-subtle" />
         )}
-        <span className="min-w-0 truncate font-medium text-kumo-subtle">
-          {title}
-        </span>
+        <span className="min-w-0 truncate font-medium text-kumo-subtle">{title}</span>
         <CaretDownIcon
           size={12}
           className="ms-auto shrink-0 text-kumo-subtle transition-transform group-aria-expanded:rotate-180 motion-safe:duration-200"

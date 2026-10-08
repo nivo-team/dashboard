@@ -24,8 +24,7 @@ export function collectTimeFacts(): AiTimeFacts {
   const tzMeta = getTimezoneMeta(tzKey)
 
   // 浏览器（操作系统）时区：拿不到时退回展示时区 —— 至少给模型一个可用的 IANA 名
-  const browserTimeZone =
-    Intl.DateTimeFormat().resolvedOptions().timeZone || tzMeta.iana
+  const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || tzMeta.iana
 
   /*
     展示时区下的本地时间与星期几、今天日期：**都以用户在「外观」里选的时区为准**

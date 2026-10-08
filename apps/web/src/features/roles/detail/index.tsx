@@ -18,12 +18,7 @@ import { UnsavedChangesBar } from '#/components/unsaved-changes-bar'
 import { extractApiErrorMessage } from '#/lib/api-error'
 import { useFeature } from '#/features/ai/page'
 import { useHasPermission } from '#/lib/permissions'
-import {
-  ROLE_STATUS,
-  RoleForm,
-  validateRoleForm,
-  type RoleFormValues,
-} from '../role-form'
+import { ROLE_STATUS, RoleForm, validateRoleForm, type RoleFormValues } from '../role-form'
 import { MenuTreeSelection } from '../role-menu-tree'
 import { createRoleDetailFeature } from './feature'
 
@@ -66,14 +61,10 @@ export function RoleDetailPage() {
 
   const canEdit = useHasPermission('role:edit')
 
-  const roleQuery = useQuery(
-    getRoleByIdQueryOptions({ path: { id: numericId } }),
-  )
+  const roleQuery = useQuery(getRoleByIdQueryOptions({ path: { id: numericId } }))
   const role = roleQuery.data?.result
 
-  const menusQuery = useQuery(
-    getRoleMenusQueryOptions({ query: { role_id: numericId } }),
-  )
+  const menusQuery = useQuery(getRoleMenusQueryOptions({ query: { role_id: numericId } }))
   const menuTreeQuery = useQuery(getSystemMenuTreeQueryOptions())
   const menuTree = (menuTreeQuery.data?.result ?? []) as MenuNode[]
 
@@ -95,10 +86,7 @@ export function RoleDetailPage() {
     [role?.name, role?.code, role?.description, role?.status, role?.sort],
   )
 
-  const initialMenuIds = useMemo(
-    () => menusQuery.data?.result?.menu_ids ?? [],
-    [menusQuery.data],
-  )
+  const initialMenuIds = useMemo(() => menusQuery.data?.result?.menu_ids ?? [], [menusQuery.data])
 
   const normalizedInitial = useMemo(
     () =>
@@ -173,7 +161,9 @@ export function RoleDetailPage() {
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getRoleByIdQueryKey({ path: { id: role.id } }) }),
-        queryClient.invalidateQueries({ queryKey: getRoleMenusQueryKey({ query: { role_id: role.id } }) }),
+        queryClient.invalidateQueries({
+          queryKey: getRoleMenusQueryKey({ query: { role_id: role.id } }),
+        }),
         queryClient.invalidateQueries({ queryKey: ['getRole'] }),
       ])
 
@@ -182,9 +172,7 @@ export function RoleDetailPage() {
       setMenusDraft(null)
       toast.add({ title: t('form.successUpdate', '保存成功'), variant: 'success' })
     } catch (error) {
-      setFormError(
-        extractApiErrorMessage(error, t('form.failed', '操作失败，请稍后重试')),
-      )
+      setFormError(extractApiErrorMessage(error, t('form.failed', '操作失败，请稍后重试')))
     }
   }, [
     role,

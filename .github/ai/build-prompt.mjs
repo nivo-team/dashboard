@@ -77,7 +77,9 @@ kept.forEach((comment, index) => {
   const cleaned = raw.split(AI_MARKER).join('').trim()
   const piece = truncate(cleaned, MAX_COMMENT_CHARS)
   const who = comment.author?.login ? `@${comment.author.login}` : '(未知作者)'
-  const when = String(comment.createdAt ?? '').replace('T', ' ').slice(0, 16)
+  const when = String(comment.createdAt ?? '')
+    .replace('T', ' ')
+    .slice(0, 16)
 
   threadLines.push(
     '---',

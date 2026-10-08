@@ -92,7 +92,8 @@ defineRouteMeta({
         name: 'role',
         in: 'query',
         required: false,
-        description: 'Mock 专用：模拟不同角色（super / editor / viewer），不传优先根据登录 Token 判断',
+        description:
+          'Mock 专用：模拟不同角色（super / editor / viewer），不传优先根据登录 Token 判断',
         schema: { type: 'string' },
       },
     ],
@@ -149,9 +150,7 @@ export default defineHandler((event) => {
   */
   const role: MockRole =
     account?.role ??
-    (requested in ROLE_PERMISSIONS
-      ? (requested as MockRole)
-      : DEFAULT_MOCK_ACCOUNT.role)
+    (requested in ROLE_PERMISSIONS ? (requested as MockRole) : DEFAULT_MOCK_ACCOUNT.role)
 
   // 角色展示名从账号清单派生（`role → roleName` 只有一份定义，见 mock-accounts）
   const roleOwner = MOCK_ACCOUNTS.find((item) => item.role === role)

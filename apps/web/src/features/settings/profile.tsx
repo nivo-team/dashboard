@@ -97,9 +97,7 @@ export function ProfilePage() {
                 <span className="text-sm text-kumo-default">{role || '-'}</span>
               </InfoRow>
 
-              <InfoRow label={t('profile.fields.status', '状态')}>
-                {statusBadge(status, t)}
-              </InfoRow>
+              <InfoRow label={t('profile.fields.status', '状态')}>{statusBadge(status, t)}</InfoRow>
             </div>
           </LayerCard.Primary>
         </LayerCard>
@@ -131,9 +129,7 @@ export function ProfilePage() {
                     <li key={`${item.value ?? item.region ?? index}`}>
                       <Badge variant={isCurrent ? 'success' : 'neutral'} appearance="dot">
                         {item.label || item.region || String(item.value ?? '-')}
-                        {item.disabled
-                          ? ` · ${t('profile.status.disabled', '禁用')}`
-                          : ''}
+                        {item.disabled ? ` · ${t('profile.status.disabled', '禁用')}` : ''}
                       </Badge>
                     </li>
                   )

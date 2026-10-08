@@ -20,12 +20,7 @@ interface AddWidgetDialogProps {
   onAdd: (type: string) => void
 }
 
-export function AddWidgetDialog({
-  open,
-  onOpenChange,
-  widgets,
-  onAdd,
-}: AddWidgetDialogProps) {
+export function AddWidgetDialog({ open, onOpenChange, widgets, onAdd }: AddWidgetDialogProps) {
   const { t } = useTranslation('dashboard')
 
   return (
@@ -39,9 +34,7 @@ export function AddWidgetDialog({
         <LayerDialog.Body>
           <ul className="flex flex-col gap-2">
             {DASHBOARD_WIDGETS.map((definition) => {
-              const addedCount = widgets.filter(
-                (widget) => widget.type === definition.type,
-              ).length
+              const addedCount = widgets.filter((widget) => widget.type === definition.type).length
               const duplicateBlocked = definition.allowMultiple === false && addedCount > 0
               const IconComponent = definition.icon
 
@@ -55,9 +48,7 @@ export function AddWidgetDialog({
                     }}
                     className={cn(
                       'flex w-full items-start gap-3 rounded-lg p-3 text-start ring ring-kumo-line transition-colors',
-                      duplicateBlocked
-                        ? 'cursor-not-allowed opacity-55'
-                        : 'hover:bg-kumo-tint',
+                      duplicateBlocked ? 'cursor-not-allowed opacity-55' : 'hover:bg-kumo-tint',
                     )}
                   >
                     <IconComponent

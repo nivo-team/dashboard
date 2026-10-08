@@ -50,7 +50,8 @@ interface UpdateRoleBody {
 }
 
 export default defineHandler(async (event) => {
-  const body = await readBody<UpdateRoleBody>(event).catch(() => ({}) as UpdateRoleBody)
+  const body = ((await readBody<UpdateRoleBody>(event).catch(() => undefined)) ??
+    {}) as UpdateRoleBody
 
   const id = Number(body.id)
   if (!Number.isFinite(id)) return fail(400, '缺少角色 ID')

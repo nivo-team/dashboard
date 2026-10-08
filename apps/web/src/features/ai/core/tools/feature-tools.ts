@@ -74,9 +74,7 @@ export const getPageDataTool: AiToolDefinition = {
 
     const wanted = typeof input.source === 'string' ? input.source.trim() : ''
     const declared = spec.dataSources ?? []
-    const selected = wanted
-      ? declared.filter((source) => source.id === wanted)
-      : declared
+    const selected = wanted ? declared.filter((source) => source.id === wanted) : declared
 
     if (wanted && selected.length === 0) {
       throw new Error(
@@ -109,9 +107,7 @@ export const getPageDataTool: AiToolDefinition = {
     }
 
     const sources = readFeatureData(routeId)
-    const picked = wanted
-      ? sources.filter((source) => source.id === wanted)
-      : sources
+    const picked = wanted ? sources.filter((source) => source.id === wanted) : sources
 
     /*
       脱敏（`sensitive: true` 的字段）：**出口只有 `redactRecords` 一处**，不再在别处写第二套。
@@ -146,8 +142,7 @@ export const getPageDataTool: AiToolDefinition = {
       },
       data,
       commands,
-      note:
-        '这些数据是**页面此刻已经加载的**（`state` 里是当前筛选 / 分页 / 选中）。标了 `sensitive: true` 的字段值已脱敏，**不要尝试还原**；要确认某个具体值在不在结果里，用 `check_result_match`（每次都会问用户）。据此直接回答即可；要改数据用 `run_page_command`（写类会先弹确认卡）。',
+      note: '这些数据是**页面此刻已经加载的**（`state` 里是当前筛选 / 分页 / 选中）。标了 `sensitive: true` 的字段值已脱敏，**不要尝试还原**；要确认某个具体值在不在结果里，用 `check_result_match`（每次都会问用户）。据此直接回答即可；要改数据用 `run_page_command`（写类会先弹确认卡）。',
     })
   },
 }
@@ -190,9 +185,7 @@ export const runPageCommandTool: AiToolDefinition = {
     }
 
     const commandInput =
-      input.input && typeof input.input === 'object'
-        ? (input.input as Record<string, unknown>)
-        : {}
+      input.input && typeof input.input === 'object' ? (input.input as Record<string, unknown>) : {}
 
     /*
       审批策略：指令自己声明 > 按 kind 推断（write 一律确认）。

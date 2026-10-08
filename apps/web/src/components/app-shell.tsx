@@ -222,10 +222,7 @@ export function AppShell() {
             主列用它（与改动前逐像素一致），分屏面板列用自己的一套（见 detail-preview.tsx）。
             `_main` 外壳的 <main> 没有分屏，保持原样不动。
           */}
-          <main
-            data-shell-content
-            className="flex min-w-0 flex-1 flex-col"
-          >
+          <main data-shell-content className="flex min-w-0 flex-1 flex-col">
             {/*
               DetailPreviewProvider 同时是「详情预览」的状态源与**布局容器**：
               它把路由内容包成 flex 主列，分屏预览面板作为行尾侧的 1/3 列出现在同一行里

@@ -28,10 +28,7 @@ export function MetricsCard() {
       <div className="flex items-start gap-2 text-xs text-kumo-subtle">
         <InfoIcon size={14} className="mt-0.5 shrink-0" aria-hidden />
         <span className="min-w-0">
-          {t(
-            'cards.metrics.description',
-            '卡片尚未接入接口，以下为占位示例数据',
-          )}
+          {t('cards.metrics.description', '卡片尚未接入接口，以下为占位示例数据')}
         </span>
         <Badge variant="secondary" className="ms-auto shrink-0">
           {t('cards.metrics.badge', '示例')}

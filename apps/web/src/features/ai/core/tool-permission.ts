@@ -21,10 +21,7 @@ import type { AiToolDefinition } from './types'
  *
  * 两者取交集；真正的硬边界仍是**执行时**用用户身份调后端（见 `.agents/docs/ai-server-layer.md`）。
  */
-export function isToolGranted(
-  tool: AiToolDefinition,
-  permissions: readonly string[],
-): boolean {
+export function isToolGranted(tool: AiToolDefinition, permissions: readonly string[]): boolean {
   // 必须**全部**具备（AND）
   if (tool.requiredPermissions?.some((p) => !hasPermission(permissions, p))) {
     return false

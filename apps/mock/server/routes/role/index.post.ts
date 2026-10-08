@@ -48,10 +48,13 @@ interface CreateRoleBody {
 }
 
 export default defineHandler(async (event) => {
-  const body = await readBody<CreateRoleBody>(event).catch(() => ({}) as CreateRoleBody)
+  const body = ((await readBody<CreateRoleBody>(event).catch(() => undefined)) ??
+    {}) as CreateRoleBody
 
   const name = String(body.name ?? '').trim()
-  const code = String(body.code ?? '').trim().toLowerCase()
+  const code = String(body.code ?? '')
+    .trim()
+    .toLowerCase()
 
   if (!name) return fail(400, '请输入角色名称')
   if (!code) return fail(400, '请输入角色码')

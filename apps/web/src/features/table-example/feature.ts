@@ -45,7 +45,9 @@ export interface TableExampleListFeatureOptions {
   reload: () => Promise<unknown>
 }
 
-export function createTableExampleListFeature(options: TableExampleListFeatureOptions): FeatureSpec {
+export function createTableExampleListFeature(
+  options: TableExampleListFeatureOptions,
+): FeatureSpec {
   return defineFeature({
     title: '表格示例',
     description:
@@ -186,7 +188,8 @@ export function createTableExampleListFeature(options: TableExampleListFeatureOp
       {
         id: 'create-record',
         title: '打开新建记录表单',
-        description: '用户要求新建 / 添加记录时用它；表单按用户的「表单打开方式」偏好出现（弹窗 / 分屏 / 独立页）',
+        description:
+          '用户要求新建 / 添加记录时用它；表单按用户的「表单打开方式」偏好出现（弹窗 / 分屏 / 独立页）',
         kind: 'navigate',
         permission: 'table-example:create',
         actionType: 'create',

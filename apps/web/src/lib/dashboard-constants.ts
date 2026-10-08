@@ -110,10 +110,7 @@ export interface GridMetrics {
 
 export function getGridMetrics(containerWidth: number): GridMetrics {
   const gaps = (DASHBOARD_COLUMNS - 1) * DASHBOARD_GAP
-  const columnWidth = Math.max(
-    1,
-    (containerWidth - gaps) / DASHBOARD_COLUMNS,
-  )
+  const columnWidth = Math.max(1, (containerWidth - gaps) / DASHBOARD_COLUMNS)
   return {
     columnWidth,
     columnStep: columnWidth + DASHBOARD_GAP,

@@ -1,9 +1,5 @@
 import { DropdownMenu } from '@cloudflare/kumo'
-import {
-  CaretUpDownIcon,
-  CheckIcon,
-  SquaresFourIcon,
-} from '@phosphor-icons/react'
+import { CaretUpDownIcon, CheckIcon, SquaresFourIcon } from '@phosphor-icons/react'
 import { useRouter } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { isMultiAppEnabled, useAuth } from '#/lib/auth'

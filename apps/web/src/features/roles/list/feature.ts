@@ -26,9 +26,19 @@ export function createRoleListFeature(options: RoleListFeatureOptions): FeatureS
     */
     permissions: ['role:read', 'role:create', 'role:edit', 'role:delete'],
     endpoints: [
-      { method: 'GET', path: '/role', permission: 'role:read', purpose: '角色分页列表（支持 kw 关键词）' },
+      {
+        method: 'GET',
+        path: '/role',
+        permission: 'role:read',
+        purpose: '角色分页列表（支持 kw 关键词）',
+      },
       { method: 'POST', path: '/role', permission: 'role:create', purpose: '新建角色' },
-      { method: 'PUT', path: '/role', permission: 'role:edit', purpose: '更新角色（在详情页提交）' },
+      {
+        method: 'PUT',
+        path: '/role',
+        permission: 'role:edit',
+        purpose: '更新角色（在详情页提交）',
+      },
       {
         method: 'DELETE',
         path: '/role/{id}',

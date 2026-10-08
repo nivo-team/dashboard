@@ -26,10 +26,7 @@ import {
 } from '#/features/ai/components/activity-glow'
 import { AiPermissionConfig } from '#/features/ai/components/permission-config'
 import { PageHeader } from '#/components/page-header'
-import {
-  SettingChoicePreview,
-  usePreviewAnimation,
-} from '#/components/settings-choice-preview'
+import { SettingChoicePreview, usePreviewAnimation } from '#/components/settings-choice-preview'
 import { SettingsCard, SettingRow } from '#/components/settings-card'
 import { BetaBadge } from '#/components/beta-badge'
 import { cn } from '#/lib/cn'
@@ -185,17 +182,8 @@ const AI_MODE_PREVIEW_LAYOUTS: Record<AiPanelMode, AppShellPreviewLayout> = {
  * 而本仓库的 `cn` 不做类名去重（纯 clsx），两个同类名同时存在时谁生效取决于
  * Tailwind 的产出顺序。
  */
-function AiModePreview({
-  mode,
-  accentColor,
-}: {
-  mode: AiPanelMode
-  accentColor: string
-}) {
-  const layout = usePreviewAnimation(
-    APP_SHELL_PREVIEW_LIST_LAYOUT,
-    AI_MODE_PREVIEW_LAYOUTS[mode],
-  )
+function AiModePreview({ mode, accentColor }: { mode: AiPanelMode; accentColor: string }) {
+  const layout = usePreviewAnimation(APP_SHELL_PREVIEW_LIST_LAYOUT, AI_MODE_PREVIEW_LAYOUTS[mode])
 
   return (
     <div className="w-72">
@@ -281,10 +269,7 @@ function AiActivityGlowPreview({ accentColor }: { accentColor: string }) {
         css={GLOW_REDUCED_MOTION_CSS}
         className="rounded-lg"
       >
-        <AppShellPreview
-          layout={APP_SHELL_PREVIEW_LIST_LAYOUT}
-          accentColor={accentColor}
-        />
+        <AppShellPreview layout={APP_SHELL_PREVIEW_LIST_LAYOUT} accentColor={accentColor} />
       </BorderBeam>
     </div>
   )
@@ -305,7 +290,7 @@ function AiDetailsPreview() {
     <div className="w-72 space-y-1.5 rounded-lg border border-kumo-line bg-kumo-base p-3">
       <div className="flex justify-end">
         <span className="rounded-lg bg-kumo-tint px-2 py-1 text-xs text-kumo-default">
-          {"帮我看看今天的订单"}
+          {'帮我看看今天的订单'}
         </span>
       </div>
 
@@ -322,18 +307,18 @@ function AiDetailsPreview() {
       >
         <div className="flex items-center gap-2 rounded-lg border border-kumo-line px-2 py-1 text-xs">
           <CheckCircleIcon size={12} className="shrink-0 text-kumo-success" />
-          <span className="min-w-0 truncate text-kumo-default">{"查询订单"}</span>
-          <span className="ms-auto shrink-0 text-kumo-subtle">{"完成"}</span>
+          <span className="min-w-0 truncate text-kumo-default">{'查询订单'}</span>
+          <span className="ms-auto shrink-0 text-kumo-subtle">{'完成'}</span>
         </div>
 
         {/* 本轮用量那一行（缓存命中 / 输入 / 输出）—— 信息密度低，所以不做卡片、只有一行灰字 */}
         <p className="truncate text-xs text-kumo-subtle">
-          {"缓存命中 3.2K · 输入 4.1K · 输出 128"}
+          {'缓存命中 3.2K · 输入 4.1K · 输出 128'}
         </p>
       </div>
 
       <div className="rounded-lg bg-kumo-tint px-2 py-1.5 text-xs text-kumo-default">
-        {"今天共 128 笔订单，比昨天多 12%。"}
+        {'今天共 128 笔订单，比昨天多 12%。'}
       </div>
     </div>
   )
@@ -437,10 +422,7 @@ export function AiSettingsPage() {
         */}
         <SettingRow
           label={t('profile.settings.aiEnabled', '启用 AI')}
-          hint={t(
-            'profile.settings.aiEnabledHint',
-            '关掉后顶栏不再显示「Ask AI」入口',
-          )}
+          hint={t('profile.settings.aiEnabledHint', '关掉后顶栏不再显示「Ask AI」入口')}
         >
           <Switch
             checked={aiEnabled}
@@ -467,10 +449,7 @@ export function AiSettingsPage() {
             'Ask AI 面板的显示方式；窄屏下都会收成浮层',
           )}
         >
-          <div
-            role="group"
-            aria-label={t('profile.settings.aiDisplayMode', '显示方式')}
-          >
+          <div role="group" aria-label={t('profile.settings.aiDisplayMode', '显示方式')}>
             <Tabs
               value={aiPanelMode}
               onValueChange={(next) => setAiPanelMode(next as AiPanelMode)}
@@ -515,10 +494,7 @@ export function AiSettingsPage() {
             '刷新页面后打开面板会开始新会话；同一页面里关掉再打开会接着当前对话',
           )}
         >
-          <div
-            role="group"
-            aria-label={t('profile.settings.aiSessionMode', '新会话时机')}
-          >
+          <div role="group" aria-label={t('profile.settings.aiSessionMode', '新会话时机')}>
             <Tabs
               value={aiSessionMode}
               onValueChange={(next) => setAiSessionMode(next as AiSessionMode)}
@@ -556,10 +532,7 @@ export function AiSettingsPage() {
             '全屏对话页的内容宽度；跟随外观即沿用「外观 → 页面宽度」的选择',
           )}
         >
-          <div
-            role="group"
-            aria-label={t('profile.settings.aiPageWidth', '页面宽度')}
-          >
+          <div role="group" aria-label={t('profile.settings.aiPageWidth', '页面宽度')}>
             <Tabs
               value={aiPageWidth}
               onValueChange={(next) => setAiPageWidth(next as AiPageWidthMode)}
@@ -613,10 +586,7 @@ export function AiSettingsPage() {
               </SettingChoicePreview>
             </span>
           }
-          hint={t(
-            'profile.settings.aiActivityGlowHint',
-            'AI 回答时在页面四周显示一圈流动光带',
-          )}
+          hint={t('profile.settings.aiActivityGlowHint', 'AI 回答时在页面四周显示一圈流动光带')}
         >
           <Switch
             checked={aiActivityGlow}
@@ -634,10 +604,7 @@ export function AiSettingsPage() {
         */}
         <SettingRow
           label={t('profile.settings.aiOutputLanguage', '输出语言')}
-          hint={t(
-            'profile.settings.aiOutputLanguageHint',
-            'AI 用什么语言回答；默认跟随界面语言',
-          )}
+          hint={t('profile.settings.aiOutputLanguageHint', 'AI 用什么语言回答；默认跟随界面语言')}
         >
           <Select<string>
             aria-label={t('profile.settings.aiOutputLanguage', '输出语言')}
@@ -730,15 +697,9 @@ export function AiSettingsPage() {
         */}
         <SettingRow
           label={t('profile.settings.aiOutputMode', '输出方式')}
-          hint={t(
-            'profile.settings.aiOutputModeHint',
-            '回答是边生成边显示，还是想完了一次性给出',
-          )}
+          hint={t('profile.settings.aiOutputModeHint', '回答是边生成边显示，还是想完了一次性给出')}
         >
-          <div
-            role="group"
-            aria-label={t('profile.settings.aiOutputMode', '输出方式')}
-          >
+          <div role="group" aria-label={t('profile.settings.aiOutputMode', '输出方式')}>
             <Tabs
               value={aiOutputMode}
               onValueChange={(next) => setAiOutputMode(next as AiOutputMode)}

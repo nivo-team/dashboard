@@ -37,9 +37,7 @@ export interface DictTypeDetailFeatureOptions {
   reload: () => Promise<unknown> | unknown
 }
 
-export function createDictTypeDetailFeature(
-  options: DictTypeDetailFeatureOptions,
-): FeatureSpec {
+export function createDictTypeDetailFeature(options: DictTypeDetailFeatureOptions): FeatureSpec {
   return defineFeature({
     title: '数据字典分类详情',
     description:

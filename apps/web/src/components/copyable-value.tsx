@@ -52,9 +52,7 @@ export function CopyableValue({ text, ariaLabel, className }: CopyableValueProps
       onClick={() => {
         void handleCopy()
       }}
-      aria-label={
-        ariaLabel ?? t('clipboard.copyAria', '复制 {{text}} 到剪贴板', { text })
-      }
+      aria-label={ariaLabel ?? t('clipboard.copyAria', '复制 {{text}} 到剪贴板', { text })}
       className={cn(
         'group inline-flex max-w-full items-center rounded-md bg-kumo-tint px-2 py-1',
         'font-mono text-sm font-semibold hover:cursor-pointer hover:bg-kumo-fill',
@@ -63,11 +61,7 @@ export function CopyableValue({ text, ariaLabel, className }: CopyableValueProps
     >
       {text}
       {copied ? (
-        <CheckIcon
-          size={12}
-          weight="bold"
-          className="ms-1.5 inline shrink-0 text-kumo-success"
-        />
+        <CheckIcon size={12} weight="bold" className="ms-1.5 inline shrink-0 text-kumo-success" />
       ) : (
         <CopyIcon
           size={12}

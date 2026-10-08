@@ -1,10 +1,6 @@
 import { WarningCircleIcon } from '@phosphor-icons/react'
 import { useTranslation } from 'react-i18next'
-import {
-  DASHBOARD_COLUMNS,
-  DASHBOARD_GAP,
-  DASHBOARD_ROW_HEIGHT,
-} from '#/lib/dashboard-constants'
+import { DASHBOARD_COLUMNS, DASHBOARD_GAP, DASHBOARD_ROW_HEIGHT } from '#/lib/dashboard-constants'
 import type { DashboardWidget } from '#/lib/dashboard-layout'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 import { useDashboardGrid } from './use-dashboard-grid'

@@ -1,17 +1,5 @@
-import {
-  Button,
-  Empty,
-  LayerCard,
-  Loader,
-  Pagination,
-  Table,
-} from '@cloudflare/kumo'
-import {
-  CaretDownIcon,
-  CaretRightIcon,
-  PencilSimpleIcon,
-  TrashIcon,
-} from '@phosphor-icons/react'
+import { Button, Empty, LayerCard, Loader, Pagination, Table } from '@cloudflare/kumo'
+import { CaretDownIcon, CaretRightIcon, PencilSimpleIcon, TrashIcon } from '@phosphor-icons/react'
 import { flexRender } from '@tanstack/react-table'
 import { Fragment, type MouseEvent, type ReactNode, useMemo } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
@@ -173,11 +161,8 @@ export function DataTable({
    * side 一起翻转，因此不需要另写一份 RTL 覆盖样式（写死 left/right 会漏掉渐变方向）。
    * 语言切换时 `useTranslation` 会触发重渲染，方向随之更新。
    */
-  const isRtl =
-    SUPPORTED_LOCALES.find((item) => item.key === i18n.language)?.dir === 'rtl'
-  const resolveStickySide = (
-    side?: 'left' | 'right',
-  ): 'left' | 'right' | undefined => {
+  const isRtl = SUPPORTED_LOCALES.find((item) => item.key === i18n.language)?.dir === 'rtl'
+  const resolveStickySide = (side?: 'left' | 'right'): 'left' | 'right' | undefined => {
     if (!side) return undefined
     if (!isRtl) return side
     return side === 'right' ? 'left' : 'right'
@@ -217,11 +202,9 @@ export function DataTable({
    * 调用方只管把层级列排在第一（见 table-development skill 的「ID 永远排第一列」）。
    */
   const treeColumnId = tree
-    // 显式注解：`getVisibleLeafColumns()` 的元素类型在这里推不出来（TS7006），
-    // 而层级列只需要 `id`，用一个最小结构类型即可
-    ? table
-        .getVisibleLeafColumns()
-        .find((column: { id: string }) => column.id !== 'select')?.id
+    ? // 显式注解：`getVisibleLeafColumns()` 的元素类型在这里推不出来（TS7006），
+      // 而层级列只需要 `id`，用一个最小结构类型即可
+      table.getVisibleLeafColumns().find((column: { id: string }) => column.id !== 'select')?.id
     : undefined
 
   const handleClearSelection = () => {
@@ -277,15 +260,11 @@ export function DataTable({
                 {headerTitle}
               </span>
             ) : (
-              <p className="text-kumo-subtle text-base/[inherit] m-0">
-                {renderQuotaText()}
-              </p>
+              <p className="text-kumo-subtle text-base/[inherit] m-0">{renderQuotaText()}</p>
             )}
 
             {headerActions ? (
-              <div className="flex shrink-0 flex-wrap items-center gap-2">
-                {headerActions}
-              </div>
+              <div className="flex shrink-0 flex-wrap items-center gap-2">{headerActions}</div>
             ) : null}
           </div>
 
@@ -366,56 +345,47 @@ export function DataTable({
         <Table layout={layout} className="text-start">
           {/* 简洁自然的表头渲染 */}
           <Table.Header>
-              {headerGroups.map((headerGroup: any) => (
-                <Table.Row key={headerGroup.id}>
-                  {headerGroup.headers.map((header: any) => {
-                    const column = header.column
-                    const meta = column.columnDef.meta as
-                      | Record<string, any>
-                      | undefined
-                    const headClassName = meta?.headerClassName || ''
-                    const sticky = resolveStickySide(meta?.sticky)
-                    // 表头始终单行显示：配合 table-layout: auto 让列宽按标题自适应，
-                    // 由 meta.headerClassName 提供的最小宽度约束列宽下限。
-                    // 同时显式按书写方向对齐（text-start）：RTL 下与单元格一起靠右，
-                    // 不依赖 <table> 的对齐继承；meta.headerClassName 中的 text-* 优先级更高。
-                    const resolvedHeadClassName = `text-start whitespace-nowrap ${headClassName}`
+            {headerGroups.map((headerGroup: any) => (
+              <Table.Row key={headerGroup.id}>
+                {headerGroup.headers.map((header: any) => {
+                  const column = header.column
+                  const meta = column.columnDef.meta as Record<string, any> | undefined
+                  const headClassName = meta?.headerClassName || ''
+                  const sticky = resolveStickySide(meta?.sticky)
+                  // 表头始终单行显示：配合 table-layout: auto 让列宽按标题自适应，
+                  // 由 meta.headerClassName 提供的最小宽度约束列宽下限。
+                  // 同时显式按书写方向对齐（text-start）：RTL 下与单元格一起靠右，
+                  // 不依赖 <table> 的对齐继承；meta.headerClassName 中的 text-* 优先级更高。
+                  const resolvedHeadClassName = `text-start whitespace-nowrap ${headClassName}`
 
-                    if (header.isPlaceholder) {
-                      return (
-                        <Table.Head
-                          key={header.id}
-                          sticky={sticky}
-                          className={resolvedHeadClassName}
-                        />
-                      )
-                    }
-
-                    const headerContent = flexRender(
-                      column.columnDef.header,
-                      header.getContext(),
-                    )
-
-                    // 如果是多选列或声明了 isDirectHead，内容本身就是 Table.CheckHead（它已自带 th）
-                    if (column.id === 'select' || meta?.isDirectHead) {
-                      return <Fragment key={header.id}>{headerContent}</Fragment>
-                    }
-
+                  if (header.isPlaceholder) {
                     return (
                       <Table.Head
                         key={header.id}
                         sticky={sticky}
                         className={resolvedHeadClassName}
-                      >
-                        {headerContent}
-                      </Table.Head>
+                      />
                     )
-                  })}
-                </Table.Row>
-              ))}
-            </Table.Header>
+                  }
 
-            {/*
+                  const headerContent = flexRender(column.columnDef.header, header.getContext())
+
+                  // 如果是多选列或声明了 isDirectHead，内容本身就是 Table.CheckHead（它已自带 th）
+                  if (column.id === 'select' || meta?.isDirectHead) {
+                    return <Fragment key={header.id}>{headerContent}</Fragment>
+                  }
+
+                  return (
+                    <Table.Head key={header.id} sticky={sticky} className={resolvedHeadClassName}>
+                      {headerContent}
+                    </Table.Head>
+                  )
+                })}
+              </Table.Row>
+            ))}
+          </Table.Header>
+
+          {/*
               行分隔线：Kumo 的 Table 只在表头输出 border-b（[&_th]:border-b），
               body 行原本靠斑马纹（even:bg-kumo-elevated）区分；而本组件显式取消了斑马纹，
               因此必须在单元格上补出「行与行之间」的下边框，否则相邻行会糊成一片。
@@ -423,158 +393,143 @@ export function DataTable({
               - 最后一行不加边框，防止与分页栏的 border-t 叠成双线；
               - 颜色与表头保持一致（border-kumo-fill）。
             */}
-            <Table.Body className="[&>tr>td]:border-b [&>tr>td]:border-kumo-fill [&>tr:last-child>td]:border-b-0">
-              {loading && rows.length === 0 ? (
-                <Table.Row>
-                  <Table.Cell
-                    colSpan={visibleLeafColumnCount}
-                    className="py-16 text-center"
+          <Table.Body className="[&>tr>td]:border-b [&>tr>td]:border-kumo-fill [&>tr:last-child>td]:border-b-0">
+            {loading && rows.length === 0 ? (
+              <Table.Row>
+                <Table.Cell colSpan={visibleLeafColumnCount} className="py-16 text-center">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <Loader size="base" />
+                    <span className="text-sm text-kumo-subtle">
+                      {t('table.dataTable.loading', '正在加载表格数据…')}
+                    </span>
+                  </div>
+                </Table.Cell>
+              </Table.Row>
+            ) : error && rows.length === 0 ? (
+              <Table.Row>
+                <Table.Cell colSpan={visibleLeafColumnCount} className="py-12 text-center">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <p className="text-sm text-kumo-danger">{error}</p>
+                    {onRetry ? (
+                      <Button variant="secondary" size="sm" onClick={onRetry}>
+                        {t('table.dataTable.retry', '重试加载')}
+                      </Button>
+                    ) : null}
+                  </div>
+                </Table.Cell>
+              </Table.Row>
+            ) : rows.length === 0 ? (
+              <Table.Row>
+                <Table.Cell colSpan={visibleLeafColumnCount} className="py-12">
+                  <Empty
+                    icon={emptyIcon}
+                    title={resolvedEmptyTitle}
+                    description={resolvedEmptyDescription}
+                  />
+                </Table.Cell>
+              </Table.Row>
+            ) : (
+              rows.map((row: any) => {
+                const isSelected = row.getIsSelected()
+                // 树形子行（depth > 0）：改用 kumo-elevated 背景，与根行拉开层次。
+                // 选中态由 Kumo 的 selected 变体接管（kumo-tint），优先级更高。
+                const isNestedTreeRow = treeRowAccent && tree && row.depth > 0
+                return (
+                  <Table.Row
+                    key={row.id}
+                    variant={isSelected ? 'selected' : 'default'}
+                    onClick={
+                      onRowClick ? (event) => handleRowClick(event, row.original) : undefined
+                    }
+                    // 取消 Kumo 默认斑马纹（Table.Row 无“无底色”变体，
+                    // 故用同属性类覆盖，由 Kumo 内部的 tailwind-merge 合并掉原 even:bg-kumo-elevated）；
+                    // 行的视觉分隔改由 Table.Body 上的行分割线承担。
+                    // 注意：--kumo-table-row-bg 必须与背景一起改，
+                    // 否则 sticky 列（用它做背景色）会和整行背景错位。
+                    className={cn(
+                      // 整行可点时给出可点反馈；hover 底色同样要同步 --kumo-table-row-bg
+                      onRowClick &&
+                        'cursor-pointer hover:bg-kumo-tint hover:[--kumo-table-row-bg:var(--color-kumo-tint)]',
+                      isSelected
+                        ? undefined
+                        : isNestedTreeRow
+                          ? 'bg-kumo-elevated [--kumo-table-row-bg:var(--color-kumo-elevated)]'
+                          : 'even:bg-kumo-base even:[--kumo-table-row-bg:var(--color-kumo-base)]',
+                    )}
                   >
-                    <div className="flex flex-col items-center justify-center gap-3">
-                      <Loader size="base" />
-                      <span className="text-sm text-kumo-subtle">
-                        {t('table.dataTable.loading', '正在加载表格数据…')}
-                      </span>
-                    </div>
-                  </Table.Cell>
-                </Table.Row>
-              ) : error && rows.length === 0 ? (
-                <Table.Row>
-                  <Table.Cell
-                    colSpan={visibleLeafColumnCount}
-                    className="py-12 text-center"
-                  >
-                    <div className="flex flex-col items-center justify-center gap-3">
-                      <p className="text-sm text-kumo-danger">{error}</p>
-                      {onRetry ? (
-                        <Button variant="secondary" size="sm" onClick={onRetry}>
-                          {t('table.dataTable.retry', '重试加载')}
-                        </Button>
-                      ) : null}
-                    </div>
-                  </Table.Cell>
-                </Table.Row>
-              ) : rows.length === 0 ? (
-                <Table.Row>
-                  <Table.Cell colSpan={visibleLeafColumnCount} className="py-12">
-                    <Empty
-                      icon={emptyIcon}
-                      title={resolvedEmptyTitle}
-                      description={resolvedEmptyDescription}
-                    />
-                  </Table.Cell>
-                </Table.Row>
-              ) : (
-                rows.map((row: any) => {
-                  const isSelected = row.getIsSelected()
-                  // 树形子行（depth > 0）：改用 kumo-elevated 背景，与根行拉开层次。
-                  // 选中态由 Kumo 的 selected 变体接管（kumo-tint），优先级更高。
-                  const isNestedTreeRow =
-                    treeRowAccent && tree && row.depth > 0
-                  return (
-                    <Table.Row
-                      key={row.id}
-                      variant={isSelected ? 'selected' : 'default'}
-                      onClick={
-                        onRowClick
-                          ? (event) => handleRowClick(event, row.original)
-                          : undefined
+                    {row.getVisibleCells().map((cell: any) => {
+                      const meta = cell.column.columnDef.meta as Record<string, any> | undefined
+                      const cellClassName = meta?.cellClassName || ''
+                      const sticky = resolveStickySide(meta?.sticky)
+
+                      const cellContent = flexRender(cell.column.columnDef.cell, cell.getContext())
+
+                      // 如果是多选列或声明了 isDirectCell，内容本身就是 Table.CheckCell（它已自带 td）
+                      if (cell.column.id === 'select' || meta?.isDirectCell) {
+                        return <Fragment key={cell.id}>{cellContent}</Fragment>
                       }
-                      // 取消 Kumo 默认斑马纹（Table.Row 无“无底色”变体，
-                      // 故用同属性类覆盖，由 Kumo 内部的 tailwind-merge 合并掉原 even:bg-kumo-elevated）；
-                      // 行的视觉分隔改由 Table.Body 上的行分割线承担。
-                      // 注意：--kumo-table-row-bg 必须与背景一起改，
-                      // 否则 sticky 列（用它做背景色）会和整行背景错位。
-                      className={cn(
-                        // 整行可点时给出可点反馈；hover 底色同样要同步 --kumo-table-row-bg
-                        onRowClick &&
-                          'cursor-pointer hover:bg-kumo-tint hover:[--kumo-table-row-bg:var(--color-kumo-tint)]',
-                        isSelected
-                          ? undefined
-                          : isNestedTreeRow
-                            ? 'bg-kumo-elevated [--kumo-table-row-bg:var(--color-kumo-elevated)]'
-                            : 'even:bg-kumo-base even:[--kumo-table-row-bg:var(--color-kumo-base)]',
-                      )}
-                    >
-                      {row.getVisibleCells().map((cell: any) => {
-                        const meta = cell.column.columnDef.meta as
-                          | Record<string, any>
-                          | undefined
-                        const cellClassName = meta?.cellClassName || ''
-                        const sticky = resolveStickySide(meta?.sticky)
 
-                        const cellContent = flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )
+                      // 树列：在内容前渲染层级缩进与展开/折叠控件；
+                      // 无子节点的行用等宽占位，保证同层级文本左边界对齐。
+                      const isTreeColumn = cell.column.id === treeColumnId
+                      const resolvedCellContent = isTreeColumn ? (
+                        <div
+                          className="flex items-center gap-1"
+                          style={{
+                            paddingInlineStart: row.depth * treeIndentSize,
+                          }}
+                        >
+                          {row.getCanExpand?.() ? (
+                            <Button
+                              variant="ghost"
+                              shape="square"
+                              size="xs"
+                              className="shrink-0"
+                              aria-label={
+                                row.getIsExpanded()
+                                  ? t('table.dataTable.collapseRow', '折叠')
+                                  : t('table.dataTable.expandRow', '展开')
+                              }
+                              onClick={row.getToggleExpandedHandler()}
+                            >
+                              {row.getIsExpanded() ? (
+                                <CaretDownIcon size={12} weight="bold" />
+                              ) : (
+                                // 折叠态是「指向展开方向」的箭头：RTL 下要指向左侧
+                                <CaretRightIcon size={12} weight="bold" className="rtl-flip" />
+                              )}
+                            </Button>
+                          ) : (
+                            <span className="w-3.5 shrink-0" aria-hidden />
+                          )}
+                          <span className="min-w-0 flex-1">{cellContent}</span>
+                        </div>
+                      ) : (
+                        cellContent
+                      )
 
-                        // 如果是多选列或声明了 isDirectCell，内容本身就是 Table.CheckCell（它已自带 td）
-                        if (cell.column.id === 'select' || meta?.isDirectCell) {
-                          return <Fragment key={cell.id}>{cellContent}</Fragment>
-                        }
-
-                        // 树列：在内容前渲染层级缩进与展开/折叠控件；
-                        // 无子节点的行用等宽占位，保证同层级文本左边界对齐。
-                        const isTreeColumn =
-                          cell.column.id === treeColumnId
-                        const resolvedCellContent = isTreeColumn ? (
-                          <div
-                            className="flex items-center gap-1"
-                            style={{
-                              paddingInlineStart: row.depth * treeIndentSize,
-                            }}
-                          >
-                            {row.getCanExpand?.() ? (
-                              <Button
-                                variant="ghost"
-                                shape="square"
-                                size="xs"
-                                className="shrink-0"
-                                aria-label={
-                                  row.getIsExpanded()
-                                    ? t('table.dataTable.collapseRow', '折叠')
-                                    : t('table.dataTable.expandRow', '展开')
-                                }
-                                onClick={row.getToggleExpandedHandler()}
-                              >
-                                {row.getIsExpanded() ? (
-                                  <CaretDownIcon size={12} weight="bold" />
-                                ) : (
-                                  // 折叠态是「指向展开方向」的箭头：RTL 下要指向左侧
-                                  <CaretRightIcon size={12} weight="bold" className="rtl-flip" />
-                                )}
-                              </Button>
-                            ) : (
-                              <span className="w-3.5 shrink-0" aria-hidden />
-                            )}
-                            <span className="min-w-0 flex-1">{cellContent}</span>
-                          </div>
-                        ) : (
-                          cellContent
-                        )
-
-                        return (
-                          <Table.Cell
-                            key={cell.id}
-                            sticky={sticky}
-                            // 子行的强调线只画在树列上：border-inline-start 是逻辑属性，
-                            // LTR 时贴左、RTL 时贴右，与缩进方向一致
-                            className={
-                              isTreeColumn && isNestedTreeRow
-                                ? `border-s-2 border-kumo-brand ${cellClassName}`
-                                : cellClassName
-                            }
-                          >
-                            {resolvedCellContent}
-                          </Table.Cell>
-                        )
-                      })}
-                    </Table.Row>
-                  )
-                })
-              )}
-            </Table.Body>
-          </Table>
+                      return (
+                        <Table.Cell
+                          key={cell.id}
+                          sticky={sticky}
+                          // 子行的强调线只画在树列上：border-inline-start 是逻辑属性，
+                          // LTR 时贴左、RTL 时贴右，与缩进方向一致
+                          className={
+                            isTreeColumn && isNestedTreeRow
+                              ? `border-s-2 border-kumo-brand ${cellClassName}`
+                              : cellClassName
+                          }
+                        >
+                          {resolvedCellContent}
+                        </Table.Cell>
+                      )
+                    })}
+                  </Table.Row>
+                )
+              })
+            )}
+          </Table.Body>
+        </Table>
       </LayerCard.Primary>
 
       {/* 卡片尾部（可选）：统计信息等，与表格同级、不参与横向滚动 */}

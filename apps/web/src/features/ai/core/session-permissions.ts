@@ -50,7 +50,6 @@ let currentDraftScopeId = createUniqueDraftScopeId()
  * 当用户新开对话（startNewSession）时调用，确保新会话与上一个会话权限完全隔离。
  */
 export function resetDraftSessionScope(): void {
-  const appId = useAuthStore.getState().currentApp?.id ?? null
   clearSessionGrants(currentDraftScopeId)
   currentDraftScopeId = createUniqueDraftScopeId()
 }
@@ -102,10 +101,7 @@ if (typeof window !== 'undefined') {
   }
 }
 
-function loadGrantsFromStorage(
-  appId: string | null,
-  sessionId: string | null,
-): Set<string> {
+function loadGrantsFromStorage(appId: string | null, sessionId: string | null): Set<string> {
   const key = getStorageKey(appId, sessionId)
   const cached = memoryCache.get(key)
   if (cached) return cached
@@ -151,10 +147,7 @@ function saveGrantsToStorage(
  * 判定指定工具在当前会话中是否已获得授权（免确认执行）
  * 严格绑定特定 sessionId：其他会话或新会话无法匹配
  */
-export function hasSessionGrant(
-  toolName: string,
-  sessionId: string | null,
-): boolean {
+export function hasSessionGrant(toolName: string, sessionId: string | null): boolean {
   const appId = useAuthStore.getState().currentApp?.id ?? null
   const grants = loadGrantsFromStorage(appId, sessionId)
 
@@ -164,9 +157,7 @@ export function hasSessionGrant(
   // 2. 表单工具组整体授权
   if (
     grants.has('group:form') &&
-    (toolName === 'open_form' ||
-      toolName === 'fill_form' ||
-      toolName === 'submit_form')
+    (toolName === 'open_form' || toolName === 'fill_form' || toolName === 'submit_form')
   ) {
     return true
   }

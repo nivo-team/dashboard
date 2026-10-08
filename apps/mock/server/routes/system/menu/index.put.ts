@@ -76,7 +76,8 @@ interface MenuUpdateBody {
 }
 
 export default defineHandler(async (event) => {
-  const body = await readBody<MenuUpdateBody>(event).catch(() => ({}) as MenuUpdateBody)
+  const body = ((await readBody<MenuUpdateBody>(event).catch(() => undefined)) ??
+    {}) as MenuUpdateBody
 
   const id = Number(body?.menu_id)
   const row = db.menus.find((m) => m.menu_id === id)

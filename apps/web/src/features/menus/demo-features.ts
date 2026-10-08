@@ -72,10 +72,7 @@ export const DEMO_FEATURES: MenuNode[] = [
             visible: 1,
             is_frame: 2,
             no_cache: 1,
-            api_keys: [
-              '30cd4f597a030a1b9bad8ca9e571f7ef',
-              '73a932377360a57c6f80180ab3b20e27',
-            ],
+            api_keys: ['30cd4f597a030a1b9bad8ca9e571f7ef', '73a932377360a57c6f80180ab3b20e27'],
             id_path: '/0/482/484/',
             created_at: '2026-09-24 10:31:03',
             updated_at: '2026-09-24 10:54:41',

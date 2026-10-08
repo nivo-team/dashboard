@@ -5,9 +5,7 @@
  * i18n 初始化需要 store 里保存的用户选择，而 store 又需要这里定义的 `LocaleKey`。
  */
 
-export type LocaleKey =
-  | 'zh-CN'
-  | 'ar-SA'
+export type LocaleKey = 'zh-CN' | 'ar-SA'
 
 export interface LocaleMeta {
   key: LocaleKey
@@ -30,10 +28,7 @@ export const LEGACY_LOCALE_STORAGE_KEY = 'admin.locale'
 
 /** 受支持语言的判定（迁移旧值与持久化数据校验共用）。 */
 export function isLocaleKey(value: unknown): value is LocaleKey {
-  return (
-    typeof value === 'string' &&
-    SUPPORTED_LOCALES.some((item) => item.key === value)
-  )
+  return typeof value === 'string' && SUPPORTED_LOCALES.some((item) => item.key === value)
 }
 
 /**

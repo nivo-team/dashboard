@@ -71,11 +71,7 @@ export function AiSessionPicker() {
 
         {/* 底部同样只留白、不画上边线；按钮回到默认尺寸，与输入框等高 */}
         <div className="p-2">
-          <Button
-            variant="secondary"
-            className="w-full justify-center"
-            onClick={handleNew}
-          >
+          <Button variant="secondary" className="w-full justify-center" onClick={handleNew}>
             <PlusIcon size={16} />
             {t('sessionNew', '新对话')}
           </Button>

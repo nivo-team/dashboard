@@ -111,8 +111,7 @@ export function ColumnSettingsDropdown({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const meta = col.columnDef.meta as Record<string, any> | undefined
         const label =
-          meta?.label ||
-          (typeof col.columnDef.header === 'string' ? col.columnDef.header : col.id)
+          meta?.label || (typeof col.columnDef.header === 'string' ? col.columnDef.header : col.id)
         return {
           key: col.id,
           label,
@@ -135,8 +134,7 @@ export function ColumnSettingsDropdown({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const meta = col.columnDef.meta as Record<string, any> | undefined
       const label = (
-        meta?.label ||
-        (typeof col.columnDef.header === 'string' ? col.columnDef.header : col.id)
+        meta?.label || (typeof col.columnDef.header === 'string' ? col.columnDef.header : col.id)
       ).toLowerCase()
       return label.includes(q) || col.id.toLowerCase().includes(q)
     })
@@ -161,9 +159,8 @@ export function ColumnSettingsDropdown({
   }, [normalizedOther, filterQuery])
 
   const hasAnyMatch =
-    (displayTableColumns
-      ? displayTableColumns.length > 0
-      : displayNormalizedCols.length > 0) || displayOther.length > 0
+    (displayTableColumns ? displayTableColumns.length > 0 : displayNormalizedCols.length > 0) ||
+    displayOther.length > 0
 
   // 计算是否处于初始默认配置
   const computedIsDefault = useMemo(() => {
@@ -177,8 +174,7 @@ export function ColumnSettingsDropdown({
       colsMatch = tableColumns.every((col: any) => col.getIsVisible())
     } else {
       colsMatch = normalizedCols.every(
-        (col: NormalizedColumnItem) =>
-          (columnVisibility[col.key] ?? true) === col.defaultVisible,
+        (col: NormalizedColumnItem) => (columnVisibility[col.key] ?? true) === col.defaultVisible,
       )
     }
 
@@ -191,14 +187,7 @@ export function ColumnSettingsDropdown({
     )
 
     return colsMatch && otherMatch
-  }, [
-    isDefault,
-    tableColumns,
-    normalizedCols,
-    normalizedOther,
-    columnVisibility,
-    otherVisibility,
-  ])
+  }, [isDefault, tableColumns, normalizedCols, normalizedOther, columnVisibility, otherVisibility])
 
   const handleReset = () => {
     setFilterQuery('')
@@ -301,15 +290,13 @@ export function ColumnSettingsDropdown({
           ) : null}
 
           {displayTableColumns
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ? displayTableColumns.map((col: any) => {
+            ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              displayTableColumns.map((col: any) => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const meta = col.columnDef.meta as Record<string, any> | undefined
                 const label =
                   meta?.label ||
-                  (typeof col.columnDef.header === 'string'
-                    ? col.columnDef.header
-                    : col.id)
+                  (typeof col.columnDef.header === 'string' ? col.columnDef.header : col.id)
                 const isChecked = col.getIsVisible()
 
                 return (

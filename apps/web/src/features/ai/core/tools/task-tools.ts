@@ -58,9 +58,7 @@ export interface TaskItem {
 /**
  * 从会话消息历史中提取最新的一份任务清单。
  */
-export function getLatestSessionTasks(
-  messages: readonly AiMessage[],
-): TaskItem[] | null {
+export function getLatestSessionTasks(messages: readonly AiMessage[]): TaskItem[] | null {
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i]
     if (msg.role !== 'assistant') continue
@@ -381,7 +379,9 @@ export const manageTasksTool: AiToolDefinition = {
       return capability ? [{ capability }] : []
     })
 
-    if (needsApproval('plan', { mode: ctx.mode, planHasWrites: planHasWriteSteps(stepCapabilities) })) {
+    if (
+      needsApproval('plan', { mode: ctx.mode, planHasWrites: planHasWriteSteps(stepCapabilities) })
+    ) {
       const approved = await ctx.requestApproval({
         toolName: 'manage_tasks',
         input: { steps: rawTasks.map((t) => ({ title: t.title, action: t.action })) },

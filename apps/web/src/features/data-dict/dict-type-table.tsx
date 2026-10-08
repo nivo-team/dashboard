@@ -1,18 +1,17 @@
+import { Button, DropdownMenu, useKumoToastManager } from '@cloudflare/kumo'
 import {
-  Button,
-  DropdownMenu,
-  useKumoToastManager,
-} from '@cloudflare/kumo'
-import { DotsThree, FolderPlusIcon, ListDashesIcon, PencilSimple, Trash } from '@phosphor-icons/react'
+  DotsThree,
+  FolderPlusIcon,
+  ListDashesIcon,
+  PencilSimple,
+  Trash,
+} from '@phosphor-icons/react'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import {
-  deleteDataDictTypeByIdMutation,
-  postDataDictTypeMutation,
-} from '#/api'
+import { deleteDataDictTypeByIdMutation, postDataDictTypeMutation } from '#/api'
 import {
   DataTable,
   createColumnHelper,
@@ -20,11 +19,7 @@ import {
   useTable,
   useTreeSearchExpanded,
 } from '#/components/data-table'
-import type {
-  ColumnVisibilityState,
-  ExpandedState,
-  StockFeatures,
-} from '#/components/data-table'
+import type { ColumnVisibilityState, ExpandedState, StockFeatures } from '#/components/data-table'
 import { useAppTableState } from '#/lib/store'
 import { DangerConfirmDialog } from '#/components/danger-confirm-dialog'
 import { TableControls } from '#/components/table-controls'
@@ -32,10 +27,7 @@ import { extractApiErrorMessage } from '#/lib/api-error'
 import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
 import { useHasPermission } from '#/lib/permissions'
 import { countTreeNodes } from '#/lib/tree-search'
-import {
-  DICT_TYPE_DEFAULT_HIDDEN_COLUMNS,
-  useDictTypeColumns,
-} from './data-dict-columns'
+import { DICT_TYPE_DEFAULT_HIDDEN_COLUMNS, useDictTypeColumns } from './data-dict-columns'
 import {
   DEFAULT_PAGE_SIZE,
   DICT_TYPE_ROW_ID,
@@ -131,7 +123,11 @@ export function DictTypeTable({
   const [keyword, setKeyword] = useState('')
 
   const [page, setPage] = useAppTableState<number>('system/data-dict/type', 'page', 1)
-  const [pageSize, setPageSize] = useAppTableState<number>('system/data-dict/type', 'pageSize', DEFAULT_PAGE_SIZE)
+  const [pageSize, setPageSize] = useAppTableState<number>(
+    'system/data-dict/type',
+    'pageSize',
+    DEFAULT_PAGE_SIZE,
+  )
 
   // 列设置按应用隔离持久化：同一张表在 Console / Analytics 下各存一份
   const [columnVisibility, setColumnVisibility] = useAppTableState<ColumnVisibilityState>(
@@ -233,9 +229,7 @@ export function DictTypeTable({
         setCreateOpen(false)
         setCreateParentId(undefined)
       } catch (submitError) {
-        setFormError(
-          extractApiErrorMessage(submitError, t('form.failed', '操作失败，请稍后重试')),
-        )
+        setFormError(extractApiErrorMessage(submitError, t('form.failed', '操作失败，请稍后重试')))
       }
     },
     [createParentId, createTypeMutation, invalidateTypeTree, rootParentId, t, toast],
@@ -247,11 +241,9 @@ export function DictTypeTable({
       const childCount = dictTypeChildren(node).length
       if (childCount > 0) {
         toast.add({
-          title: t(
-            'messages.deleteBlocked',
-            '该分类下还有 {{total}} 个子分类，请先删除子分类',
-            { total: childCount },
-          ),
+          title: t('messages.deleteBlocked', '该分类下还有 {{total}} 个子分类，请先删除子分类', {
+            total: childCount,
+          }),
           variant: 'warning',
         })
         return
@@ -341,10 +333,7 @@ export function DictTypeTable({
                         </DropdownMenu.Item>
                       ) : null}
                       {canEdit ? (
-                        <DropdownMenu.Item
-                          className="gap-2"
-                          onClick={() => openType(row.original)}
-                        >
+                        <DropdownMenu.Item className="gap-2" onClick={() => openType(row.original)}>
                           <PencilSimple size={16} />
                           <span>{t('rowActions.editType', '编辑分类')}</span>
                         </DropdownMenu.Item>
@@ -447,14 +436,9 @@ export function DictTypeTable({
         onRetry={onRetry}
         moduleName={t('moduleName', '数据字典')}
         headerTitle={headerTitle}
-        quotaText={
-          typeof quotaText === 'function' ? quotaText(quotaTotal) : quotaText
-        }
+        quotaText={typeof quotaText === 'function' ? quotaText(quotaTotal) : quotaText}
         emptyTitle={t('empty.typeTitle', '暂无分类数据')}
-        emptyDescription={t(
-          'empty.typeDescription',
-          '未找到符合条件的分类，请尝试更换关键词',
-        )}
+        emptyDescription={t('empty.typeDescription', '未找到符合条件的分类，请尝试更换关键词')}
         emptyIcon={<ListDashesIcon size={44} className="text-kumo-inactive" />}
         tree
         pagination={

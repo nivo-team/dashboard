@@ -151,8 +151,7 @@ export function TableExampleDetailView({
           {t('detail.notFoundTitle', '未找到该记录')}
         </h2>
         <p className="max-w-md text-sm text-kumo-subtle">
-          {errorMsg ||
-            t('detail.notFoundDescription', '该记录可能已被删除，或 UID 不正确')}
+          {errorMsg || t('detail.notFoundDescription', '该记录可能已被删除，或 UID 不正确')}
         </p>
       </div>
       <div className="flex items-center gap-2">
@@ -186,9 +185,7 @@ export function TableExampleDetailView({
           <div className="text-lg font-semibold text-kumo-default">
             {user.nickname || t('cell.unnamed', '未设置昵称')}
           </div>
-          <div className="mt-1 font-mono text-xs text-kumo-subtle">
-            ID {user.id ?? '-'}
-          </div>
+          <div className="mt-1 font-mono text-xs text-kumo-subtle">ID {user.id ?? '-'}</div>
         </div>
       </div>
 
@@ -207,7 +204,6 @@ export function TableExampleDetailView({
           value={formatTimestamp(user.logintime)}
         />
       </DetailSection>
-
     </>
   )
 

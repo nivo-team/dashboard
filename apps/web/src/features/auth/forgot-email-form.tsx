@@ -1,8 +1,4 @@
-import {
-  Button,
-  Input,
-  useKumoToastManager,
-} from '@cloudflare/kumo'
+import { Button, Input, useKumoToastManager } from '@cloudflare/kumo'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RouterLink } from '#/components/router-link'
@@ -79,11 +75,7 @@ export function ForgotEmailForm({
           <span className="font-semibold text-base text-kumo-brand">{foundEmail}</span>
           <div className="mt-2 text-center text-sm text-kumo-subtle">
             <span>{t('hasAccount', '已有账号？')} </span>
-            <RouterLink
-              to={loginHref}
-              variant="plain"
-              className="font-semibold text-kumo-link"
-            >
+            <RouterLink to={loginHref} variant="plain" className="font-semibold text-kumo-link">
               {t('toSignIn', '立即登录')}
             </RouterLink>
           </div>
@@ -118,11 +110,7 @@ export function ForgotEmailForm({
 
           <div className="mt-2.5 text-center text-sm text-kumo-subtle">
             <span>{t('hasAccount', '已有账号？')} </span>
-            <RouterLink
-              to={loginHref}
-              variant="plain"
-              className="font-semibold text-kumo-link"
-            >
+            <RouterLink to={loginHref} variant="plain" className="font-semibold text-kumo-link">
               {t('toSignIn', '立即登录')}
             </RouterLink>
           </div>

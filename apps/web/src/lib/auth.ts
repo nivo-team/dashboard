@@ -48,11 +48,7 @@ export interface AuthState {
 
 export interface AuthActions {
   /** 阶段一：账号密码认证成功，写入凭据与可用应用列表（此时还没有选定应用）。 */
-  setAuthenticatedSession: (sessionData: {
-    token: string
-    user: UserInfo
-    apps: AppItem[]
-  }) => void
+  setAuthenticatedSession: (sessionData: { token: string; user: UserInfo; apps: AppItem[] }) => void
   /** 动态更新可用应用列表。 */
   setAvailableApps: (apps: AppItem[]) => void
   /** 阶段二：选定具体 App，设置 currentApp 并同步 API Base URL 与 app 作用域。 */
@@ -209,8 +205,7 @@ export const useAuthStore = create<AuthStore>()(
 
       selectAppAndComplete: (selectedAppId) => {
         const { availableApps } = get()
-        const chosenApp =
-          availableApps.find((app) => app.id === selectedAppId) ?? availableApps[0]
+        const chosenApp = availableApps.find((app) => app.id === selectedAppId) ?? availableApps[0]
         // 应用列表为空（接口未就绪）时保持未选定，由页面引导重新加载
         if (!chosenApp) return
 
@@ -327,7 +322,8 @@ export const useAuthStore = create<AuthStore>()(
       },
       // 水合完成即把激活应用同步到 app 作用域：per-app store 据此读对应命名空间
       onRehydrateStorage: () => (state) => {
-        const targetId = state?.currentApp?.id || (!isMultiAppEnabled() ? DEFAULT_APP_ID : undefined)
+        const targetId =
+          state?.currentApp?.id || (!isMultiAppEnabled() ? DEFAULT_APP_ID : undefined)
         setAppScope(targetId)
       },
     },

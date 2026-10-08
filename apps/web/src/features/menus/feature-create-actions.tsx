@@ -20,9 +20,7 @@ interface FeatureCreateActionsProps {
  *
  * 功能详情里的权限创建不走这里（它是弹窗，见 `feature-permission-dialogs.tsx`）。
  */
-export function FeatureCreateActions({
-  parentId = MENU_ROOT_ID,
-}: FeatureCreateActionsProps) {
+export function FeatureCreateActions({ parentId = MENU_ROOT_ID }: FeatureCreateActionsProps) {
   const { t } = useTranslation('menus')
   const navigate = useNavigate()
   const { currentApp } = useAuth()
@@ -61,11 +59,7 @@ export function FeatureCreateActions({
       <DropdownMenu>
         <DropdownMenu.Trigger
           render={
-            <Button
-              variant="primary"
-              shape="square"
-              aria-label={t('createGroup', '添加功能组')}
-            >
+            <Button variant="primary" shape="square" aria-label={t('createGroup', '添加功能组')}>
               <CaretDownIcon size={16} />
             </Button>
           }

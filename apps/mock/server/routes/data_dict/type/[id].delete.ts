@@ -13,7 +13,13 @@ defineRouteMeta({
     tags: ['数据字典'],
     description: '删除字典分类（存在子分类或字典项时会被拒绝）',
     parameters: [
-      { in: 'path', name: 'id', required: true, schema: { type: 'integer' }, description: '分类 ID' },
+      {
+        in: 'path',
+        name: 'id',
+        required: true,
+        schema: { type: 'integer' },
+        description: '分类 ID',
+      },
     ],
     responses: {
       200: {

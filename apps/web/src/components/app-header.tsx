@@ -84,17 +84,13 @@ function useBreadcrumbs(): CrumbItem[] {
   }
 
   // 优先精确匹配；否则取最长前缀命中项，剩余分段作为动态参数逐级追加
-  const hits = (target: string) =>
-    subPath === target || subPath.startsWith(`${target}/`)
+  const hits = (target: string) => subPath === target || subPath.startsWith(`${target}/`)
   const matched = navTrails
     .filter((nav) => hits(nav.to))
     .sort((a, b) => b.to.length - a.to.length)[0]
 
   if (matched) {
-    const rest = subPath
-      .slice(matched.to.length)
-      .split('/')
-      .filter(Boolean)
+    const rest = subPath.slice(matched.to.length).split('/').filter(Boolean)
 
     const trail: CrumbItem[] = matched.trail.map((crumb, index) => ({
       ...crumb,
@@ -118,11 +114,7 @@ function useBreadcrumbs(): CrumbItem[] {
     // 业务模块注册了层级名称时，优先用「名称 + 可点层级」替换原始动态段
     const namedRest = resolveBreadcrumbTrail(`${appPrefix}${subPath}`)
 
-    return [
-      { label: homeLabel, href: homeHref },
-      ...trail,
-      ...(namedRest ?? restCrumbs),
-    ]
+    return [{ label: homeLabel, href: homeHref }, ...trail, ...(namedRest ?? restCrumbs)]
   }
 
   // 兜底分段：仅对业务层级分段，appId 作为首页基准不作为独立面包屑项
@@ -138,11 +130,7 @@ function useBreadcrumbs(): CrumbItem[] {
   ]
 }
 
-export function AppHeader({
-  onOpenCommandPalette,
-  onToggleAskAi,
-  isAskAiOpen,
-}: AppHeaderProps) {
+export function AppHeader({ onOpenCommandPalette, onToggleAskAi, isAskAiOpen }: AppHeaderProps) {
   const crumbs = useBreadcrumbs()
   // AI 功能被关掉时，顶栏的入口整个不出现（面板那边也会被下面收起）
   const aiEnabled = usePreferencesStore((state) => state.aiEnabled)
@@ -161,9 +149,7 @@ export function AppHeader({
               <Fragment key={`${crumb.label}-${index}`}>
                 {index > 0 ? <Breadcrumbs.Separator /> : null}
                 {crumb.href && !isLast ? (
-                  <Breadcrumbs.Link href={crumb.href}>
-                    {crumb.label}
-                  </Breadcrumbs.Link>
+                  <Breadcrumbs.Link href={crumb.href}>{crumb.label}</Breadcrumbs.Link>
                 ) : (
                   <Breadcrumbs.Current>{crumb.label}</Breadcrumbs.Current>
                 )}

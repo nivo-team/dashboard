@@ -60,7 +60,10 @@ export function validateFeatureForm(
       return { field: 'path', message: t('form.pathRequired', '请填写路由地址') }
     }
     if (!path.startsWith('/')) {
-      return { field: 'path', message: t('form.pathInvalid', '路由地址需以 / 开头，如 /system/menus') }
+      return {
+        field: 'path',
+        message: t('form.pathInvalid', '路由地址需以 / 开头，如 /system/menus'),
+      }
     }
   }
 
@@ -342,7 +345,21 @@ export function FeatureForm({
         visible: isButton ? undefined : visible,
       })
     },
-    [apiKeys, icon, isButton, isGroup, name, onSubmit, path, permission, sortText, status, t, variant, visible],
+    [
+      apiKeys,
+      icon,
+      isButton,
+      isGroup,
+      name,
+      onSubmit,
+      path,
+      permission,
+      sortText,
+      status,
+      t,
+      variant,
+      visible,
+    ],
   )
 
   // 把当前草稿值上报给外部：详情页据此判断「未保存更改」，并在浮条上提交
@@ -375,123 +392,120 @@ export function FeatureForm({
     // `contents` = display:contents：fieldset 不产生盒子，原有的 flex 布局不受影响
     <fieldset disabled={readOnly} className="contents">
       <>
-      {parentName !== undefined ? (
-        <p className="text-sm text-kumo-subtle">
-          {t('form.parentHint', '将创建在：{{parent}}', {
-            parent: parentName || t('detail.rootFeature', '根层级'),
-          })}
-        </p>
-      ) : null}
+        {parentName !== undefined ? (
+          <p className="text-sm text-kumo-subtle">
+            {t('form.parentHint', '将创建在：{{parent}}', {
+              parent: parentName || t('detail.rootFeature', '根层级'),
+            })}
+          </p>
+        ) : null}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {/*
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/*
           统一用 Kumo `Input` 自带的 Field 外壳（label / description / error 直接传给 Input）：
           裸 `Input` 套在外层 `Field` 里的写法没有把自己的 label 关联到控件上，
           开发环境会报 "Input must have an accessible name"。
         */}
-        <Input
-          label={t('form.name', '名称')}
-          labelTooltip={t('form.nameDescription', '2–50 个字符，用于展示的标识')}
-          error={nameError ? { message: nameError, match: 'customError' } : undefined}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder={t('form.namePlaceholder', '请输入名称')}
-          autoFocus
-        />
+          <Input
+            label={t('form.name', '名称')}
+            labelTooltip={t('form.nameDescription', '2–50 个字符，用于展示的标识')}
+            error={nameError ? { message: nameError, match: 'customError' } : undefined}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder={t('form.namePlaceholder', '请输入名称')}
+            autoFocus
+          />
 
-        {/*
+          {/*
           路由地址：**目录与菜单必填的落点**（操作是按钮级权限点，没有页面可跳）。
           侧边栏最终就是按它拼 `/${appId}${path}` 跳转的，所以这里必须能配 ——
           之前这个字段只在 mock 与契约里存在，表单里根本没有入口。
         */}
-        {!isButton ? (
-          <Input
-            label={t('form.path', '路由地址')}
-            labelTooltip={t('form.pathDescription', '相对应用的路由，如 /system/menus；目录填它的落地路由')}
-            error={pathError ? { message: pathError, match: 'customError' } : undefined}
-            value={path}
-            onChange={(event) => {
-              setPath(event.target.value)
-              if (pathError) setPathError(null)
-            }}
-            placeholder={t('form.pathPlaceholder', '/system/menus')}
-          />
-        ) : null}
-
-        {/* 权限标识：功能与权限必填，功能组不需要 */}
-        {!isGroup ? (
-          <Input
-            label={t('form.permission', '权限标识')}
-            labelTooltip={t('form.permissionDescription', '接口权限编码，例如 n:menus:list')}
-            error={
-              permissionError
-                ? { message: permissionError, match: 'customError' }
-                : undefined
-            }
-            value={permission}
-            onChange={(event) => setPermission(event.target.value)}
-            placeholder={t('form.permissionPlaceholder', 'n:menus:list')}
-          />
-        ) : null}
-
-        <Input
-          label={t('form.icon', '图标')}
-          labelTooltip={t('form.iconDescription', '图标名称，例如 ListDashes')}
-          value={icon}
-          onChange={(event) => setIcon(event.target.value)}
-          placeholder={t('form.iconPlaceholder', '可选')}
-        />
-
-        <Input
-          label={t('form.sort', '排序')}
-          labelTooltip={t('form.sortDescription', '同级内从小到大排列')}
-          type="number"
-          value={sortText}
-          onChange={(event) => setSortText(event.target.value)}
-        />
-
-        {/* 绑定接口：功能绑列表接口、权限绑具体 action 接口；功能组不需要 */}
-        {!isGroup ? (
-          <FeatureApiKeysField
-            value={apiKeys}
-            onChange={setApiKeys}
-            disabled={submitting}
-          />
-        ) : null}
-      </div>
-
-      {/* 开关区：权限两者都不出现；「启用」可被外部接管（showStatusSwitch=false 时放到页头） */}
-      {!isButton ? (
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-          {showStatusSwitch ? (
-            <Switch
-              checked={status === MENU_STATUS.enabled}
-              onCheckedChange={(checked) =>
-                setStatus(checked ? MENU_STATUS.enabled : MENU_STATUS.disabled)
-              }
-              // 文案跟随当前状态：开=启用、关=禁用
-              label={
-                status === MENU_STATUS.enabled
-                  ? t('form.statusEnabled', '启用')
-                  : t('form.statusDisabled', '禁用')
-              }
+          {!isButton ? (
+            <Input
+              label={t('form.path', '路由地址')}
+              labelTooltip={t(
+                'form.pathDescription',
+                '相对应用的路由，如 /system/menus；目录填它的落地路由',
+              )}
+              error={pathError ? { message: pathError, match: 'customError' } : undefined}
+              value={path}
+              onChange={(event) => {
+                setPath(event.target.value)
+                if (pathError) setPathError(null)
+              }}
+              placeholder={t('form.pathPlaceholder', '/system/menus')}
             />
           ) : null}
-          {/* 是否显示：权限（menu_type=3）没有该概念，不展示也不提交 */}
-          <Switch
-            checked={visible === MENU_VISIBLE.visible}
-            onCheckedChange={(checked) =>
-              setVisible(checked ? MENU_VISIBLE.visible : MENU_VISIBLE.hidden)
-            }
-            // 文案跟随当前状态：显示 / 隐藏
-            label={
-              visible === MENU_VISIBLE.visible
-                ? t('form.visibleShown', '显示')
-                : t('form.visibleHidden', '隐藏')
-            }
+
+          {/* 权限标识：功能与权限必填，功能组不需要 */}
+          {!isGroup ? (
+            <Input
+              label={t('form.permission', '权限标识')}
+              labelTooltip={t('form.permissionDescription', '接口权限编码，例如 n:menus:list')}
+              error={
+                permissionError ? { message: permissionError, match: 'customError' } : undefined
+              }
+              value={permission}
+              onChange={(event) => setPermission(event.target.value)}
+              placeholder={t('form.permissionPlaceholder', 'n:menus:list')}
+            />
+          ) : null}
+
+          <Input
+            label={t('form.icon', '图标')}
+            labelTooltip={t('form.iconDescription', '图标名称，例如 ListDashes')}
+            value={icon}
+            onChange={(event) => setIcon(event.target.value)}
+            placeholder={t('form.iconPlaceholder', '可选')}
           />
+
+          <Input
+            label={t('form.sort', '排序')}
+            labelTooltip={t('form.sortDescription', '同级内从小到大排列')}
+            type="number"
+            value={sortText}
+            onChange={(event) => setSortText(event.target.value)}
+          />
+
+          {/* 绑定接口：功能绑列表接口、权限绑具体 action 接口；功能组不需要 */}
+          {!isGroup ? (
+            <FeatureApiKeysField value={apiKeys} onChange={setApiKeys} disabled={submitting} />
+          ) : null}
         </div>
-      ) : null}
+
+        {/* 开关区：权限两者都不出现；「启用」可被外部接管（showStatusSwitch=false 时放到页头） */}
+        {!isButton ? (
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            {showStatusSwitch ? (
+              <Switch
+                checked={status === MENU_STATUS.enabled}
+                onCheckedChange={(checked) =>
+                  setStatus(checked ? MENU_STATUS.enabled : MENU_STATUS.disabled)
+                }
+                // 文案跟随当前状态：开=启用、关=禁用
+                label={
+                  status === MENU_STATUS.enabled
+                    ? t('form.statusEnabled', '启用')
+                    : t('form.statusDisabled', '禁用')
+                }
+              />
+            ) : null}
+            {/* 是否显示：权限（menu_type=3）没有该概念，不展示也不提交 */}
+            <Switch
+              checked={visible === MENU_VISIBLE.visible}
+              onCheckedChange={(checked) =>
+                setVisible(checked ? MENU_VISIBLE.visible : MENU_VISIBLE.hidden)
+              }
+              // 文案跟随当前状态：显示 / 隐藏
+              label={
+                visible === MENU_VISIBLE.visible
+                  ? t('form.visibleShown', '显示')
+                  : t('form.visibleHidden', '隐藏')
+              }
+            />
+          </div>
+        ) : null}
       </>
     </fieldset>
   )
@@ -527,12 +541,7 @@ export function FeatureForm({
             {submitLabel ?? defaultSubmitLabel}
           </Button>
           {onCancel ? (
-            <Button
-              variant="secondary"
-              type="button"
-              onClick={onCancel}
-              disabled={submitting}
-            >
+            <Button variant="secondary" type="button" onClick={onCancel} disabled={submitting}>
               {t('form.cancel', '取消')}
             </Button>
           ) : null}

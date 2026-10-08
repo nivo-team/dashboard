@@ -91,11 +91,7 @@ export function useDictTypeBreadcrumbTrail(
  *
  * `root` 只用于「树未到达时不要用空表覆盖已注册层级」的判定，根分类自身不进面包屑。
  */
-export function useDictListBreadcrumbTrail(
-  nodes: DictType[],
-  appId: string,
-  root?: DictType,
-) {
+export function useDictListBreadcrumbTrail(nodes: DictType[], appId: string, root?: DictType) {
   const entries = useMemo(() => buildDictTypeTrail(nodes, appId), [appId, nodes])
   const ready = Boolean(root) && nodes.length > 0
 

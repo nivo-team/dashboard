@@ -53,9 +53,7 @@ export const updateSearchParamsTool: AiToolDefinition = {
 
     // 3. 兜底方案：通过浏览器 URL 参数与客户端导航更新
     if (typeof window !== 'undefined') {
-      const currentSearchParams = new URLSearchParams(
-        resetOthers ? '' : window.location.search,
-      )
+      const currentSearchParams = new URLSearchParams(resetOthers ? '' : window.location.search)
       for (const [key, value] of Object.entries(patch)) {
         if (value === null || value === undefined || value === '') {
           currentSearchParams.delete(key)

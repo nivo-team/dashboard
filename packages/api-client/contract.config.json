@@ -11,13 +11,7 @@
   },
   "filter": {
     "$comment": "排除服务框架与运维端点，它们不该出现在给前端用的契约里",
-    "excludePrefixes": [
-      "/_",
-      "/openapi.json"
-    ],
-    "excludeExact": [
-      "/",
-      "/health"
-    ]
+    "excludePrefixes": ["/_", "/openapi.json"],
+    "excludeExact": ["/", "/health"]
   }
 }

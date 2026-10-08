@@ -31,9 +31,7 @@ export function AboutPage() {
         <SettingRow label={t('about.fields.appName', '应用名')}>
           {/* 应用名 + 一句话说明这个后台是做什么的，两行同属「应用名」这一项 */}
           <div className="flex flex-col gap-0.5 text-end">
-            <span className="text-sm font-medium text-kumo-default">
-              {brand.name}
-            </span>
+            <span className="text-sm font-medium text-kumo-default">{brand.name}</span>
             <span className="text-sm text-kumo-subtle">
               {t('about.appDescription', brand.description)}
             </span>

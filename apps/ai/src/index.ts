@@ -1,7 +1,12 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { resolveAllowedOrigin } from './cors'
-import { maskAccountId, resolveChatEndpoint, resolveFixedModel, resolveUpstream } from './model-config'
+import {
+  maskAccountId,
+  resolveChatEndpoint,
+  resolveFixedModel,
+  resolveUpstream,
+} from './model-config'
 import { REDACTION_ENABLED } from './redact'
 import type { AiEnv } from './env'
 import { chatRoute } from './routes/chat'

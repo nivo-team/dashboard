@@ -179,8 +179,7 @@ export const analyzeDataTool: AiToolDefinition = {
       const approved = await ctx.requestApproval({
         toolName: DATA_READ_GRANT,
         input: { tool: 'analyze_data', source: sourceId },
-        reason:
-          'AI 想统计当前页面的数据（只取聚合结果，不读取明细；敏感字段不参与输出）',
+        reason: 'AI 想统计当前页面的数据（只取聚合结果，不读取明细；敏感字段不参与输出）',
       })
       if (!approved) {
         throw new Error('用户拒绝让 AI 读取数据。不要重试，改为请用户自己查看页面。')
@@ -224,12 +223,7 @@ function readRows(routeId: string | null, sourceId: string): Row[] {
   const snapshot = readFeatureData(routeId).find((item) => item.id === sourceId)
   const value = snapshot?.value
 
-  if (
-    value !== null &&
-    typeof value === 'object' &&
-    !Array.isArray(value) &&
-    'error' in value
-  ) {
+  if (value !== null && typeof value === 'object' && !Array.isArray(value) && 'error' in value) {
     const message = (value as { error?: unknown }).error
     throw new Error(
       `读取数据源 ${sourceId} 失败：${typeof message === 'string' ? message : String(message)}。数据源自己的 read() 抛错了，请改用 \`get_page_data\` 或让用户查看页面。`,
@@ -240,7 +234,9 @@ function readRows(routeId: string | null, sourceId: string): Row[] {
       `数据源 ${sourceId} 不是行数组（读到 ${describeValue(value)}），无法做表达式分析。请先用 \`get_page_data\` 看它到底是什么形状，或换一个列表类数据源。`,
     )
   }
-  return value.map((row) => (row && typeof row === 'object' && !Array.isArray(row) ? row as Row : { value: row }))
+  return value.map((row) =>
+    row && typeof row === 'object' && !Array.isArray(row) ? (row as Row) : { value: row },
+  )
 }
 
 /* ------------------------------------------------------------------ */
@@ -442,9 +438,7 @@ function assertAggregatable(
 
 function assertOrderable(spec: FeatureDataFieldSpec, name: string): void {
   if (spec.type === 'boolean') {
-    throw new Error(
-      `排序不支持 boolean 字段：${name}。布尔值没有大小，请改用 count 或 filter。`,
-    )
+    throw new Error(`排序不支持 boolean 字段：${name}。布尔值没有大小，请改用 count 或 filter。`)
   }
 }
 
@@ -641,9 +635,7 @@ function aggregate(rows: Row[], plan: StepPlan): number | string {
 
   if (!hasCandidate) {
     const label = plan.byName ? `groupBy 的 ${fn}` : fn
-    throw new Error(
-      `过滤后没有可用于 ${label} 的 ${fieldName} 值。请先放宽 filter，或改用 count。`,
-    )
+    throw new Error(`过滤后没有可用于 ${label} 的 ${fieldName} 值。请先放宽 filter，或改用 count。`)
   }
 
   if (spec.type === 'datetime') {
@@ -707,7 +699,12 @@ function applyTopN(rows: Row[], plan: StepPlan): Row[] {
   ).slice(0, plan.limit as number)
 }
 
-function sortRows(rows: Row[], fieldName: string, spec: FeatureDataFieldSpec, order: 'asc' | 'desc'): Row[] {
+function sortRows(
+  rows: Row[],
+  fieldName: string,
+  spec: FeatureDataFieldSpec,
+  order: 'asc' | 'desc',
+): Row[] {
   const factor = order === 'desc' ? -1 : 1
   // 复制后再排序：不能改页面数据源返回的数组（那可能正是页面自己持有的引用）。
   return [...rows].sort((left, right) => {
@@ -781,7 +778,11 @@ function requireField(
 }
 
 /** 宽松相等：按注解类型归一后再比（`1` 与 `"1"`、时间戳与 ISO 串都算同一个值）。 */
-function valuesEqual(actual: unknown, expected: unknown, type: FeatureDataFieldSpec['type']): boolean {
+function valuesEqual(
+  actual: unknown,
+  expected: unknown,
+  type: FeatureDataFieldSpec['type'],
+): boolean {
   if (type === 'number') {
     const left = Number(actual)
     const right = Number(expected)
@@ -796,7 +797,11 @@ function valuesEqual(actual: unknown, expected: unknown, type: FeatureDataFieldS
 }
 
 /** 排序 / 大小比较；不可比（空值、非法日期、非数字）返回 null。 */
-function compareValues(actual: unknown, expected: unknown, type: FeatureDataFieldSpec['type']): number | null {
+function compareValues(
+  actual: unknown,
+  expected: unknown,
+  type: FeatureDataFieldSpec['type'],
+): number | null {
   if (type === 'number') {
     const left = Number(actual)
     const right = Number(expected)

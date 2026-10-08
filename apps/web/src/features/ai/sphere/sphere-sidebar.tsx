@@ -45,12 +45,7 @@ export function SphereSidebar({ appId }: { appId: string }) {
   const sessions = useAiSessionStore((state) => state.sessions)
   const activeSessionId = useAiSessionStore((state) => state.activeSessionId)
   const startNewSession = useAiSessionStore((state) => state.startNewSession)
-  const {
-    open,
-    openMobile,
-    isMobile,
-    setOpenMobile,
-  } = useSidebar()
+  const { open, openMobile, isMobile, setOpenMobile } = useSidebar()
 
   /**
    * 侧边栏此刻是不是可见的。
@@ -116,9 +111,7 @@ export function SphereSidebar({ appId }: { appId: string }) {
             <Tooltip
               content={t('sidebarCollapse', '收起侧边栏')}
               className="cursor-pointer"
-              render={
-                <Sidebar.Trigger aria-label={t('sidebarCollapse', '收起侧边栏')} />
-              }
+              render={<Sidebar.Trigger aria-label={t('sidebarCollapse', '收起侧边栏')} />}
             />
           ) : null}
         </Sidebar.Header>
@@ -144,9 +137,7 @@ export function SphereSidebar({ appId }: { appId: string }) {
           </Sidebar.Group>
 
           {groups.length === 0 ? (
-            <p className="px-3 py-2 text-xs text-kumo-subtle">
-              {t('sessionEmpty', '还没有对话')}
-            </p>
+            <p className="px-3 py-2 text-xs text-kumo-subtle">{t('sessionEmpty', '还没有对话')}</p>
           ) : (
             groups.map(({ group, items }) => (
               <Sidebar.Group key={group}>

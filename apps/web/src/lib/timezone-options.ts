@@ -97,10 +97,7 @@ export const LEGACY_TIMEZONE_STORAGE_KEY = 'admin.timezone'
 
 /** 受支持时区的判定（迁移旧值与持久化数据校验共用）。 */
 export function isTimezoneKey(value: unknown): value is TimezoneKey {
-  return (
-    typeof value === 'string' &&
-    SUPPORTED_TIMEZONES.some((item) => item.key === value)
-  )
+  return typeof value === 'string' && SUPPORTED_TIMEZONES.some((item) => item.key === value)
 }
 
 /** 取时区元信息，未知 key 一律回落到默认时区（不依赖数组下标）。 */

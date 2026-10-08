@@ -1,10 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import {
-  createDefaultLayout,
-  normalizeLayout,
-  type DashboardLayout,
-} from '../dashboard-layout'
+import { createDefaultLayout, normalizeLayout, type DashboardLayout } from '../dashboard-layout'
 import { registerScopedStore } from './app-scope'
 import { enableCrossTabSync } from './cross-tab-sync'
 import { createScopedJSONStorage } from './scoped-storage'

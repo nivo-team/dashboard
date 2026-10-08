@@ -93,11 +93,7 @@ export interface SettingChoicePreviewProps {
  * 让读屏在 tab 里再看到一个 `role="button"` 反而是噪音；预览要表达的信息对键盘用户
  * 也已经通过「方向键选中即生效」传达过了。
  */
-export function SettingChoicePreview({
-  label,
-  triggerId,
-  children,
-}: SettingChoicePreviewProps) {
+export function SettingChoicePreview({ label, triggerId, children }: SettingChoicePreviewProps) {
   const [open, setOpen] = useState(false)
 
   return (

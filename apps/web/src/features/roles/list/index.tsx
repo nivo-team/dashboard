@@ -141,11 +141,7 @@ export function RoleListPage() {
       ),
       status: ({ row, t: translate }) => (
         <span
-          className={
-            row.status === ROLE_STATUS.enabled
-              ? 'text-kumo-success'
-              : 'text-kumo-subtle'
-          }
+          className={row.status === ROLE_STATUS.enabled ? 'text-kumo-success' : 'text-kumo-subtle'}
         >
           {row.status === ROLE_STATUS.enabled
             ? translate('status.enabled', '启用')
@@ -239,7 +235,13 @@ export function RoleListPage() {
     : null
 
   const handleCreate = useCallback(
-    async (values: { name: string; code: string; description: string; status: number; sort: number }) => {
+    async (values: {
+      name: string
+      code: string
+      description: string
+      status: number
+      sort: number
+    }) => {
       setCreateError(null)
       try {
         await createMutation.mutateAsync({

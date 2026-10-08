@@ -1,22 +1,10 @@
-import {
-  Button,
-  DropdownMenu,
-  useKumoToastManager,
-} from '@cloudflare/kumo'
-import {
-  DotsThree,
-  ListDashesIcon,
-  PencilSimple,
-  Trash,
-} from '@phosphor-icons/react'
+import { Button, DropdownMenu, useKumoToastManager } from '@cloudflare/kumo'
+import { DotsThree, ListDashesIcon, PencilSimple, Trash } from '@phosphor-icons/react'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import {
-  deleteSystemMenuByIdMutation,
-  putSystemMenuMutation,
-} from '#/api'
+import { deleteSystemMenuByIdMutation, putSystemMenuMutation } from '#/api'
 import type { MenuNode } from '#/api'
 import {
   DataTable,
@@ -34,10 +22,7 @@ import { extractApiErrorMessage } from '#/lib/api-error'
 import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
 import { useHasPermission } from '#/lib/permissions'
 import { countTreeNodes, filterTreeByMatch } from '#/lib/tree-search'
-import {
-  FEATURE_DEFAULT_HIDDEN_COLUMNS,
-  useFeatureColumns,
-} from './feature-columns'
+import { FEATURE_DEFAULT_HIDDEN_COLUMNS, useFeatureColumns } from './feature-columns'
 import {
   MENU_PLACEHOLDER_COMPONENT,
   MENU_ROOT_ID,
@@ -49,10 +34,7 @@ import {
   menuIsNavigable,
 } from './feature-options'
 import { useFeatureBreadcrumbTrail } from './feature-breadcrumb'
-import {
-  useFeaturesTree,
-  useInvalidateFeaturesTree,
-} from './use-features-tree'
+import { useFeaturesTree, useInvalidateFeaturesTree } from './use-features-tree'
 import { FeatureCreateActions } from './feature-create-actions'
 import { FeatureFormDialog } from './feature-form-dialog'
 import type { FeatureFormValues } from './feature-form'
@@ -121,10 +103,7 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
   const containerId = node?.menu_id ?? MENU_ROOT_ID
   const containerName = node?.menu_name || t('title', '功能')
   /** 根视图取全树的根子节点，功能组视图取该功能组的直接子项。 */
-  const containerRows = useMemo(
-    () => (node ? menuChildren(node) : nodes),
-    [node, nodes],
-  )
+  const containerRows = useMemo(() => (node ? menuChildren(node) : nodes), [node, nodes])
 
   /**
    * 当前容器自身的编辑 / 删除（仅功能组视图）。
@@ -154,7 +133,11 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
 
   // 分页：当前为客户端切片
   const [page, setPage] = useAppTableState<number>('system/menus', 'page', 1)
-  const [pageSize, setPageSize] = useAppTableState<number>('system/menus', 'pageSize', DEFAULT_PAGE_SIZE)
+  const [pageSize, setPageSize] = useAppTableState<number>(
+    'system/menus',
+    'pageSize',
+    DEFAULT_PAGE_SIZE,
+  )
 
   // 列设置按应用隔离持久化：同一张表在 Console / Analytics 下各存一份
   const [columnVisibility, setColumnVisibility] = useAppTableState<ColumnVisibilityState>(
@@ -183,14 +166,10 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
   const filteredRows = useMemo(
     () =>
       keyword.trim()
-        ? filterTreeByMatch(
-            containerRows,
-            (row) => matchesMenuKeyword(row, keyword),
-            {
-              getSubRows: MENU_SUB_ROWS,
-              withChildren: (row, children) => ({ ...row, children }),
-            },
-          )
+        ? filterTreeByMatch(containerRows, (row) => matchesMenuKeyword(row, keyword), {
+            getSubRows: MENU_SUB_ROWS,
+            withChildren: (row, children) => ({ ...row, children }),
+          })
         : containerRows,
     [containerRows, keyword],
   )
@@ -271,9 +250,7 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
         })
         setEditOpen(false)
       } catch (error) {
-        setFormError(
-          extractApiErrorMessage(error, t('form.failed', '操作失败，请稍后重试')),
-        )
+        setFormError(extractApiErrorMessage(error, t('form.failed', '操作失败，请稍后重试')))
       }
     },
     [invalidateFeaturesTree, node, t, toast, updateGroupMutation],
@@ -285,11 +262,9 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
   const handleDeleteGroupClick = useCallback(() => {
     if (containerRows.length > 0) {
       toast.add({
-        title: t(
-          'detail.deleteBlocked',
-          '该节点下还有 {{total}} 个子项，请先删除子项',
-          { total: containerRows.length },
-        ),
+        title: t('detail.deleteBlocked', '该节点下还有 {{total}} 个子项，请先删除子项', {
+          total: containerRows.length,
+        }),
         variant: 'warning',
       })
       return
@@ -313,9 +288,7 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
       setDeleteOpen(false)
       goToParent()
     } catch (error) {
-      setDeleteError(
-        extractApiErrorMessage(error, t('form.deleteFailed', '删除失败，请稍后重试')),
-      )
+      setDeleteError(extractApiErrorMessage(error, t('form.deleteFailed', '删除失败，请稍后重试')))
     }
   }, [deleteGroupMutation, goToParent, invalidateFeaturesTree, node, t, toast])
 
@@ -352,11 +325,9 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
       const childCount = menuChildren(target).length
       if (childCount > 0) {
         toast.add({
-          title: t(
-            'detail.deleteBlocked',
-            '该节点下还有 {{total}} 个子项，请先删除子项',
-            { total: childCount },
-          ),
+          title: t('detail.deleteBlocked', '该节点下还有 {{total}} 个子项，请先删除子项', {
+            total: childCount,
+          }),
           variant: 'warning',
         })
         return
@@ -442,10 +413,7 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
                         操作（menu_type=3）没有落点视图，因此不出这一项。
                       */}
                       {canEdit && menuIsNavigable(row.original) ? (
-                        <DropdownMenu.Item
-                          className="gap-2"
-                          onClick={() => openNode(row.original)}
-                        >
+                        <DropdownMenu.Item className="gap-2" onClick={() => openNode(row.original)}>
                           <PencilSimple size={16} />
                           <span>
                             {menuIsGroup(row.original)
@@ -605,10 +573,7 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
           ) : null
         }
         emptyTitle={t('empty.title', '暂无功能数据')}
-        emptyDescription={t(
-          'empty.description',
-          '未找到符合条件的功能，请尝试更换关键词',
-        )}
+        emptyDescription={t('empty.description', '未找到符合条件的功能，请尝试更换关键词')}
         emptyIcon={<ListDashesIcon size={44} className="text-kumo-inactive" />}
         pagination={{
           page,
@@ -630,10 +595,7 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
         target={node}
         formId="feature-group-form"
         title={t('detail.editGroup', '编辑功能组')}
-        description={t(
-          'detail.editGroupDescription',
-          '修改功能组的名称、图标、排序与显示状态',
-        )}
+        description={t('detail.editGroupDescription', '修改功能组的名称、图标、排序与显示状态')}
         submitLabel={t('form.save', '保存')}
         submitting={updateGroupMutation.isPending}
         submitError={formError}

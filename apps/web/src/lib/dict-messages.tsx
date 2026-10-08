@@ -26,10 +26,9 @@ const FALLBACK_LOCALE = 'zh-CN'
 /** 缓存保留时长：字典文案是静态资源，但离开后允许回收，避免长期占内存。 */
 const CACHE_GC_TIME = 30 * 60_000
 
-const dictModuleLoaders = import.meta.glob<Record<string, unknown>>(
-  '/src/messages/dict/*/*.json',
-  { import: 'default' },
-)
+const dictModuleLoaders = import.meta.glob<Record<string, unknown>>('/src/messages/dict/*/*.json', {
+  import: 'default',
+})
 
 type DictJson = Record<string, unknown>
 type DictLocaleLoaders = Record<string, () => Promise<DictJson>>
@@ -99,16 +98,12 @@ export function pickDictTextWithFallback(
   )
 }
 
-async function loadDictMessages(
-  moduleName: string,
-  locale: string,
-): Promise<DictMessages> {
+async function loadDictMessages(moduleName: string, locale: string): Promise<DictMessages> {
   const loaders = DICT_MODULE_INDEX[moduleName]
   if (!loaders) return EMPTY_MESSAGES
 
   const primaryLoader = loaders[locale]
-  const fallbackLoader =
-    locale === FALLBACK_LOCALE ? undefined : loaders[FALLBACK_LOCALE]
+  const fallbackLoader = locale === FALLBACK_LOCALE ? undefined : loaders[FALLBACK_LOCALE]
 
   const [primary, fallback] = await Promise.all([
     primaryLoader ? primaryLoader() : Promise.resolve({}),
@@ -173,15 +168,8 @@ export type DictTextSource = {
  *
  * 注意：不要在循环 / 不定长度的 map 里调用它 —— 那种场景用 `useDictMessages()` + `pickDictText()`。
  */
-export function useDictItemText(
-  item: DictTextSource,
-  fallback?: string | null,
-): string {
-  return useDictText(
-    dictPathOf(item.code),
-    item.value,
-    fallback ?? item.label ?? null,
-  )
+export function useDictItemText(item: DictTextSource, fallback?: string | null): string {
+  return useDictText(dictPathOf(item.code), item.value, fallback ?? item.label ?? null)
 }
 
 /** `useDictText` 的组件形态：给表格渲染器等无法直接调 hook 的地方用。 */

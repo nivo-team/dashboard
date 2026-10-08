@@ -1,10 +1,7 @@
 import { defineHandler, defineRouteMeta } from 'nitro'
 import { getHeader } from 'nitro/h3'
 import { db, menuIdsOfRole, visibleMenuTree, type MenuRow } from '../../utils/db'
-import {
-  DEFAULT_MOCK_ACCOUNT,
-  findAccountByToken,
-} from '../../utils/mock-accounts'
+import { DEFAULT_MOCK_ACCOUNT, findAccountByToken } from '../../utils/mock-accounts'
 import { ok } from '../../utils/response'
 
 /**
@@ -118,7 +115,9 @@ function toNavigationNodes(nodes: Array<MenuRow & { children: unknown[] }>): Nav
       icon: node.icon,
       sort: node.sort,
       visible: node.visible,
-      children: toNavigationNodes((node.children ?? []) as Array<MenuRow & { children: unknown[] }>),
+      children: toNavigationNodes(
+        (node.children ?? []) as Array<MenuRow & { children: unknown[] }>,
+      ),
     }))
 }
 

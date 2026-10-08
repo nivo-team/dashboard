@@ -40,10 +40,7 @@ export function toAiPageContextSpec(spec: FeatureSpec): AiPageContextSpec {
  * 指令 → `actions` 的映射不是"再说一遍"：`actionType` 缺省 `custom`，
  * 语义归类（创建 / 删除 / 批量删除 / 导出）由指令自己声明。
  */
-export function toPageCapabilitiesSpec(
-  spec: FeatureSpec,
-  routeId: string,
-): PageCapabilitiesSpec {
+export function toPageCapabilitiesSpec(spec: FeatureSpec, routeId: string): PageCapabilitiesSpec {
   return {
     routeId,
     title: spec.title,

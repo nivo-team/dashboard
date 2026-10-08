@@ -209,9 +209,9 @@ export async function getActiveSessionId(appId: string): Promise<string | null> 
 
   try {
     const tx = db.transaction(META_STORE, 'readonly')
-    const meta = await requestToPromise<{ appId: string; activeSessionId?: string | null } | undefined>(
-      tx.objectStore(META_STORE).get(appId),
-    )
+    const meta = await requestToPromise<
+      { appId: string; activeSessionId?: string | null } | undefined
+    >(tx.objectStore(META_STORE).get(appId))
     return meta?.activeSessionId ?? null
   } catch (error) {
     warn('getActiveSessionId', error)
@@ -297,10 +297,7 @@ export async function saveComposerDraft(
 /**
  * 清除指定会话的输入框草稿。
  */
-export async function deleteComposerDraft(
-  appId: string,
-  sessionId: string | null,
-): Promise<void> {
+export async function deleteComposerDraft(appId: string, sessionId: string | null): Promise<void> {
   const db = await openDb()
   if (!db) return
 

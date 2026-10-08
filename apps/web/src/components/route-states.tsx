@@ -18,13 +18,7 @@ export function RoutePending() {
 }
 
 /** 路由级错误边界：同样只替换内容区。 */
-export function RouteError({
-  error,
-  reset,
-}: {
-  error: unknown
-  reset: () => void
-}) {
+export function RouteError({ error, reset }: { error: unknown; reset: () => void }) {
   const message =
     error instanceof Error && error.message
       ? error.message
@@ -36,9 +30,7 @@ export function RouteError({
         <WarningCircleIcon size={22} />
       </span>
       <div className="flex flex-col gap-1.5">
-        <h2 className="text-base font-semibold text-kumo-default">
-          页面加载失败
-        </h2>
+        <h2 className="text-base font-semibold text-kumo-default">页面加载失败</h2>
         <p className="max-w-md text-sm text-kumo-subtle">{message}</p>
       </div>
       <Button variant="secondary" onClick={reset}>

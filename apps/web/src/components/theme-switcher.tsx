@@ -1,11 +1,5 @@
 import { Button, DropdownMenu } from '@cloudflare/kumo'
-import {
-  CaretDownIcon,
-  CheckIcon,
-  DesktopIcon,
-  MoonIcon,
-  SunIcon,
-} from '@phosphor-icons/react'
+import { CaretDownIcon, CheckIcon, DesktopIcon, MoonIcon, SunIcon } from '@phosphor-icons/react'
 import { useTranslation } from 'react-i18next'
 import { useColorMode } from '#/lib/use-color-mode'
 import type { ColorMode } from '#/lib/use-color-mode'
@@ -32,14 +26,10 @@ const THEME_OPTIONS: ModeItem[] = [
  * 通用系统颜色/主题模式切换组件
  * 纯粹克制，去除多余 label，适配当前多语言
  */
-export function ThemeSwitcher({
-  className = '',
-  align = 'end',
-}: ThemeSwitcherProps) {
+export function ThemeSwitcher({ className = '', align = 'end' }: ThemeSwitcherProps) {
   const { t } = useTranslation()
   const { mode, setMode } = useColorMode()
-  const currentOption =
-    THEME_OPTIONS.find((item) => item.key === mode) ?? THEME_OPTIONS[2]
+  const currentOption = THEME_OPTIONS.find((item) => item.key === mode) ?? THEME_OPTIONS[2]
   const CurrentIcon = currentOption.icon
   const currentLabel = t(currentOption.labelKey, currentOption.defaultLabel)
 
@@ -76,9 +66,7 @@ export function ThemeSwitcher({
                 <ItemIcon size={14} className="text-kumo-subtle" />
                 <span>{itemLabel}</span>
               </span>
-              {isSelected ? (
-                <CheckIcon size={14} className="text-kumo-brand" />
-              ) : null}
+              {isSelected ? <CheckIcon size={14} className="text-kumo-brand" /> : null}
             </DropdownMenu.Item>
           )
         })}

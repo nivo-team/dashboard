@@ -1,9 +1,4 @@
-import {
-  ChartLineUpIcon,
-  GaugeIcon,
-  InfoIcon,
-  SquaresFourIcon,
-} from '@phosphor-icons/react'
+import { ChartLineUpIcon, GaugeIcon, InfoIcon, SquaresFourIcon } from '@phosphor-icons/react'
 import type { Icon } from '@phosphor-icons/react'
 import type { ComponentType } from 'react'
 import { MetricsCard } from './metrics-card'

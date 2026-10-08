@@ -34,8 +34,7 @@ export const getCurrentTimeTool: AiToolDefinition = {
     const facts: AiTimeFacts = ctx.getTimeFacts()
     return {
       ...facts,
-      note:
-        '接口的时间筛选参数（如 createtime_min / createtime_max）多为**秒级时间戳**，直接用 nowUnixSeconds 加减即可；需要传日期字符串时用 todayLocal 那一天做基准。',
+      note: '接口的时间筛选参数（如 createtime_min / createtime_max）多为**秒级时间戳**，直接用 nowUnixSeconds 加减即可；需要传日期字符串时用 todayLocal 那一天做基准。',
     }
   },
 }

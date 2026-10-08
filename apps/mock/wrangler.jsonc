@@ -7,5 +7,5 @@
   // 才会启用 Node 兼容层。
   "name": "admin-mock-api",
   "compatibility_date": "2026-09-01",
-  "compatibility_flags": ["nodejs_compat"]
+  "compatibility_flags": ["nodejs_compat"],
 }

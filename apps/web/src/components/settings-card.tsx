@@ -23,13 +23,7 @@ const HEADER_CLASSES = 'my-0'
 
 const BODY_CLASSES = 'flex flex-col gap-0 divide-y divide-kumo-line p-0'
 
-export function SettingsCard({
-  title,
-  children,
-}: {
-  title: ReactNode
-  children: ReactNode
-}) {
+export function SettingsCard({ title, children }: { title: ReactNode; children: ReactNode }) {
   return (
     <LayerCard className="p-0">
       <LayerCard.Secondary className={HEADER_CLASSES}>{title}</LayerCard.Secondary>

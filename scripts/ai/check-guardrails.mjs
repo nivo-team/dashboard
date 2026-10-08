@@ -148,10 +148,14 @@ function checkI18n() {
     // 目录名必须是以语言码命名的 JSON 文件；文件名里的语言码非法 → 明确报错
     const invalid = Object.keys(byLocale).filter((locale) => !LOCALES.includes(locale))
     if (invalid.length) {
-      fail(`${group}: 存在非法语言文件名（${invalid.join(', ')}）—— 语言码必须取 ${LOCALES.join(' / ')}`)
+      fail(
+        `${group}: 存在非法语言文件名（${invalid.join(', ')}）—— 语言码必须取 ${LOCALES.join(' / ')}`,
+      )
     }
 
-    if (I18N_EXCLUDED_PREFIXES.some((prefix) => group === prefix || group.startsWith(`${prefix}/`))) {
+    if (
+      I18N_EXCLUDED_PREFIXES.some((prefix) => group === prefix || group.startsWith(`${prefix}/`))
+    ) {
       skippedDict += 1
       continue
     }
@@ -235,7 +239,9 @@ function checkForbiddenStyles(base) {
 
       for (const { re, label, hint } of FORBIDDEN_PATTERNS) {
         if (re.test(code)) {
-          fail(`${file.path}：新增代码里出现 ${label}（${hint}）\n    > ${line.trim().slice(0, 120)}`)
+          fail(
+            `${file.path}：新增代码里出现 ${label}（${hint}）\n    > ${line.trim().slice(0, 120)}`,
+          )
         }
       }
     }

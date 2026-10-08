@@ -56,8 +56,7 @@ function isItemActive(pathname: string, targetPath: string, appPrefix: string): 
  */
 function useNavLabel() {
   const { t } = useTranslation()
-  return (labelKey: string | undefined, label: string) =>
-    labelKey ? t(labelKey, label) : label
+  return (labelKey: string | undefined, label: string) => (labelKey ? t(labelKey, label) : label)
 }
 
 interface CollapsibleNavItemProps {
@@ -105,12 +104,7 @@ function CollapsibleNavItem({
       <Sidebar.Collapsible open={open} onOpenChange={setOpen} autoScrollOnOpen>
         <Sidebar.CollapsibleTrigger
           render={
-            <Sidebar.MenuButton
-              icon={item.icon}
-              tooltip={label}
-              itemId={itemHref}
-              active={active}
-            >
+            <Sidebar.MenuButton icon={item.icon} tooltip={label} itemId={itemHref} active={active}>
               {label}
               <Sidebar.MenuChevron className="sidebar-chevron" />
             </Sidebar.MenuButton>
@@ -126,9 +120,7 @@ function CollapsibleNavItem({
                 onClick={onNavigate}
               >
                 <span>{resolveLabel(child.labelKey, child.label)}</span>
-                {child.badge ? (
-                  <Sidebar.MenuBadge>{child.badge}</Sidebar.MenuBadge>
-                ) : null}
+                {child.badge ? <Sidebar.MenuBadge>{child.badge}</Sidebar.MenuBadge> : null}
               </Sidebar.MenuSubButton>
             ))}
           </Sidebar.MenuSub>

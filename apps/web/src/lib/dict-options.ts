@@ -75,9 +75,7 @@ function normalizeOption(raw: ApiDictOption): DictOption | null {
  * **历史命名空间的数据在这里被丢弃**（`stripDictNamespace` 返回 `null`），
  * 因此调用方拿到的 key 一定是不带 `new.` 的逻辑 key。
  */
-export function normalizeDictOptions(
-  raw?: Record<string, ApiDictOption[]> | null,
-): DictOptionMap {
+export function normalizeDictOptions(raw?: Record<string, ApiDictOption[]> | null): DictOptionMap {
   const map: DictOptionMap = {}
   if (!raw) return map
 
@@ -88,9 +86,7 @@ export function normalizeDictOptions(
     const list = raw[rawKey]
     if (!Array.isArray(list)) continue
 
-    map[logicalKey] = list
-      .map(normalizeOption)
-      .filter((item): item is DictOption => item !== null)
+    map[logicalKey] = list.map(normalizeOption).filter((item): item is DictOption => item !== null)
   }
 
   return map
@@ -107,10 +103,7 @@ export function useDictOptions() {
     staleTime: DICT_OPTIONS_STALE_TIME,
   })
 
-  const options = useMemo(
-    () => normalizeDictOptions(query.data?.result),
-    [query.data],
-  )
+  const options = useMemo(() => normalizeDictOptions(query.data?.result), [query.data])
 
   return {
     /** 逻辑 key → 选项；接口未返回时为空对象。 */
@@ -168,9 +161,7 @@ export function useDictOptionEntries(path: string): readonly DictOptionEntry[] {
     if (options.length === 0) return EMPTY_ENTRIES
     return options.map((option) => ({
       ...option,
-      text:
-        pickDictTextWithFallback(dictMessages, dictKey, option.value) ??
-        option.label,
+      text: pickDictTextWithFallback(dictMessages, dictKey, option.value) ?? option.label,
     }))
   }, [options, dictMessages, dictKey])
 }

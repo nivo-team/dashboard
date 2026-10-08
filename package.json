@@ -2,11 +2,11 @@
   "name": "admin-console",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "description": "多应用后台管理模板：契约自持的前端 + Nitro Mock API。",
-  "packageManager": "pnpm@11.7.0",
+  "type": "module",
   "scripts": {
     "dev": "pnpm -C apps/web dev",
+    "dev:all": "vp run --parallel --filter './apps/*' dev",
     "build": "pnpm -C apps/web build",
     "preview": "pnpm -C apps/web preview",
     "typecheck": "pnpm -C apps/web typecheck",
@@ -22,5 +22,9 @@
     "i18n:check": "node scripts/i18n/check-keys.mjs --strict && node scripts/i18n/translate.mjs --check && node scripts/i18n/gen-types.mjs --check",
     "i18n:dry": "node scripts/i18n/translate.mjs --dry --stats",
     "i18n": "node scripts/i18n/translate.mjs"
-  }
+  },
+  "devDependencies": {
+    "vite-plus": "catalog:"
+  },
+  "packageManager": "pnpm@11.7.0"
 }

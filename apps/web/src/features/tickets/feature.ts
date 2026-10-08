@@ -48,13 +48,7 @@ export function createTicketsFeature(options: TicketsFeatureOptions): FeatureSpe
     description:
       '分页浏览工单，支持关键词搜索、状态/优先级/分类筛选与排序，以及新建、编辑、单条删除、变更状态。**后端只提供单条接口，没有批量端点** —— 批量操作需要按条编排。',
     entities: ['工单', '状态', '优先级', '负责人', '分类'],
-    permissions: [
-      'ticket:read',
-      'ticket:create',
-      'ticket:edit',
-      'ticket:update',
-      'ticket:delete',
-    ],
+    permissions: ['ticket:read', 'ticket:create', 'ticket:edit', 'ticket:update', 'ticket:delete'],
     endpoints: [
       {
         method: 'GET',
@@ -63,7 +57,12 @@ export function createTicketsFeature(options: TicketsFeatureOptions): FeatureSpe
         purpose: '分页查询工单；支持 kw、status / priority / category 筛选与排序',
       },
       { method: 'POST', path: '/ticket', permission: 'ticket:create', purpose: '新建工单' },
-      { method: 'PUT', path: '/ticket', permission: 'ticket:update', purpose: '更新单条工单（body 带 id）' },
+      {
+        method: 'PUT',
+        path: '/ticket',
+        permission: 'ticket:update',
+        purpose: '更新单条工单（body 带 id）',
+      },
       {
         method: 'DELETE',
         path: '/ticket/{id}',
@@ -88,7 +87,13 @@ export function createTicketsFeature(options: TicketsFeatureOptions): FeatureSpe
         description:
           '录入工单的标题、描述、优先级、负责人与分类。用户要求新建或批量生成工单时，基于此字段规范构造数据并通过 POST /ticket 提交入库。',
         fields: [
-          { name: 'title', label: '标题', type: 'text', required: true, description: '必填，工单标题' },
+          {
+            name: 'title',
+            label: '标题',
+            type: 'text',
+            required: true,
+            description: '必填，工单标题',
+          },
           { name: 'description', label: '描述', type: 'text', description: '选填，问题描述' },
           {
             name: 'priority',
@@ -103,7 +108,12 @@ export function createTicketsFeature(options: TicketsFeatureOptions): FeatureSpe
             ],
           },
           { name: 'assignee', label: '负责人', type: 'text', description: '选填，默认「未分配」' },
-          { name: 'category', label: '分类', type: 'text', description: '选填，如「缺陷」「需求」' },
+          {
+            name: 'category',
+            label: '分类',
+            type: 'text',
+            description: '选填，如「缺陷」「需求」',
+          },
         ],
         submission: {
           endpoint: { method: 'POST', path: '/ticket' },
@@ -122,7 +132,13 @@ export function createTicketsFeature(options: TicketsFeatureOptions): FeatureSpe
         description:
           '修改指定工单的标题、描述、优先级、负责人与分类；实际挂载的表单 id 形如 ticket-form-edit-<工单id>，以 list_page_forms 为准',
         fields: [
-          { name: 'title', label: '标题', type: 'text', required: true, description: '必填，工单标题' },
+          {
+            name: 'title',
+            label: '标题',
+            type: 'text',
+            required: true,
+            description: '必填，工单标题',
+          },
           { name: 'description', label: '描述', type: 'text', description: '选填，问题描述' },
           {
             name: 'priority',

@@ -187,12 +187,7 @@ export function menuIsNavigable(node?: MenuNode | null): boolean {
  * 把 `path`（路由地址）算进来：改完菜单后最常搜的就是「这条挂到哪个路由了」。
  * `component` 才是新架构里废弃的那个，不参与搜索。
  */
-const SEARCHABLE_FIELDS: (keyof MenuNode)[] = [
-  'menu_name',
-  'path',
-  'permission',
-  'icon',
-]
+const SEARCHABLE_FIELDS: (keyof MenuNode)[] = ['menu_name', 'path', 'permission', 'icon']
 
 /** 判断单个节点是否命中关键词（只匹配当前层级展示的数据）。 */
 export function matchesMenuKeyword(menu: MenuNode, keyword: string): boolean {
@@ -205,10 +200,7 @@ export function matchesMenuKeyword(menu: MenuNode, keyword: string): boolean {
 }
 
 /** 在功能树中按 id 查找节点（演示兜底数据取根节点时使用）。 */
-export function findMenuById(
-  nodes: MenuNode[] | undefined,
-  menuId: number,
-): MenuNode | undefined {
+export function findMenuById(nodes: MenuNode[] | undefined, menuId: number): MenuNode | undefined {
   for (const node of nodes ?? []) {
     if (node.menu_id === menuId) return node
     const hit = findMenuById(node.children, menuId)
@@ -258,11 +250,9 @@ export function menuChildren(node?: MenuNode | null): MenuNode[] {
 /**
  * 树表访问器（模块级常量）：过滤、展开与 `useTable` 共用同一份，引用稳定。
  */
-export const MENU_SUB_ROWS = (menu: MenuNode): MenuNode[] | undefined =>
-  menu.children
+export const MENU_SUB_ROWS = (menu: MenuNode): MenuNode[] | undefined => menu.children
 
 export const MENU_ROW_ID = (menu: MenuNode): string => String(menu.menu_id ?? '')
-
 
 /**
  * 统一把后端时间字段解析为毫秒时间戳。

@@ -65,9 +65,7 @@ export function UnsavedChangesBar({
           <span className="text-sm font-medium text-kumo-base">
             {labels?.message ?? t('unsavedChanges.message', '有未保存的更改')}
           </span>
-          {errorMessage ? (
-            <span className="text-xs text-kumo-danger">{errorMessage}</span>
-          ) : null}
+          {errorMessage ? <span className="text-xs text-kumo-danger">{errorMessage}</span> : null}
         </div>
 
         <div className="ms-2 flex shrink-0 items-center gap-2">

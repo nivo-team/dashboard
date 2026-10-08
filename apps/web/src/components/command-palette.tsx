@@ -1,11 +1,6 @@
 import { CommandPalette } from '@cloudflare/kumo'
 import type { Icon } from '@phosphor-icons/react'
-import {
-  ArrowRightIcon,
-  DesktopIcon,
-  MoonIcon,
-  SunIcon,
-} from '@phosphor-icons/react'
+import { ArrowRightIcon, DesktopIcon, MoonIcon, SunIcon } from '@phosphor-icons/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -64,10 +59,7 @@ const THEME_OPTIONS: Array<{
  *
  * 列表项只显示标题（不再有描述行）；新增自定义命令时，往 `themeItems` 那样的数组里加一项即可。
  */
-export function CommandPaletteDialog({
-  open,
-  onOpenChange,
-}: CommandPaletteDialogProps) {
+export function CommandPaletteDialog({ open, onOpenChange }: CommandPaletteDialogProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { currentApp } = useAuth()
@@ -145,8 +137,7 @@ export function CommandPaletteDialog({
     setQuery('')
   }
 
-  const currentTheme =
-    THEME_OPTIONS.find((option) => option.mode === mode) ?? THEME_OPTIONS[2]
+  const currentTheme = THEME_OPTIONS.find((option) => option.mode === mode) ?? THEME_OPTIONS[2]
 
   return (
     <CommandPalette.Root
@@ -165,16 +156,12 @@ export function CommandPaletteDialog({
         complete()
       }}
     >
-      <CommandPalette.Input
-        placeholder={t('commandPalette.placeholder', '搜索页面或输入命令…')}
-      />
+      <CommandPalette.Input placeholder={t('commandPalette.placeholder', '搜索页面或输入命令…')} />
       <CommandPalette.List>
         <CommandPalette.Results>
           {(group: PaletteGroup) => (
             <CommandPalette.Group key={group.id} items={group.items}>
-              <CommandPalette.GroupLabel>
-                {group.label}
-              </CommandPalette.GroupLabel>
+              <CommandPalette.GroupLabel>{group.label}</CommandPalette.GroupLabel>
               <CommandPalette.Items>
                 {(item: PaletteItem) => (
                   <CommandPalette.Item
@@ -209,14 +196,11 @@ export function CommandPaletteDialog({
             </CommandPalette.Group>
           )}
         </CommandPalette.Results>
-        <CommandPalette.Empty>
-          {t('commandPalette.empty', '没有匹配的结果')}
-        </CommandPalette.Empty>
+        <CommandPalette.Empty>{t('commandPalette.empty', '没有匹配的结果')}</CommandPalette.Empty>
       </CommandPalette.List>
       <CommandPalette.Footer>
         <span className="text-xs text-kumo-subtle">
-          {t('theme.label', '主题')}：
-          {t(currentTheme.labelKey, currentTheme.defaultLabel)}
+          {t('theme.label', '主题')}：{t(currentTheme.labelKey, currentTheme.defaultLabel)}
         </span>
       </CommandPalette.Footer>
     </CommandPalette.Root>

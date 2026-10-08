@@ -8,7 +8,13 @@ defineRouteMeta({
     tags: ['角色'],
     description: '根据 ID 查询角色详情',
     parameters: [
-      { in: 'path', name: 'id', required: true, schema: { type: 'integer' }, description: '角色 ID' },
+      {
+        in: 'path',
+        name: 'id',
+        required: true,
+        schema: { type: 'integer' },
+        description: '角色 ID',
+      },
     ],
     responses: {
       200: {

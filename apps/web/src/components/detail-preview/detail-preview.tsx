@@ -1,21 +1,10 @@
 import { Button, Dialog } from '@cloudflare/kumo'
 import { ArrowsOutIcon, XIcon } from '@phosphor-icons/react'
 import { useLocation } from '@tanstack/react-router'
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  CONTENT_PANEL_FRAME,
-  SidePanelResizeHandle,
-} from '#/components/side-panel'
+import { CONTENT_PANEL_FRAME, SidePanelResizeHandle } from '#/components/side-panel'
 import { cn } from '#/lib/cn'
 import { pageContentWidthClass } from '#/lib/page-width'
 import {
@@ -169,8 +158,7 @@ function sheetPositionStyle(isRtl: boolean) {
  * 所以起始侧与纵向的档位逐字保留（`ps` / `py` 三档），只把**行尾侧**单独拆出来 ——
  * 分屏时那一侧已经紧邻拖拽手柄与面板，收一档才不会在两者之间留出 48px 的空档。
  */
-const MAIN_COLUMN_CLASSES =
-  'min-w-0 flex-1 ps-4 py-4 md:ps-6 md:py-5 lg:ps-8 lg:py-6'
+const MAIN_COLUMN_CLASSES = 'min-w-0 flex-1 ps-4 py-4 md:ps-6 md:py-5 lg:ps-8 lg:py-6'
 /** 行尾侧内边距：面板关闭时与起始侧对称 */
 const MAIN_COLUMN_END_PADDING = 'pe-4 md:pe-6 lg:pe-8'
 /** 行尾侧内边距：面板打开时收一档（手柄自身已经占掉一段视觉间距） */
@@ -221,9 +209,7 @@ export function DetailPreviewProvider({ children }: { children: ReactNode }) {
   })
 
   /** 当前生效的模式：请求优先，否则使用偏好配置；移动端强制 page */
-  const effectiveMode: DetailOpenMode = isMobile
-    ? 'page'
-    : (request?.mode ?? configuredMode)
+  const effectiveMode: DetailOpenMode = isMobile ? 'page' : (request?.mode ?? configuredMode)
 
   const close = useCallback(() => {
     setIsOpen(false)
@@ -296,10 +282,7 @@ export function DetailPreviewProvider({ children }: { children: ReactNode }) {
         主列沿用从 main 搬过来的那一套，面板列自己不带外 padding ——
         它内部由 header / 内容区各自设置，面板才能贴住视口右缘与底部、满高成列。
       */}
-      <div
-        data-detail-preview-layout
-        className="flex min-w-0 flex-1 items-start"
-      >
+      <div data-detail-preview-layout className="flex min-w-0 flex-1 items-start">
         <div
           data-detail-preview-main
           className={cn(
@@ -367,10 +350,7 @@ export function DetailPreviewProvider({ children }: { children: ReactNode }) {
           其余 props 不会透传到弹层元素上（`aria-label` 之类传了也没用）。
           可访问名称因此由下面的 `Dialog.Title` 提供。
         */}
-        <Dialog
-          className={SHEET_CLASSES}
-          style={sheetPositionStyle(isRtl)}
-        >
+        <Dialog className={SHEET_CLASSES} style={sheetPositionStyle(isRtl)}>
           {/*
             Base UI 的 Dialog 要求有可访问名称；这里放一个读屏可见的标题，
             视觉上的标题仍由 DetailPreviewSurface 渲染（两处不需要保持一致）。
@@ -445,9 +425,7 @@ function DetailPreviewSurface({
       */}
       <header className="flex shrink-0 items-start justify-between gap-2 border-b border-kumo-line px-4 py-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-kumo-default">
-            {request.title}
-          </p>
+          <p className="truncate text-sm font-medium text-kumo-default">{request.title}</p>
           {request.description ? (
             <p className="mt-0.5 truncate font-mono text-xs text-kumo-subtle">
               {request.description}

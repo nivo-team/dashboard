@@ -28,24 +28,12 @@ export default function MarkdownRenderer({ text }: { text: string }) {
         components={{
           p: ({ children }) => <p className="my-2">{children}</p>,
 
-          h1: ({ children }) => (
-            <h1 className="mt-4 mb-2 text-base font-semibold">{children}</h1>
-          ),
-          h2: ({ children }) => (
-            <h2 className="mt-4 mb-2 text-base font-semibold">{children}</h2>
-          ),
-          h3: ({ children }) => (
-            <h3 className="mt-3 mb-1.5 text-sm font-semibold">{children}</h3>
-          ),
-          h4: ({ children }) => (
-            <h4 className="mt-3 mb-1.5 text-sm font-semibold">{children}</h4>
-          ),
-          h5: ({ children }) => (
-            <h5 className="mt-3 mb-1.5 text-sm font-semibold">{children}</h5>
-          ),
-          h6: ({ children }) => (
-            <h6 className="mt-3 mb-1.5 text-sm font-semibold">{children}</h6>
-          ),
+          h1: ({ children }) => <h1 className="mt-4 mb-2 text-base font-semibold">{children}</h1>,
+          h2: ({ children }) => <h2 className="mt-4 mb-2 text-base font-semibold">{children}</h2>,
+          h3: ({ children }) => <h3 className="mt-3 mb-1.5 text-sm font-semibold">{children}</h3>,
+          h4: ({ children }) => <h4 className="mt-3 mb-1.5 text-sm font-semibold">{children}</h4>,
+          h5: ({ children }) => <h5 className="mt-3 mb-1.5 text-sm font-semibold">{children}</h5>,
+          h6: ({ children }) => <h6 className="mt-3 mb-1.5 text-sm font-semibold">{children}</h6>,
 
           ul: ({ children }) => (
             <ul className="my-2 flex list-disc flex-col gap-1 ps-5">{children}</ul>
@@ -75,13 +63,9 @@ export default function MarkdownRenderer({ text }: { text: string }) {
 
           hr: () => <hr className="my-3 border-kumo-line" />,
 
-          strong: ({ children }) => (
-            <strong className="font-medium">{children}</strong>
-          ),
+          strong: ({ children }) => <strong className="font-medium">{children}</strong>,
           em: ({ children }) => <em className="italic">{children}</em>,
-          del: ({ children }) => (
-            <del className="text-kumo-subtle line-through">{children}</del>
-          ),
+          del: ({ children }) => <del className="text-kumo-subtle line-through">{children}</del>,
 
           /*
             代码块与行内代码共用 `code` 渲染器（v9 起没有了 `inline` prop），
@@ -113,9 +97,7 @@ export default function MarkdownRenderer({ text }: { text: string }) {
             </th>
           ),
           td: ({ children }) => (
-            <td className="border border-kumo-line px-2 py-1 text-start align-top">
-              {children}
-            </td>
+            <td className="border border-kumo-line px-2 py-1 text-start align-top">{children}</td>
           ),
 
           img: ({ src, alt }) => (

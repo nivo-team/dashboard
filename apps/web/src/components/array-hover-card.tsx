@@ -44,9 +44,7 @@ export function ArrayHoverCard({
       className={cn('max-w-full', className)}
       content={
         <div className="flex max-w-64 flex-col gap-1.5">
-          {title ? (
-            <span className="text-xs font-medium text-kumo-subtle">{title}</span>
-          ) : null}
+          {title ? <span className="text-xs font-medium text-kumo-subtle">{title}</span> : null}
           <div className="flex flex-wrap items-center gap-1.5">{items}</div>
         </div>
       }

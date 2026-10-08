@@ -31,10 +31,7 @@ export type RoleFormFieldError = { field: 'name' | 'code'; message: string }
  * 详情页的浮条保存不经过 `<form>` 的 `submit`（见 skill `editable-detail` 坑 1），
  * 校验若只写在表单内部，浮条那条路径就会绕过它 —— 所以这里是唯一实现。
  */
-export function validateRoleForm(
-  values: RoleFormValues,
-  t: TFunction,
-): RoleFormFieldError | null {
+export function validateRoleForm(values: RoleFormValues, t: TFunction): RoleFormFieldError | null {
   const name = values.name.trim()
   if (!name) {
     return { field: 'name', message: t('form.nameRequired', '请输入角色名称') }
@@ -50,7 +47,10 @@ export function validateRoleForm(
   if (!/^[a-z][a-z0-9_-]*$/.test(code)) {
     return {
       field: 'code',
-      message: t('form.codeInvalid', '角色码只允许小写字母开头，后接小写字母 / 数字 / 下划线 / 连字符'),
+      message: t(
+        'form.codeInvalid',
+        '角色码只允许小写字母开头，后接小写字母 / 数字 / 下划线 / 连字符',
+      ),
     }
   }
   return null

@@ -52,10 +52,7 @@ export function enableCrossTabSync<T>(
     // `localStorage.clear()` 触发的事件 key 为 null：无法判断来源，保守地当作相关
     if (key === null) return true
     if (!scoped) return key === storageName
-    return (
-      key === `${storageName}:${getAppScope()}` ||
-      key === `${storageName}:${GLOBAL_APP_SCOPE}`
-    )
+    return key === `${storageName}:${getAppScope()}` || key === `${storageName}:${GLOBAL_APP_SCOPE}`
   }
 
   const onStorage = (event: StorageEvent) => {
@@ -73,9 +70,7 @@ export function enableCrossTabSync<T>(
 
   // Vite HMR：模块热替换会重新执行这个文件，旧监听器必须摘掉，否则开发期会叠加
   // （行为上只是多几次幂等 rehydrate，但会一直累积）
-  ;(
-    import.meta as { hot?: { dispose: (callback: () => void) => void } }
-  ).hot?.dispose(dispose)
+  ;(import.meta as { hot?: { dispose: (callback: () => void) => void } }).hot?.dispose(dispose)
 
   return dispose
 }

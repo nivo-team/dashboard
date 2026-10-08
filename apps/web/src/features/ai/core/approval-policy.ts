@@ -105,10 +105,7 @@ const POLICY: Record<AiApprovalIntent, (ctx: AiApprovalPolicyContext) => boolean
  *
  * 被拒后的收尾（抛错、不重试）仍由各工具自己负责：那是错误话术，不是策略。
  */
-export function needsApproval(
-  intent: AiApprovalIntent,
-  ctx: AiApprovalPolicyContext,
-): boolean {
+export function needsApproval(intent: AiApprovalIntent, ctx: AiApprovalPolicyContext): boolean {
   return POLICY[intent](ctx)
 }
 
@@ -119,15 +116,9 @@ export function needsApproval(
  * `data:write` / `form:submit` / `page:operate` 都是"会改数据"。
  * 走格子而非名字，是为了让将来新增的写工具**自动**被认出来，不必回来改这张表。
  */
-export const WRITE_CAPABILITIES: readonly string[] = [
-  'data:write',
-  'form:submit',
-  'page:operate',
-]
+export const WRITE_CAPABILITIES: readonly string[] = ['data:write', 'form:submit', 'page:operate']
 
-export function planHasWriteSteps(
-  steps: readonly { capability?: string }[],
-): boolean {
+export function planHasWriteSteps(steps: readonly { capability?: string }[]): boolean {
   return steps.some(
     (step) => step.capability !== undefined && WRITE_CAPABILITIES.includes(step.capability),
   )

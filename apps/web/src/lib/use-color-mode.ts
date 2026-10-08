@@ -37,13 +37,11 @@ if (typeof window !== 'undefined') {
     }
   })
 
-  window
-    .matchMedia('(prefers-color-scheme: dark)')
-    .addEventListener('change', () => {
-      if (usePreferencesStore.getState().colorMode === 'system') {
-        applyMode('system')
-      }
-    })
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (usePreferencesStore.getState().colorMode === 'system') {
+      applyMode('system')
+    }
+  })
 }
 
 /** 切换主题：只写偏好 store，落盘与 DOM 同步都由 store 的订阅链负责。 */
@@ -68,22 +66,14 @@ function getSystemThemeSnapshot(): boolean {
 
 export function useColorMode() {
   const mode = usePreferencesStore((state) => state.colorMode)
-  const systemDark = useSyncExternalStore(
-    subscribeSystemTheme,
-    getSystemThemeSnapshot,
-    () => false,
-  )
+  const systemDark = useSyncExternalStore(subscribeSystemTheme, getSystemThemeSnapshot, () => false)
 
-  const resolved: 'light' | 'dark' =
-    mode === 'system' ? (systemDark ? 'dark' : 'light') : mode
+  const resolved: 'light' | 'dark' = mode === 'system' ? (systemDark ? 'dark' : 'light') : mode
 
   return {
     mode,
     resolved,
     setMode: setColorMode,
-    cycle: () =>
-      setColorMode(
-        mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light',
-      ),
+    cycle: () => setColorMode(mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light'),
   }
 }

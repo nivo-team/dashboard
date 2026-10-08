@@ -25,9 +25,7 @@ export const PAGE_CONTENT_MAX_WIDTH_CLASS = 'max-w-[1440px]'
  * 调用点一律写成 `cn(基础类, pageContentWidthClass(mode))`。
  */
 export function pageContentWidthClass(mode: PageWidthMode): string {
-  return mode === 'boxed'
-    ? `mx-auto w-full ${PAGE_CONTENT_MAX_WIDTH_CLASS}`
-    : 'w-full'
+  return mode === 'boxed' ? `mx-auto w-full ${PAGE_CONTENT_MAX_WIDTH_CLASS}` : 'w-full'
 }
 
 /**
@@ -46,10 +44,7 @@ export const AI_CHAT_MAX_WIDTH_CLASS = 'max-w-4xl'
  * `stableScrollbarGutter`）：只有内容居中的档位才需要给滚动条两边留固定槽位 ——
  * 铺满档位留了反而凭空多出两道空白。
  */
-export function isAiChatBoxed(
-  mode: AiPageWidthMode,
-  followMode: PageWidthMode,
-): boolean {
+export function isAiChatBoxed(mode: AiPageWidthMode, followMode: PageWidthMode): boolean {
   return mode === 'follow' ? followMode === 'boxed' : mode === 'boxed'
 }
 
@@ -57,11 +52,6 @@ export function isAiChatBoxed(
  * 全屏 AI 对话页的宽度约束类：`follow` 先解析成外观那一档，再按同一套规则给类名。
  * 约束的是**会话区的内容 + 输入区**（一个整体），滚动容器与头行、侧边栏不受影响。
  */
-export function aiChatWidthClass(
-  mode: AiPageWidthMode,
-  followMode: PageWidthMode,
-): string {
-  return isAiChatBoxed(mode, followMode)
-    ? `mx-auto w-full ${AI_CHAT_MAX_WIDTH_CLASS}`
-    : 'w-full'
+export function aiChatWidthClass(mode: AiPageWidthMode, followMode: PageWidthMode): string {
+  return isAiChatBoxed(mode, followMode) ? `mx-auto w-full ${AI_CHAT_MAX_WIDTH_CLASS}` : 'w-full'
 }

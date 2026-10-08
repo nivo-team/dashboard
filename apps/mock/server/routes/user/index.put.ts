@@ -46,7 +46,8 @@ interface UpdateUserBody {
 }
 
 export default defineHandler(async (event) => {
-  const body = await readBody<UpdateUserBody>(event).catch(() => ({}) as UpdateUserBody)
+  const body = ((await readBody<UpdateUserBody>(event).catch(() => undefined)) ??
+    {}) as UpdateUserBody
   const id = Number(body?.id)
   if (!id) return fail(400, '用户 ID 不能为空')
 

@@ -8,7 +8,13 @@ defineRouteMeta({
     tags: ['数据字典'],
     description: '删除字典项',
     parameters: [
-      { in: 'path', name: 'id', required: true, schema: { type: 'integer' }, description: '字典项 ID' },
+      {
+        in: 'path',
+        name: 'id',
+        required: true,
+        schema: { type: 'integer' },
+        description: '字典项 ID',
+      },
     ],
     responses: {
       200: {

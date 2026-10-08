@@ -12,10 +12,7 @@ interface LocaleSwitcherProps {
  * 通用多语言下拉切换组件（Kumo DropdownMenu 规范）
  * 保持简洁、克制，不显示多余的 label 标题
  */
-export function LocaleSwitcher({
-  className = '',
-  align = 'end',
-}: LocaleSwitcherProps) {
+export function LocaleSwitcher({ className = '', align = 'end' }: LocaleSwitcherProps) {
   const { t } = useTranslation()
   const { locale, currentMeta, supportedLocales, setLocale } = useLocale()
 
@@ -44,12 +41,8 @@ export function LocaleSwitcher({
               onClick={() => setLocale(item.key)}
               className="flex items-center justify-between"
             >
-              <span className="text-xs font-medium text-kumo-default">
-                {item.nativeName}
-              </span>
-              {isSelected ? (
-                <CheckIcon size={14} className="text-kumo-brand" />
-              ) : null}
+              <span className="text-xs font-medium text-kumo-default">{item.nativeName}</span>
+              {isSelected ? <CheckIcon size={14} className="text-kumo-brand" /> : null}
             </DropdownMenu.Item>
           )
         })}

@@ -1,10 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { normalizeColumns, normalizeOther } from './column-settings-dropdown'
-import type {
-  ColumnSettingsProps,
-  TableColumnsConfig,
-  TableOtherOptionsConfig,
-} from './types'
+import type { ColumnSettingsProps, TableColumnsConfig, TableOtherOptionsConfig } from './types'
 
 /**
  * 管理数据表格各列显隐及扩展显示选项的 Hook
@@ -12,10 +8,7 @@ import type {
  * @param columns 完全对应后端类型的扁平列定义（对象或数组）
  * @param other 可选的扩展设置组（例如 Other -> Show full name 等），默认无
  */
-export function useTableColumns(
-  columns: TableColumnsConfig,
-  other?: TableOtherOptionsConfig,
-) {
+export function useTableColumns(columns: TableColumnsConfig, other?: TableOtherOptionsConfig) {
   const normalizedCols = useMemo(() => normalizeColumns(columns), [columns])
   const normalizedOther = useMemo(() => normalizeOther(other), [other])
 

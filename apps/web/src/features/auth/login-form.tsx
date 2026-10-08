@@ -1,14 +1,5 @@
-import {
-  Button,
-  Input,
-  Select,
-  useKumoToastManager,
-} from '@cloudflare/kumo'
-import {
-  CheckIcon,
-  EyeIcon,
-  EyeSlashIcon,
-} from '@phosphor-icons/react'
+import { Button, Input, Select, useKumoToastManager } from '@cloudflare/kumo'
+import { CheckIcon, EyeIcon, EyeSlashIcon } from '@phosphor-icons/react'
 import { useNavigate, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -194,9 +185,7 @@ export function LoginForm({
   return (
     <div className={`flex flex-col ${className}`}>
       {/* 标题 */}
-      <h1 className="text-center text-3xl font-semibold text-kumo-default">
-        {t('signIn')}
-      </h1>
+      <h1 className="text-center text-3xl font-semibold text-kumo-default">{t('signIn')}</h1>
 
       {/* ====================================================================== */}
       {/* 第三方 OAuth 登录按钮区（标题正下方优先展示）                         */}
@@ -302,11 +291,7 @@ export function LoginForm({
               className="absolute end-2.5 flex size-6 items-center justify-center text-kumo-subtle transition-colors hover:text-kumo-default focus:outline-none"
               aria-label={showPassword ? '隐藏密码' : '显示密码'}
             >
-              {showPassword ? (
-                <EyeSlashIcon size={18} />
-              ) : (
-                <EyeIcon size={18} />
-              )}
+              {showPassword ? <EyeSlashIcon size={18} /> : <EyeIcon size={18} />}
             </button>
           </div>
         </div>
@@ -370,17 +355,11 @@ export function LoginForm({
             {showForgotLinks && (
               <div>
                 <span>{t('forgotPromptPrefix', '忘记了 ')}</span>
-                <RouterLink
-                  to={forgotEmailHref}
-                  variant="inline"
-                >
+                <RouterLink to={forgotEmailHref} variant="inline">
                   {t('forgotEmail', '邮箱')}
                 </RouterLink>
                 <span>{t('forgotPromptOr', ' 或 ')}</span>
-                <RouterLink
-                  to={forgotPasswordHref}
-                  variant="inline"
-                >
+                <RouterLink to={forgotPasswordHref} variant="inline">
                   {t('forgotPassword', '密码')}
                 </RouterLink>
                 <span>{t('forgotPromptSuffix', '？')}</span>

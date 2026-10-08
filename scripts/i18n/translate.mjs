@@ -81,7 +81,7 @@ const requestedModules = getFlag('module') ?? process.env.I18N_MODULES
 
 const glossaryFile = config.glossaryFile ? `${ROOT}/${config.glossaryFile}` : null
 const glossary =
-  glossaryFile && existsSync(glossaryFile) ? readJson(glossaryFile)?.terms ?? {} : {}
+  glossaryFile && existsSync(glossaryFile) ? (readJson(glossaryFile)?.terms ?? {}) : {}
 
 /** 模块的中文说明 —— 给模型一点上下文，译文更贴切。 */
 const moduleDescriptions = glossary?.__modules ?? {}
@@ -145,9 +145,8 @@ for (const locale of targetLocales) {
       既白烧 token，又让 `--check` 永远不通过。
       所以默认只翻真正缺失的 `added`；确需重翻时显式 `--include-stale`。
     */
-    const pendingKeys = force || includeStale
-      ? [...diff.added, ...diff.stale].sort()
-      : [...diff.added].sort()
+    const pendingKeys =
+      force || includeStale ? [...diff.added, ...diff.stale].sort() : [...diff.added].sort()
 
     if (!includeStale && !force) stats.staleSkipped += diff.stale.length
 
@@ -254,9 +253,7 @@ for (const locale of targetLocales) {
     if (wroteAnything) {
       const file = moduleFile(moduleName, locale, config)
       writeFileSync(file, `${JSON.stringify(targetData, null, 2)}\n`, 'utf8')
-      stats.filesWritten.push(
-        `${moduleName}/${locale}.json`,
-      )
+      stats.filesWritten.push(`${moduleName}/${locale}.json`)
     }
 
     saveCache(locale, cache, config)
@@ -297,18 +294,12 @@ if (asJson) {
 
   // `stale` 是报告项、不是待办项 —— 说清楚为什么不动，避免被当成漏翻
   if (stats.staleSkipped > 0 && !includeStale && !force) {
-    console.log(
-      `\nℹ 另有 ${stats.staleSkipped} 个键的译文与中文**逐字相同**，已跳过（不算漏翻）。`,
-    )
+    console.log(`\nℹ 另有 ${stats.staleSkipped} 个键的译文与中文**逐字相同**，已跳过（不算漏翻）。`)
     console.log(
       '  常见原因：品牌名/快捷键/代码/路径本来就该原样（Ask AI、Ctrl K、string、/system/menus），',
     )
-    console.log(
-      '  以及日语等汉字文化圈语言与中文同形（操作、保存、停止）。',
-    )
-    console.log(
-      '  如确认其中确有漏翻，用 `--include-stale` 重新翻译它们。',
-    )
+    console.log('  以及日语等汉字文化圈语言与中文同形（操作、保存、停止）。')
+    console.log('  如确认其中确有漏翻，用 `--include-stale` 重新翻译它们。')
   }
 
   if (stats.errors.length) {
@@ -328,9 +319,7 @@ if (stats.errors.length && !checkOnly) {
 if (checkOnly) {
   const totalPending = report.reduce((sum, row) => sum + row.viaAi, 0)
   if (totalPending > 0) {
-    console.log(
-      `\n✖ 还有 ${totalPending} 个键没有译文 —— 跑 \`pnpm i18n\` 生成译文后提交。`,
-    )
+    console.log(`\n✖ 还有 ${totalPending} 个键没有译文 —— 跑 \`pnpm i18n\` 生成译文后提交。`)
     process.exit(1)
   }
   console.log('\n✔ 所有目标语言的译文都是最新的')

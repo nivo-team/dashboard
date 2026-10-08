@@ -30,11 +30,7 @@ export function TableExampleCreatePage({ appId }: { appId: string }) {
         title={meta.title}
         description={meta.description}
         actions={
-          <Button
-            variant="secondary"
-            icon={<ArrowLeftIcon size={16} />}
-            onClick={handleBack}
-          >
+          <Button variant="secondary" icon={<ArrowLeftIcon size={16} />} onClick={handleBack}>
             {t('detail.back', '返回列表')}
           </Button>
         }

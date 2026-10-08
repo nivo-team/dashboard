@@ -8,7 +8,13 @@ defineRouteMeta({
     tags: ['工单'],
     description: '根据工单 ID 查询详情',
     parameters: [
-      { in: 'path', name: 'id', required: true, schema: { type: 'integer' }, description: '工单 ID' },
+      {
+        in: 'path',
+        name: 'id',
+        required: true,
+        schema: { type: 'integer' },
+        description: '工单 ID',
+      },
     ],
     responses: {
       200: {

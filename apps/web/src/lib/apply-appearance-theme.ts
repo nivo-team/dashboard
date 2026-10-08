@@ -142,10 +142,7 @@ export function applyAppearanceTheme() {
     // 而 `bg-kumo-brand` 读 `--color-kumo-brand`（Kumo 里两者默认色甚至不同：蓝 / Cloudflare 橙）。
     // 只覆盖一个会出现「背景变了、文字没变」，所以两个都要写。
     style.setProperty('--color-kumo-brand', accentColor)
-    style.setProperty(
-      '--color-kumo-brand-hover',
-      `color-mix(in oklab, ${accentColor} 88%, black)`,
-    )
+    style.setProperty('--color-kumo-brand-hover', `color-mix(in oklab, ${accentColor} 88%, black)`)
     style.setProperty('--text-color-kumo-brand', accentColor)
   }
 
@@ -189,11 +186,9 @@ if (typeof window !== 'undefined') {
   applyAppearanceTheme()
 
   // 「跟随系统」时，系统深浅变化也要重算（colorMode 本身没变）
-  window
-    .matchMedia('(prefers-color-scheme: dark)')
-    .addEventListener('change', () => {
-      if (usePreferencesStore.getState().colorMode === 'system') {
-        applyAppearanceTheme()
-      }
-    })
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (usePreferencesStore.getState().colorMode === 'system') {
+      applyAppearanceTheme()
+    }
+  })
 }

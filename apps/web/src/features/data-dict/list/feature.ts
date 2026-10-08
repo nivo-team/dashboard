@@ -33,9 +33,7 @@ export interface DictTypeListFeatureOptions {
   reload: () => Promise<unknown> | unknown
 }
 
-export function createDictTypeListFeature(
-  options: DictTypeListFeatureOptions,
-): FeatureSpec {
+export function createDictTypeListFeature(options: DictTypeListFeatureOptions): FeatureSpec {
   return defineFeature({
     title: '数据字典分类列表',
     description:
@@ -76,8 +74,7 @@ export function createDictTypeListFeature(
       {
         id: 'dict-types',
         title: '分类列表（根分类的直接子分类）',
-        description:
-          '这一页表格里的分类：根分类的直接子分类，`children` 里是它们的子分类',
+        description: '这一页表格里的分类：根分类的直接子分类，`children` 里是它们的子分类',
         shape:
           '每行：id / name / code / type（键值类型 1=string 2=number）/ status（1 启用 2 禁用）/ sort / remark / children[]',
         /*

@@ -41,7 +41,8 @@ function resolveBrandConfig(): Readonly<BrandConfig> {
   const envDescription = import.meta.env.VITE_APP_DESCRIPTION?.trim()
 
   const name = envName || DEFAULT_BRAND_FALLBACK.name
-  const shortName = envShortName || (envName ? envName.slice(0, 10) : DEFAULT_BRAND_FALLBACK.shortName)
+  const shortName =
+    envShortName || (envName ? envName.slice(0, 10) : DEFAULT_BRAND_FALLBACK.shortName)
   const description = envDescription || DEFAULT_BRAND_FALLBACK.description
 
   const config: BrandConfig = {

@@ -22,10 +22,7 @@ const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
 
 /** 系统是否要求「减少动态效果」（`useSyncExternalStore` 的取值处用它）。 */
 function systemPrefersReducedMotion(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    window.matchMedia(REDUCED_MOTION_QUERY).matches
-  )
+  return typeof window !== 'undefined' && window.matchMedia(REDUCED_MOTION_QUERY).matches
 }
 
 /*

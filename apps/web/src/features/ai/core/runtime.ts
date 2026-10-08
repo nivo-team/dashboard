@@ -52,10 +52,8 @@ export const MAX_TOOL_STEPS = 30
  * `VITE_AI_SERVICE_BASE_URL` 覆盖。
  */
 const AI_SERVICE_BASE_URL =
-  ((import.meta.env?.VITE_AI_SERVICE_BASE_URL as string | undefined) ?? '').replace(
-    /\/+$/,
-    '',
-  ) || 'http://localhost:3002'
+  ((import.meta.env?.VITE_AI_SERVICE_BASE_URL as string | undefined) ?? '').replace(/\/+$/, '') ||
+  'http://localhost:3002'
 
 /**
  * 发给中间层的 model 占位。
@@ -111,19 +109,13 @@ function createWorkerModel(
  * `inputSchema` 用 `jsonSchema()` 包一层：我们的定义是纯 JSON Schema，不需要 zod；
  * 这里的断言只是为了跨过 SDK 的 `JSONSchema7` 名义类型，schema 本身没做任何变换。
  */
-function toSdkTools(
-  definitions: readonly AiToolDefinition[],
-  ctx: AiToolContext,
-): ToolSet {
+function toSdkTools(definitions: readonly AiToolDefinition[], ctx: AiToolContext): ToolSet {
   const entries = definitions.map((definition) => [
     definition.name,
     tool({
       description: definition.description,
-      inputSchema: jsonSchema(
-        definition.inputSchema as Parameters<typeof jsonSchema>[0],
-      ),
-      execute: async (input: unknown) =>
-        definition.execute(input as Record<string, unknown>, ctx),
+      inputSchema: jsonSchema(definition.inputSchema as Parameters<typeof jsonSchema>[0]),
+      execute: async (input: unknown) => definition.execute(input as Record<string, unknown>, ctx),
     }),
   ])
 
@@ -357,9 +349,7 @@ export async function* streamAssistantTurn(
 
   const selectToolsSdk = tool({
     description: SELECT_TOOLS_SPEC.description,
-    inputSchema: jsonSchema(
-      SELECT_TOOLS_SPEC.inputSchema as Parameters<typeof jsonSchema>[0],
-    ),
+    inputSchema: jsonSchema(SELECT_TOOLS_SPEC.inputSchema as Parameters<typeof jsonSchema>[0]),
     execute: async (input: unknown) => {
       const raw = (input ?? {}) as { tools?: unknown; intent?: unknown }
       intent = typeof raw.intent === 'string' ? raw.intent.trim() : null
@@ -417,6 +407,15 @@ export async function* streamAssistantTurn(
     executionToolNames = []
     intent = null
 
+    /*
+      显式标注成 `ToolSet`：对象展开会丢掉索引签名，SDK 会把工具名收窄成字面量 `'select_tools'`，
+      执行阶段的 `activeTools: executionToolNames`（`string[]`）就通不过类型检查。
+    */
+    const sdkTools: ToolSet = {
+      [SELECT_TOOLS_NAME]: selectToolsSdk,
+      ...toSdkTools(availableTools, options.toolContext),
+    }
+
     const result = streamText({
       model: createWorkerModel(options.promptFacts, () => stage),
       messages: [...options.messages],
@@ -425,10 +424,7 @@ export async function* streamAssistantTurn(
         SDK 在组装每一步的请求前会先 `filterActiveTools`，只有 active 的那些才真正发给模型。
         这是「按需加载 schema」能成立的关键：不必把一轮对话拆成两次调用。
       */
-      tools: {
-        [SELECT_TOOLS_NAME]: selectToolsSdk,
-        ...toSdkTools(availableTools, options.toolContext),
-      },
+      tools: sdkTools,
       activeTools: [SELECT_TOOLS_NAME],
       prepareStep: ({ stepNumber }) => {
         if (stepNumber === 0) {
@@ -607,7 +603,6 @@ export async function* streamAssistantTurn(
     for (const ev of thinkParser.flush()) {
       yield ev
     }
-
   }
 
   /*
@@ -636,7 +631,11 @@ export async function* streamAssistantTurn(
     这里读的是**累计值** —— Router 步通常 1 步，Execution 可能多步（工具循环）。
     `selection === null` 表示 Router 直接回答了（本轮没有执行阶段）。
   */
-  const finalSelection: ReturnType<typeof resolveTools> | null = selection
+  /*
+    读回 `selection` 时必须显式断言：`runOnce`（嵌套生成器）内部会改写它，而 TS 的控制流分析
+    看不到那次赋值，会把这里收窄成 `null`（于是后面每个可选链分支的类型都变成 `never`）。
+  */
+  const finalSelection = selection as ReturnType<typeof resolveTools> | null
   options.onMetrics?.({
     routerInputTokens: tokens.routerInput,
     routerOutputTokens: tokens.routerOutput,
@@ -665,11 +664,8 @@ function stringifyToolOutput(value: unknown): string {
   }
 }
 
-
 /** 衰减后的占位。必须说明「可以重调」，否则模型会把占位当成数据本身。 */
-const OMITTED_TOOL_RESULT =
-  '[历史轮次的结果已省略以节省上下文；需要这些数据请重新调用该工具。]'
-
+const OMITTED_TOOL_RESULT = '[历史轮次的结果已省略以节省上下文；需要这些数据请重新调用该工具。]'
 
 /**
  * 把面板的消息模型转成 SDK 的消息模型。
@@ -797,7 +793,9 @@ export function toModelMessages(messages: readonly AiMessage[]): ModelMessage[] 
 
       const fileBlocks = attachmentParts
         .filter(
-          (part): part is Extract<AiAttachment, { kind: 'text' }> & {
+          (
+            part,
+          ): part is Extract<AiAttachment, { kind: 'text' }> & {
             type: 'attachment'
           } => part.type === 'attachment' && part.kind === 'text',
         )
@@ -877,10 +875,7 @@ export function toModelMessages(messages: readonly AiMessage[]): ModelMessage[] 
       toolName: call.toolName,
       output: {
         type: 'text',
-        value:
-          index >= recentBoundary
-            ? stringifyToolOutput(call.output)
-            : OMITTED_TOOL_RESULT,
+        value: index >= recentBoundary ? stringifyToolOutput(call.output) : OMITTED_TOOL_RESULT,
       },
     }))
     if (toolContent.length > 0) {

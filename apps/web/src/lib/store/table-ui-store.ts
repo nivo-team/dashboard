@@ -86,4 +86,3 @@ enableCrossTabSync(useTableUiStore, {
   storageName: 'admin.table-ui',
   scoped: true,
 })
-

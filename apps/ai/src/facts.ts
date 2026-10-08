@@ -1,9 +1,4 @@
-import type {
-  PromptFacts,
-  PromptNavEntry,
-  PromptStage,
-  PromptTask,
-} from '@admin/ai-prompt'
+import type { PromptFacts, PromptNavEntry, PromptStage, PromptTask } from '@admin/ai-prompt'
 
 /**
  * 把 HTTP 来的**不可信**请求体规范化成 `PromptFacts`。
@@ -58,13 +53,7 @@ function asNavEntries(value: unknown): PromptNavEntry[] {
   return entries
 }
 
-const TASK_STATUSES = [
-  'pending',
-  'in_progress',
-  'completed',
-  'failed',
-  'cancelled',
-] as const
+const TASK_STATUSES = ['pending', 'in_progress', 'completed', 'failed', 'cancelled'] as const
 
 function asTasks(value: unknown): PromptTask[] | null {
   if (!Array.isArray(value)) return null
@@ -96,10 +85,7 @@ export function normalizeFacts(raw: unknown): PromptFacts {
       - 缺失 / 其它类型 → 同样按「不在应用里」处理（安全默认）。
     */
     appId: typeof body.appId === 'string' && body.appId ? body.appId : null,
-    outputLanguageName: asString(
-      body.outputLanguageName,
-      DEFAULT_OUTPUT_LANGUAGE_NAME,
-    ),
+    outputLanguageName: asString(body.outputLanguageName, DEFAULT_OUTPUT_LANGUAGE_NAME),
     /*
       页面**摘要**（应用 / 页面 / 路径 / 路由模板）—— 两个阶段都带。
       明细（接口 / 字段 / 表单）不再随 facts 上报：需要它的动作由 `get_page_context` 按需获取。

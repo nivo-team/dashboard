@@ -59,7 +59,8 @@ interface DictTypeUpdateBody {
 }
 
 export default defineHandler(async (event) => {
-  const body = await readBody<DictTypeUpdateBody>(event).catch(() => ({}) as DictTypeUpdateBody)
+  const body = ((await readBody<DictTypeUpdateBody>(event).catch(() => undefined)) ??
+    {}) as DictTypeUpdateBody
 
   const row = db.dictTypes.find((t) => t.id === Number(body?.id))
   if (!row) return notFound('字典分类')

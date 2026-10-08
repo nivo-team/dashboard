@@ -44,9 +44,7 @@ export type TableColumnValue =
  * 形式 1: { id: 'ID', name: '名称', email: { label: '邮箱', defaultVisible: false } }
  * 形式 2: [{ key: 'id', label: 'ID' }, { key: 'name', label: '名称' }]
  */
-export type TableColumnsConfig =
-  | Record<string, TableColumnValue>
-  | TableColumnItem[]
+export type TableColumnsConfig = Record<string, TableColumnValue> | TableColumnItem[]
 
 /**
  * 扩展显示选项项（可选，默认无）
@@ -69,9 +67,7 @@ export type TableOtherOptionValue =
  * 形式 1: { showFullName: 'Show full name' }
  * 形式 2: [{ key: 'showFullName', label: 'Show full name', defaultValue: true }]
  */
-export type TableOtherOptionsConfig =
-  | Record<string, TableOtherOptionValue>
-  | TableOtherOptionItem[]
+export type TableOtherOptionsConfig = Record<string, TableOtherOptionValue> | TableOtherOptionItem[]
 
 /**
  * Display options 内部归一化后的数据格式

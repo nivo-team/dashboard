@@ -1,11 +1,7 @@
 import { Button } from '@cloudflare/kumo'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import {
-  useOAuthProviders,
-  type OAuthProviderConfig,
-  type OAuthProviderId,
-} from './oauth-config'
+import { useOAuthProviders, type OAuthProviderConfig, type OAuthProviderId } from './oauth-config'
 
 export interface OAuthButtonsProps {
   /** 模式：登录态还是注册态 */
@@ -44,9 +40,9 @@ export function OAuthButtons({
   const handleProviderClick = (providerId: OAuthProviderId) => {
     // 真实生产环境：可在此重定向至后端 /oauth/:provider/authorize 授权地址
     // 模板开发环境：自动跳转至统一的回调路由并携带模拟 code 走通完整会话装配流程
-    const targetUrl = `/oauth/${providerId}/callback`
     navigate({
-      to: targetUrl as any,
+      to: '/oauth/$provider/callback',
+      params: { provider: providerId },
       search: {
         code: `mock_code_${providerId}_${Date.now()}`,
         redirect: redirectUrl,
@@ -96,9 +92,7 @@ export function OAuthButtons({
             className="flex h-10 w-full items-center justify-center gap-2 border-kumo-line bg-kumo-base hover:bg-kumo-tint focus-visible:ring-2 focus-visible:ring-kumo-brand"
           >
             <Icon size={18} className="shrink-0 text-kumo-default" />
-            <span className="truncate text-sm font-medium text-kumo-default">
-              {provider.name}
-            </span>
+            <span className="truncate text-sm font-medium text-kumo-default">{provider.name}</span>
           </Button>
         )
       })}

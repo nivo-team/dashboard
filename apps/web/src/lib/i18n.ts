@@ -15,13 +15,10 @@ export { SUPPORTED_LOCALES, type LocaleKey, type LocaleMeta } from './locale'
  * 规则：/src/messages/{module}/{lang}.json
  * 提取 module 作为 namespace，提取文件名作为语言 key，完全实现零配置自动注册！
  */
-const localeModules = import.meta.glob<Record<string, unknown>>(
-  '/src/messages/*/*.json',
-  {
-    eager: true,
-    import: 'default',
-  },
-)
+const localeModules = import.meta.glob<Record<string, unknown>>('/src/messages/*/*.json', {
+  eager: true,
+  import: 'default',
+})
 
 const resources: Resource = {}
 

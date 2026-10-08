@@ -91,4 +91,6 @@ export const ENDPOINT_SPECS: Record<string, EndpointSpec> = ${JSON.stringify(spe
 
 writeFileSync(TARGET, header)
 console.log(`✅ 生成 ${Object.keys(specs).length} 条接口参数索引`)
-console.log(`   ${TARGET.replace(`${pkgDir}/`, '')}  ${(statSync(TARGET).size / 1024).toFixed(1)} KB`)
+console.log(
+  `   ${TARGET.replace(`${pkgDir}/`, '')}  ${(statSync(TARGET).size / 1024).toFixed(1)} KB`,
+)

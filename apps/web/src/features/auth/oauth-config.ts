@@ -37,9 +37,15 @@ const ALL_PROVIDERS: readonly OAuthProviderConfig[] = [
  * 依据环境变量动态获取当前已启用的 OAuth Providers
  */
 export function getEnabledOAuthProviders(): OAuthProviderConfig[] {
-  const isGoogle = import.meta.env.VITE_OAUTH_GOOGLE_ENABLED === 'true' || import.meta.env.VITE_OAUTH_GOOGLE_ENABLED === '1'
-  const isGithub = import.meta.env.VITE_OAUTH_GITHUB_ENABLED === 'true' || import.meta.env.VITE_OAUTH_GITHUB_ENABLED === '1'
-  const isApple = import.meta.env.VITE_OAUTH_APPLE_ENABLED === 'true' || import.meta.env.VITE_OAUTH_APPLE_ENABLED === '1'
+  const isGoogle =
+    import.meta.env.VITE_OAUTH_GOOGLE_ENABLED === 'true' ||
+    import.meta.env.VITE_OAUTH_GOOGLE_ENABLED === '1'
+  const isGithub =
+    import.meta.env.VITE_OAUTH_GITHUB_ENABLED === 'true' ||
+    import.meta.env.VITE_OAUTH_GITHUB_ENABLED === '1'
+  const isApple =
+    import.meta.env.VITE_OAUTH_APPLE_ENABLED === 'true' ||
+    import.meta.env.VITE_OAUTH_APPLE_ENABLED === '1'
 
   const enabledMap: Record<OAuthProviderId, boolean> = {
     google: isGoogle,

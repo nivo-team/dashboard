@@ -104,18 +104,14 @@ export function useComplexTableColumns(): ColumnDef<StockFeatures, ComplexTableR
             id: 'qty',
             header: label('qty', '数量'),
             meta: { label: label('qty', '数量'), headerClassName: MIN_COLUMN_WIDTH },
-            cell: ({ getValue }) => (
-              <span className="tabular-nums">{String(getValue() ?? 0)}</span>
-            ),
+            cell: ({ getValue }) => <span className="tabular-nums">{String(getValue() ?? 0)}</span>,
           }),
           columnHelper.accessor('unitPrice', {
             id: 'unitPrice',
             header: label('unitPrice', '单价'),
             meta: { label: label('unitPrice', '单价'), headerClassName: MIN_COLUMN_WIDTH },
             cell: ({ getValue }) => (
-              <span className="tabular-nums">
-                {Number(getValue() ?? 0).toLocaleString()}
-              </span>
+              <span className="tabular-nums">{Number(getValue() ?? 0).toLocaleString()}</span>
             ),
           }),
           columnHelper.accessor('amount', {

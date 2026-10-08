@@ -15,7 +15,13 @@ defineRouteMeta({
     tags: ['工单'],
     description: '变更单条工单的状态',
     parameters: [
-      { in: 'path', name: 'id', required: true, schema: { type: 'integer' }, description: '工单 ID' },
+      {
+        in: 'path',
+        name: 'id',
+        required: true,
+        schema: { type: 'integer' },
+        description: '工单 ID',
+      },
     ],
     requestBody: {
       required: true,

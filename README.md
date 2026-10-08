@@ -51,7 +51,7 @@ packages/
 ## 快速开始
 
 ### 环境依赖
-- Node.js >= 20
+- Node.js `^22.18` / `^24.11` / `>=26`（Vite+ 1.1.0 的要求）
 - pnpm >= 9
 
 ### 启动项目
@@ -60,16 +60,21 @@ packages/
 # 安装全部依赖（monorepo 一次装齐）
 pnpm install
 
-# 终端 1：启动 Mock API → http://localhost:3001
-pnpm mock
+# 方式一（推荐）：一条命令并发起 Mock API + 前端 + AI 中间层，Ctrl-C 一次全停
+pnpm dev:all
 
-# 终端 2：启动前端 → http://localhost:3000
-pnpm dev
+# 方式二：分开跑（各开一个终端）
+pnpm mock   # Mock API  → http://localhost:3001
+pnpm dev    # 前端      → http://localhost:3000
+pnpm ai     # AI 中间层 → http://localhost:3002
 
 # 生产构建 / 预览
 pnpm build
 pnpm preview
 ```
+
+静态检查（Vite+ 统一入口，默认不跑）：`pnpm exec vp check`（格式 + lint + 类型检查）、
+`pnpm exec vp fmt`、`pnpm exec vp test`（本仓暂无测试文件）。
 
 登录时**任意非空账号 + 任意非空密码**都能进入。
 

@@ -114,9 +114,7 @@ export function FilterBuilder({
   // 从 chip 进入时，把焦点落到该条件的「字段（key）选择器」上，而不是整行
   useEffect(() => {
     if (!focusConditionId) return
-    const row = listRef.current?.querySelector(
-      `[data-condition-id="${focusConditionId}"]`,
-    )
+    const row = listRef.current?.querySelector(`[data-condition-id="${focusConditionId}"]`)
     row?.querySelector<HTMLElement>('[data-kumo-part="trigger"]')?.focus()
   }, [focusConditionId])
 
@@ -152,9 +150,7 @@ export function FilterBuilder({
    * 触发器会退化为显示 value（即 query 参数名）。
    */
   const selectableItems = (currentField: string) =>
-    Object.fromEntries(
-      selectableFields(currentField).map((field) => [field.param, field.label]),
-    )
+    Object.fromEntries(selectableFields(currentField).map((field) => [field.param, field.label]))
 
   const firstAvailableField = () => fields.find((field) => isFieldAvailable(field, ''))
 
@@ -209,9 +205,7 @@ export function FilterBuilder({
             aria-label={ariaLabel}
             // w-full + shrink 用于覆盖 Kumo Select trigger 自带的 w-max / shrink-0
             className="min-w-0 w-full shrink"
-            items={Object.fromEntries(
-              enumOptions.map((option) => [option.value, option.label]),
-            )}
+            items={Object.fromEntries(enumOptions.map((option) => [option.value, option.label]))}
             value={condition.value || undefined}
             onValueChange={(next) => patch(condition.id, { value: String(next ?? '') })}
           />

@@ -6,30 +6,15 @@ import {
   Switch,
   useKumoToastManager,
 } from '@cloudflare/kumo'
-import {
-  DotsThree,
-  PencilSimple,
-  PlusIcon,
-  Trash,
-  TreeStructureIcon,
-} from '@phosphor-icons/react'
+import { DotsThree, PencilSimple, PlusIcon, Trash, TreeStructureIcon } from '@phosphor-icons/react'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import {
-  deleteSystemMenuByIdMutation,
-  postSystemMenuMutation,
-  putSystemMenuMutation,
-} from '#/api'
+import { deleteSystemMenuByIdMutation, postSystemMenuMutation, putSystemMenuMutation } from '#/api'
 import type { MenuNode } from '#/api'
-import {
-  DataTable,
-  createColumnHelper,
-  stockFeatures,
-  useTable,
-} from '#/components/data-table'
+import { DataTable, createColumnHelper, stockFeatures, useTable } from '#/components/data-table'
 import type { StockFeatures } from '#/components/data-table'
 import { DangerConfirmDialog } from '#/components/danger-confirm-dialog'
 import { PageHeader } from '#/components/page-header'
@@ -57,10 +42,7 @@ import {
   toMenuStatus,
   toMenuVisible,
 } from './feature-options'
-import {
-  useFeaturesTree,
-  useInvalidateFeaturesTree,
-} from './use-features-tree'
+import { useFeaturesTree, useInvalidateFeaturesTree } from './use-features-tree'
 import { FeatureForm, validateFeatureForm } from './feature-form'
 import type { FeatureFormValues } from './feature-form'
 import { FeatureFormDialog } from './feature-form-dialog'
@@ -84,10 +66,7 @@ type PermissionFormTarget = MenuNode | 'create' | null
 const columnHelper = createColumnHelper<StockFeatures, MenuNode>()
 
 /** 时间兜底格式化：字符串/数字统一走 toEpochMs，再交给全局时区格式化。 */
-function formatMaybeTime(
-  value: unknown,
-  formatDateTime: (value: number) => string,
-): ReactNode {
+function formatMaybeTime(value: unknown, formatDateTime: (value: number) => string): ReactNode {
   const ms = toEpochMs(value)
   return ms === null ? '-' : formatDateTime(ms)
 }
@@ -97,9 +76,7 @@ function SidebarField({ label, children }: { label: string; children: ReactNode 
   return (
     <div className="flex items-center justify-between gap-3">
       <span className="text-xs text-kumo-subtle">{label}</span>
-      <span className="min-w-0 truncate text-sm font-medium text-kumo-default">
-        {children}
-      </span>
+      <span className="min-w-0 truncate text-sm font-medium text-kumo-default">{children}</span>
     </div>
   )
 }
@@ -163,16 +140,13 @@ export function FeatureDetail({ node }: FeatureDetailProps) {
   const updateFeatureMutation = useMutation(putSystemMenuMutation())
 
   /** 页头右侧的「启用」开关（受控）与表单草稿 */
-  const [status, setStatus] = useState<FeatureFormValues['status']>(() =>
-    toMenuStatus(node.status),
-  )
+  const [status, setStatus] = useState<FeatureFormValues['status']>(() => toMenuStatus(node.status))
   const [draft, setDraft] = useState<FeatureFormValues | null>(null)
   /** 递增该值会重建表单，用于「重置」回初始值 */
   const [resetSeq, setResetSeq] = useState(0)
 
   /** 有草稿且与初始值不同 → 底部浮条出现 */
-  const isDirty =
-    draft !== null && normalizeDraft(draft) !== normalizeDraft(featureInitialValues)
+  const isDirty = draft !== null && normalizeDraft(draft) !== normalizeDraft(featureInitialValues)
 
   // 切换功能（同路由不同 id）或后端数据刷新后，重置本地编辑态
   useEffect(() => {
@@ -191,9 +165,7 @@ export function FeatureDetail({ node }: FeatureDetailProps) {
   const createPermissionMutation = useMutation(postSystemMenuMutation())
   const updatePermissionMutation = useMutation(putSystemMenuMutation())
 
-  const [deletePermissionTarget, setDeletePermissionTarget] = useState<MenuNode | null>(
-    null,
-  )
+  const [deletePermissionTarget, setDeletePermissionTarget] = useState<MenuNode | null>(null)
   const [deletePermissionError, setDeletePermissionError] = useState<string | null>(null)
   const deletePermissionMutation = useMutation(deleteSystemMenuByIdMutation())
 
@@ -266,9 +238,7 @@ export function FeatureDetail({ node }: FeatureDetailProps) {
         // 保存成功后清空草稿，底部浮条随之收起
         setDraft(null)
       } catch (error) {
-        setFeatureError(
-          extractApiErrorMessage(error, t('form.failed', '操作失败，请稍后重试')),
-        )
+        setFeatureError(extractApiErrorMessage(error, t('form.failed', '操作失败，请稍后重试')))
       }
     },
     [invalidateFeaturesTree, node.menu_id, node.parent_id, t, toast, updateFeatureMutation],
@@ -281,11 +251,9 @@ export function FeatureDetail({ node }: FeatureDetailProps) {
   const handleDeleteFeatureClick = useCallback(() => {
     if (children.length > 0) {
       toast.add({
-        title: t(
-          'detail.deleteBlocked',
-          '该节点下还有 {{total}} 个子项，请先删除子项',
-          { total: children.length },
-        ),
+        title: t('detail.deleteBlocked', '该节点下还有 {{total}} 个子项，请先删除子项', {
+          total: children.length,
+        }),
         variant: 'warning',
       })
       return
@@ -345,14 +313,7 @@ export function FeatureDetail({ node }: FeatureDetailProps) {
         extractApiErrorMessage(error, t('form.deleteFailed', '删除失败，请稍后重试')),
       )
     }
-  }, [
-    deleteFeatureMutation,
-    goToParent,
-    invalidateFeaturesTree,
-    node.menu_id,
-    t,
-    toast,
-  ])
+  }, [deleteFeatureMutation, goToParent, invalidateFeaturesTree, node.menu_id, t, toast])
 
   const openCreatePermission = useCallback(() => {
     setPermissionFormError(null)
@@ -722,9 +683,7 @@ export function FeatureDetail({ node }: FeatureDetailProps) {
           {/* 危险操作：无 `feature:delete` 权限时整块不渲染（而不是留一个点了报错的按钮） */}
           {canDelete ? (
             <LayerCard className="p-0">
-              <LayerCard.Secondary>
-                {t('detail.dangerZone', '危险操作')}
-              </LayerCard.Secondary>
+              <LayerCard.Secondary>{t('detail.dangerZone', '危险操作')}</LayerCard.Secondary>
               <LayerCard.Primary className="p-4">
                 <Button
                   variant="secondary-destructive"
@@ -764,9 +723,7 @@ export function FeatureDetail({ node }: FeatureDetailProps) {
             ? t('form.save', '保存')
             : t('form.submitButton', '创建权限')
         }
-        submitting={
-          createPermissionMutation.isPending || updatePermissionMutation.isPending
-        }
+        submitting={createPermissionMutation.isPending || updatePermissionMutation.isPending}
         submitError={permissionFormError}
         onSubmit={(values) => {
           void handlePermissionSubmit(values)

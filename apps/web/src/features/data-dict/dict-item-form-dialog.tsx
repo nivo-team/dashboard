@@ -2,12 +2,7 @@ import { Input, InputArea, LayerDialog, Radio, Switch } from '@cloudflare/kumo'
 import { useCallback, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  DICT_IS_DEFAULT,
-  DICT_STATUS,
-  toDictIsDefault,
-  toDictStatus,
-} from './data-dict-options'
+import { DICT_IS_DEFAULT, DICT_STATUS, toDictIsDefault, toDictStatus } from './data-dict-options'
 import type { DictItem, DictItemFormValues } from './data-dict-types'
 
 /**
@@ -69,9 +64,7 @@ export function DictItemFormDialog({
   const [value, setValue] = useState(initialValues?.value ?? '')
   const [isDefault, setIsDefault] = useState(toDictIsDefault(initialValues?.is_default))
   const [sortText, setSortText] = useState(String(initialValues?.sort ?? 0))
-  const [status, setStatus] = useState(
-    toDictStatus(initialValues?.status ?? DICT_STATUS.enabled),
-  )
+  const [status, setStatus] = useState(toDictStatus(initialValues?.status ?? DICT_STATUS.enabled))
   const [remark, setRemark] = useState(initialValues?.remark ?? '')
   const [labelError, setLabelError] = useState<string | null>(null)
   const [valueError, setValueError] = useState<string | null>(null)
@@ -113,27 +106,14 @@ export function DictItemFormDialog({
         remark: remark.trim() || undefined,
       })
     },
-    [
-      initialValues?.id,
-      isDefault,
-      label,
-      onSubmit,
-      remark,
-      sortText,
-      status,
-      t,
-      typeId,
-      value,
-    ],
+    [initialValues?.id, isDefault, label, onSubmit, remark, sortText, status, t, typeId, value],
   )
 
   return (
     <LayerDialog open={open} onOpenChange={onOpenChange}>
       <LayerDialog.Content size="sm">
         <LayerDialog.Title>{title}</LayerDialog.Title>
-        {description ? (
-          <LayerDialog.Description>{description}</LayerDialog.Description>
-        ) : null}
+        {description ? <LayerDialog.Description>{description}</LayerDialog.Description> : null}
 
         <LayerDialog.Body>
           <form id={formId} onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -174,14 +154,8 @@ export function DictItemFormDialog({
               value={isDefault}
               onValueChange={(next) => setIsDefault(toDictIsDefault(next))}
             >
-              <Radio.Item<number>
-                value={DICT_IS_DEFAULT.yes}
-                label={t('isDefault.yes', '是')}
-              />
-              <Radio.Item<number>
-                value={DICT_IS_DEFAULT.no}
-                label={t('isDefault.no', '否')}
-              />
+              <Radio.Item<number> value={DICT_IS_DEFAULT.yes} label={t('isDefault.yes', '是')} />
+              <Radio.Item<number> value={DICT_IS_DEFAULT.no} label={t('isDefault.no', '否')} />
             </Radio.Group>
 
             <Input

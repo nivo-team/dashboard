@@ -1,8 +1,7 @@
 import { Link as KumoLink, type KumoLinkVariant } from '@cloudflare/kumo'
 import type { ComponentProps, ReactNode } from 'react'
 
-export interface RouterLinkProps
-  extends Omit<ComponentProps<typeof KumoLink>, 'href'> {
+export interface RouterLinkProps extends Omit<ComponentProps<typeof KumoLink>, 'href'> {
   /** 目标路由路径（兼容 TanStack Router 的 `to` 与标准 `href`） */
   to?: string
   href?: string
@@ -35,12 +34,7 @@ function RouterLinkBase({
   const target = to ?? href ?? '/'
 
   return (
-    <KumoLink
-      href={target}
-      variant={variant}
-      className={className}
-      {...rest}
-    >
+    <KumoLink href={target} variant={variant} className={className} {...rest}>
       {children}
     </KumoLink>
   )

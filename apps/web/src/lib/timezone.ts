@@ -16,12 +16,7 @@ import {
  * 本文件负责：对外暴露既有 API（`getTimezone` / `setTimezone` / `useTimezone`）
  * 以及全站统一的时间格式化函数。
  */
-export {
-  DEFAULT_TIMEZONE,
-  SUPPORTED_TIMEZONES,
-  type TimezoneKey,
-  type TimezoneMeta,
-}
+export { DEFAULT_TIMEZONE, SUPPORTED_TIMEZONES, type TimezoneKey, type TimezoneMeta }
 
 /** 旧版时区 localStorage 键（已被 `admin.preferences` 取代），保留导出仅为兼容。 */
 export const TIMEZONE_STORAGE_KEY = LEGACY_TIMEZONE_STORAGE_KEY
@@ -92,9 +87,7 @@ function formatOffsetLabel(minutes: number): string {
   const abs = Math.abs(minutes)
   const hour = Math.floor(abs / 60)
   const minute = abs % 60
-  return minute === 0
-    ? `GMT${sign}${hour}`
-    : `GMT${sign}${hour}:${String(minute).padStart(2, '0')}`
+  return minute === 0 ? `GMT${sign}${hour}` : `GMT${sign}${hour}:${String(minute).padStart(2, '0')}`
 }
 
 /** 计算指定时区相对 UTC 的偏移分钟数（含夏令时，印度等半小时时区会返回 330）。 */
@@ -152,10 +145,7 @@ export interface DateTimeFormatOptions {
  * 全站未来的时间全部强制使用此函数或其派生工具进行显示。
  * 默认格式：YYYY-MM-DD HH:mm:ss
  */
-export function formatDateTime(
-  value: DateInput,
-  options?: DateTimeFormatOptions,
-): string {
+export function formatDateTime(value: DateInput, options?: DateTimeFormatOptions): string {
   const date = parseDate(value)
   if (!date) return options?.fallback ?? '-'
 
@@ -182,10 +172,7 @@ export interface DateFormatOptions {
  * 格式化年月日（在指定时区下计算）：
  * 默认格式：YYYY-MM-DD
  */
-export function formatDate(
-  value: DateInput,
-  options?: DateFormatOptions,
-): string {
+export function formatDate(value: DateInput, options?: DateFormatOptions): string {
   const date = parseDate(value)
   if (!date) return options?.fallback ?? '-'
 
@@ -207,10 +194,7 @@ export interface TimeFormatOptions {
  * 格式化时分秒（在指定时区下计算）：
  * 默认格式：HH:mm:ss（若 includeSeconds 为 false 则为 HH:mm）
  */
-export function formatTime(
-  value: DateInput,
-  options?: TimeFormatOptions,
-): string {
+export function formatTime(value: DateInput, options?: TimeFormatOptions): string {
   const date = parseDate(value)
   if (!date) return options?.fallback ?? '-'
 
@@ -266,10 +250,7 @@ export interface RelativeFormatOptions {
 /**
  * 相对时间格式化（例如「3 小时前」或「3 hours ago」）：
  */
-export function formatRelative(
-  value: DateInput,
-  options?: RelativeFormatOptions,
-): string {
+export function formatRelative(value: DateInput, options?: RelativeFormatOptions): string {
   const date = parseDate(value)
   if (!date) return options?.fallback ?? '-'
 
@@ -285,8 +266,7 @@ export function formatRelative(
 
   const locale =
     options?.locale ??
-    ((typeof document !== 'undefined' ? document.documentElement.lang : 'zh-CN') ||
-      'zh-CN')
+    ((typeof document !== 'undefined' ? document.documentElement.lang : 'zh-CN') || 'zh-CN')
 
   const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
   for (const [unit, secondsInUnit] of units) {

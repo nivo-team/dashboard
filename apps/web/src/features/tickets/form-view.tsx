@@ -19,10 +19,7 @@ export interface TicketFormMetadata {
   description: string
 }
 
-export function getTicketFormMetadata(
-  mode: 'create' | 'edit',
-  t: TFunction,
-): TicketFormMetadata {
+export function getTicketFormMetadata(mode: 'create' | 'edit', t: TFunction): TicketFormMetadata {
   return {
     title: mode === 'edit' ? t('form.editTitle', '编辑工单') : t('form.createTitle', '新建工单'),
     description:
@@ -159,21 +156,38 @@ export function TicketFormView({
       if (!isEdit) {
         const res = await postTicket({ body })
         if (res.data?.code === 0) {
-          appToastManager.add({ title: t('form.createSuccess', '创建工单成功'), variant: 'success' })
+          appToastManager.add({
+            title: t('form.createSuccess', '创建工单成功'),
+            variant: 'success',
+          })
           onSuccess?.()
         }
       } else {
         const targetId = Number(ticketId || initialData?.id)
         const res = await putTicket({ body: { id: targetId, ...body } })
         if (res.data?.code === 0) {
-          appToastManager.add({ title: t('form.updateSuccess', '更新工单成功'), variant: 'success' })
+          appToastManager.add({
+            title: t('form.updateSuccess', '更新工单成功'),
+            variant: 'success',
+          })
           onSuccess?.()
         }
       }
     } finally {
       setSubmitting(false)
     }
-  }, [title, description, priority, assignee, category, isEdit, ticketId, initialData, onSuccess, t])
+  }, [
+    title,
+    description,
+    priority,
+    assignee,
+    category,
+    isEdit,
+    ticketId,
+    initialData,
+    onSuccess,
+    t,
+  ])
 
   useAiFormSubmit({
     id: formBridgeId,

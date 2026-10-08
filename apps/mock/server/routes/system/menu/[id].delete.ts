@@ -8,7 +8,13 @@ defineRouteMeta({
     tags: ['功能菜单'],
     description: '删除功能（其下级一并删除）',
     parameters: [
-      { in: 'path', name: 'id', required: true, schema: { type: 'integer' }, description: '功能 ID' },
+      {
+        in: 'path',
+        name: 'id',
+        required: true,
+        schema: { type: 'integer' },
+        description: '功能 ID',
+      },
     ],
     responses: {
       200: {

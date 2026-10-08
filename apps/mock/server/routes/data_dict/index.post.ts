@@ -67,7 +67,7 @@ interface DictItemBody {
 }
 
 export default defineHandler(async (event) => {
-  const body = await readBody<DictItemBody>(event).catch(() => ({}) as DictItemBody)
+  const body = ((await readBody<DictItemBody>(event).catch(() => undefined)) ?? {}) as DictItemBody
 
   const typeId = Number(body?.type_id)
   const type = db.dictTypes.find((t) => t.id === typeId)

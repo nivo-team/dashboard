@@ -56,9 +56,7 @@ export function FeatureFormDialog({
     <LayerDialog open={open} onOpenChange={onOpenChange}>
       <LayerDialog.Content size="sm">
         <LayerDialog.Title>{title}</LayerDialog.Title>
-        {description ? (
-          <LayerDialog.Description>{description}</LayerDialog.Description>
-        ) : null}
+        {description ? <LayerDialog.Description>{description}</LayerDialog.Description> : null}
 
         <LayerDialog.Body>
           <FeatureForm

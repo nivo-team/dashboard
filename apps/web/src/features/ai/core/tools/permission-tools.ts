@@ -18,13 +18,11 @@ export const requestPermissionTool: AiToolDefinition = {
       action: {
         type: 'string',
         enum: ['form', 'write_api'],
-        description:
-          '申请的权限类型：form（表单录入与提交）或 write_api（直接调用数据写接口）',
+        description: '申请的权限类型：form（表单录入与提交）或 write_api（直接调用数据写接口）',
       },
       reason: {
         type: 'string',
-        description:
-          '向用户说明为什么需要该权限，例如「需要继续为您创建剩余的 2 位用户」',
+        description: '向用户说明为什么需要该权限，例如「需要继续为您创建剩余的 2 位用户」',
       },
     },
     required: ['action', 'reason'],

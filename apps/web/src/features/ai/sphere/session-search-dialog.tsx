@@ -122,10 +122,7 @@ export function SessionSearchDialog({
                     onClick={() => select(item)}
                   >
                     <span className="flex min-w-0 flex-1 items-center gap-3">
-                      <ChatCircleDotsIcon
-                        size={16}
-                        className="shrink-0 text-kumo-subtle"
-                      />
+                      <ChatCircleDotsIcon size={16} className="shrink-0 text-kumo-subtle" />
                       <span className="min-w-0 flex-1 truncate text-sm text-kumo-default">
                         {item.label}
                       </span>
@@ -135,9 +132,7 @@ export function SessionSearchDialog({
                           {t('sessionCurrent', '当前')}
                         </span>
                       ) : null}
-                      <span className="shrink-0 text-xs text-kumo-subtle">
-                        {item.meta}
-                      </span>
+                      <span className="shrink-0 text-xs text-kumo-subtle">{item.meta}</span>
                     </span>
                   </CommandPalette.Item>
                 )}
@@ -145,9 +140,7 @@ export function SessionSearchDialog({
             </CommandPalette.Group>
           )}
         </CommandPalette.Results>
-        <CommandPalette.Empty>
-          {t('sessionNoMatch', '没有匹配的对话')}
-        </CommandPalette.Empty>
+        <CommandPalette.Empty>{t('sessionNoMatch', '没有匹配的对话')}</CommandPalette.Empty>
       </CommandPalette.List>
     </CommandPalette.Root>
   )

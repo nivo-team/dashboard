@@ -4,12 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useAiFormFields } from '#/features/ai/core'
 import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  DICT_STATUS,
-  DICT_VALUE_TYPE,
-  toDictStatus,
-  toDictValueType,
-} from './data-dict-options'
+import { DICT_STATUS, DICT_VALUE_TYPE, toDictStatus, toDictValueType } from './data-dict-options'
 import type { DictBinaryFlag } from './data-dict-options'
 import type { DictType, DictTypeFormValues } from './data-dict-types'
 
@@ -140,16 +135,7 @@ export function DictTypeForm({
       sort: Number.isFinite(sort) ? sort : 0,
       remark: remark.trim() || undefined,
     }
-  }, [
-    code,
-    initialValues?.id,
-    initialValues?.parent_id,
-    name,
-    remark,
-    sortText,
-    status,
-    valueType,
-  ])
+  }, [code, initialValues?.id, initialValues?.parent_id, name, remark, sortText, status, valueType])
 
   // 把草稿上报给外部：详情页据此判断「未保存更改」，并在浮条上提交
   useEffect(() => {
@@ -263,10 +249,7 @@ export function DictTypeForm({
 
         <Input
           label={t('form.code', '分类编码')}
-          labelTooltip={t(
-            'form.codeDescription',
-            '业务侧获取选项时使用的 key，例如 channel',
-          )}
+          labelTooltip={t('form.codeDescription', '业务侧获取选项时使用的 key，例如 channel')}
           error={codeError ? { message: codeError, match: 'customError' } : undefined}
           value={code}
           onChange={(event) => setCode(event.target.value)}

@@ -66,15 +66,7 @@ export interface CapabilityForm {
 export interface CapabilityAction {
   id: string
   title: string
-  type:
-    | 'create'
-    | 'edit'
-    | 'delete'
-    | 'batch-delete'
-    | 'export'
-    | 'import'
-    | 'refresh'
-    | 'custom'
+  type: 'create' | 'edit' | 'delete' | 'batch-delete' | 'export' | 'import' | 'refresh' | 'custom'
   description?: string
   /** 权限标识（如 'table-example:delete' / 'table-example:export'） */
   permission?: string
@@ -153,9 +145,7 @@ export type FilteredPageCapabilities = PageCapabilitiesSpec
 /**
  * 声明页面能力规格（强类型校验与纯 JSON 结构返回）
  */
-export function definePageCapabilities(
-  spec: PageCapabilitiesSpec,
-): PageCapabilitiesSpec {
+export function definePageCapabilities(spec: PageCapabilitiesSpec): PageCapabilitiesSpec {
   return spec
 }
 
@@ -206,9 +196,7 @@ export function filterPageCapabilities(
     searchParams: spec.searchParams
       ? {
           ...spec.searchParams,
-          filterFields: (spec.searchParams.filterFields ?? []).filter((f) =>
-            hasPerm(f.permission),
-          ),
+          filterFields: (spec.searchParams.filterFields ?? []).filter((f) => hasPerm(f.permission)),
         }
       : undefined,
   }
@@ -223,10 +211,7 @@ const capabilityRegistry = new Map<string, PageCapabilitiesSpec>()
 /**
  * 注册页面能力规格到全局表
  */
-export function registerPageCapabilities(
-  routeId: string,
-  spec: PageCapabilitiesSpec,
-): void {
+export function registerPageCapabilities(routeId: string, spec: PageCapabilitiesSpec): void {
   capabilityRegistry.set(routeId, spec)
 }
 

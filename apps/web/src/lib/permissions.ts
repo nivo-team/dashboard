@@ -101,16 +101,11 @@ export function getPermissionContext(override?: PermissionContext): PermissionCo
  * 于是 `Array.isArray(requirement)` 之后再访问 `requirement.role` 会报 TS2339
  * （`readonly string[]` 上当然没有 `role`）。用它替代，类型守卫才能正确排除数组分支。
  */
-function isPermissionArray(
-  requirement: PermissionRequirement,
-): requirement is readonly string[] {
+function isPermissionArray(requirement: PermissionRequirement): requirement is readonly string[] {
   return Array.isArray(requirement)
 }
 
-export function hasPermission(
-  permissions: readonly string[],
-  pattern: string,
-): boolean
+export function hasPermission(permissions: readonly string[], pattern: string): boolean
 export function hasPermission(
   requirement?: PermissionRequirement,
   context?: PermissionContext,
@@ -153,9 +148,7 @@ export function hasPermission(
   // 5. 对象模式：支持 any, all, role 以及 custom 自定义判定函数
   if (typeof requirement === 'object' && requirement !== null) {
     if (requirement.role) {
-      const allowedRoles = Array.isArray(requirement.role)
-        ? requirement.role
-        : [requirement.role]
+      const allowedRoles = Array.isArray(requirement.role) ? requirement.role : [requirement.role]
       const currentRole = context.role?.toLowerCase() ?? ''
       const matchesRole = allowedRoles.some((r) => r.toLowerCase() === currentRole)
       if (!matchesRole) return false
@@ -230,15 +223,12 @@ export function filterByPermission<T>(
   items: readonly T[],
   options?: PermissionFilterOptions<T>,
 ): T[] {
-  const getPerm =
-    options?.getPermission ??
-    ((item: any) => item?.permission ?? item?.permissions)
+  const getPerm = options?.getPermission ?? ((item: any) => item?.permission ?? item?.permissions)
   const getChildren =
     options?.getChildren ??
     ((item: any) => (Array.isArray(item?.children) ? item.children : undefined))
   const withChildren =
-    options?.withChildren ??
-    ((item: any, children: T[]) => ({ ...item, children }))
+    options?.withChildren ?? ((item: any, children: T[]) => ({ ...item, children }))
   const pruneEmpty = options?.pruneEmpty ?? true
   const context = getPermissionContext(options?.context)
   const predicate = options?.filterPredicate
@@ -393,9 +383,7 @@ export function useUserPermissions() {
  * 因为发消息整条链路不该被一个权限接口拖垮；而**真正的授权在后端**，
  * 空清单只会让 AI 更保守，不会造成越权。
  */
-export async function ensureUserPermissions(
-  queryClient: QueryClient,
-): Promise<UserPermissions> {
+export async function ensureUserPermissions(queryClient: QueryClient): Promise<UserPermissions> {
   try {
     const data = await queryClient.ensureQueryData(userPermissionsQueryOptions())
     const res = {

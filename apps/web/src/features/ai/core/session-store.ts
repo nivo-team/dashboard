@@ -221,10 +221,7 @@ function appendReasoning(parts: AiMessagePart[], text: string): AiMessagePart[] 
     next.push({ ...last, text: last.text + text })
     return next
   }
-  return [
-    ...finishPendingReasoning(parts),
-    { type: 'reasoning', text, state: 'streaming' },
-  ]
+  return [...finishPendingReasoning(parts), { type: 'reasoning', text, state: 'streaming' }]
 }
 
 /** 更新某个工具调用 part 的状态（结果 / 失败），找不到就原样返回。 */
@@ -234,9 +231,7 @@ function patchToolCall(
   patch: Partial<Extract<AiMessagePart, { type: 'tool-call' }>>,
 ): AiMessagePart[] {
   return parts.map((part) =>
-    part.type === 'tool-call' && part.toolCallId === toolCallId
-      ? { ...part, ...patch }
-      : part,
+    part.type === 'tool-call' && part.toolCallId === toolCallId ? { ...part, ...patch } : part,
   )
 }
 
@@ -287,9 +282,7 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
     // 文本在前、附件在后：与用户「先写话、再补附件」的输入顺序一致
     const parts: AiMessagePart[] = [
       ...(text ? [{ type: 'text' as const, text }] : []),
-      ...attachments.map(
-        (attachment): AiMessagePart => ({ type: 'attachment', ...attachment }),
-      ),
+      ...attachments.map((attachment): AiMessagePart => ({ type: 'attachment', ...attachment })),
     ]
     set((state) => ({
       status: 'streaming',
@@ -319,9 +312,7 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
     set((state) => {
       const patch = (updater: (parts: AiMessagePart[]) => AiMessagePart[]) => ({
         messages: state.messages.map((message) =>
-          message.id === assistantId
-            ? { ...message, parts: updater(message.parts) }
-            : message,
+          message.id === assistantId ? { ...message, parts: updater(message.parts) } : message,
         ),
       })
 
@@ -382,9 +373,7 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
           return {
             error: errDesc,
             messages: state.messages.map((item) =>
-              item.id === assistantId
-                ? { ...item, status: 'error', error: errDesc }
-                : item,
+              item.id === assistantId ? { ...item, status: 'error', error: errDesc } : item,
             ),
           }
         }
@@ -446,8 +435,7 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
         failedText = textPart && textPart.type === 'text' ? textPart.text : ''
         failedAttachments = userMsg.parts
           .filter(
-            (p): p is Extract<AiMessagePart, { type: 'attachment' }> =>
-              p.type === 'attachment',
+            (p): p is Extract<AiMessagePart, { type: 'attachment' }> => p.type === 'attachment',
           )
           .map((p) => {
             const { type: _type, ...att } = p
@@ -466,12 +454,7 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
 
       // 失败的提示词与附件自动回退到输入框，并持久化到 IndexedDB 草稿（按 session 隔离，新会话独立保存）
       if (failedText || failedAttachments.length > 0) {
-        void saveComposerDraft(
-          getAppScope(),
-          currentActiveId,
-          failedText,
-          failedAttachments,
-        )
+        void saveComposerDraft(getAppScope(), currentActiveId, failedText, failedAttachments)
       }
 
       // 若整个会话已无任何消息，从数据库清理可能残留的空会话记录与活跃指向
@@ -492,16 +475,13 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
             : state.sessions,
         messages: newMessages,
         draftText: failedText || state.draftText,
-        draftAttachments:
-          failedAttachments.length > 0 ? failedAttachments : state.draftAttachments,
+        draftAttachments: failedAttachments.length > 0 ? failedAttachments : state.draftAttachments,
       }
     }),
 
   prepareRetryTurn: (userMessageId) => {
     const { messages } = get()
-    const targetIndex = messages.findIndex(
-      (m) => m.id === userMessageId && m.role === 'user',
-    )
+    const targetIndex = messages.findIndex((m) => m.id === userMessageId && m.role === 'user')
     if (targetIndex === -1) return null
 
     const targetMsg = messages[targetIndex]
@@ -510,10 +490,7 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
     const textPart = targetMsg.parts.find((p) => p.type === 'text')
     const text = textPart && textPart.type === 'text' ? textPart.text : ''
     const attachments: AiAttachment[] = targetMsg.parts
-      .filter(
-        (p): p is Extract<AiMessagePart, { type: 'attachment' }> =>
-          p.type === 'attachment',
-      )
+      .filter((p): p is Extract<AiMessagePart, { type: 'attachment' }> => p.type === 'attachment')
       .map((p) => {
         const { type: _type, ...att } = p
         return att as unknown as AiAttachment
@@ -570,10 +547,7 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
     const textPart = target.parts.find((p) => p.type === 'text')
     const text = textPart && textPart.type === 'text' ? textPart.text : ''
     const attachments: AiAttachment[] = target.parts
-      .filter(
-        (p): p is Extract<AiMessagePart, { type: 'attachment' }> =>
-          p.type === 'attachment',
-      )
+      .filter((p): p is Extract<AiMessagePart, { type: 'attachment' }> => p.type === 'attachment')
       .map((p) => {
         const { type: _type, ...att } = p
         return att as unknown as AiAttachment
@@ -628,9 +602,7 @@ export const useAiSessionStore = create<AiSessionState>()((set, get) => ({
           ? {
               ...message,
               parts: message.parts.map((part) =>
-                part.type === 'nav-proposal' && part.id === id
-                  ? { ...part, state }
-                  : part,
+                part.type === 'nav-proposal' && part.id === id ? { ...part, state } : part,
               ),
             }
           : message,

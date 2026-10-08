@@ -11,21 +11,27 @@
 
 多应用工作空间的后端管理台，纯客户端渲染的 SPA（无 SSR）：
 
-- **React 19** + **Vite 8** + **TanStack Router / Query** + **zustand 5**（persist）
+- **React 19** + **Vite+ 1.1.0**（Vite 8 / Rolldown 内核，`vp` 工具链，配置在根 `vite.config.ts`）
+  + **TanStack Router / Query** + **zustand 5**（persist）
 - **Tailwind CSS v4**（无 config）+ **Kumo**（Cloudflare 设计系统，基于 Base UI）
 - **i18next**（7 语言；`ar-SA` 自动 `dir="rtl"`）
 - 路径别名 `#/*` 与 `@/*` → `./src/*`；包管理器 **pnpm**
 - **AI 核心集中在 [`src/features/ai/`](./apps/web/src/features/ai/README.md)**（逻辑 / UI / 渲染 / 全屏页 / 页面声明框架）—— 改 AI 先读那里的地图
-- 未配置单测与 lint（没有 Vitest / ESLint）
+- **Vite+ 工具链**（`vp`）：dev/build 走 `vp`，lint/format 用内置 oxlint/oxfmt（规则见根
+  `vite.config.ts`）；**暂无单测**（`vp test` 会报「没有测试文件」）
 
 ## 常用命令
 
 ```bash
 pnpm dev              # 前端开发服务器 (http://localhost:3000)
+pnpm dev:all          # 一键并发：mock(3001) + web(3000) + ai(3002)，Ctrl-C 一次全停
 pnpm mock             # Mock API (http://localhost:3001)，前端默认连它
-pnpm build            # 前端生产构建（输出 apps/web/dist）
+pnpm ai               # AI 中间层 Worker（wrangler dev，http://localhost:3002）
+pnpm build            # 前端生产构建（走 vp build，输出 apps/web/dist）
 pnpm preview          # 预览前端构建产物
 pnpm typecheck        # tsc --noEmit
+pnpm exec vp check    # Vite+ 全量静态检查：fmt + oxlint + tsgolint 类型检查
+pnpm exec vp fmt      # 按根 vite.config.ts 的规则格式化（单引号 / 无分号 / 宽度 100）
 pnpm contract         # 按 contract.config.json 同步契约（默认从本地 mock 拉）
 pnpm api              # 一键：同步契约 + 在 packages/api-client 内生成 SDK/类型/schema/Query/派生索引
 pnpm guardrails       # 铁律的机器检查（CI 用，scripts/ai/check-guardrails.mjs）
@@ -38,7 +44,7 @@ pnpm i18n:types       # 重新生成 i18n 键类型（改了 zh-CN.json 后跑�
 路由文件在 `pnpm dev` / `pnpm build` 时由 `@tanstack/router-plugin` 自动侦测并生成
 `apps/web/src/routeTree.gen.ts`（**不要手改**）。
 
-> **上面这些校验命令默认不跑**：`typecheck` / `build` / `dev` 与浏览器验收统一收在
+> **上面这些校验命令默认不跑**：`typecheck` / `build` / `dev` / `vp check` / `vp fmt` 与浏览器验收统一收在
 > **`verify` skill**。**只有使用者明确点名「用 verify 校验」时才运行** —— 日常编码、
 > 改完代码、提交前后都不要主动跑；正确性靠阅读类型定义、调用方与生成产物来保证。
 >
@@ -95,7 +101,7 @@ pnpm i18n:types       # 重新生成 i18n 键类型（改了 zh-CN.json 后跑�
    `src/features/home/widget-registry.tsx`、工具只动 `AI_TOOLS`。**不要在渲染处再硬编码一份平行的名单。**
 4. **给模型的内容都必须经过函数并留过滤点**（提示词 / 导航清单 / 表单清单 / 页面接口），
    **过滤条件集中在一处** —— 否则「将来按权限收窄」的落点就被焊死了。
-5. **校验命令默认不跑**（见上）；改动完**不要**主动跑 `typecheck` / `build`。
+5. **校验命令默认不跑**（见上）；改动完**不要**主动跑 `typecheck` / `build` / `vp check` / `vp fmt`。
 6. **本文件超过 64 KB 会被静默截断**（按字节截，不是行边界）—— 所以**别往里塞细节**，
    写到对应 doc 里，在这里的表里加一行。
 

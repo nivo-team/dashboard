@@ -59,9 +59,7 @@ export function useTreeSearchExpanded<TData>({
   onControlledExpandedChange,
 }: UseTreeSearchExpandedOptions<TData>): {
   expanded: ExpandedState
-  onExpandedChange: (
-    next: ExpandedState | ((old: ExpandedState) => ExpandedState),
-  ) => void
+  onExpandedChange: (next: ExpandedState | ((old: ExpandedState) => ExpandedState)) => void
 } {
   const [innerExpanded, setInnerExpanded] = useState<ExpandedState>({})
   const setExpandedState: (next: ExpandedState) => void =
@@ -69,8 +67,7 @@ export function useTreeSearchExpanded<TData>({
 
   /** 内部展开态收窄成 id 映射（`ExpandedState` 允许 `true` 这个特例值）。 */
   const innerExpandedMap = useMemo<TreeExpandedMap>(
-    () =>
-      typeof innerExpanded === 'object' && innerExpanded !== null ? innerExpanded : {},
+    () => (typeof innerExpanded === 'object' && innerExpanded !== null ? innerExpanded : {}),
     [innerExpanded],
   )
 

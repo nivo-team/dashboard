@@ -1,11 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query'
 import { useMemo, useSyncExternalStore, type ReactNode } from 'react'
 import { getQueryClient } from '#/lib/query-client'
-import {
-  GLOBAL_APP_SCOPE,
-  getAppScope,
-  subscribeAppScope,
-} from '#/lib/store/app-scope'
+import { GLOBAL_APP_SCOPE, getAppScope, subscribeAppScope } from '#/lib/store/app-scope'
 
 /**
  * 按当前应用作用域提供 QueryClient。
@@ -17,11 +13,7 @@ import {
  * 挂在 `RouterProvider` 外层：路由切换不重建缓存实例，同一应用内全站共享一份。
  */
 export function AppQueryClientProvider({ children }: { children: ReactNode }) {
-  const scope = useSyncExternalStore(
-    subscribeAppScope,
-    getAppScope,
-    () => GLOBAL_APP_SCOPE,
-  )
+  const scope = useSyncExternalStore(subscribeAppScope, getAppScope, () => GLOBAL_APP_SCOPE)
 
   const client = useMemo(() => getQueryClient(scope), [scope])
 

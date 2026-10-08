@@ -72,8 +72,7 @@ function resolveWhitelistedPath(
   const path = resolvePathTemplate(rawPath, pathParams)
   const matched = items.find(
     (item) =>
-      (item.method ?? '').toUpperCase() === method &&
-      isPathAllowedForTemplate(item.path, path),
+      (item.method ?? '').toUpperCase() === method && isPathAllowedForTemplate(item.path, path),
   )
   if (!matched) {
     throw new Error(
@@ -198,8 +197,7 @@ export const callReadApiTool: AiToolDefinition = {
 
     const result = await client.get({ url: path, query })
     if (result.error) {
-      const message =
-        typeof result.error === 'string' ? result.error : JSON.stringify(result.error)
+      const message = typeof result.error === 'string' ? result.error : JSON.stringify(result.error)
       throw new Error(`接口调用失败：${message}`)
     }
 
@@ -210,8 +208,7 @@ export const callReadApiTool: AiToolDefinition = {
 export const listDictOptionsTool: AiToolDefinition = {
   name: 'list_dict_options',
   catalogDescription: '读取数据字典的可选项',
-  description:
-    '读取数据字典的枚举选项（值 → 文案），用于翻译接口返回的枚举字段。',
+  description: '读取数据字典的枚举选项（值 → 文案），用于翻译接口返回的枚举字段。',
   inputSchema: {
     type: 'object',
     properties: {
@@ -249,10 +246,7 @@ export const listDictOptionsTool: AiToolDefinition = {
  *   绝不把 `{id}` 原样发出去（那会打到 `/user/%7Bid%7D` 这种 404 上，而模型会以为已删掉）；
  * - **已经是真实路径**（`/user/10001`）→ 原样返回。
  */
-function resolvePathTemplate(
-  rawPath: string,
-  pathParams?: Record<string, unknown>,
-): string {
+function resolvePathTemplate(rawPath: string, pathParams?: Record<string, unknown>): string {
   const placeholders = [...rawPath.matchAll(/\{([^}]+)\}/g)].map((match) => match[1])
   if (placeholders.length === 0) return rawPath
 
@@ -266,8 +260,7 @@ function resolvePathTemplate(
   }
 
   return placeholders.reduce(
-    (acc, name) =>
-      acc.replace(`{${name}}`, encodeURIComponent(String(pathParams?.[name]))),
+    (acc, name) => acc.replace(`{${name}}`, encodeURIComponent(String(pathParams?.[name]))),
     rawPath,
   )
 }
@@ -283,9 +276,7 @@ function isPathAllowedForTemplate(template: string, path: string): boolean {
   if (template === path) return true
   if (!template.includes('{')) return false
 
-  const pattern = template
-    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    .replace(/\\\{[^}]+\\\}/g, '[^/]+')
+  const pattern = template.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\{[^}]+\\\}/g, '[^/]+')
   return new RegExp(`^${pattern}$`).test(path)
 }
 
@@ -320,7 +311,10 @@ export const callWriteApiTool: AiToolDefinition = {
   inputSchema: {
     type: 'object',
     properties: {
-      path: { type: 'string', description: '接口路径，必须是 search_api 返回过的接口（可以是带 {id} 的模板）' },
+      path: {
+        type: 'string',
+        description: '接口路径，必须是 search_api 返回过的接口（可以是带 {id} 的模板）',
+      },
       method: {
         type: 'string',
         enum: ['POST', 'PUT', 'PATCH', 'DELETE'],
@@ -358,8 +352,7 @@ export const callWriteApiTool: AiToolDefinition = {
       下面才能走 `client.post / put / patch / delete` —— 而 `client.request` 的 `method`
       参数是 `HttpMethod` 联合类型，直接塞一个 `string` 是过不了类型检查的。
     */
-    const rawMethod =
-      typeof input.method === 'string' ? input.method.trim().toUpperCase() : ''
+    const rawMethod = typeof input.method === 'string' ? input.method.trim().toUpperCase() : ''
     if (
       rawMethod !== 'POST' &&
       rawMethod !== 'PUT' &&
@@ -394,10 +387,7 @@ export const callWriteApiTool: AiToolDefinition = {
     const approved = await ctx.requestApproval({
       toolName: 'call_write_api',
       input: { method, path, ...(pathParams ? { pathParams } : {}), query, body },
-      reason:
-        method === 'DELETE'
-          ? '这是一次删除操作，执行后无法撤销'
-          : '这会修改服务端的数据',
+      reason: method === 'DELETE' ? '这是一次删除操作，执行后无法撤销' : '这会修改服务端的数据',
     })
     if (!approved) {
       throw new Error(
@@ -416,8 +406,7 @@ export const callWriteApiTool: AiToolDefinition = {
             : await client.delete(requestOptions)
 
     if (result.error) {
-      const message =
-        typeof result.error === 'string' ? result.error : JSON.stringify(result.error)
+      const message = typeof result.error === 'string' ? result.error : JSON.stringify(result.error)
       throw new Error(`接口调用失败：${message}`)
     }
 

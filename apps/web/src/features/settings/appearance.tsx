@@ -17,10 +17,7 @@ import {
   type AppShellPreviewLayout,
 } from '#/components/app-shell-preview'
 import { PageHeader } from '#/components/page-header'
-import {
-  SettingChoicePreview,
-  usePreviewAnimation,
-} from '#/components/settings-choice-preview'
+import { SettingChoicePreview, usePreviewAnimation } from '#/components/settings-choice-preview'
 import { SettingsCard, SettingRow } from '#/components/settings-card'
 import { DEFAULT_APP_ID, isMultiAppEnabled, useAuth } from '#/lib/auth'
 import { cn } from '#/lib/cn'
@@ -270,17 +267,8 @@ function DetailOpenModePopover({
   )
 }
 
-function FormOpenModePreview({
-  mode,
-  accentColor,
-}: {
-  mode: FormOpenMode
-  accentColor: string
-}) {
-  const layout = usePreviewAnimation(
-    APP_SHELL_PREVIEW_LIST_LAYOUT,
-    FORM_MODE_PREVIEW_LAYOUTS[mode],
-  )
+function FormOpenModePreview({ mode, accentColor }: { mode: FormOpenMode; accentColor: string }) {
+  const layout = usePreviewAnimation(APP_SHELL_PREVIEW_LIST_LAYOUT, FORM_MODE_PREVIEW_LAYOUTS[mode])
 
   return (
     <div className="w-72">
@@ -334,13 +322,7 @@ const PAGE_WIDTH_PREVIEW_START: Record<PageWidthMode, AppShellPreviewLayout> = {
  * 本仓库的 `cn` 不做类名去重。这里用 `w-80` 撑满它的上限 —— 限宽档两侧空出来的
  * canvas 需要足够宽度才看得清，窄一档就只剩「表格变窄」这一种读法了。
  */
-function PageWidthPreview({
-  mode,
-  accentColor,
-}: {
-  mode: PageWidthMode
-  accentColor: string
-}) {
+function PageWidthPreview({ mode, accentColor }: { mode: PageWidthMode; accentColor: string }) {
   const layout = usePreviewAnimation(
     PAGE_WIDTH_PREVIEW_START[mode],
     PAGE_WIDTH_PREVIEW_LAYOUTS[mode],
@@ -392,12 +374,7 @@ export function AppearanceSettingsPage() {
   const setMotionEnabled = useShellUiStore((state) => state.setMotionEnabled)
   const { locale, setLocale, supportedLocales } = useLocale()
   const { currentApp, availableApps, selectAppAndComplete } = useAuth()
-  const {
-    timezone,
-    setTimezone,
-    supportedTimezones,
-    getTimezoneOffsetLabel,
-  } = useTimezone()
+  const { timezone, setTimezone, supportedTimezones, getTimezoneOffsetLabel } = useTimezone()
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -428,7 +405,7 @@ export function AppearanceSettingsPage() {
 
       {/* 这几项本机偏好同属「通用设置」：都是即时生效、按应用隔离持久化的偏好项 */}
       <SettingsCard title={t('profile.settings.general', '通用设置')}>
-          {/*
+        {/*
             主题：三项短枚举，用 Kumo Tabs 的 **segmented** 形态（分段控件）而不是一排 Radio ——
             选项等宽相邻、选中态是一整块滑块，一眼能看出「当前在哪一档」，也更省横向空间。
 
@@ -443,106 +420,106 @@ export function AppearanceSettingsPage() {
               （同 `Dialog`），所以外面包一层 `role="group"` + `aria-label`，
               读屏进入时先播报是哪一个设置项。
           */}
-          <SettingRow
-            label={t('theme.label', '主题')}
-            hint={t('profile.settings.appearanceHint', '选择界面的主题模式')}
-          >
-            <div role="group" aria-label={t('theme.label', '主题')}>
-              <Tabs
-                value={mode}
-                onValueChange={(next) => setMode(next as ColorMode)}
-                activateOnFocus
-                tabs={THEME_OPTIONS.map((item) => {
-                  const ItemIcon = item.icon
-                  return {
-                    value: item.key,
-                    label: (
-                      <span className="flex items-center gap-2">
-                        <ItemIcon size={16} className="text-kumo-subtle" />
-                        <span>{t(item.labelKey, item.defaultLabel)}</span>
-                      </span>
-                    ),
-                  }
-                })}
-              />
-            </div>
-          </SettingRow>
-
-          {/* 语言：7 项，用下拉；选项名一律用母语自称（nativeName），不随当前界面语言变化 */}
-          <SettingRow
-            label={t('language', '语言')}
-            hint={t('profile.settings.languageHint', '切换管理后台的界面语言')}
-          >
-            {/* 无可见 label：按 Kumo 的建议走 aria-label（label + hideLabel 已废弃） */}
-            <Select<LocaleKey>
-              aria-label={t('language', '语言')}
-              className="w-56"
-              value={locale}
-              onValueChange={(next) => {
-                if (next) setLocale(next)
-              }}
-              items={supportedLocales.map((item) => ({
-                value: item.key,
-                label: item.nativeName,
-              }))}
+        <SettingRow
+          label={t('theme.label', '主题')}
+          hint={t('profile.settings.appearanceHint', '选择界面的主题模式')}
+        >
+          <div role="group" aria-label={t('theme.label', '主题')}>
+            <Tabs
+              value={mode}
+              onValueChange={(next) => setMode(next as ColorMode)}
+              activateOnFocus
+              tabs={THEME_OPTIONS.map((item) => {
+                const ItemIcon = item.icon
+                return {
+                  value: item.key,
+                  label: (
+                    <span className="flex items-center gap-2">
+                      <ItemIcon size={16} className="text-kumo-subtle" />
+                      <span>{t(item.labelKey, item.defaultLabel)}</span>
+                    </span>
+                  ),
+                }
+              })}
             />
-          </SettingRow>
+          </div>
+        </SettingRow>
 
-          {/* 时区：8 项，偏移按时区动态计算（马德里 / 纽约有夏令时，不能写死） */}
-          <SettingRow
-            label={t('timezone.label', '时区')}
-            hint={t('profile.settings.timezoneHint', '全站时间展示使用的时区')}
-          >
-            <Select<TimezoneKey>
-              aria-label={t('timezone.label', '时区')}
-              className="w-56"
-              value={timezone}
-              onValueChange={(next) => {
-                if (next) setTimezone(next)
-              }}
-              items={supportedTimezones.map((item) => ({
-                value: item.key,
-                label: `${t(item.labelKey, item.defaultName)} (${getTimezoneOffsetLabel(item.key)})`,
-              }))}
-            />
-          </SettingRow>
+        {/* 语言：7 项，用下拉；选项名一律用母语自称（nativeName），不随当前界面语言变化 */}
+        <SettingRow
+          label={t('language', '语言')}
+          hint={t('profile.settings.languageHint', '切换管理后台的界面语言')}
+        >
+          {/* 无可见 label：按 Kumo 的建议走 aria-label（label + hideLabel 已废弃） */}
+          <Select<LocaleKey>
+            aria-label={t('language', '语言')}
+            className="w-56"
+            value={locale}
+            onValueChange={(next) => {
+              if (next) setLocale(next)
+            }}
+            items={supportedLocales.map((item) => ({
+              value: item.key,
+              label: item.nativeName,
+            }))}
+          />
+        </SettingRow>
 
-          {/*
+        {/* 时区：8 项，偏移按时区动态计算（马德里 / 纽约有夏令时，不能写死） */}
+        <SettingRow
+          label={t('timezone.label', '时区')}
+          hint={t('profile.settings.timezoneHint', '全站时间展示使用的时区')}
+        >
+          <Select<TimezoneKey>
+            aria-label={t('timezone.label', '时区')}
+            className="w-56"
+            value={timezone}
+            onValueChange={(next) => {
+              if (next) setTimezone(next)
+            }}
+            items={supportedTimezones.map((item) => ({
+              value: item.key,
+              label: `${t(item.labelKey, item.defaultName)} (${getTimezoneOffsetLabel(item.key)})`,
+            }))}
+          />
+        </SettingRow>
+
+        {/*
             侧边栏快速展开方式：三项短枚举，分段控件（Tabs segmented）。
             控制折叠状态下的临时展开方式（仅悬浮在 Logo 展开 / 悬浮展开 / 禁止悬浮展开）。
           */}
-          <SettingRow
-            label={t('profile.settings.sidebarExpandMode', '侧边栏快速展开方式')}
-            hint={t(
-              'profile.settings.sidebarExpandModeHint',
-              '折叠状态下的临时展开行为；底部折叠按钮始终可用',
-            )}
+        <SettingRow
+          label={t('profile.settings.sidebarExpandMode', '侧边栏快速展开方式')}
+          hint={t(
+            'profile.settings.sidebarExpandModeHint',
+            '折叠状态下的临时展开行为；底部折叠按钮始终可用',
+          )}
+        >
+          <div
+            role="group"
+            aria-label={t('profile.settings.sidebarExpandMode', '侧边栏快速展开方式')}
           >
-            <div
-              role="group"
-              aria-label={t('profile.settings.sidebarExpandMode', '侧边栏快速展开方式')}
-            >
-              <Tabs
-                value={sidebarExpandMode}
-                onValueChange={(next) => setSidebarExpandMode(next as SidebarExpandMode)}
-                activateOnFocus
-                tabs={SIDEBAR_EXPAND_MODE_OPTIONS.map((item) => {
-                  const ItemIcon = item.icon
-                  return {
-                    value: item.key,
-                    label: (
-                      <span className="flex items-center gap-2">
-                        <ItemIcon size={16} className="text-kumo-subtle" />
-                        <span>{t(item.labelKey, item.defaultLabel)}</span>
-                      </span>
-                    ),
-                  }
-                })}
-              />
-            </div>
-          </SettingRow>
+            <Tabs
+              value={sidebarExpandMode}
+              onValueChange={(next) => setSidebarExpandMode(next as SidebarExpandMode)}
+              activateOnFocus
+              tabs={SIDEBAR_EXPAND_MODE_OPTIONS.map((item) => {
+                const ItemIcon = item.icon
+                return {
+                  value: item.key,
+                  label: (
+                    <span className="flex items-center gap-2">
+                      <ItemIcon size={16} className="text-kumo-subtle" />
+                      <span>{t(item.labelKey, item.defaultLabel)}</span>
+                    </span>
+                  ),
+                }
+              })}
+            />
+          </div>
+        </SettingRow>
 
-          {/*
+        {/*
             详情打开方式：表格里点开详情时的默认行为（分屏预览 / 右侧抽屉 / 跳转详情页）。
             三项都是即时生效、随偏好按应用隔离持久化 —— 与上面三项同属「通用设置」。
             移动端不支持前两项，降级规则在 #/components/detail-preview，hint 里如实说明。
@@ -555,85 +532,79 @@ export function AppearanceSettingsPage() {
             `span`）都在公共件 `#/components/settings-choice-preview` 的注释里；
             页面这边只留「选项 → 演示画面」的映射。
           */}
-          <SettingRow
-            label={t('profile.settings.detailOpenMode', '详情打开方式')}
-            hint={t(
-              'profile.settings.detailOpenModeHint',
-              '表格中打开详情的方式；移动端始终跳转详情页',
-            )}
-          >
-            {/* 与主题同一套分段控件写法（受控 value + activateOnFocus + 默认尺寸 + 外层 group 提供可访问名称） */}
-            <div
-              role="group"
-              aria-label={t('profile.settings.detailOpenMode', '详情打开方式')}
-            >
-              <Tabs
-                value={detailOpenMode}
-                onValueChange={(next) => setDetailOpenMode(next as DetailOpenMode)}
-                activateOnFocus
-                tabs={DETAIL_OPEN_MODE_OPTIONS.map((item) => {
-                  const ItemIcon = item.icon
-                  const label = t(item.labelKey, item.defaultLabel)
-                  return {
-                    value: item.key,
-                    label: (
-                      <span className="flex items-center gap-2">
-                        <ItemIcon size={16} className="text-kumo-subtle" />
-                        <span>{label}</span>
-                        <DetailOpenModePopover
-                          mode={item.key}
-                          label={label}
-                          accentColor={accentColor}
-                          // id 既做 trigger 的 id、也做 Root 的 triggerId，页面内唯一即可
-                          triggerId={`detail-open-mode-preview-${item.key}`}
-                        />
-                      </span>
-                    ),
-                  }
-                })}
-              />
-            </div>
-          </SettingRow>
+        <SettingRow
+          label={t('profile.settings.detailOpenMode', '详情打开方式')}
+          hint={t(
+            'profile.settings.detailOpenModeHint',
+            '表格中打开详情的方式；移动端始终跳转详情页',
+          )}
+        >
+          {/* 与主题同一套分段控件写法（受控 value + activateOnFocus + 默认尺寸 + 外层 group 提供可访问名称） */}
+          <div role="group" aria-label={t('profile.settings.detailOpenMode', '详情打开方式')}>
+            <Tabs
+              value={detailOpenMode}
+              onValueChange={(next) => setDetailOpenMode(next as DetailOpenMode)}
+              activateOnFocus
+              tabs={DETAIL_OPEN_MODE_OPTIONS.map((item) => {
+                const ItemIcon = item.icon
+                const label = t(item.labelKey, item.defaultLabel)
+                return {
+                  value: item.key,
+                  label: (
+                    <span className="flex items-center gap-2">
+                      <ItemIcon size={16} className="text-kumo-subtle" />
+                      <span>{label}</span>
+                      <DetailOpenModePopover
+                        mode={item.key}
+                        label={label}
+                        accentColor={accentColor}
+                        // id 既做 trigger 的 id、也做 Root 的 triggerId，页面内唯一即可
+                        triggerId={`detail-open-mode-preview-${item.key}`}
+                      />
+                    </span>
+                  ),
+                }
+              })}
+            />
+          </div>
+        </SettingRow>
 
-          <SettingRow
-            label={t('profile.settings.formOpenMode', '表单打开方式')}
-            hint={t(
-              'profile.settings.formOpenModeHint',
-              '新建或编辑数据时表单的打开方式；移动端始终跳转独立页面',
-            )}
-          >
-            <div
-              role="group"
-              aria-label={t('profile.settings.formOpenMode', '表单打开方式')}
-            >
-              <Tabs
-                value={formOpenMode}
-                onValueChange={(next) => setFormOpenMode(next as FormOpenMode)}
-                activateOnFocus
-                tabs={FORM_OPEN_MODE_OPTIONS.map((item) => {
-                  const ItemIcon = item.icon
-                  const label = t(item.labelKey, item.defaultLabel)
-                  return {
-                    value: item.key,
-                    label: (
-                      <span className="flex items-center gap-2">
-                        <ItemIcon size={16} className="text-kumo-subtle" />
-                        <span>{label}</span>
-                        <FormOpenModePopover
-                          mode={item.key}
-                          label={label}
-                          accentColor={accentColor}
-                          triggerId={`form-open-mode-preview-${item.key}`}
-                        />
-                      </span>
-                    ),
-                  }
-                })}
-              />
-            </div>
-          </SettingRow>
+        <SettingRow
+          label={t('profile.settings.formOpenMode', '表单打开方式')}
+          hint={t(
+            'profile.settings.formOpenModeHint',
+            '新建或编辑数据时表单的打开方式；移动端始终跳转独立页面',
+          )}
+        >
+          <div role="group" aria-label={t('profile.settings.formOpenMode', '表单打开方式')}>
+            <Tabs
+              value={formOpenMode}
+              onValueChange={(next) => setFormOpenMode(next as FormOpenMode)}
+              activateOnFocus
+              tabs={FORM_OPEN_MODE_OPTIONS.map((item) => {
+                const ItemIcon = item.icon
+                const label = t(item.labelKey, item.defaultLabel)
+                return {
+                  value: item.key,
+                  label: (
+                    <span className="flex items-center gap-2">
+                      <ItemIcon size={16} className="text-kumo-subtle" />
+                      <span>{label}</span>
+                      <FormOpenModePopover
+                        mode={item.key}
+                        label={label}
+                        accentColor={accentColor}
+                        triggerId={`form-open-mode-preview-${item.key}`}
+                      />
+                    </span>
+                  ),
+                }
+              })}
+            />
+          </div>
+        </SettingRow>
 
-          {/*
+        {/*
             页面宽度：内容区是全宽还是限宽居中。默认全宽 —— 后台以表格为主，
             屏幕越宽越该把列铺开。它同时作用于两个外壳的 `<main>`（`#/lib/page-width`），
             与「详情打开方式」一样是即时生效、按应用隔离持久化的本机偏好。
@@ -641,46 +612,40 @@ export function AppearanceSettingsPage() {
             悬浮预览这里演的是**档位切换这个动作**（全宽 ↔ 限宽居中），起点取另一档，
             而不是缩略图的默认态 —— 否则「全宽」那一项的预览与静止画面毫无区别。
           */}
-          <SettingRow
-            label={t('profile.settings.pageWidth', '页面宽度')}
-            hint={t(
-              'profile.settings.pageWidthHint',
-              '内容区是否限制最大宽度；后台表格建议全宽',
-            )}
-          >
-            {/* 同「详情打开方式」：受控 Tabs + activateOnFocus + 外层 group 兜可访问名称 */}
-            <div
-              role="group"
-              aria-label={t('profile.settings.pageWidth', '页面宽度')}
-            >
-              <Tabs
-                value={pageWidth}
-                onValueChange={(next) => setPageWidth(next as PageWidthMode)}
-                activateOnFocus
-                tabs={PAGE_WIDTH_OPTIONS.map((item) => {
-                  const ItemIcon = item.icon
-                  const label = t(item.labelKey, item.defaultLabel)
-                  return {
-                    value: item.key,
-                    label: (
-                      <span className="flex items-center gap-2">
-                        <ItemIcon size={16} className="text-kumo-subtle" />
-                        <span>{label}</span>
-                        <PageWidthPopover
-                          mode={item.key}
-                          label={label}
-                          accentColor={accentColor}
-                          triggerId={`page-width-preview-${item.key}`}
-                        />
-                      </span>
-                    ),
-                  }
-                })}
-              />
-            </div>
-          </SettingRow>
+        <SettingRow
+          label={t('profile.settings.pageWidth', '页面宽度')}
+          hint={t('profile.settings.pageWidthHint', '内容区是否限制最大宽度；后台表格建议全宽')}
+        >
+          {/* 同「详情打开方式」：受控 Tabs + activateOnFocus + 外层 group 兜可访问名称 */}
+          <div role="group" aria-label={t('profile.settings.pageWidth', '页面宽度')}>
+            <Tabs
+              value={pageWidth}
+              onValueChange={(next) => setPageWidth(next as PageWidthMode)}
+              activateOnFocus
+              tabs={PAGE_WIDTH_OPTIONS.map((item) => {
+                const ItemIcon = item.icon
+                const label = t(item.labelKey, item.defaultLabel)
+                return {
+                  value: item.key,
+                  label: (
+                    <span className="flex items-center gap-2">
+                      <ItemIcon size={16} className="text-kumo-subtle" />
+                      <span>{label}</span>
+                      <PageWidthPopover
+                        mode={item.key}
+                        label={label}
+                        accentColor={accentColor}
+                        triggerId={`page-width-preview-${item.key}`}
+                      />
+                    </span>
+                  ),
+                }
+              })}
+            />
+          </div>
+        </SettingRow>
 
-          {/*
+        {/*
             界面动效：**开关型**偏好，所以用 Kumo `Switch`（同 设置 → AI 的「进行中光晕」），
             并且像那里一样**不传 `label`** —— 那会渲染一行可见文字、与 `SettingRow` 的
             label 重复；改传 `aria-label`，Kumo 的 Switch 会读它作为可访问名称。
@@ -691,58 +656,58 @@ export function AppearanceSettingsPage() {
             系统「减少动态效果」优先级更高：系统要求减少动效时，这个开关开着也不播，
             判定统一在 `#/lib/use-motion`。
           */}
-          <SettingRow
-            label={t('profile.settings.motion', '界面动效')}
-            hint={t(
-              'profile.settings.motionHint',
-              '关闭后 AI 面板与全屏对话页的过渡直接切换，不做动画；系统的「减少动态效果」始终优先',
-            )}
-          >
-            <Switch
-              checked={motionEnabled}
-              onCheckedChange={setMotionEnabled}
-              aria-label={t('profile.settings.motion', '界面动效')}
-            />
-          </SettingRow>
+        <SettingRow
+          label={t('profile.settings.motion', '界面动效')}
+          hint={t(
+            'profile.settings.motionHint',
+            '关闭后 AI 面板与全屏对话页的过渡直接切换，不做动画；系统的「减少动态效果」始终优先',
+          )}
+        >
+          <Switch
+            checked={motionEnabled}
+            onCheckedChange={setMotionEnabled}
+            aria-label={t('profile.settings.motion', '界面动效')}
+          />
+        </SettingRow>
       </SettingsCard>
 
       {/* 应用外观：一栏一个主题，左 label 右内容（调色盘那栏右侧就是预览） */}
       <SettingsCard title={t('profile.settings.appBoard', '应用外观')}>
-          {/* 调色盘：右侧整块就是白板预览，选中的强调色实时反映在里面
+        {/* 调色盘：右侧整块就是白板预览，选中的强调色实时反映在里面
               （不传 layout：默认就是「只有列表」的基线形态） */}
-          <SettingRow label={t('profile.settings.palette', '调色盘')}>
-            <AppShellPreview accentColor={accentColor} />
-          </SettingRow>
+        <SettingRow label={t('profile.settings.palette', '调色盘')}>
+          <AppShellPreview accentColor={accentColor} />
+        </SettingRow>
 
-          {/* 主题色：⏸️ 与中性色一起暂停（见 apply-appearance-theme 的总开关），
+        {/* 主题色：⏸️ 与中性色一起暂停（见 apply-appearance-theme 的总开关），
               色板保留可见但不可点，界面回到 Kumo 原生主题 */}
-          <SettingRow
+        <SettingRow
+          label={t('profile.settings.accentColor', '主题色')}
+          hint={t('profile.settings.themeDisabled', '自定义主题暂未启用')}
+        >
+          <ColorSwatches
+            options={ACCENT_COLOR_OPTIONS}
+            value={accentColor}
+            onChange={setAccentColor}
             label={t('profile.settings.accentColor', '主题色')}
-            hint={t('profile.settings.themeDisabled', '自定义主题暂未启用')}
-          >
-            <ColorSwatches
-              options={ACCENT_COLOR_OPTIONS}
-              value={accentColor}
-              onChange={setAccentColor}
-              label={t('profile.settings.accentColor', '主题色')}
-              disabled
-            />
-          </SettingRow>
+            disabled
+          />
+        </SettingRow>
 
-          {/* 中性色：⏸️ 暂时整体禁用（见 apply-appearance-theme 的总开关），
+        {/* 中性色：⏸️ 暂时整体禁用（见 apply-appearance-theme 的总开关），
               保留色板只为让人看到可选范围，点击与派生都已停用 */}
-          <SettingRow
+        <SettingRow
+          label={t('profile.settings.neutralColor', '中性色')}
+          hint={t('profile.settings.themeDisabled', '自定义主题暂未启用')}
+        >
+          <ColorSwatches
+            options={NEUTRAL_COLOR_OPTIONS}
+            value={neutralColor}
+            onChange={setNeutralColor}
             label={t('profile.settings.neutralColor', '中性色')}
-            hint={t('profile.settings.themeDisabled', '自定义主题暂未启用')}
-          >
-            <ColorSwatches
-              options={NEUTRAL_COLOR_OPTIONS}
-              value={neutralColor}
-              onChange={setNeutralColor}
-              label={t('profile.settings.neutralColor', '中性色')}
-              disabled
-            />
-          </SettingRow>
+            disabled
+          />
+        </SettingRow>
       </SettingsCard>
     </div>
   )
@@ -771,11 +736,7 @@ function ColorSwatches({
   const { t } = useTranslation()
 
   return (
-    <div
-      role="radiogroup"
-      aria-label={label}
-      className="flex flex-wrap items-center gap-2"
-    >
+    <div role="radiogroup" aria-label={label} className="flex flex-wrap items-center gap-2">
       {options.map((option) => {
         const isSelected = value === option.value
         // 悬浮/读屏都用本地化名称（「默认」「橙色」…），而不是色值
@@ -822,4 +783,3 @@ function ColorSwatches({
     </div>
   )
 }
-

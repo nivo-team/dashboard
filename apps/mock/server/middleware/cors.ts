@@ -19,10 +19,10 @@ export default defineHandler((event) => {
     'access-control-allow-origin': origin || '*',
     'access-control-allow-methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
     // 预检里出现的自定义头必须在这里列全，否则同样会被判为不允许
-    'access-control-allow-headers':
-      'authorization,content-type,x-app-id,x-requested-with',
+    'access-control-allow-headers': 'authorization,content-type,x-app-id,x-requested-with',
     'access-control-expose-headers': 'x-request-id',
-    'access-control-max-age': 86400,
+    // 响应头只接受字符串（值本身仍是 86400 秒，语义不变）
+    'access-control-max-age': '86400',
     vary: 'Origin',
   })
 

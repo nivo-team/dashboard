@@ -70,9 +70,7 @@ export function collectNavigation(appId: string | null): NavigationEntry[] {
   const entries: NavigationEntry[] = ALL_NAV_TARGETS.map((target) => ({
     name: resolveNavLabel(target.labelKey, target.label),
     path: `/${appId}${target.to}`,
-    group: target.parentLabel
-      ? resolveNavLabel(target.parentLabelKey, target.parentLabel)
-      : null,
+    group: target.parentLabel ? resolveNavLabel(target.parentLabelKey, target.parentLabel) : null,
   }))
 
   if (navigationCache.size >= NAVIGATION_CACHE_LIMIT) navigationCache.clear()
@@ -195,9 +193,7 @@ function normalizeCatalogPath(path: string, appId: string | null): string {
 }
 
 /** 把接口引用补成带参数明细的一行（`get_page_context` 两处共用）。 */
-async function describeEndpoints(
-  refs: readonly AiPageCatalogEndpoint[],
-): Promise<unknown[]> {
+async function describeEndpoints(refs: readonly AiPageCatalogEndpoint[]): Promise<unknown[]> {
   return Promise.all(
     refs.map(async (ref) => {
       const spec = await findEndpointSpec(ref.method, ref.path)
@@ -305,9 +301,7 @@ export const navigateToTool: AiToolDefinition = {
     const reason = typeof input.reason === 'string' ? input.reason.trim() : ''
     const { appId } = ctx.getPageContext()
     if (!isAllowedPath(path, appId)) {
-      throw new Error(
-        `拒绝跳转到未知路径：${path}。请先用 list_navigation 确认可用的页面路径。`,
-      )
+      throw new Error(`拒绝跳转到未知路径：${path}。请先用 list_navigation 确认可用的页面路径。`)
     }
 
     const label = resolveTargetLabel(path, appId)

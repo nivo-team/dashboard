@@ -47,8 +47,7 @@ export function resolveRecentBoundary(messages: readonly AiMessage[]): number {
   }
 
   const dropTurns =
-    Math.floor(Math.max(0, totalTurns - FULL_TOOL_RESULT_TURNS) / DROP_STEP_TURNS) *
-    DROP_STEP_TURNS
+    Math.floor(Math.max(0, totalTurns - FULL_TOOL_RESULT_TURNS) / DROP_STEP_TURNS) * DROP_STEP_TURNS
   if (dropTurns === 0) return 0
 
   // 边界 = 第 dropTurns 轮**之后**的位置

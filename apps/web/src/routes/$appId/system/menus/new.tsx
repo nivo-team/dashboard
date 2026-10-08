@@ -22,8 +22,7 @@ export const Route = createFileRoute('/$appId/system/menus/new')({
     const rawPid = Number(search.pid)
     return {
       pid: Number.isFinite(rawPid) && rawPid > 0 ? rawPid : undefined,
-      type:
-        search.type === 'group' ? 'group' : search.type === 'button' ? 'button' : undefined,
+      type: search.type === 'group' ? 'group' : search.type === 'button' ? 'button' : undefined,
     }
   },
   component: NewFeatureRoute,

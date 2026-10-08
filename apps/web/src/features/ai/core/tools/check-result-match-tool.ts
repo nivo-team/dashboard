@@ -56,9 +56,7 @@ const MATCH_MODES = ['exact', 'prefix', 'contains', 'regex'] as const
 type MatchMode = (typeof MATCH_MODES)[number]
 
 function isMatchMode(value: unknown): value is MatchMode {
-  return (
-    typeof value === 'string' && (MATCH_MODES as readonly string[]).includes(value)
-  )
+  return typeof value === 'string' && (MATCH_MODES as readonly string[]).includes(value)
 }
 
 /**
@@ -67,12 +65,7 @@ function isMatchMode(value: unknown): value is MatchMode {
  * 行里的值统一转成字符串再比 —— `value` 按契约就是字符串形式（数字 / 日期也传字符串），
  * 这样 `13812341234`（number）与 `'13812341234'` 走的是同一条路。
  */
-function cellMatches(
-  cell: unknown,
-  value: string,
-  mode: MatchMode,
-  regex: RegExp | null,
-): boolean {
+function cellMatches(cell: unknown, value: string, mode: MatchMode, regex: RegExp | null): boolean {
   if (cell === null || cell === undefined) return false
   const text = typeof cell === 'string' ? cell : String(cell)
   switch (mode) {
@@ -111,9 +104,7 @@ function isReadErrorSnapshot(value: unknown): boolean {
     return false
   }
   const record = value as Record<string, unknown>
-  return (
-    typeof record.error === 'string' && Object.keys(record).length === 1
-  )
+  return typeof record.error === 'string' && Object.keys(record).length === 1
 }
 
 export const checkResultMatchTool: AiToolDefinition = {
@@ -125,14 +116,20 @@ export const checkResultMatchTool: AiToolDefinition = {
   inputSchema: {
     type: 'object',
     properties: {
-      field: { type: 'string', description: '要检查的字段名，必须是 get_page_data 返回的字段注解里的 name' },
+      field: {
+        type: 'string',
+        description: '要检查的字段名，必须是 get_page_data 返回的字段注解里的 name',
+      },
       value: { type: 'string', description: '要匹配的值（字符串形式，数字/日期也传字符串）' },
       mode: {
         type: 'string',
         enum: ['exact', 'prefix', 'contains', 'regex'],
         description: '匹配模式：exact 完全相等；prefix 前缀；contains 包含；regex 正则（谨慎使用）',
       },
-      source: { type: 'string', description: '可选：只查某个数据源（按数据源 id），不传则查当前页面全部数据源' },
+      source: {
+        type: 'string',
+        description: '可选：只查某个数据源（按数据源 id），不传则查当前页面全部数据源',
+      },
     },
     required: ['field', 'value', 'mode'],
     additionalProperties: false,
@@ -152,9 +149,7 @@ export const checkResultMatchTool: AiToolDefinition = {
 
     const mode = input.mode
     if (!isMatchMode(mode)) {
-      throw new Error(
-        `不支持的匹配模式：${String(mode)}。可用的是：${MATCH_MODES.join(' / ')}`,
-      )
+      throw new Error(`不支持的匹配模式：${String(mode)}。可用的是：${MATCH_MODES.join(' / ')}`)
     }
 
     const source = typeof input.source === 'string' ? input.source.trim() : ''
@@ -173,9 +168,7 @@ export const checkResultMatchTool: AiToolDefinition = {
       try {
         regex = new RegExp(value)
       } catch (error) {
-        throw new Error(
-          `正则表达式无效：${error instanceof Error ? error.message : String(error)}`,
-        )
+        throw new Error(`正则表达式无效：${error instanceof Error ? error.message : String(error)}`)
       }
     }
 
@@ -189,9 +182,9 @@ export const checkResultMatchTool: AiToolDefinition = {
     }
     if (source && !dataSources.some((item) => item.id === source)) {
       throw new Error(
-        `没有这个数据源：${source}。可用的是：${dataSources
-          .map((item) => item.id)
-          .join(' / ') || '（无）'}`,
+        `没有这个数据源：${source}。可用的是：${
+          dataSources.map((item) => item.id).join(' / ') || '（无）'
+        }`,
       )
     }
 
@@ -203,9 +196,7 @@ export const checkResultMatchTool: AiToolDefinition = {
         宁可查（可能查不到），也不要因为"没注解"就谎报"值不存在"；
       - 混合（有的注解了、有的没有）→ 无法证明字段非法，同样放行。
     */
-    const targets = source
-      ? dataSources.filter((item) => item.id === source)
-      : dataSources
+    const targets = source ? dataSources.filter((item) => item.id === source) : dataSources
     const allAnnotated = targets.every((item) => {
       const fields = (item as DataSourceWithFields).fields
       return Array.isArray(fields) && fields.length > 0
@@ -213,9 +204,9 @@ export const checkResultMatchTool: AiToolDefinition = {
     if (allAnnotated) {
       const available = [
         ...new Set(
-          targets.flatMap(
-            (item) => (item as DataSourceWithFields).fields ?? [],
-          ).map((item) => item.name),
+          targets
+            .flatMap((item) => (item as DataSourceWithFields).fields ?? [])
+            .map((item) => item.name),
         ),
       ]
       if (!available.includes(field)) {
@@ -247,16 +238,10 @@ export const checkResultMatchTool: AiToolDefinition = {
 
     // ── 8. 本地匹配：读页面已加载的数据，绝不发请求 ────────────────────
     const snapshots = readFeatureData(routeId)
-    const picked = source
-      ? snapshots.filter((item) => item.id === source)
-      : snapshots
-    const readable = picked.filter(
-      (item) => !isReadErrorSnapshot(item.value),
-    )
+    const picked = source ? snapshots.filter((item) => item.id === source) : snapshots
+    const readable = picked.filter((item) => !isReadErrorSnapshot(item.value))
     if (readable.length === 0) {
-      throw new Error(
-        '当前页面的数据源读取失败，无法在本地检查。请让用户自己查看页面。',
-      )
+      throw new Error('当前页面的数据源读取失败，无法在本地检查。请让用户自己查看页面。')
     }
 
     let matched = false

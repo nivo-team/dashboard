@@ -31,10 +31,7 @@ export function useDictTypeTree(rootTypeId: number = DICT_ROOT_TYPE_ID) {
   )
 
   /** 根分类自身；接口未返回该 id 时为 `undefined`（后端换了根或数据未就绪）。 */
-  const root = useMemo(
-    () => findDictTypePath(allNodes, rootTypeId).node,
-    [allNodes, rootTypeId],
-  )
+  const root = useMemo(() => findDictTypePath(allNodes, rootTypeId).node, [allNodes, rootTypeId])
 
   return {
     /** 根分类的直接子分类 —— 模块可见的最顶层。 */

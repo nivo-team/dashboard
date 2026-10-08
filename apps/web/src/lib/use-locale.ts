@@ -1,9 +1,4 @@
-import {
-  LOCALE_LOCK,
-  SUPPORTED_LOCALES,
-  type LocaleKey,
-  type LocaleMeta,
-} from './locale'
+import { LOCALE_LOCK, SUPPORTED_LOCALES, type LocaleKey, type LocaleMeta } from './locale'
 import { usePreferencesStore } from './store/preferences-store'
 
 export type { LocaleKey, LocaleMeta }
@@ -22,9 +17,7 @@ export function useLocale() {
   const storeLocale = usePreferencesStore((state) => state.locale)
   const locale = LOCALE_LOCK ?? storeLocale
 
-  const currentMeta =
-    SUPPORTED_LOCALES.find((item) => item.key === locale) ??
-    SUPPORTED_LOCALES[0]
+  const currentMeta = SUPPORTED_LOCALES.find((item) => item.key === locale) ?? SUPPORTED_LOCALES[0]
 
   const dir = currentMeta.dir ?? 'ltr'
   const isRtl = dir === 'rtl'

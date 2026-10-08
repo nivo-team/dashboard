@@ -1,9 +1,5 @@
 import { useCallback, useRef } from 'react'
-import {
-  useTableUiStore,
-  type TableUiField,
-  type TableUiState,
-} from './table-ui-store'
+import { useTableUiStore, type TableUiField, type TableUiState } from './table-ui-store'
 
 /**
  * 把一个表格 UI 状态片段挂到「按应用隔离」的持久化 store 上。
@@ -23,9 +19,7 @@ export function useAppTableState<T>(
   field: TableUiField,
   initial: T | (() => T),
 ): [T, (next: T | ((prev: T) => T)) => void] {
-  const storedValue = useTableUiStore(
-    (state) => state.tables[tableKey]?.[field] as T | undefined,
-  )
+  const storedValue = useTableUiStore((state) => state.tables[tableKey]?.[field] as T | undefined)
 
   // 初始值只算一次：调用方常写成 `() => Object.fromEntries(...)`，不必每帧重算
   const initialRef = useRef<{ value: T } | null>(null)
@@ -41,10 +35,8 @@ export function useAppTableState<T>(
     (next: T | ((prev: T) => T)) => {
       const store = useTableUiStore.getState()
       const current =
-        (store.tables[tableKey]?.[field] as T | undefined) ??
-        initialRef.current!.value
-      const resolved =
-        typeof next === 'function' ? (next as (prev: T) => T)(current) : next
+        (store.tables[tableKey]?.[field] as T | undefined) ?? initialRef.current!.value
+      const resolved = typeof next === 'function' ? (next as (prev: T) => T)(current) : next
       // 计算属性名写法需要断言：patch 的形状由 field 决定
       store.patchTable(tableKey, { [field]: resolved } as Partial<TableUiState>)
     },

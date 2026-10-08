@@ -23,7 +23,9 @@ export interface TableExampleDetailFeatureOptions {
   id: string
 }
 
-export function createTableExampleDetailFeature(options: TableExampleDetailFeatureOptions): FeatureSpec {
+export function createTableExampleDetailFeature(
+  options: TableExampleDetailFeatureOptions,
+): FeatureSpec {
   return defineFeature({
     title: '表格示例详情',
     description: '查看单个记录的资料（昵称、邮箱、注册时间等）。',

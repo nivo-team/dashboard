@@ -17,9 +17,24 @@ defineRouteMeta({
     tags: ['数据字典'],
     description: '字典项分页列表',
     parameters: [
-      { in: 'query', name: 'type_id', schema: { type: 'integer' }, description: '所属分类 ID（含其子分类）' },
-      { in: 'query', name: 'kw', schema: { type: 'string' }, description: '关键词（显示名 / 键值）' },
-      { in: 'query', name: 'status', schema: { type: 'integer' }, description: '状态：1 启用 / 2 禁用' },
+      {
+        in: 'query',
+        name: 'type_id',
+        schema: { type: 'integer' },
+        description: '所属分类 ID（含其子分类）',
+      },
+      {
+        in: 'query',
+        name: 'kw',
+        schema: { type: 'string' },
+        description: '关键词（显示名 / 键值）',
+      },
+      {
+        in: 'query',
+        name: 'status',
+        schema: { type: 'integer' },
+        description: '状态：1 启用 / 2 禁用',
+      },
       { in: 'query', name: 'page', schema: { type: 'integer' } },
       { in: 'query', name: 'page_size', schema: { type: 'integer' } },
     ],
@@ -98,8 +113,7 @@ export default defineHandler((event) => {
   if (status !== undefined) rows = rows.filter((item) => item.status === status)
   if (kw) {
     rows = rows.filter(
-      (item) =>
-        item.label.toLowerCase().includes(kw) || item.value.toLowerCase().includes(kw),
+      (item) => item.label.toLowerCase().includes(kw) || item.value.toLowerCase().includes(kw),
     )
   }
 

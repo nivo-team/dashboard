@@ -1,8 +1,5 @@
 import { Button, Sidebar, useSidebar } from '@cloudflare/kumo'
-import {
-  ArrowBendUpLeftIcon,
-  MagnifyingGlassIcon,
-} from '@phosphor-icons/react'
+import { ArrowBendUpLeftIcon, MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { Outlet, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -45,9 +42,7 @@ function ShellNavButton({
 }) {
   const { t } = useTranslation()
   const current = normalizePath(pathname)
-  const active = (item.matchPaths ?? [item.to]).some(
-    (path) => normalizePath(path) === current,
-  )
+  const active = (item.matchPaths ?? [item.to]).some((path) => normalizePath(path) === current)
   const label = item.labelKey ? t(item.labelKey, item.label) : item.label
 
   return (
@@ -86,10 +81,7 @@ function SidebarSearchButton({ onOpen }: { onOpen: () => void }) {
           className="mb-3 ring ring-kumo-line transition-[margin] duration-(--sidebar-animation-duration) group-data-[state=collapsed]/sidebar:mb-0 group-data-[state=collapsed]/sidebar:ring-transparent"
         >
           <span>{label}</span>
-          <ShortcutKbd
-            shortcutKey="K"
-            className="group-data-[state=collapsed]/sidebar:hidden"
-          />
+          <ShortcutKbd shortcutKey="K" className="group-data-[state=collapsed]/sidebar:hidden" />
         </Sidebar.MenuButton>
       </Sidebar.Menu>
     </Sidebar.Group>

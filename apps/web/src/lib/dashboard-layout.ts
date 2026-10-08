@@ -1,8 +1,4 @@
-import {
-  clampWidgetWidth,
-  clampWidgetX,
-  snapHeight,
-} from './dashboard-constants'
+import { clampWidgetWidth, clampWidgetX, snapHeight } from './dashboard-constants'
 
 /**
  * 仪表盘布局的数据模型与持久化格式。
@@ -147,9 +143,7 @@ export function compactLayout(
   widgets: readonly DashboardWidget[],
   pinnedId?: string | null,
 ): DashboardWidget[] {
-  const pinned = pinnedId
-    ? widgets.find((widget) => widget.id === pinnedId)
-    : undefined
+  const pinned = pinnedId ? widgets.find((widget) => widget.id === pinnedId) : undefined
 
   const placed: DashboardWidget[] = pinned ? [pinned] : []
   const rest = widgets
@@ -174,8 +168,7 @@ export function compactLayout(
 
 /** 判断 `widget` 落在 `y` 行时是否与已落位的 `other` 相交（列必须重叠才算）。 */
 function overlaps(widget: DashboardWidget, other: DashboardWidget, y: number): boolean {
-  const sameColumnBand =
-    widget.x < other.x + other.w && other.x < widget.x + widget.w
+  const sameColumnBand = widget.x < other.x + other.w && other.x < widget.x + widget.w
   if (!sameColumnBand) return false
   return y < other.y + other.h && other.y < y + widget.h
 }

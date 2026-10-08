@@ -4,7 +4,6 @@ import {
   CheckCircleIcon,
   CircleIcon,
   CircleNotchIcon,
-  ClockIcon,
   ListChecksIcon,
   XCircleIcon,
 } from '@phosphor-icons/react'
@@ -40,9 +39,7 @@ export function getActiveTaskData(
         const tasks = rawOutput?.tasks || rawInput?.tasks || []
         if (tasks.length === 0) return null
 
-        const allSettled = tasks.every(
-          (t) => t.status === 'completed' || t.status === 'cancelled',
-        )
+        const allSettled = tasks.every((t) => t.status === 'completed' || t.status === 'cancelled')
         const isStreaming = status === 'streaming' && i === messages.length - 1
 
         // 进行中：正在流式执行且尚未全部完成 -> 悬浮在输入框上方
@@ -67,10 +64,7 @@ export interface TaskCardViewProps {
 /**
  * 统一定义的单任务卡片视图（用于消息流内 settled 留档展示）
  */
-export function TaskCardView({
-  tasks: rawTasks,
-  className,
-}: TaskCardViewProps) {
+export function TaskCardView({ tasks: rawTasks, className }: TaskCardViewProps) {
   const { t } = useTranslation('ai')
   if (!rawTasks.length) return null
 
@@ -110,9 +104,7 @@ export function TaskCardView({
           ) : (
             <ListChecksIcon size={16} className="text-kumo-subtle" />
           )}
-          <span className="text-xs font-semibold text-kumo-default">
-            {title}
-          </span>
+          <span className="text-xs font-semibold text-kumo-default">{title}</span>
         </div>
         <span className="font-mono text-xs text-kumo-subtle">
           {completed} / {total} ({percent}%)
@@ -209,9 +201,7 @@ export function AiTaskBackplate({
         title="点击展开任务清单"
       >
         <div className="flex items-center gap-2 min-w-0">
-          <span className="truncate text-[11px] font-medium text-kumo-default">
-            {title}
-          </span>
+          <span className="truncate text-[11px] font-medium text-kumo-default">{title}</span>
           <span className="font-mono text-[11px] text-kumo-subtle">
             {completed}/{total} ({percent}%)
           </span>
@@ -235,9 +225,7 @@ export function AiTaskBackplate({
     <div className="flex flex-col rounded-t-2xl border-t border-x border-kumo-line bg-kumo-tint px-3.5 pt-2 pb-5 text-xs text-kumo-subtle">
       <div className="flex items-center justify-between gap-2 border-b border-kumo-line/60 pb-1.5">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="truncate text-[11px] font-medium text-kumo-default">
-            {title}
-          </span>
+          <span className="truncate text-[11px] font-medium text-kumo-default">{title}</span>
           <span className="font-mono text-[11px] text-kumo-subtle">
             {completed}/{total} ({percent}%)
           </span>

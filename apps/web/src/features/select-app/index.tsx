@@ -75,9 +75,7 @@ export function SelectAppPage({ redirect: redirectUrl }: { redirect?: string }) 
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-3">
         <Loader size={24} />
-        <p className="text-sm text-kumo-subtle">
-          {t('selectApp.loading', '正在加载应用列表…')}
-        </p>
+        <p className="text-sm text-kumo-subtle">{t('selectApp.loading', '正在加载应用列表…')}</p>
       </div>
     )
   }
@@ -85,9 +83,7 @@ export function SelectAppPage({ redirect: redirectUrl }: { redirect?: string }) 
   return (
     <div className="animate-fade-in">
       {/* 顶部账号 */}
-      <p className="text-xs text-kumo-subtle">
-        {user?.username || 'Admin'}
-      </p>
+      <p className="text-xs text-kumo-subtle">{user?.username || 'Admin'}</p>
 
       {/* 大标题：应用 */}
       <h1 className="mt-1.5 text-2xl font-semibold text-kumo-default sm:text-3xl">
@@ -95,9 +91,7 @@ export function SelectAppPage({ redirect: redirectUrl }: { redirect?: string }) 
       </h1>
 
       {/* 副标题：选择一个应用。 */}
-      <p className="mt-1 text-sm text-kumo-subtle">
-        {t('selectApp.subtitle', '选择一个应用。')}
-      </p>
+      <p className="mt-1 text-sm text-kumo-subtle">{t('selectApp.subtitle', '选择一个应用。')}</p>
 
       {/* Kumo UI 原生默认表格：LayerCard 包裹，无多余自定义样式，表头左对齐无排序 */}
       <LayerCard className="mt-6 p-0">
@@ -124,9 +118,7 @@ export function SelectAppPage({ redirect: redirectUrl }: { redirect?: string }) 
                       {localizedName}
                     </span>
                   </Table.Cell>
-                  <Table.Cell className="text-kumo-subtle">
-                    {localizedDesc}
-                  </Table.Cell>
+                  <Table.Cell className="text-kumo-subtle">{localizedDesc}</Table.Cell>
                 </Table.Row>
               )
             })}

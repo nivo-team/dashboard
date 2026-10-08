@@ -6,10 +6,7 @@ import {
   clearPageCapabilities,
   registerPageCapabilities,
 } from '#/features/ai/core/page-capabilities'
-import {
-  clearAiPageContext,
-  registerAiPageContext,
-} from '#/features/ai/core/page-context-registry'
+import { clearAiPageContext, registerAiPageContext } from '#/features/ai/core/page-context-registry'
 import { toAiPageContextSpec, toPageCapabilitiesSpec } from './convert'
 import { clearFeature, registerFeature } from './registry'
 import type { FeatureSpec } from './types'

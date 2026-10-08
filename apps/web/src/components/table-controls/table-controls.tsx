@@ -85,8 +85,7 @@ export function TableControls({
         table: columnSettings.table || table,
         other: columnSettings.other || otherOptions,
         otherVisibility: columnSettings.otherVisibility || otherVisibility,
-        onOtherVisibilityChange:
-          columnSettings.onOtherVisibilityChange || onOtherVisibilityChange,
+        onOtherVisibilityChange: columnSettings.onOtherVisibilityChange || onOtherVisibilityChange,
       }
     : table
       ? {
@@ -104,11 +103,7 @@ export function TableControls({
         {/* 左侧组：搜索输入框（**永远排第一**）+ 搜索后置插槽 + Filters 筛选器插件 + Display options 列设置插件 */}
         <div className="flex min-w-0 flex-wrap items-center gap-2 lg:flex-1">
           {search ? (
-            <InputGroup
-              className={
-                search.width || search.className || SEARCH_WIDTH_CLASS
-              }
-            >
+            <InputGroup className={search.width || search.className || SEARCH_WIDTH_CLASS}>
               <InputGroup.Addon>
                 <MagnifyingGlassIcon size={16} />
               </InputGroup.Addon>
@@ -116,9 +111,7 @@ export function TableControls({
                 id={search.id ?? generatedSearchId}
                 name={search.name ?? 'search'}
                 type="search"
-                placeholder={
-                  search.placeholder ?? t('table.search.placeholder', '搜索记录…')
-                }
+                placeholder={search.placeholder ?? t('table.search.placeholder', '搜索记录…')}
                 aria-label={search.ariaLabel ?? t('table.search.ariaLabel', '搜索')}
                 value={search.value}
                 onChange={(e) => search.onChange(e.target.value)}
@@ -145,9 +138,7 @@ export function TableControls({
           {filters ? <FilterBuilderPopover {...filters} /> : null}
 
           {/* 列设置与扩展选项下拉插件（直接与 TanStack Table 联动） */}
-          {effectiveColumnSettings ? (
-            <ColumnSettingsDropdown {...effectiveColumnSettings} />
-          ) : null}
+          {effectiveColumnSettings ? <ColumnSettingsDropdown {...effectiveColumnSettings} /> : null}
         </div>
 
         {/* 右侧动作区：< sm 独占一整行并与查询组同侧起排（justify-start，LTR 靠左 / RTL 靠右）；
@@ -235,11 +226,7 @@ export function TableControls({
                 values={{ selected: selectedCount }}
                 components={{ b: <b className={COUNT_CLASS} /> }}
               />
-              <Button
-                variant="ghost"
-                size="xs"
-                onClick={handleClearSelection}
-              >
+              <Button variant="ghost" size="xs" onClick={handleClearSelection}>
                 {t('table.summary.clearSelection', '取消选中')}
               </Button>
             </div>

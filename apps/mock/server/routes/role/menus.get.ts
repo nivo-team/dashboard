@@ -14,7 +14,13 @@ defineRouteMeta({
     tags: ['角色'],
     description: '查询角色已授权的菜单 ID 列表',
     parameters: [
-      { in: 'query', name: 'role_id', required: true, schema: { type: 'integer' }, description: '角色 ID' },
+      {
+        in: 'query',
+        name: 'role_id',
+        required: true,
+        schema: { type: 'integer' },
+        description: '角色 ID',
+      },
     ],
     responses: {
       200: {

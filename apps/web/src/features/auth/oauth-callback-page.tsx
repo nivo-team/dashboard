@@ -1,4 +1,4 @@
-import { Button, Loader, useKumoToastManager } from '@cloudflare/kumo'
+import { Loader, useKumoToastManager } from '@cloudflare/kumo'
 import { useNavigate, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -56,11 +56,10 @@ export function OAuthCallbackPage({
           throw new Error('未检测到有效的授权码 (Missing authorization code)')
         }
 
-        // 组装模拟用户信息
+        // 组装模拟用户信息（字段与 `UserInfo` 对齐：OAuth 没有用户名，用 `oauth_<provider>` 展示）
         const mockUser: UserInfo = {
-          id: `oauth_${provider}_${Date.now()}`,
+          username: `oauth_${provider}`,
           name: `${provider.toUpperCase()} 用户`,
-          roles: ['Admin'],
           role: 'Admin',
         }
 

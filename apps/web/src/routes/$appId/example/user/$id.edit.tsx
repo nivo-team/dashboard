@@ -4,7 +4,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 export const Route = createFileRoute('/$appId/example/user/$id/edit')({
   beforeLoad: ({ params }) => {
     throw redirect({
-      to: '/$appId/example/table/$id.edit',
+      to: '/$appId/example/table/$id/edit',
       params: { appId: params.appId, id: params.id },
     })
   },

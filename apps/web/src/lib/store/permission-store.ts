@@ -67,7 +67,10 @@ export const PERMISSIONS_STORAGE_KEY = 'admin.permissions'
  * 各写一份 `role === 'admin'` 这种字面比较就会立刻分叉。
  */
 export function normalizeRoleName(role = ''): string {
-  return role.trim().toLowerCase().replace(/[\s_-]+/g, '')
+  return role
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '')
 }
 
 /**

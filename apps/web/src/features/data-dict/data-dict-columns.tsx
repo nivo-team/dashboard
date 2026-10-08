@@ -145,9 +145,7 @@ function renderCopyable(value: unknown, empty: string): ReactNode {
  */
 function renderDictCode(value: unknown, empty: string): ReactNode {
   const text =
-    value === null || value === undefined || value === ''
-      ? ''
-      : displayDictCode(String(value))
+    value === null || value === undefined || value === '' ? '' : displayDictCode(String(value))
   return text ? (
     <CopyableValue text={text} />
   ) : (
@@ -189,17 +187,14 @@ function useDictTypeRenderers(options?: {
       copyCode: ({ value, empty }) => renderDictCode(value, empty),
       valueType: ({ value, t, empty }) => dictValueTypeBadge(value, t, empty),
       status: ({ value, t, empty }) => dictStatusBadge(value, t, empty),
-      datetime: ({ value, empty, formatDateTime }) =>
-        renderDictTime(value, empty, formatDateTime),
+      datetime: ({ value, empty, formatDateTime }) => renderDictTime(value, empty, formatDateTime),
     }),
     [onOpenType],
   )
 }
 
 /** 组装分类树的列。 */
-export function useDictTypeColumns(options?: {
-  onOpenType?: (node: DictType) => void
-}) {
+export function useDictTypeColumns(options?: { onOpenType?: (node: DictType) => void }) {
   const renderers = useDictTypeRenderers(options)
 
   return useSchemaColumns<DictType>(DICT_TYPE_SCHEMA, {
@@ -229,8 +224,7 @@ export function useDictItemColumns() {
           {row.update_by_user?.nick_name || row.update_by_user?.username || empty}
         </span>
       ),
-      datetime: ({ value, empty, formatDateTime }) =>
-        renderDictTime(value, empty, formatDateTime),
+      datetime: ({ value, empty, formatDateTime }) => renderDictTime(value, empty, formatDateTime),
     }),
     [],
   )

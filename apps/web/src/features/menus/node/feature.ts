@@ -54,8 +54,7 @@ export function createFeatureNodeFeature(options: FeatureNodeFeatureOptions): Fe
       {
         id: 'feature-node',
         title: '当前功能节点',
-        description:
-          '这一页正在看的节点；`children` 是它的下级（功能组的子项 / 功能下的权限点）',
+        description: '这一页正在看的节点；`children` 是它的下级（功能组的子项 / 功能下的权限点）',
         shape:
           'menu_id / menu_name / menu_type（1 功能组 2 功能 3 权限点）/ parent_id / permission / route_name / path / component / icon / status / visible / is_frame / no_cache / api_keys / sort / children[]',
         state: () => ({

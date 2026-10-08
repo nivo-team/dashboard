@@ -88,8 +88,7 @@ export const FEATURE_CHILD_COLUMN_SPECS: SchemaColumnSpec<MenuNode>[] = [
 
 /** 枚举值无法识别时的兜底展示：保留原始值，避免静默丢数据。 */
 function RawEnumValue({ value, empty }: { value: unknown; empty: string }) {
-  const text =
-    value === null || value === undefined || value === '' ? empty : String(value)
+  const text = value === null || value === undefined || value === '' ? empty : String(value)
   return <span className="text-sm text-kumo-subtle">{text}</span>
 }
 
@@ -116,29 +115,21 @@ export function featureStatusBadge(value: unknown, t: TFunction, empty = '-'): R
 export function featureVisibleBadge(value: unknown, t: TFunction, empty = '-'): ReactNode {
   const key = menuVisibleKey(value)
   if (!key) return <RawEnumValue value={value} empty={empty} />
-  return (
-    <Badge variant={key === 'visible' ? 'outline' : 'orange'}>
-      {t(`visible.${key}`)}
-    </Badge>
-  )
+  return <Badge variant={key === 'visible' ? 'outline' : 'orange'}>{t(`visible.${key}`)}</Badge>
 }
 
 /** 是否外链徽章。 */
 export function featureIsFrameBadge(value: unknown, t: TFunction, empty = '-'): ReactNode {
   const key = menuIsFrameKey(value)
   if (!key) return <RawEnumValue value={value} empty={empty} />
-  return (
-    <Badge variant={key === 'yes' ? 'teal' : 'neutral'}>{t(`isFrame.${key}`)}</Badge>
-  )
+  return <Badge variant={key === 'yes' ? 'teal' : 'neutral'}>{t(`isFrame.${key}`)}</Badge>
 }
 
 /** 路由缓存徽章。 */
 export function featureNoCacheBadge(value: unknown, t: TFunction, empty = '-'): ReactNode {
   const key = menuNoCacheKey(value)
   if (!key) return <RawEnumValue value={value} empty={empty} />
-  return (
-    <Badge variant={key === 'cache' ? 'green' : 'neutral'}>{t(`noCache.${key}`)}</Badge>
-  )
+  return <Badge variant={key === 'cache' ? 'green' : 'neutral'}>{t(`noCache.${key}`)}</Badge>
 }
 
 /**

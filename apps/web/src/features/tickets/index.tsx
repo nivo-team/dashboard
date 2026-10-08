@@ -3,12 +3,7 @@ import { DotsThree, PencilSimple, TicketIcon, Trash } from '@phosphor-icons/reac
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  deleteTicketById,
-  getTicket,
-  patchTicketByIdStatus,
-  TicketItemSchema,
-} from '#/api'
+import { deleteTicketById, getTicket, patchTicketByIdStatus, TicketItemSchema } from '#/api'
 import type { TicketItem } from '#/api'
 import {
   createColumnHelper,
@@ -17,7 +12,12 @@ import {
   useSchemaColumns,
   useTable,
 } from '#/components/data-table'
-import type { ColumnRenderer, ColumnVisibilityState, RowSelectionState, StockFeatures } from '#/components/data-table'
+import type {
+  ColumnRenderer,
+  ColumnVisibilityState,
+  RowSelectionState,
+  StockFeatures,
+} from '#/components/data-table'
 import { PageHeader } from '#/components/page-header'
 import { TableControls } from '#/components/table-controls'
 import { useFeature } from '#/features/ai/page'
@@ -27,7 +27,12 @@ import { useHasPermission } from '#/lib/permissions'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 import { useAppTableState, usePreferencesStore } from '#/lib/store'
 import { appToastManager } from '#/lib/toast'
-import { DEFAULT_HIDDEN_COLUMNS, MIN_COLUMN_WIDTH, TICKET_COLUMN_SPECS, TICKET_SORTABLE_FIELDS } from './columns'
+import {
+  DEFAULT_HIDDEN_COLUMNS,
+  MIN_COLUMN_WIDTH,
+  TICKET_COLUMN_SPECS,
+  TICKET_SORTABLE_FIELDS,
+} from './columns'
 import { createTicketsFeature } from './feature'
 import { TicketFormDialog } from './form-dialog'
 import { getTicketFormMetadata, TicketFormView } from './form-view'
@@ -49,7 +54,9 @@ import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
  */
 const columnHelper = createColumnHelper<StockFeatures, TicketItem>()
 
-const TICKET_FILTER_PARSERS = defineFilterParsers<NonNullable<Parameters<typeof getTicket>[0]>['query']>()({
+const TICKET_FILTER_PARSERS = defineFilterParsers<
+  NonNullable<Parameters<typeof getTicket>[0]>['query']
+>()({
   id: parseAsInteger,
   status: parseAsInteger,
   priority: parseAsInteger,
@@ -59,8 +66,20 @@ const TICKET_FILTER_PARSERS = defineFilterParsers<NonNullable<Parameters<typeof 
 
 const TICKET_FILTER_FIELDS: QueryFilterField[] = [
   { name: 'id', param: 'id', label: '工单 ID', control: 'number' },
-  { name: 'status', param: 'status', label: '状态', control: 'enum', options: ['1', '2', '3', '4'] },
-  { name: 'priority', param: 'priority', label: '优先级', control: 'enum', options: ['1', '2', '3', '4'] },
+  {
+    name: 'status',
+    param: 'status',
+    label: '状态',
+    control: 'enum',
+    options: ['1', '2', '3', '4'],
+  },
+  {
+    name: 'priority',
+    param: 'priority',
+    label: '优先级',
+    control: 'enum',
+    options: ['1', '2', '3', '4'],
+  },
   { name: 'assignee', param: 'assignee', label: '负责人', control: 'text' },
   { name: 'category', param: 'category', label: '分类', control: 'text' },
 ]
@@ -145,7 +164,9 @@ export function TicketsListPage() {
       setRows(items)
       setTotal(dataObj?.total ?? items.length)
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : t('messages.fetchFailed', '获取工单列表失败'))
+      setErrorMsg(
+        err instanceof Error ? err.message : t('messages.fetchFailed', '获取工单列表失败'),
+      )
     } finally {
       setLoading(false)
     }
@@ -162,7 +183,10 @@ export function TicketsListPage() {
       if (res.data?.code !== 0) {
         throw new Error(res.data?.message || '删除工单失败')
       }
-      appToastManager.add({ title: t('messages.deleteSuccess', '删除工单成功'), variant: 'success' })
+      appToastManager.add({
+        title: t('messages.deleteSuccess', '删除工单成功'),
+        variant: 'success',
+      })
       setSingleDeleteOpen(false)
       setDeletingTicket(null)
       await fetchRows()
@@ -359,7 +383,10 @@ export function TicketsListPage() {
                 />
                 <DropdownMenu.Content align="end">
                   {canEdit ? (
-                    <DropdownMenu.Item icon={PencilSimple} onClick={() => handleOpenEditForm(ticket)}>
+                    <DropdownMenu.Item
+                      icon={PencilSimple}
+                      onClick={() => handleOpenEditForm(ticket)}
+                    >
                       {t('rowActions.edit', '编辑')}
                     </DropdownMenu.Item>
                   ) : null}
@@ -412,14 +439,18 @@ export function TicketsListPage() {
       rows,
       total,
       loading,
-      queryState: { ...queryParams, filters: tableFilters.appliedFilters } as Record<string, unknown>,
+      queryState: { ...queryParams, filters: tableFilters.appliedFilters } as Record<
+        string,
+        unknown
+      >,
       selectedIds: Object.keys(rowSelection)
         .map((key) => Number(key))
         .filter((id) => Number.isFinite(id)),
       deleteOne,
       updateStatus,
       openCreateForm: handleOpenCreateForm,
-      openEditForm: (id, initialValues) => handleOpenEditForm({ id, title: '' } as TicketItem, initialValues),
+      openEditForm: (id, initialValues) =>
+        handleOpenEditForm({ id, title: '' } as TicketItem, initialValues),
       reload: fetchRows,
     }),
   )
@@ -467,7 +498,10 @@ export function TicketsListPage() {
         onRetry={fetchRows}
         moduleName={t('moduleName', '工单')}
         emptyTitle={t('empty.title', '暂无工单')}
-        emptyDescription={t('empty.description', '未找到符合条件的工单，请尝试更换关键词或重置筛选条件')}
+        emptyDescription={t(
+          'empty.description',
+          '未找到符合条件的工单，请尝试更换关键词或重置筛选条件',
+        )}
         emptyIcon={<TicketIcon size={44} className="text-kumo-inactive" />}
         pagination={{
           page: pagination.page,

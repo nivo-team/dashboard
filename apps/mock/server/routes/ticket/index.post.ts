@@ -44,7 +44,8 @@ interface CreateTicketBody {
 }
 
 export default defineHandler(async (event) => {
-  const body = await readBody<CreateTicketBody>(event).catch(() => ({}) as CreateTicketBody)
+  const body = ((await readBody<CreateTicketBody>(event).catch(() => undefined)) ??
+    {}) as CreateTicketBody
   const title = String(body.title ?? '').trim()
   if (!title) return fail(400, '请输入工单标题')
 

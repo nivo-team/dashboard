@@ -27,8 +27,7 @@ export function AuthHeader({ className = '', rightContrastOnLg }: AuthHeaderProp
   const brand = useBrand()
   const LogoIcon = brand.logoIcon
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const isSplitLogin =
-    rightContrastOnLg ?? (pathname === '/login' || pathname.endsWith('/login'))
+  const isSplitLogin = rightContrastOnLg ?? (pathname === '/login' || pathname.endsWith('/login'))
 
   const switcherClassName = isSplitLogin
     ? 'text-kumo-default lg:text-white lg:hover:bg-white/10 lg:active:bg-white/20'

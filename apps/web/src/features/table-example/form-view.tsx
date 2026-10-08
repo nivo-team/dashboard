@@ -22,10 +22,7 @@ export function getTableExampleFormMetadata(
   t: TFunction,
 ): TableExampleFormMetadata {
   return {
-    title:
-      mode === 'edit'
-        ? t('form.editTitle', '编辑记录')
-        : t('form.createTitle', '新建记录'),
+    title: mode === 'edit' ? t('form.editTitle', '编辑记录') : t('form.createTitle', '新建记录'),
     description:
       mode === 'edit'
         ? t('form.editDesc', '修改指定记录的资料信息')
@@ -218,11 +215,7 @@ export function TableExampleFormView({
       <form id={activeFormId} onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
           label={t('form.nickname', '记录昵称')}
-          error={
-            nicknameError
-              ? { message: nicknameError, match: 'customError' }
-              : undefined
-          }
+          error={nicknameError ? { message: nicknameError, match: 'customError' } : undefined}
           value={nickname}
           onChange={(e) => {
             setNickname(e.target.value)
@@ -269,12 +262,7 @@ export function TableExampleFormView({
               {t('form.cancel', '取消')}
             </Button>
           ) : null}
-          <Button
-            variant="primary"
-            form={activeFormId}
-            type="submit"
-            loading={submitting}
-          >
+          <Button variant="primary" form={activeFormId} type="submit" loading={submitting}>
             {t('form.save', '保存')}
           </Button>
         </div>
@@ -293,12 +281,7 @@ export function TableExampleFormView({
             {t('form.cancel', '取消')}
           </Button>
         ) : null}
-        <Button
-          variant="primary"
-          form={activeFormId}
-          type="submit"
-          loading={submitting}
-        >
+        <Button variant="primary" form={activeFormId} type="submit" loading={submitting}>
           {t('form.save', '保存')}
         </Button>
       </div>

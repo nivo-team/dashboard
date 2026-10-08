@@ -47,12 +47,7 @@ export function UserMenu({ align = 'end' }: UserMenuProps) {
   const { user, logout } = useAuth()
   const { mode, setMode } = useColorMode()
   const { locale, setLocale, supportedLocales } = useLocale()
-  const {
-    timezone,
-    setTimezone,
-    supportedTimezones,
-    getTimezoneOffsetLabel,
-  } = useTimezone()
+  const { timezone, setTimezone, supportedTimezones, getTimezoneOffsetLabel } = useTimezone()
   const navigate = useNavigate()
 
   /**
@@ -116,9 +111,7 @@ export function UserMenu({ align = 'end' }: UserMenuProps) {
                       <ItemIcon size={14} className="text-kumo-subtle" />
                       <span>{t(item.labelKey, item.defaultLabel)}</span>
                     </span>
-                    {isSelected ? (
-                      <CheckIcon size={14} className="text-kumo-brand" />
-                    ) : null}
+                    {isSelected ? <CheckIcon size={14} className="text-kumo-brand" /> : null}
                   </DropdownMenu.Item>
                 )
               })}
@@ -141,9 +134,7 @@ export function UserMenu({ align = 'end' }: UserMenuProps) {
                     className="flex items-center justify-between"
                   >
                     <span className="text-xs text-kumo-default">{item.nativeName}</span>
-                    {isSelected ? (
-                      <CheckIcon size={14} className="text-kumo-brand" />
-                    ) : null}
+                    {isSelected ? <CheckIcon size={14} className="text-kumo-brand" /> : null}
                   </DropdownMenu.Item>
                 )
               })}
@@ -168,9 +159,7 @@ export function UserMenu({ align = 'end' }: UserMenuProps) {
                     <span className="text-xs text-kumo-default">
                       {`${t(item.labelKey, item.defaultName)} (${getTimezoneOffsetLabel(item.key)})`}
                     </span>
-                    {isSelected ? (
-                      <CheckIcon size={14} className="text-kumo-brand" />
-                    ) : null}
+                    {isSelected ? <CheckIcon size={14} className="text-kumo-brand" /> : null}
                   </DropdownMenu.Item>
                 )
               })}

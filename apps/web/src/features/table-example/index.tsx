@@ -1,26 +1,17 @@
 import { Button, DropdownMenu, LayerDialog, Table } from '@cloudflare/kumo'
-import {
-  DotsThree,
-  Eye,
-  PencilSimple,
-  Trash,
-  UserIcon,
-  UsersIcon,
-} from '@phosphor-icons/react'
+import { DotsThree, Eye, PencilSimple, Trash, UserIcon, UsersIcon } from '@phosphor-icons/react'
 import { useNavigate } from '@tanstack/react-router'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  deleteUserById,
-  getUser,
-  postUserBatchDelete,
-  UserItemSchema,
-} from '#/api'
+import { deleteUserById, getUser, postUserBatchDelete, UserItemSchema } from '#/api'
 import type { GetUserData, UserItem } from '#/api'
 import { USER_FILTER_FIELDS } from '#/api'
 import { useFeature } from '#/features/ai/page'
-import { createTableExampleListFeature, TABLE_EXAMPLE_SORTABLE_FIELDS as SORTABLE_FIELDS } from './feature'
+import {
+  createTableExampleListFeature,
+  TABLE_EXAMPLE_SORTABLE_FIELDS as SORTABLE_FIELDS,
+} from './feature'
 import {
   DataTable,
   createColumnHelper,
@@ -34,20 +25,12 @@ import type {
   RowSelectionState,
   StockFeatures,
 } from '#/components/data-table'
-import {
-  DEFAULT_HIDDEN_COLUMNS,
-  MIN_COLUMN_WIDTH,
-  TABLE_EXAMPLE_COLUMN_SPECS,
-} from './columns'
+import { DEFAULT_HIDDEN_COLUMNS, MIN_COLUMN_WIDTH, TABLE_EXAMPLE_COLUMN_SPECS } from './columns'
 import { useAppTableState, usePreferencesStore } from '#/lib/store'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 import { useDetailPreview } from '#/components/detail-preview'
 import { PageHeader } from '#/components/page-header'
-import {
-  FilterBuilder,
-  TableControls,
-  describeFilterCondition,
-} from '#/components/table-controls'
+import { FilterBuilder, TableControls, describeFilterCondition } from '#/components/table-controls'
 import type { FilterCondition, ResolveFilterFieldOptions } from '#/components/table-controls'
 import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
 import type { DictOptionEntry } from '#/lib/dict-options'
@@ -85,7 +68,6 @@ const TABLE_EXAMPLE_FILTER_PARSERS = defineFilterParsers<GetUserData['query']>()
 })
 
 export function TableExampleListPage() {
-
   const { t } = useTranslation('table-example')
   const navigate = useNavigate()
   const { open: openPreview } = useDetailPreview()
@@ -162,10 +144,7 @@ export function TableExampleListPage() {
   const [batchDeleteLoading, setBatchDeleteLoading] = useState(false)
 
   /** 字典筛选适配 */
-  const dictFilterEntries = useMemo<Record<string, readonly DictOptionEntry[]>>(
-    () => ({}),
-    [],
-  )
+  const dictFilterEntries = useMemo<Record<string, readonly DictOptionEntry[]>>(() => ({}), [])
 
   const resolveFilterFieldOptions = useCallback<ResolveFilterFieldOptions>(
     (field) => {
@@ -252,28 +231,24 @@ export function TableExampleListPage() {
   }, [fetchRows])
 
   const openFormSplit = useCallback(
-    (
-      mode: 'create' | 'edit',
-      id?: number | null,
-      initialData?: UserItem | null,
-    ) => {
+    (mode: 'create' | 'edit', id?: number | null, initialData?: UserItem | null) => {
       const isEdit = mode === 'edit'
       const meta = getTableExampleFormMetadata(mode, t)
       openPreview({
         key: isEdit ? `form-edit-${id}` : 'form-create',
         title: meta.title,
-        description:
-          isEdit && id ? `${meta.description} (ID ${id})` : meta.description,
+        description: isEdit && id ? `${meta.description} (ID ${id})` : meta.description,
         mode: 'split',
         onExpand: () => {
-          navigate({
-            to: isEdit
-              ? '/$appId/example/table/$id.edit'
-              : '/$appId/example/table/new',
-            params: isEdit
-              ? { appId, id: String(id) }
-              : { appId },
-          })
+          // 分开写两个分支：`to` 用三元表达式时 TanStack 无法把 `params` 收窄到对应路由
+          if (isEdit) {
+            navigate({
+              to: '/$appId/example/table/$id/edit',
+              params: { appId, id: String(id) },
+            })
+            return
+          }
+          navigate({ to: '/$appId/example/table/new', params: { appId } })
         },
         onClose: () => {
           void setFormState({ form: null, formId: null })
@@ -329,7 +304,7 @@ export function TableExampleListPage() {
       setFormInitialData(mergedUser)
       if (formOpenMode === 'page' || isMobile) {
         navigate({
-          to: '/$appId/example/table/$id.edit',
+          to: '/$appId/example/table/$id/edit',
           params: { appId, id: String(user.id) },
         })
       } else {
@@ -497,9 +472,7 @@ export function TableExampleListPage() {
           header: ({ table }) => (
             <Table.CheckHead
               checked={table.getIsAllRowsSelected()}
-              indeterminate={
-                table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()
-              }
+              indeterminate={table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
               onCheckedChange={(checked) => table.toggleAllRowsSelected(!!checked)}
               aria-label={t('cell.selectAll', '全选当前页')}
             />
@@ -553,9 +526,7 @@ export function TableExampleListPage() {
 
         columnHelper.display({
           id: 'actions',
-          header: () => (
-            <span className="sr-only">{t('columns.actions', '操作')}</span>
-          ),
+          header: () => <span className="sr-only">{t('columns.actions', '操作')}</span>,
           enableHiding: false,
           meta: {
             sticky: 'right',
@@ -578,17 +549,11 @@ export function TableExampleListPage() {
                   }
                 />
                 <DropdownMenu.Content align="end">
-                  <DropdownMenu.Item
-                    icon={Eye}
-                    onClick={() => openRecordDetail(user)}
-                  >
+                  <DropdownMenu.Item icon={Eye} onClick={() => openRecordDetail(user)}>
                     {t('rowActions.view', '查看')}
                   </DropdownMenu.Item>
                   {canEdit ? (
-                    <DropdownMenu.Item
-                      icon={PencilSimple}
-                      onClick={() => handleOpenEditForm(user)}
-                    >
+                    <DropdownMenu.Item icon={PencilSimple} onClick={() => handleOpenEditForm(user)}>
                       {t('rowActions.edit', '编辑')}
                     </DropdownMenu.Item>
                   ) : null}
@@ -693,7 +658,11 @@ export function TableExampleListPage() {
       t('export.headers.logintime', '最后登录'),
     ]
 
-    const rows = listToExport.map((u) => [
+    /*
+      本地变量不能叫 `rows`：上面 `listToExport` 还要读组件的 `rows`（列表数据），
+      同名 `const` 会让那一行落进暂时性死区（未选中任何行时导出直接抛错）。
+    */
+    const csvRows = listToExport.map((u) => [
       u.id ?? '',
       `"${(u.nickname ?? '').replace(/"/g, '""')}"`,
       `"${u.email ?? ''}"`,
@@ -701,7 +670,7 @@ export function TableExampleListPage() {
       formatTimestamp(u.logintime),
     ])
 
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
+    const csvContent = '\uFEFF' + [headers.join(','), ...csvRows.map((r) => r.join(','))].join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -822,13 +791,9 @@ export function TableExampleListPage() {
         <LayerDialog.Content size="sm">
           <LayerDialog.Title>{t('dialogs.deleteTitle', '删除记录')}</LayerDialog.Title>
           <LayerDialog.Description>
-            {t(
-              'dialogs.deleteConfirm',
-              '确定要删除记录「{{name}}」吗？该操作不可撤销。',
-              {
-                name: deletingUser?.nickname || deletingUser?.id,
-              },
-            )}
+            {t('dialogs.deleteConfirm', '确定要删除记录「{{name}}」吗？该操作不可撤销。', {
+              name: deletingUser?.nickname || deletingUser?.id,
+            })}
           </LayerDialog.Description>
           <LayerDialog.Body>{null}</LayerDialog.Body>
           <LayerDialog.Actions dismissLabel={t('form.cancel', '取消')}>

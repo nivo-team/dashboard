@@ -21,17 +21,12 @@ import { MENU_ROOT_ID, findMenuById } from './feature-options'
  * 旧系统的整棵树永远不会被带出来 —— 请求恒定携带 `MENU_ROOT_ID`。
  */
 export function useFeaturesTree() {
-  const query = useQuery(
-    getSystemMenuTreeQueryOptions({ query: { menu_id: MENU_ROOT_ID } }),
-  )
+  const query = useQuery(getSystemMenuTreeQueryOptions({ query: { menu_id: MENU_ROOT_ID } }))
 
   const apiNodes = useMemo(() => query.data?.result ?? [], [query.data])
 
   /** 演示兜底：接口不可用（未连后端 / 凭据失效）时，用本地演示数据模拟同一返回形态。 */
-  const demoNodes = useMemo(
-    () => findMenuById(DEMO_FEATURES, MENU_ROOT_ID)?.children ?? [],
-    [],
-  )
+  const demoNodes = useMemo(() => findMenuById(DEMO_FEATURES, MENU_ROOT_ID)?.children ?? [], [])
 
   const isDemoMode = query.isError && apiNodes.length === 0
 

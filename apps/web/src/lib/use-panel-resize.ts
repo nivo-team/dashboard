@@ -111,51 +111,43 @@ export function usePanelResize({
   const stopRef = useRef<(() => void) | null>(null)
   useEffect(() => () => stopRef.current?.(), [])
 
-  const handlePointerDown = useCallback(
-    (event: ReactPointerEvent<HTMLElement>) => {
-      // 只响应主键；中键 / 右键拖拽不改变宽度
-      if (event.button !== 0) return
-      event.preventDefault()
+  const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {
+    // 只响应主键；中键 / 右键拖拽不改变宽度
+    if (event.button !== 0) return
+    event.preventDefault()
 
-      const current = latest.current
-      const measured = current.panelRef?.current?.getBoundingClientRect().width
-      const startWidth =
-        measured && measured > 0 ? measured : current.width
-      const startX = event.clientX
-      /** 拖动过程中最后一次真正落下的宽度，松手时由它触发 onCommit */
-      let lastWidth = startWidth
+    const current = latest.current
+    const measured = current.panelRef?.current?.getBoundingClientRect().width
+    const startWidth = measured && measured > 0 ? measured : current.width
+    const startX = event.clientX
+    /** 拖动过程中最后一次真正落下的宽度，松手时由它触发 onCommit */
+    let lastWidth = startWidth
 
-      const handlePointerMove = (moveEvent: PointerEvent) => {
-        const { side: currentSide, min: minWidth, max: maxWidth, onChange: emit } =
-          latest.current
-        const delta =
-          currentSide === 'left'
-            ? moveEvent.clientX - startX
-            : startX - moveEvent.clientX
-        lastWidth = clamp(startWidth + delta, minWidth, maxWidth)
-        emit(lastWidth)
-      }
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const { side: currentSide, min: minWidth, max: maxWidth, onChange: emit } = latest.current
+      const delta = currentSide === 'left' ? moveEvent.clientX - startX : startX - moveEvent.clientX
+      lastWidth = clamp(startWidth + delta, minWidth, maxWidth)
+      emit(lastWidth)
+    }
 
-      const stop = () => {
-        document.removeEventListener('pointermove', handlePointerMove)
-        document.removeEventListener('pointerup', stop)
-        document.removeEventListener('pointercancel', stop)
-        setResizeCursor(null)
-        stopRef.current = null
-        setResizing(false)
-        latest.current.onCommit?.(lastWidth)
-      }
+    const stop = () => {
+      document.removeEventListener('pointermove', handlePointerMove)
+      document.removeEventListener('pointerup', stop)
+      document.removeEventListener('pointercancel', stop)
+      setResizeCursor(null)
+      stopRef.current = null
+      setResizing(false)
+      latest.current.onCommit?.(lastWidth)
+    }
 
-      setResizeCursor('col')
-      document.addEventListener('pointermove', handlePointerMove)
-      document.addEventListener('pointerup', stop)
-      // 指针被系统中断（触摸被取消、切窗口）时也要收尾，否则光标会一直卡在 col-resize
-      document.addEventListener('pointercancel', stop)
-      stopRef.current = stop
-      setResizing(true)
-    },
-    [],
-  )
+    setResizeCursor('col')
+    document.addEventListener('pointermove', handlePointerMove)
+    document.addEventListener('pointerup', stop)
+    // 指针被系统中断（触摸被取消、切窗口）时也要收尾，否则光标会一直卡在 col-resize
+    document.addEventListener('pointercancel', stop)
+    stopRef.current = stop
+    setResizing(true)
+  }, [])
 
   const handleKeyDown = useCallback((event: KeyboardEvent<HTMLElement>) => {
     const current = latest.current
@@ -345,9 +337,7 @@ export function useFloatPanelResize({
         const delta = c.side === 'left' ? moveEvent.clientX - startX : startX - moveEvent.clientX
         const next: FloatPanelSize = {
           width:
-            axis === 'block'
-              ? c.size.width
-              : clamp(startWidth + delta, c.minWidth, c.maxWidth),
+            axis === 'block' ? c.size.width : clamp(startWidth + delta, c.minWidth, c.maxWidth),
           height:
             axis === 'inline'
               ? c.size.height

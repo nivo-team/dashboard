@@ -138,9 +138,7 @@ export function FeatureApiKeysField({
               </Combobox.Item>
             )}
           </Combobox.List>
-          <Combobox.Empty>
-            {t('form.apiKeysNoMatch', '没有可绑定的接口了')}
-          </Combobox.Empty>
+          <Combobox.Empty>{t('form.apiKeysNoMatch', '没有可绑定的接口了')}</Combobox.Empty>
         </Combobox.Content>
       </Combobox>
     </div>

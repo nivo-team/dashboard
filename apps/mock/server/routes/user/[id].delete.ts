@@ -8,7 +8,13 @@ defineRouteMeta({
     tags: ['用户'],
     description: '根据 ID 删除单个用户',
     parameters: [
-      { in: 'path', name: 'id', required: true, schema: { type: 'integer' }, description: '用户 ID' },
+      {
+        in: 'path',
+        name: 'id',
+        required: true,
+        schema: { type: 'integer' },
+        description: '用户 ID',
+      },
     ],
     responses: {
       200: {

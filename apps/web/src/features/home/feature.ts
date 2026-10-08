@@ -57,8 +57,7 @@ export interface DashboardFeatureOptions {
 }
 
 export function createDashboardFeature(options: DashboardFeatureOptions): FeatureSpec {
-  const findOption = (type: string) =>
-    options.available.find((item) => item.type === type)
+  const findOption = (type: string) => options.available.find((item) => item.type === type)
 
   return defineFeature({
     title: '仪表盘',

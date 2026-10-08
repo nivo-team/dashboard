@@ -1,10 +1,4 @@
-import {
-  Button,
-  DropdownMenu,
-  Textarea,
-  Tooltip,
-  useKumoToastManager,
-} from '@cloudflare/kumo'
+import { Button, DropdownMenu, Textarea, Tooltip, useKumoToastManager } from '@cloudflare/kumo'
 import {
   ArrowUpIcon,
   AtIcon,
@@ -42,11 +36,7 @@ import type {
   AiTextFile,
 } from '#/features/ai/core'
 import { cn } from '#/lib/cn'
-import {
-  isAiComposerMode,
-  usePreferencesStore,
-  type AiComposerMode,
-} from '#/lib/store'
+import { isAiComposerMode, usePreferencesStore, type AiComposerMode } from '#/lib/store'
 import { getAppScope } from '#/lib/store/app-scope'
 import {
   AiTaskBackplate,
@@ -392,7 +382,11 @@ export function AiComposer({
    * 段标题把「添加到对话」和「引用某个位置」分开。**顺序只在这一个数组里**，
    * 段名走 `ai` 命名空间（7 语言）。
    */
-  const MENTION_SECTIONS: ReadonlyArray<{ kind: AiRouteRefKind; labelKey: string; fallback: string }> = [
+  const MENTION_SECTIONS: ReadonlyArray<{
+    kind: AiRouteRefKind
+    labelKey: string
+    fallback: string
+  }> = [
     { kind: 'add', labelKey: 'mentionSectionAdd', fallback: '添加' },
     { kind: 'module', labelKey: 'mentionSectionModule', fallback: '模块' },
     { kind: 'page', labelKey: 'mentionSectionPage', fallback: '页面' },
@@ -486,8 +480,7 @@ export function AiComposer({
   */
   const showSettingsMenu = onConfigurePermissions !== undefined
   // 正在跑一轮时禁用提交；文字与附件**有其一**就能发（截图直接问「这是什么」很常见）
-  const canSubmit =
-    (value.trim().length > 0 || attachments.length > 0) && !isStreaming
+  const canSubmit = (value.trim().length > 0 || attachments.length > 0) && !isStreaming
 
   const submit = () => {
     const next = value.trim()
@@ -682,10 +675,7 @@ export function AiComposer({
         continue
       }
 
-      warning = t(
-        'attachmentUnsupported',
-        '只支持图片、Markdown（.md）和文本（.txt）文件',
-      )
+      warning = t('attachmentUnsupported', '只支持图片、Markdown（.md）和文本（.txt）文件')
     }
 
     /*
@@ -783,61 +773,58 @@ export function AiComposer({
             className="min-h-0 rounded-none border-0 bg-transparent px-4 pt-4 pb-0 ring-0 focus:ring-0"
           />
 
-      {/*
+          {/*
         待发送的附件：夹在输入区与工具行之间。**图片给缩略图，其余给文件卡片**
         （文件名 + 体积）—— 两者都是 data URL，不回读磁盘。
         每个附件右上角都有删除按钮，发出去之前随时能撤掉。
       */}
-      {attachments.length > 0 ? (
-        <ul className="flex flex-wrap gap-2 px-4 py-3">
-          {attachments.map((attachment, index) => (
-            <li
-              key={`${attachment.name ?? attachment.kind}-${index}`}
-              className="relative"
-            >
-              {attachment.kind === 'image' ? (
-                <img
-                  src={attachment.url}
-                  alt={attachment.name ?? t('attachmentPreview', '待发送的附件')}
-                  className="size-16 rounded-lg object-cover ring-1 ring-kumo-line"
-                />
-              ) : (
-                /*
+          {attachments.length > 0 ? (
+            <ul className="flex flex-wrap gap-2 px-4 py-3">
+              {attachments.map((attachment, index) => (
+                <li key={`${attachment.name ?? attachment.kind}-${index}`} className="relative">
+                  {attachment.kind === 'image' ? (
+                    <img
+                      src={attachment.url}
+                      alt={attachment.name ?? t('attachmentPreview', '待发送的附件')}
+                      className="size-16 rounded-lg object-cover ring-1 ring-kumo-line"
+                    />
+                  ) : (
+                    /*
                   文本文件（md / txt）给一张卡片：左边文件图标、右边文件名与体积。
                   内容不发到这里展示 —— 它随消息拼给模型，几百行文档堆在输入框上只会碍事。
                 */
-                <span className="flex h-16 w-44 items-center gap-2 rounded-lg bg-kumo-tint px-2.5 ring-1 ring-kumo-line">
-                  <FileIcon size={18} className="shrink-0 text-kumo-subtle" />
-                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="truncate text-xs text-kumo-default">
-                      {attachment.name}
+                    <span className="flex h-16 w-44 items-center gap-2 rounded-lg bg-kumo-tint px-2.5 ring-1 ring-kumo-line">
+                      <FileIcon size={18} className="shrink-0 text-kumo-subtle" />
+                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span className="truncate text-xs text-kumo-default">
+                          {attachment.name}
+                        </span>
+                        <span className="truncate text-xs text-kumo-subtle">
+                          {formatFileSize(attachment.size)}
+                        </span>
+                      </span>
                     </span>
-                    <span className="truncate text-xs text-kumo-subtle">
-                      {formatFileSize(attachment.size)}
-                    </span>
-                  </span>
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={() => removeAttachment(index)}
-                aria-label={t('attachmentRemove', '移除这个附件')}
-                className="absolute -end-1.5 -top-1.5 flex size-5 cursor-pointer items-center justify-center rounded-full bg-kumo-base text-kumo-subtle ring-1 ring-kumo-line transition-colors hover:text-kumo-default"
-              >
-                <XIcon size={11} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeAttachment(index)}
+                    aria-label={t('attachmentRemove', '移除这个附件')}
+                    className="absolute -end-1.5 -top-1.5 flex size-5 cursor-pointer items-center justify-center rounded-full bg-kumo-base text-kumo-subtle ring-1 ring-kumo-line transition-colors hover:text-kumo-default"
+                  >
+                    <XIcon size={11} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
 
-      {/*
+          {/*
         这里**没有**「被拦下的原因」那一行：附件提醒（太大 / 类型不支持 / 读不出来 / 到上限）
         统一走 toast —— 见 `notifyAttachment`。输入区只留附件本身，不再被提示文字占一行。
       */}
 
-      <div className="flex items-center gap-2 p-3 pt-0">
-        {/*
+          <div className="flex items-center gap-2 p-3 pt-0">
+            {/*
           **「+」菜单**：目前只有「添加照片和文件」，**后续的新能力也往这里放** ——
           所以它从一开始就是 `DropdownMenu`，而不是为单项另写一个开关式的上传按钮；
           加一项就是加一个 `DropdownMenu.Item`，菜单内容与「怎么弹」都不用再改。
@@ -845,28 +832,28 @@ export function AiComposer({
           样式用 `secondary`：与旁边的输入模式 pill 同族，一眼看出是「打开一个菜单」，
           而不是一颗纯图标的动作按钮（ghost 的那颗是设置按钮）。
         */}
-        {/*
+            {/*
           文件选择器：**必须挂在菜单外面**（常驻在根节点下）。
           曾经把它放进 `DropdownMenu.Content`，而点击菜单项正是「先关菜单、再打开系统文件选择器」
           —— Content 一卸载，元素就没了，选完文件回来的 `change` 自然没人接（表现就是
           「选了一张图但附件区什么都没出现」）。
         */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          // 与 `addAttachments` 支持的类型一致：图片 + Markdown / 纯文本
-          accept="image/*,.md,.markdown,.txt"
-          multiple
-          hidden
-          onChange={(event) => {
-            const files = Array.from(event.target.files ?? [])
-            // 先清空 value：连着选同一个文件也要能再次触发 change
-            event.target.value = ''
-            void addAttachments(files)
-          }}
-        />
+            <input
+              ref={fileInputRef}
+              type="file"
+              // 与 `addAttachments` 支持的类型一致：图片 + Markdown / 纯文本
+              accept="image/*,.md,.markdown,.txt"
+              multiple
+              hidden
+              onChange={(event) => {
+                const files = Array.from(event.target.files ?? [])
+                // 先清空 value：连着选同一个文件也要能再次触发 change
+                event.target.value = ''
+                void addAttachments(files)
+              }}
+            />
 
-        {/*
+            {/*
           **行首的「+」= 三件「跟这一轮对话直接有关」的小动作**（添加附件 / 引用位置 / 新对话）。
 
           长度刻意压住：真正会长的那份清单是「引用哪个模块 / 哪个页面 / 哪一条记录」，
@@ -875,83 +862,80 @@ export function AiComposer({
           菜单**锚在整块输入区上**（`anchor={composerRef}` + 宽 `var(--anchor-width)`）：
           看起来是贴着输入框上沿浮出来的一块，而不是挂在颗小圆钮下面。
         */}
-        <DropdownMenu modal={false}>
-          <Tooltip
-            content={t('aiActions', 'AI 动作')}
-            className="cursor-pointer"
-            render={
-              <DropdownMenu.Trigger
+            <DropdownMenu modal={false}>
+              <Tooltip
+                content={t('aiActions', 'AI 动作')}
+                className="cursor-pointer"
                 render={
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    shape="circle"
-                    size="sm"
-                    aria-label={t('aiActions', 'AI 动作')}
-                    className="!text-kumo-subtle not-disabled:hover:!text-kumo-default"
+                  <DropdownMenu.Trigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        shape="circle"
+                        size="sm"
+                        aria-label={t('aiActions', 'AI 动作')}
+                        className="!text-kumo-subtle not-disabled:hover:!text-kumo-default"
+                      />
+                    }
                   />
                 }
-              />
-            }
-          >
-            <PlusIcon size={14} />
-          </Tooltip>
+              >
+                <PlusIcon size={14} />
+              </Tooltip>
 
-          <DropdownMenu.Content
-            side="top"
-            align="start"
-            anchor={composerRef}
-            className="w-[var(--anchor-width)]"
-          >
-            <DropdownMenu.Item
-              className="items-center gap-2.5 py-2"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <ImageIcon size={15} className="shrink-0 text-kumo-subtle" />
-              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate text-sm text-kumo-default">
-                  {t('addPhotoAndFiles', '添加照片和文件')}
-                </span>
-                <span className="truncate text-xs text-kumo-subtle">
-                  {t('promptMentionAttachDesc', '从本机添加图片或 Markdown / 文本文件')}
-                </span>
-              </span>
-            </DropdownMenu.Item>
+              <DropdownMenu.Content
+                side="top"
+                align="start"
+                anchor={composerRef}
+                className="w-[var(--anchor-width)]"
+              >
+                <DropdownMenu.Item
+                  className="items-center gap-2.5 py-2"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <ImageIcon size={15} className="shrink-0 text-kumo-subtle" />
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="truncate text-sm text-kumo-default">
+                      {t('addPhotoAndFiles', '添加照片和文件')}
+                    </span>
+                    <span className="truncate text-xs text-kumo-subtle">
+                      {t('promptMentionAttachDesc', '从本机添加图片或 Markdown / 文本文件')}
+                    </span>
+                  </span>
+                </DropdownMenu.Item>
 
-            <DropdownMenu.Item
-              className="items-center gap-2.5 py-2"
-              onClick={startMention}
-            >
-              <AtIcon size={15} className="shrink-0 text-kumo-subtle" />
-              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate text-sm text-kumo-default">
-                  {t('actionMention', '引用位置')}
-                </span>
-                <span className="truncate text-xs text-kumo-subtle">
-                  {t('actionMentionDesc', '打一个 @ 引用模块、页面或某一条记录')}
-                </span>
-              </span>
-            </DropdownMenu.Item>
+                <DropdownMenu.Item className="items-center gap-2.5 py-2" onClick={startMention}>
+                  <AtIcon size={15} className="shrink-0 text-kumo-subtle" />
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="truncate text-sm text-kumo-default">
+                      {t('actionMention', '引用位置')}
+                    </span>
+                    <span className="truncate text-xs text-kumo-subtle">
+                      {t('actionMentionDesc', '打一个 @ 引用模块、页面或某一条记录')}
+                    </span>
+                  </span>
+                </DropdownMenu.Item>
 
-            <DropdownMenu.Item
-              className="items-center gap-2.5 py-2"
-              disabled={isStreaming}
-              onClick={startNewSession}
-            >
-              <ChatCircleDotsIcon size={15} className="shrink-0 text-kumo-subtle" />
-              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate text-sm text-kumo-default">
-                  {t('sessionNew', '新对话')}
-                </span>
-                <span className="truncate text-xs text-kumo-subtle">
-                  {t('actionNewChatDesc', '从一段空白对话重新开始')}
-                </span>
-              </span>
-            </DropdownMenu.Item>
-          </DropdownMenu.Content>
-        </DropdownMenu>
+                <DropdownMenu.Item
+                  className="items-center gap-2.5 py-2"
+                  disabled={isStreaming}
+                  onClick={startNewSession}
+                >
+                  <ChatCircleDotsIcon size={15} className="shrink-0 text-kumo-subtle" />
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="truncate text-sm text-kumo-default">
+                      {t('sessionNew', '新对话')}
+                    </span>
+                    <span className="truncate text-xs text-kumo-subtle">
+                      {t('actionNewChatDesc', '从一段空白对话重新开始')}
+                    </span>
+                  </span>
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu>
 
-        {/*
+            {/*
           **`@` 引用面板**：在输入框里打 `@`（或点「+」里的「引用位置」）就浮出来，
           可以引用「哪个模块 / 哪个页面 / 哪一条记录」。样式照命令面板来：**段标题 + 行**，
           行里是「名字 + 灰色语法 + 右侧说明」—— 名字是主行，找东西比看语法快。
@@ -970,150 +954,147 @@ export function AiComposer({
             焦点一走输入框就收不到按键了；高亮改由我们自己的 `mentionActive` 标（见 Item 的 className）。
           - Content 上的 `onFocus`：见下面「焦点守卫」那一段。
         */}
-        <DropdownMenu
-          open={mentionOpen}
-          onOpenChange={(next) => setMentionOpen(next)}
-          modal={false}
-          highlightItemOnHover={false}
-        >
-          <DropdownMenu.Content
-            side="top"
-            align="start"
-            anchor={composerRef}
-            /*
+            <DropdownMenu
+              open={mentionOpen}
+              onOpenChange={(next) => setMentionOpen(next)}
+              modal={false}
+              highlightItemOnHover={false}
+            >
+              <DropdownMenu.Content
+                side="top"
+                align="start"
+                anchor={composerRef}
+                /*
               宽度跟输入框一致；高度按住 Base UI 给的可用高度 —— 输入区贴在面板底部，
               万一上方放不下，Base UI 自己会翻到下面去（`--available-height` 保证它不溢出）。
             */
-            className="w-[var(--anchor-width)] max-h-[min(24rem,var(--available-height))]"
-            /*
+                className="w-[var(--anchor-width)] max-h-[min(24rem,var(--available-height))]"
+                /*
               **焦点守卫**：Base UI 开菜单时会把焦点送进第一项（而且那一跳排在下一帧，
               所以只在 `useLayoutEffect` 里抢一次是不够的）。焦点一进面板就立刻还给输入框 ——
               它是「输入框里的文字驱动」的，焦点走了用户就没法接着打字过滤了，
               键盘交互（↑↓ / Enter / Tab / Esc）统一由 `handleKeyDown` 处理。
             */
-            onFocus={() => textareaRef.current?.focus({ preventScroll: true })}
-          >
-            {mentionSections.map((section) => (
-              <DropdownMenu.Group key={section.kind}>
-                <DropdownMenu.Label className="px-2 pt-2 pb-1 text-xs font-medium text-kumo-subtle">
-                  {t(section.labelKey, section.fallback)}
-                </DropdownMenu.Label>
-                {section.rows.map((row) => {
-                  const RowIcon = row.icon
-                  const index = mentionRowIndex.get(row.id) ?? 0
-                  const active = index === mentionActive
-                  return (
-                    <DropdownMenu.Item
-                      key={row.id}
-                      /*
+                onFocus={() => textareaRef.current?.focus({ preventScroll: true })}
+              >
+                {mentionSections.map((section) => (
+                  <DropdownMenu.Group key={section.kind}>
+                    <DropdownMenu.Label className="px-2 pt-2 pb-1 text-xs font-medium text-kumo-subtle">
+                      {t(section.labelKey, section.fallback)}
+                    </DropdownMenu.Label>
+                    {section.rows.map((row) => {
+                      const RowIcon = row.icon
+                      const index = mentionRowIndex.get(row.id) ?? 0
+                      const active = index === mentionActive
+                      return (
+                        <DropdownMenu.Item
+                          key={row.id}
+                          /*
                         键盘选中的那一行由**我们自己**标（焦点始终留在输入框里，Base UI 内部那份高亮
                         跟不到我们的键盘游标），所以用 `bg-kumo-tint` 显式画出来 ——
                         与 Kumo 给 `data-highlighted` 用的 `bg-kumo-overlay` 是同色阶的近邻，
                         鼠标扫过与 ↑↓ 移动看起来没有差别。
                       */
-                      className={cn(
-                        'items-center gap-2 py-1.5',
-                        active && 'bg-kumo-tint',
-                      )}
-                      // 选一行：附件行去开文件框，其余的 `@…` 写进输入框（见 `pickMentionRow`）
-                      onClick={() => pickMentionRow(row)}
-                      // 鼠标扫过也同步给键盘用的那份「当前行」，两种输入方式不会各记一份
-                      onMouseMove={() => setMentionActive(index)}
-                    >
-                      <RowIcon size={15} className="shrink-0 text-kumo-subtle" />
-                      {/* 主行是**名字**（表格示例）——语法在右边，灰一点、小一号 */}
-                      <span className="shrink-0 truncate text-sm text-kumo-default">
-                        {row.name}
-                      </span>
-                      {row.syntax ? (
-                        <span className="shrink-0 font-mono text-xs text-kumo-subtle">
-                          {row.syntax}
-                        </span>
-                      ) : null}
-                      {/* 右侧说明：空间不够时先牺牲它（`min-w-0` + truncate） */}
-                      <span className="ms-auto min-w-0 truncate text-xs text-kumo-subtle">
-                        {row.description}
-                      </span>
-                      {/*
+                          className={cn('items-center gap-2 py-1.5', active && 'bg-kumo-tint')}
+                          // 选一行：附件行去开文件框，其余的 `@…` 写进输入框（见 `pickMentionRow`）
+                          onClick={() => pickMentionRow(row)}
+                          // 鼠标扫过也同步给键盘用的那份「当前行」，两种输入方式不会各记一份
+                          onMouseMove={() => setMentionActive(index)}
+                        >
+                          <RowIcon size={15} className="shrink-0 text-kumo-subtle" />
+                          {/* 主行是**名字**（表格示例）——语法在右边，灰一点、小一号 */}
+                          <span className="shrink-0 truncate text-sm text-kumo-default">
+                            {row.name}
+                          </span>
+                          {row.syntax ? (
+                            <span className="shrink-0 font-mono text-xs text-kumo-subtle">
+                              {row.syntax}
+                            </span>
+                          ) : null}
+                          {/* 右侧说明：空间不够时先牺牲它（`min-w-0` + truncate） */}
+                          <span className="ms-auto min-w-0 truncate text-xs text-kumo-subtle">
+                            {row.description}
+                          </span>
+                          {/*
                         当前行给出「按 Tab 就能选中」的提示（命令面板里也是这个写法）。
                         只在当前行出现，所以面板整体不吵；`shrink-0` 保证它不被挤掉。
                       */}
-                      {active ? (
-                        <span className="ms-1 shrink-0 rounded border border-kumo-line px-1 text-[10px] text-kumo-subtle">
-                          Tab
-                        </span>
-                      ) : null}
-                    </DropdownMenu.Item>
-                  )
-                })}
-              </DropdownMenu.Group>
-            ))}
+                          {active ? (
+                            <span className="ms-1 shrink-0 rounded border border-kumo-line px-1 text-[10px] text-kumo-subtle">
+                              Tab
+                            </span>
+                          ) : null}
+                        </DropdownMenu.Item>
+                      )
+                    })}
+                  </DropdownMenu.Group>
+                ))}
 
-            {/* 认不出来的引用不静默：说清「没匹配上」，而不是把面板收掉让人以为坏了 */}
-            {mentionRows.length === 0 ? (
-              <p className="flex h-8 items-center px-2 text-xs text-kumo-subtle">
-                {t('promptMentionNoMatch', {
-                  query: mentionToken?.query ?? '',
-                  defaultValue: '没有匹配“{{query}}”的引用',
-                })}
-              </p>
-            ) : null}
+                {/* 认不出来的引用不静默：说清「没匹配上」，而不是把面板收掉让人以为坏了 */}
+                {mentionRows.length === 0 ? (
+                  <p className="flex h-8 items-center px-2 text-xs text-kumo-subtle">
+                    {t('promptMentionNoMatch', {
+                      query: mentionToken?.query ?? '',
+                      defaultValue: '没有匹配“{{query}}”的引用',
+                    })}
+                  </p>
+                ) : null}
 
-            <p className="mt-1 border-t border-kumo-line px-2 pt-1.5 pb-1 text-[11px] text-kumo-subtle">
-              {t('promptMentionHint', '输入以筛选；@模块:ID 可引用某一条记录')}
-            </p>
-          </DropdownMenu.Content>
-        </DropdownMenu>
+                <p className="mt-1 border-t border-kumo-line px-2 pt-1.5 pb-1 text-[11px] text-kumo-subtle">
+                  {t('promptMentionHint', '输入以筛选；@模块:ID 可引用某一条记录')}
+                </p>
+              </DropdownMenu.Content>
+            </DropdownMenu>
 
-        <DropdownMenu>
-          {/*
+            <DropdownMenu>
+              {/*
             Tooltip 一律走 `render={<Button/>}`（Kumo 的 Tooltip 自己就是 trigger，
             把按钮塞进 children 会得到嵌套 button）。`className="cursor-pointer"` 是必需的：
             Kumo 会给 trigger 补一个 `cursor-default`，按钮该是手型。
           */}
-          <Tooltip
-            content={t('modeTooltip', '切换输入模式')}
-            className="cursor-pointer"
-            render={
-              <DropdownMenu.Trigger
+              <Tooltip
+                content={t('modeTooltip', '切换输入模式')}
+                className="cursor-pointer"
                 render={
-                  // 截图里那颗 pill：`size="sm"` 的方形底 + `rounded-full`，文字比默认按钮淡一档
-                  // （Kumo 的 secondary 把 `!text-kumo-default` 写成了 important，覆盖它也得带 `!`）。
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    // 可见文字只是当前模式名，读屏听不出这是「切换模式」的入口，所以把两者都报出来
-                    aria-label={`${t('modeLabel', '输入模式')}: ${t(activeMode.labelKey, activeMode.fallback)}`}
-                    className="rounded-full !text-kumo-subtle not-disabled:hover:!text-kumo-default"
+                  <DropdownMenu.Trigger
+                    render={
+                      // 截图里那颗 pill：`size="sm"` 的方形底 + `rounded-full`，文字比默认按钮淡一档
+                      // （Kumo 的 secondary 把 `!text-kumo-default` 写成了 important，覆盖它也得带 `!`）。
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        // 可见文字只是当前模式名，读屏听不出这是「切换模式」的入口，所以把两者都报出来
+                        aria-label={`${t('modeLabel', '输入模式')}: ${t(activeMode.labelKey, activeMode.fallback)}`}
+                        className="rounded-full !text-kumo-subtle not-disabled:hover:!text-kumo-default"
+                      />
+                    }
                   />
                 }
-              />
-            }
-          >
-            <ActiveIcon
-              size={14}
-              className={cn('shrink-0', activeMode.flipIcon && 'rtl-flip')}
-            />
-            <span>{t(activeMode.labelKey, activeMode.fallback)}</span>
-          </Tooltip>
+              >
+                <ActiveIcon
+                  size={14}
+                  className={cn('shrink-0', activeMode.flipIcon && 'rtl-flip')}
+                />
+                <span>{t(activeMode.labelKey, activeMode.fallback)}</span>
+              </Tooltip>
 
-          {/*
+              {/*
             触发区在面板最底部：菜单必须**往上**弹，否则会顶出视口（`Content` 默认 sideOffset 8）。
             宽度要放得下第二行的说明，所以比普通菜单宽（`w-64`），说明允许折行、不做截断。
           */}
-          <DropdownMenu.Content side="top" align="start" className="w-64">
-            <DropdownMenu.RadioGroup
-              value={composerMode}
-              onValueChange={(value) => {
-                if (isAiComposerMode(value)) setComposerMode(value)
-              }}
-            >
-              {COMPOSER_MODE_OPTIONS.map((option) => {
-                const OptionIcon = option.icon
-                const selected = option.value === composerMode
-                return (
-                  /*
+              <DropdownMenu.Content side="top" align="start" className="w-64">
+                <DropdownMenu.RadioGroup
+                  value={composerMode}
+                  onValueChange={(value) => {
+                    if (isAiComposerMode(value)) setComposerMode(value)
+                  }}
+                >
+                  {COMPOSER_MODE_OPTIONS.map((option) => {
+                    const OptionIcon = option.icon
+                    const selected = option.value === composerMode
+                    return (
+                      /*
                     每一项是**两行**（标题 + 一句说明），与截图里那种「选项即解释」的写法
                     一致：只说「询问 / 自动」，没人知道它管的是表单要不要确认。
 
@@ -1122,44 +1103,44 @@ export function AiComposer({
                     基类是 `items-center`（单行菜单的居中）；这里两行文字，改成 `items-start`
                     让图标与勾跟**第一行**对齐（Kumo 的 `cn` 走 tailwind-merge，同类名会被顶掉）。
                   */
-                  <DropdownMenu.RadioItem
-                    key={option.value}
-                    value={option.value}
-                    className="items-start gap-2 py-2"
-                  >
-                    <OptionIcon
-                      size={15}
-                      className={cn(
-                        'mt-0.5 shrink-0',
-                        // 当前模式那颗用品牌色，一眼能看出选中的是哪个（勾在行尾，颜色在这里）
-                        selected ? 'text-kumo-brand' : 'text-kumo-subtle',
-                        option.flipIcon && 'rtl-flip',
-                      )}
-                    />
-                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="truncate">{t(option.labelKey, option.fallback)}</span>
-                      <span className="text-xs leading-snug text-kumo-subtle">
-                        {t(option.hintKey, option.hintFallback)}
-                      </span>
-                    </span>
-                    {/*
+                      <DropdownMenu.RadioItem
+                        key={option.value}
+                        value={option.value}
+                        className="items-start gap-2 py-2"
+                      >
+                        <OptionIcon
+                          size={15}
+                          className={cn(
+                            'mt-0.5 shrink-0',
+                            // 当前模式那颗用品牌色，一眼能看出选中的是哪个（勾在行尾，颜色在这里）
+                            selected ? 'text-kumo-brand' : 'text-kumo-subtle',
+                            option.flipIcon && 'rtl-flip',
+                          )}
+                        />
+                        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                          <span className="truncate">{t(option.labelKey, option.fallback)}</span>
+                          <span className="text-xs leading-snug text-kumo-subtle">
+                            {t(option.hintKey, option.hintFallback)}
+                          </span>
+                        </span>
+                        {/*
                       选中标记自己画：Kumo 的 `RadioItemIndicator` 写死了 `ml-auto`（物理方向），
                       RTL 下会和 `ms-auto` 打架、把勾推到中间。这里只留 `ms-auto`。
                     */}
-                    {selected ? (
-                      <CheckIcon
-                        size={14}
-                        className="ms-auto mt-0.5 shrink-0 text-kumo-brand"
-                      />
-                    ) : null}
-                  </DropdownMenu.RadioItem>
-                )
-              })}
-            </DropdownMenu.RadioGroup>
-          </DropdownMenu.Content>
-        </DropdownMenu>
+                        {selected ? (
+                          <CheckIcon
+                            size={14}
+                            className="ms-auto mt-0.5 shrink-0 text-kumo-brand"
+                          />
+                        ) : null}
+                      </DropdownMenu.RadioItem>
+                    )
+                  })}
+                </DropdownMenu.RadioGroup>
+              </DropdownMenu.Content>
+            </DropdownMenu>
 
-        {/*
+            {/*
           **行尾的设置按钮**：面板与全屏对话页共用这一个输入区，只靠参数区分 ——
           只有面板给「配置权限」（齿轮 `GearSixIcon`，`onConfigurePermissions`）——
           权限视图是「整块替换面板内容」的，全屏对话页没有承载它的地方。
@@ -1171,94 +1152,94 @@ export function AiComposer({
           模型相关项已从这里移除：真实模型与凭证都在 `apps/ai`（`AI_MODEL_ID` / AI Gateway），
           前端不再选模型、也不再声明模型能力。
         */}
-        {showSettingsMenu ? (
-          <DropdownMenu>
-            <Tooltip
-              content={t('aiSettings', 'AI 设置')}
-              className="cursor-pointer"
-              render={
-                <DropdownMenu.Trigger
+            {showSettingsMenu ? (
+              <DropdownMenu>
+                <Tooltip
+                  content={t('aiSettings', 'AI 设置')}
+                  className="cursor-pointer"
                   render={
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      shape="circle"
-                      size="sm"
-                      aria-label={t('aiSettings', 'AI 设置')}
-                      className="ms-auto !text-kumo-subtle not-disabled:hover:!text-kumo-default"
+                    <DropdownMenu.Trigger
+                      render={
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          shape="circle"
+                          size="sm"
+                          aria-label={t('aiSettings', 'AI 设置')}
+                          className="ms-auto !text-kumo-subtle not-disabled:hover:!text-kumo-default"
+                        />
+                      }
                     />
                   }
-                />
-              }
-            >
-              <SlidersHorizontalIcon size={14} />
-            </Tooltip>
-
-            {/* 与输入模式菜单同一个理由：贴底的行尾，菜单必须往上弹 */}
-            <DropdownMenu.Content side="top" align="end" className="w-64">
-              {onConfigurePermissions ? (
-                <DropdownMenu.Item
-                  onClick={onConfigurePermissions}
-                  className="flex items-center gap-2.5"
                 >
-                  <GearSixIcon size={15} className="shrink-0 text-kumo-subtle" />
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-kumo-default">
-                    {t('configurePermissions', '配置权限')}
-                  </span>
-                </DropdownMenu.Item>
-              ) : null}
-            </DropdownMenu.Content>
-          </DropdownMenu>
-        ) : null}
+                  <SlidersHorizontalIcon size={14} />
+                </Tooltip>
 
-        {isStreaming ? (
-          /*
+                {/* 与输入模式菜单同一个理由：贴底的行尾，菜单必须往上弹 */}
+                <DropdownMenu.Content side="top" align="end" className="w-64">
+                  {onConfigurePermissions ? (
+                    <DropdownMenu.Item
+                      onClick={onConfigurePermissions}
+                      className="flex items-center gap-2.5"
+                    >
+                      <GearSixIcon size={15} className="shrink-0 text-kumo-subtle" />
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-kumo-default">
+                        {t('configurePermissions', '配置权限')}
+                      </span>
+                    </DropdownMenu.Item>
+                  ) : null}
+                </DropdownMenu.Content>
+              </DropdownMenu>
+            ) : null}
+
+            {isStreaming ? (
+              /*
             跑一轮时把提交位换成「停止」：模型答到一半发现跑偏了，用户必须能打断。
             `abortSignal` 一路传到 `streamText`，中止后 `chat.ts` 会把 status 复位。
           */
-          <Tooltip
-            content={t('stopTooltip', '停止生成')}
-            className="cursor-pointer"
-            render={
-              <Button
-                type="button"
-                variant="secondary"
-                shape="circle"
-                size="sm"
-                // 设置按钮在时 `ms-auto` 归它；没有设置按钮（全屏对话页没有权限入口）才归提交位
-                className={showSettingsMenu ? undefined : 'ms-auto'}
-                onClick={stopAiMessage}
-                aria-label={t('stop', '停止')}
-              />
-            }
-          >
-            <StopIcon size={12} weight="fill" />
-          </Tooltip>
-        ) : (
-          <Tooltip
-            content={t('sendTooltip', '发送消息（Enter 发送，Shift + Enter 换行）')}
-            className="cursor-pointer"
-            render={
-              <Button
-                type="button"
-                variant="primary"
-                shape="circle"
-                size="sm"
-                // 同上：有设置按钮时由它顶到行尾；没有时提交位自己顶
-                className={showSettingsMenu ? undefined : 'ms-auto'}
-                disabled={!canSubmit}
-                onClick={submit}
-                aria-label={t('send', '发送')}
-              />
-            }
-          >
-            {/* 上下向图标：跟随的是「提交」语义，不随书写方向翻转，不加 rtl-flip */}
-            <ArrowUpIcon size={14} />
-          </Tooltip>
-        )}
+              <Tooltip
+                content={t('stopTooltip', '停止生成')}
+                className="cursor-pointer"
+                render={
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    shape="circle"
+                    size="sm"
+                    // 设置按钮在时 `ms-auto` 归它；没有设置按钮（全屏对话页没有权限入口）才归提交位
+                    className={showSettingsMenu ? undefined : 'ms-auto'}
+                    onClick={stopAiMessage}
+                    aria-label={t('stop', '停止')}
+                  />
+                }
+              >
+                <StopIcon size={12} weight="fill" />
+              </Tooltip>
+            ) : (
+              <Tooltip
+                content={t('sendTooltip', '发送消息（Enter 发送，Shift + Enter 换行）')}
+                className="cursor-pointer"
+                render={
+                  <Button
+                    type="button"
+                    variant="primary"
+                    shape="circle"
+                    size="sm"
+                    // 同上：有设置按钮时由它顶到行尾；没有时提交位自己顶
+                    className={showSettingsMenu ? undefined : 'ms-auto'}
+                    disabled={!canSubmit}
+                    onClick={submit}
+                    aria-label={t('send', '发送')}
+                  />
+                }
+              >
+                {/* 上下向图标：跟随的是「提交」语义，不随书写方向翻转，不加 rtl-flip */}
+                <ArrowUpIcon size={14} />
+              </Tooltip>
+            )}
+          </div>
         </div>
       </div>
     </div>
-  </div>
   )
 }

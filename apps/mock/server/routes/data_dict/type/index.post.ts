@@ -67,7 +67,7 @@ interface DictTypeBody {
 }
 
 export default defineHandler(async (event) => {
-  const body = await readBody<DictTypeBody>(event).catch(() => ({}) as DictTypeBody)
+  const body = ((await readBody<DictTypeBody>(event).catch(() => undefined)) ?? {}) as DictTypeBody
 
   const name = body?.name?.trim()
   if (!name) return fail(400, '请输入分类名称')

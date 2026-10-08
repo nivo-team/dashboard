@@ -10,11 +10,7 @@ export interface PretextStreamTextProps {
  * 稳定的单段文本展示。
  * 通过 React.memo 彻底隔绝后续 token 追加对已稳定段落的不必要重绘与 DOM 重排。
  */
-const StableParagraph = memo(function StableParagraph({
-  content,
-}: {
-  content: string
-}) {
+const StableParagraph = memo(function StableParagraph({ content }: { content: string }) {
   return <p className="whitespace-pre-wrap">{content}</p>
 })
 

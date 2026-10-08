@@ -71,8 +71,7 @@ export const openFormTool: AiToolDefinition = {
       const formSpec = capabilities?.forms?.find(
         (f) => f.action === action || f.id.includes(action),
       )
-      const formTitle =
-        formSpec?.title || (action === 'create' ? '新建数据' : '编辑数据')
+      const formTitle = formSpec?.title || (action === 'create' ? '新建数据' : '编辑数据')
 
       const approved = await ctx.requestApproval({
         toolName: 'open_form',
@@ -109,9 +108,7 @@ export const openFormTool: AiToolDefinition = {
     const path = pageCtx.pathname || ''
     if (path) {
       const qs =
-        action === 'create'
-          ? 'form=create'
-          : `form=edit&formId=${encodeURIComponent(id || '')}`
+        action === 'create' ? 'form=create' : `form=edit&formId=${encodeURIComponent(id || '')}`
       const target = path.includes('?') ? `${path}&${qs}` : `${path}?${qs}`
       ctx.navigate(target)
       return {
@@ -129,8 +126,7 @@ export const openFormTool: AiToolDefinition = {
 export const listPageFormsTool: AiToolDefinition = {
   name: 'list_page_forms',
   catalogDescription: '查看当前页面的表单与字段',
-  description:
-    '列出当前页面的表单、字段与当前值；填表前必须先调用它取字段名，不得猜测。',
+  description: '列出当前页面的表单、字段与当前值；填表前必须先调用它取字段名，不得猜测。',
   inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   capability: 'form:read',
   execute: async () => {
@@ -215,9 +211,7 @@ export const fillFormTool: AiToolDefinition = {
     }
 
     if (Object.keys(applied).length === 0) {
-      throw new Error(
-        `没有可写入的字段。这个表单的字段是：${[...allowed].join(', ') || '（无）'}`,
-      )
+      throw new Error(`没有可写入的字段。这个表单的字段是：${[...allowed].join(', ') || '（无）'}`)
     }
 
     /*
@@ -280,9 +274,7 @@ export const submitFormTool: AiToolDefinition = {
       让模型知道**为什么**不行（而不是先弹一个审批卡、用户点了才发现没改动）。
     */
     if (form.canSubmit && !form.canSubmit()) {
-      throw new Error(
-        '表单当前不满足提交条件（可能没有任何改动，或校验没有通过）。请先检查内容。',
-      )
+      throw new Error('表单当前不满足提交条件（可能没有任何改动，或校验没有通过）。请先检查内容。')
     }
 
     /*
@@ -310,8 +302,7 @@ export const submitFormTool: AiToolDefinition = {
       它让这张表单即使在 `auto` 下也要求确认（个别高危表单可以用它单独收紧）。
     */
     const requireApproval =
-      formSpec?.submission?.requireApproval ??
-      needsApproval('submit', { mode: ctx.mode })
+      formSpec?.submission?.requireApproval ?? needsApproval('submit', { mode: ctx.mode })
 
     if (requireApproval) {
       const approved = await ctx.requestApproval({
@@ -328,9 +319,7 @@ export const submitFormTool: AiToolDefinition = {
           `将「${formSpec?.title || form.title || formId}」的数据提交并写入服务端`,
       })
       if (!approved) {
-        throw new Error(
-          '用户拒绝了这次提交，请求没有发出。不要重试，改为向用户说明并询问下一步。',
-        )
+        throw new Error('用户拒绝了这次提交，请求没有发出。不要重试，改为向用户说明并询问下一步。')
       }
     }
 

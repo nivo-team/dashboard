@@ -11,15 +11,11 @@ import { useEffect, useRef } from 'react'
  * 3. 若当前页面尚未挂载或无本地调度器，回退至通过 TanStack Router 导航更新 URL。
  */
 
-export type SearchParamsUpdater = (
-  patch: Record<string, unknown>,
-) => Promise<unknown> | unknown
+export type SearchParamsUpdater = (patch: Record<string, unknown>) => Promise<unknown> | unknown
 
 let currentUpdater: SearchParamsUpdater | null = null
 
-export function registerSearchParamsUpdater(
-  updater: SearchParamsUpdater,
-): () => void {
+export function registerSearchParamsUpdater(updater: SearchParamsUpdater): () => void {
   currentUpdater = updater
   return () => {
     if (currentUpdater === updater) currentUpdater = null
@@ -30,9 +26,7 @@ export function registerSearchParamsUpdater(
  * 更新当前页面的搜索参数
  * @returns boolean 是否由本地已注册的调度器成功接收
  */
-export function updatePageSearchParams(
-  patch: Record<string, unknown>,
-): boolean {
+export function updatePageSearchParams(patch: Record<string, unknown>): boolean {
   if (currentUpdater) {
     try {
       void currentUpdater(patch)
@@ -47,9 +41,7 @@ export function updatePageSearchParams(
 /**
  * 由列表页组件或 useTableQuery 调用：注册当前页面的搜索参数更新闭包
  */
-export function useAiSearchParamsUpdater(
-  updater: SearchParamsUpdater | null,
-): void {
+export function useAiSearchParamsUpdater(updater: SearchParamsUpdater | null): void {
   const ref = useRef(updater)
   ref.current = updater
 

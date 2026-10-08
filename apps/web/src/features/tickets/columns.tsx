@@ -27,4 +27,11 @@ export const TICKET_COLUMN_SPECS: SchemaColumnSpec<TicketItem>[] = [
 ]
 
 /** 可排序列（列 id 与后端 field 参数一致）。 */
-export const TICKET_SORTABLE_FIELDS = ['id', 'title', 'status', 'priority', 'created_at', 'updated_at'] as const
+export const TICKET_SORTABLE_FIELDS = [
+  'id',
+  'title',
+  'status',
+  'priority',
+  'created_at',
+  'updated_at',
+] as const

@@ -1,12 +1,5 @@
-import {
-  Button,
-  Input,
-  useKumoToastManager,
-} from '@cloudflare/kumo'
-import {
-  EyeIcon,
-  EyeSlashIcon,
-} from '@phosphor-icons/react'
+import { Button, Input, useKumoToastManager } from '@cloudflare/kumo'
+import { EyeIcon, EyeSlashIcon } from '@phosphor-icons/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -209,11 +202,7 @@ export function RegisterForm({
               className="absolute end-2.5 flex size-6 items-center justify-center text-kumo-subtle transition-colors hover:text-kumo-default focus:outline-none"
               aria-label={showPassword ? '隐藏密码' : '显示密码'}
             >
-              {showPassword ? (
-                <EyeSlashIcon size={18} />
-              ) : (
-                <EyeIcon size={18} />
-              )}
+              {showPassword ? <EyeSlashIcon size={18} /> : <EyeIcon size={18} />}
             </button>
           </div>
         </div>
@@ -247,11 +236,7 @@ export function RegisterForm({
               className="absolute end-2.5 flex size-6 items-center justify-center text-kumo-subtle transition-colors hover:text-kumo-default focus:outline-none"
               aria-label={showConfirmPassword ? '隐藏密码' : '显示密码'}
             >
-              {showConfirmPassword ? (
-                <EyeSlashIcon size={18} />
-              ) : (
-                <EyeIcon size={18} />
-              )}
+              {showConfirmPassword ? <EyeSlashIcon size={18} /> : <EyeIcon size={18} />}
             </button>
           </div>
         </div>
@@ -272,11 +257,7 @@ export function RegisterForm({
         {!hideLoginLink && (
           <div className="mt-2.5 text-center text-sm text-kumo-subtle">
             <span>{t('hasAccount', '已有账号？')} </span>
-            <RouterLink
-              to="/login"
-              variant="plain"
-              className="font-semibold text-kumo-link"
-            >
+            <RouterLink to="/login" variant="plain" className="font-semibold text-kumo-link">
               {t('toSignIn', '立即登录')}
             </RouterLink>
           </div>

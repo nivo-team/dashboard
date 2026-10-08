@@ -7,8 +7,8 @@
  * 2. 导入顺序很重要：Kumo 的主题令牌必须先于 tailwindcss 注册。
  */
 @source "../node_modules/@cloudflare/kumo/dist/**/*.{js,jsx,ts,tsx}";
-@import "@cloudflare/kumo/styles/tailwind";
-@import "tailwindcss";
+@import '@cloudflare/kumo/styles/tailwind';
+@import 'tailwindcss';
 
 /*
  * 把 Tailwind 的 `dark:` 变体从「跟随系统 prefers-color-scheme」改为「跟随应用主题」。
@@ -28,12 +28,11 @@
 
 @theme {
   --font-sans:
-    "Inter", "Sarasa Gothic SC", ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    'Inter', 'Sarasa Gothic SC', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   --font-mono:
-    "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo,
-    Consolas, "Liberation Mono", monospace;
+    'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
+    monospace;
 }
 
 @layer base {
@@ -169,10 +168,7 @@
   translate: none;
 }
 
-[data-sidebar='sidebar'][data-state='collapsed']
-  [data-sidebar='menu-button']
-  > div
-  > span {
+[data-sidebar='sidebar'][data-state='collapsed'] [data-sidebar='menu-button'] > div > span {
   /* 折叠态的文字没有意义（标签由 tooltip 承担），留着反而挤掉图标的居中 */
   display: none;
 }
@@ -318,7 +314,9 @@
  * 仅作用于 [data-focus-mode='hybrid']，不影响 container（普通输入框）与
  * individual（分页控件，另有 dir="ltr" 处理）两种模式。
  */
-[dir='rtl'] [data-slot='input-group'][data-focus-mode='hybrid'] > [data-slot='input-group-container-zone'] {
+[dir='rtl']
+  [data-slot='input-group'][data-focus-mode='hybrid']
+  > [data-slot='input-group-container-zone'] {
   border-top-left-radius: 0 !important;
   border-bottom-left-radius: 0 !important;
   border-top-right-radius: inherit !important;
@@ -507,7 +505,6 @@ main[data-shell-content]:has([data-notfound]) [data-detail-preview-main] {
   padding: 0;
 }
 
-
 /*
  * AI 面板的**点阵背景 + 指针高亮**（参考 Cloudflare 面板的观感）。
  *
@@ -547,23 +544,17 @@ main[data-shell-content]:has([data-notfound]) [data-detail-preview-main] {
 }
 
 .ai-dot-spotlight {
-  background-image: radial-gradient(
-    circle,
-    var(--ai-dot-active-color) 1.2px,
-    transparent 1.2px
-  );
+  background-image: radial-gradient(circle, var(--ai-dot-active-color) 1.2px, transparent 1.2px);
   background-size: var(--ai-dot-size) var(--ai-dot-size);
   background-attachment: scroll;
   /* 只在指针周围露出来。两层 `mask-image` 都写：Safari 仍只认带前缀的那个 */
   -webkit-mask-image: radial-gradient(
-    circle var(--ai-spotlight-size) at var(--ai-pointer-x, -999px)
-      var(--ai-pointer-y, -999px),
+    circle var(--ai-spotlight-size) at var(--ai-pointer-x, -999px) var(--ai-pointer-y, -999px),
     #000 0%,
     transparent 100%
   );
   mask-image: radial-gradient(
-    circle var(--ai-spotlight-size) at var(--ai-pointer-x, -999px)
-      var(--ai-pointer-y, -999px),
+    circle var(--ai-spotlight-size) at var(--ai-pointer-x, -999px) var(--ai-pointer-y, -999px),
     #000 0%,
     transparent 100%
   );

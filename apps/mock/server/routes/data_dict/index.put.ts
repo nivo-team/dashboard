@@ -54,7 +54,8 @@ interface DictItemUpdateBody {
 }
 
 export default defineHandler(async (event) => {
-  const body = await readBody<DictItemUpdateBody>(event).catch(() => ({}) as DictItemUpdateBody)
+  const body = ((await readBody<DictItemUpdateBody>(event).catch(() => undefined)) ??
+    {}) as DictItemUpdateBody
 
   const row = db.dictItems.find((item) => item.id === Number(body?.id))
   if (!row) return notFound('字典项')

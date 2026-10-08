@@ -91,9 +91,7 @@ export function ShellSidebarProvider({ children }: { children: ReactNode }) {
       minWidth={SIDEBAR_MIN_WIDTH}
       maxWidth={SIDEBAR_MAX_WIDTH}
     >
-      <SidebarPeekBridge expandMode={sidebarExpandMode}>
-        {children}
-      </SidebarPeekBridge>
+      <SidebarPeekBridge expandMode={sidebarExpandMode}>{children}</SidebarPeekBridge>
     </Sidebar.Provider>
   )
 }

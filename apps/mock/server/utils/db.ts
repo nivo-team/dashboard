@@ -206,44 +206,270 @@ function seedMenus(): MenuRow[] {
     }
   > = [
     // 顶层菜单：对应前端「Overview」那个无标题分组
-    { menu_id: 1, parent_id: 0, menu_name: '仪表盘', menu_type: 2, path: '/home', icon: 'HouseIcon', sort: 1 },
+    {
+      menu_id: 1,
+      parent_id: 0,
+      menu_name: '仪表盘',
+      menu_type: 2,
+      path: '/home',
+      icon: 'HouseIcon',
+      sort: 1,
+    },
 
     // 示例（表格示例 / 复杂表格）—— 权限 key 与模块名统一为 `table-example`
-    { menu_id: 10, parent_id: 0, menu_name: '示例', menu_type: 1, path: '/example', icon: 'SquaresFourIcon', sort: 2 },
-    { menu_id: 11, parent_id: 10, menu_name: '表格示例', menu_type: 2, path: '/example/table', sort: 1 },
-    { menu_id: 12, parent_id: 11, menu_name: '查看表格示例', menu_type: 3, path: '', permission: 'table-example:read', sort: 1 },
-    { menu_id: 13, parent_id: 11, menu_name: '新建记录', menu_type: 3, path: '', permission: 'table-example:create', sort: 2 },
-    { menu_id: 14, parent_id: 11, menu_name: '编辑记录', menu_type: 3, path: '', permission: 'table-example:edit', sort: 3 },
-    { menu_id: 15, parent_id: 11, menu_name: '删除记录', menu_type: 3, path: '', permission: 'table-example:delete', sort: 4 },
-    { menu_id: 16, parent_id: 10, menu_name: '复杂表格', menu_type: 2, path: '/example/complex-table', sort: 2 },
+    {
+      menu_id: 10,
+      parent_id: 0,
+      menu_name: '示例',
+      menu_type: 1,
+      path: '/example',
+      icon: 'SquaresFourIcon',
+      sort: 2,
+    },
+    {
+      menu_id: 11,
+      parent_id: 10,
+      menu_name: '表格示例',
+      menu_type: 2,
+      path: '/example/table',
+      sort: 1,
+    },
+    {
+      menu_id: 12,
+      parent_id: 11,
+      menu_name: '查看表格示例',
+      menu_type: 3,
+      path: '',
+      permission: 'table-example:read',
+      sort: 1,
+    },
+    {
+      menu_id: 13,
+      parent_id: 11,
+      menu_name: '新建记录',
+      menu_type: 3,
+      path: '',
+      permission: 'table-example:create',
+      sort: 2,
+    },
+    {
+      menu_id: 14,
+      parent_id: 11,
+      menu_name: '编辑记录',
+      menu_type: 3,
+      path: '',
+      permission: 'table-example:edit',
+      sort: 3,
+    },
+    {
+      menu_id: 15,
+      parent_id: 11,
+      menu_name: '删除记录',
+      menu_type: 3,
+      path: '',
+      permission: 'table-example:delete',
+      sort: 4,
+    },
+    {
+      menu_id: 16,
+      parent_id: 10,
+      menu_name: '复杂表格',
+      menu_type: 2,
+      path: '/example/complex-table',
+      sort: 2,
+    },
     // 工单管理：**没有批量接口**的 CRUD 示例，用来演示 AI 自主编排
-    { menu_id: 17, parent_id: 10, menu_name: '工单管理', menu_type: 2, path: '/example/tickets', sort: 3 },
-    { menu_id: 18, parent_id: 17, menu_name: '查看工单', menu_type: 3, path: '', permission: 'ticket:read', sort: 1 },
-    { menu_id: 19, parent_id: 17, menu_name: '新建工单', menu_type: 3, path: '', permission: 'ticket:create', sort: 2 },
-    { menu_id: 101, parent_id: 17, menu_name: '编辑工单', menu_type: 3, path: '', permission: 'ticket:edit', sort: 3 },
-    { menu_id: 102, parent_id: 17, menu_name: '删除工单', menu_type: 3, path: '', permission: 'ticket:delete', sort: 4 },
+    {
+      menu_id: 17,
+      parent_id: 10,
+      menu_name: '工单管理',
+      menu_type: 2,
+      path: '/example/tickets',
+      sort: 3,
+    },
+    {
+      menu_id: 18,
+      parent_id: 17,
+      menu_name: '查看工单',
+      menu_type: 3,
+      path: '',
+      permission: 'ticket:read',
+      sort: 1,
+    },
+    {
+      menu_id: 19,
+      parent_id: 17,
+      menu_name: '新建工单',
+      menu_type: 3,
+      path: '',
+      permission: 'ticket:create',
+      sort: 2,
+    },
+    {
+      menu_id: 101,
+      parent_id: 17,
+      menu_name: '编辑工单',
+      menu_type: 3,
+      path: '',
+      permission: 'ticket:edit',
+      sort: 3,
+    },
+    {
+      menu_id: 102,
+      parent_id: 17,
+      menu_name: '删除工单',
+      menu_type: 3,
+      path: '',
+      permission: 'ticket:delete',
+      sort: 4,
+    },
 
     // 系统管理
-    { menu_id: 20, parent_id: 0, menu_name: '系统管理', menu_type: 1, path: '/system', icon: 'GearSixIcon', sort: 3 },
-    { menu_id: 21, parent_id: 20, menu_name: '菜单管理', menu_type: 2, path: '/system/menus', sort: 1 },
-    { menu_id: 22, parent_id: 21, menu_name: '查看菜单', menu_type: 3, path: '', permission: 'feature:read', sort: 1 },
-    { menu_id: 23, parent_id: 21, menu_name: '新建菜单', menu_type: 3, path: '', permission: 'feature:create', sort: 2 },
-    { menu_id: 24, parent_id: 21, menu_name: '编辑菜单', menu_type: 3, path: '', permission: 'feature:edit', sort: 3 },
-    { menu_id: 25, parent_id: 21, menu_name: '删除菜单', menu_type: 3, path: '', permission: 'feature:delete', sort: 4 },
-    { menu_id: 30, parent_id: 20, menu_name: '数据字典', menu_type: 2, path: '/system/data-dict', sort: 2 },
-    { menu_id: 31, parent_id: 30, menu_name: '查看字典', menu_type: 3, path: '', permission: 'dict:read', sort: 1 },
-    { menu_id: 32, parent_id: 30, menu_name: '新建字典', menu_type: 3, path: '', permission: 'dict:create', sort: 2 },
-    { menu_id: 33, parent_id: 30, menu_name: '编辑字典', menu_type: 3, path: '', permission: 'dict:edit', sort: 3 },
-    { menu_id: 34, parent_id: 30, menu_name: '删除字典', menu_type: 3, path: '', permission: 'dict:delete', sort: 4 },
-    { menu_id: 40, parent_id: 20, menu_name: '角色管理', menu_type: 2, path: '/system/roles', sort: 3 },
-    { menu_id: 41, parent_id: 40, menu_name: '查看角色', menu_type: 3, path: '', permission: 'role:read', sort: 1 },
-    { menu_id: 42, parent_id: 40, menu_name: '新建角色', menu_type: 3, path: '', permission: 'role:create', sort: 2 },
-    { menu_id: 43, parent_id: 40, menu_name: '编辑角色', menu_type: 3, path: '', permission: 'role:edit', sort: 3 },
-    { menu_id: 44, parent_id: 40, menu_name: '删除角色', menu_type: 3, path: '', permission: 'role:delete', sort: 4 },
+    {
+      menu_id: 20,
+      parent_id: 0,
+      menu_name: '系统管理',
+      menu_type: 1,
+      path: '/system',
+      icon: 'GearSixIcon',
+      sort: 3,
+    },
+    {
+      menu_id: 21,
+      parent_id: 20,
+      menu_name: '菜单管理',
+      menu_type: 2,
+      path: '/system/menus',
+      sort: 1,
+    },
+    {
+      menu_id: 22,
+      parent_id: 21,
+      menu_name: '查看菜单',
+      menu_type: 3,
+      path: '',
+      permission: 'feature:read',
+      sort: 1,
+    },
+    {
+      menu_id: 23,
+      parent_id: 21,
+      menu_name: '新建菜单',
+      menu_type: 3,
+      path: '',
+      permission: 'feature:create',
+      sort: 2,
+    },
+    {
+      menu_id: 24,
+      parent_id: 21,
+      menu_name: '编辑菜单',
+      menu_type: 3,
+      path: '',
+      permission: 'feature:edit',
+      sort: 3,
+    },
+    {
+      menu_id: 25,
+      parent_id: 21,
+      menu_name: '删除菜单',
+      menu_type: 3,
+      path: '',
+      permission: 'feature:delete',
+      sort: 4,
+    },
+    {
+      menu_id: 30,
+      parent_id: 20,
+      menu_name: '数据字典',
+      menu_type: 2,
+      path: '/system/data-dict',
+      sort: 2,
+    },
+    {
+      menu_id: 31,
+      parent_id: 30,
+      menu_name: '查看字典',
+      menu_type: 3,
+      path: '',
+      permission: 'dict:read',
+      sort: 1,
+    },
+    {
+      menu_id: 32,
+      parent_id: 30,
+      menu_name: '新建字典',
+      menu_type: 3,
+      path: '',
+      permission: 'dict:create',
+      sort: 2,
+    },
+    {
+      menu_id: 33,
+      parent_id: 30,
+      menu_name: '编辑字典',
+      menu_type: 3,
+      path: '',
+      permission: 'dict:edit',
+      sort: 3,
+    },
+    {
+      menu_id: 34,
+      parent_id: 30,
+      menu_name: '删除字典',
+      menu_type: 3,
+      path: '',
+      permission: 'dict:delete',
+      sort: 4,
+    },
+    {
+      menu_id: 40,
+      parent_id: 20,
+      menu_name: '角色管理',
+      menu_type: 2,
+      path: '/system/roles',
+      sort: 3,
+    },
+    {
+      menu_id: 41,
+      parent_id: 40,
+      menu_name: '查看角色',
+      menu_type: 3,
+      path: '',
+      permission: 'role:read',
+      sort: 1,
+    },
+    {
+      menu_id: 42,
+      parent_id: 40,
+      menu_name: '新建角色',
+      menu_type: 3,
+      path: '',
+      permission: 'role:create',
+      sort: 2,
+    },
+    {
+      menu_id: 43,
+      parent_id: 40,
+      menu_name: '编辑角色',
+      menu_type: 3,
+      path: '',
+      permission: 'role:edit',
+      sort: 3,
+    },
+    {
+      menu_id: 44,
+      parent_id: 40,
+      menu_name: '删除角色',
+      menu_type: 3,
+      path: '',
+      permission: 'role:delete',
+      sort: 4,
+    },
   ]
 
   return rows.map((row, index) => ({
-    path: '',
+    // `path` 是上面类型里的必填项，`...row` 一定会覆盖它，所以这里不再给默认值（TS2783）
     component: '',
     route_name: '',
     permission: '',
@@ -309,7 +535,10 @@ function seedRoleMenus(): RoleMenuRow[] {
   return [
     ...grantAll(1, allMenuIds),
     ...grantAll(2, allMenuIds),
-    ...grantAll(3, allMenuIds.filter((id) => !viewerHidden.has(id))),
+    ...grantAll(
+      3,
+      allMenuIds.filter((id) => !viewerHidden.has(id)),
+    ),
   ]
 }
 
@@ -321,11 +550,56 @@ function seedRoleMenus(): RoleMenuRow[] {
  */
 function seedDictTypes(): DictTypeRow[] {
   const rows: Array<Omit<DictTypeRow, 'p_code' | 'id_path' | 'created_at' | 'updated_at'>> = [
-    { id: 1, parent_id: 0, name: '用户', code: 'user', status: 1, type: 1, sort: 1, remark: '用户域的枚举' },
-    { id: 3, parent_id: 1, name: '用户状态', code: 'status', status: 1, type: 2, sort: 2, remark: '账号的启用状态' },
-    { id: 4, parent_id: 0, name: '业务', code: 'business', status: 1, type: 1, sort: 2, remark: '业务侧枚举' },
-    { id: 5, parent_id: 4, name: '渠道来源', code: 'channel', status: 1, type: 1, sort: 1, remark: '用户注册来源' },
-    { id: 6, parent_id: 4, name: '支付方式', code: 'pay-method', status: 2, type: 1, sort: 2, remark: '已下线的旧支付方式' },
+    {
+      id: 1,
+      parent_id: 0,
+      name: '用户',
+      code: 'user',
+      status: 1,
+      type: 1,
+      sort: 1,
+      remark: '用户域的枚举',
+    },
+    {
+      id: 3,
+      parent_id: 1,
+      name: '用户状态',
+      code: 'status',
+      status: 1,
+      type: 2,
+      sort: 2,
+      remark: '账号的启用状态',
+    },
+    {
+      id: 4,
+      parent_id: 0,
+      name: '业务',
+      code: 'business',
+      status: 1,
+      type: 1,
+      sort: 2,
+      remark: '业务侧枚举',
+    },
+    {
+      id: 5,
+      parent_id: 4,
+      name: '渠道来源',
+      code: 'channel',
+      status: 1,
+      type: 1,
+      sort: 1,
+      remark: '用户注册来源',
+    },
+    {
+      id: 6,
+      parent_id: 4,
+      name: '支付方式',
+      code: 'pay-method',
+      status: 2,
+      type: 1,
+      sort: 2,
+      remark: '已下线的旧支付方式',
+    },
   ]
 
   const byId = new Map(rows.map((r) => [r.id, r]))
@@ -542,9 +816,7 @@ export function menuIdsOfRole(roleId: number): Set<number> {
  * 父节点被授权、子节点没被授权时，子节点会被剔除；
  * 父节点没被授权时，它整支都不出现（即使子节点在授权列表里）。
  */
-export function visibleMenuTree(
-  visibleIds: Set<number>,
-): Array<MenuRow & { children: unknown[] }> {
+export function visibleMenuTree(visibleIds: Set<number>): Array<MenuRow & { children: unknown[] }> {
   const build = (parentId: number): Array<MenuRow & { children: unknown[] }> =>
     db.menus
       .filter((m) => m.parent_id === parentId && visibleIds.has(m.menu_id))
@@ -578,7 +850,9 @@ export function dictTypeWithDescendants(typeId: number): number[] {
   return ids
 }
 
-export function newDictTypeRow(row: Omit<DictTypeRow, 'p_code' | 'id_path' | 'created_at' | 'updated_at'>): DictTypeRow {
+export function newDictTypeRow(
+  row: Omit<DictTypeRow, 'p_code' | 'id_path' | 'created_at' | 'updated_at'>,
+): DictTypeRow {
   const parent = db.dictTypes.find((t) => t.id === row.parent_id)
   const grand = parent ? db.dictTypes.find((t) => t.id === parent.parent_id) : undefined
   const ids = [grand?.id, parent?.id].filter((v): v is number => typeof v === 'number')

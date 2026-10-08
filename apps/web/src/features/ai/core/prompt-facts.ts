@@ -82,9 +82,7 @@ export function collectPromptFacts({
       path: entry.path,
       group: entry.group,
     })),
-    shellNavNames: ALL_SHELL_NAV_TARGETS.map((item) =>
-      resolveNavLabel(item.labelKey, item.label),
-    ),
+    shellNavNames: ALL_SHELL_NAV_TARGETS.map((item) => resolveNavLabel(item.labelKey, item.label)),
     activeTasks: getLatestSessionTasks(useAiSessionStore.getState().messages),
   }
 }

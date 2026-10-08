@@ -8,22 +8,14 @@ import {
   XIcon,
 } from '@phosphor-icons/react'
 import { motion } from 'motion/react'
-import {
-  useEffect,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from 'react'
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AiBotAvatar } from '#/features/ai/components/bot-avatar'
 import { AiComposer } from '#/features/ai/components/composer'
 import { AiConversationScroller } from '#/features/ai/components/conversation-scroller'
 import { AiPermissionConfig } from '#/features/ai/components/permission-config'
 import { AiSessionPicker, useActiveSessionTitle } from '#/features/ai/components/session-picker'
-import {
-  SHELL_PANEL_FRAME,
-  SidePanelResizeHandle,
-} from '#/components/side-panel'
+import { SHELL_PANEL_FRAME, SidePanelResizeHandle } from '#/components/side-panel'
 import { useAiSessionStore, type AiPermissionMode } from '#/features/ai/core'
 import type { AiCapabilityGrant } from '#/features/ai/core/capabilities'
 import { cn } from '#/lib/cn'
@@ -258,10 +250,7 @@ export function AiPanel({
   */
   useEffect(() => {
     if (!floatDeforming) return
-    const timer = window.setTimeout(
-      () => setFloatDeforming(false),
-      FLOAT_COLLAPSE_MS + 120,
-    )
+    const timer = window.setTimeout(() => setFloatDeforming(false), FLOAT_COLLAPSE_MS + 120)
     return () => window.clearTimeout(timer)
   }, [floatDeforming, lastCollapsed])
 
@@ -422,9 +411,7 @@ export function AiPanel({
 
     /** 变形的终点尺寸：折叠 = 一条头行；展开 = 存档 / 拖拽出来的那一档 */
     const targetWidth = isCollapsed ? AI_FLOAT_MIN_WIDTH : floatSize.width
-    const targetHeight = isCollapsed
-      ? AI_PANEL_HEADER_HEIGHT
-      : floatSize.height
+    const targetHeight = isCollapsed ? AI_PANEL_HEADER_HEIGHT : floatSize.height
 
     return (
       <motion.aside
@@ -467,11 +454,7 @@ export function AiPanel({
           视口变矮时把浮窗压回视口内 —— 两处一旦分叉，拖到上限时面板会先停住、
           再被 CSS 悄悄压小。宽高本身由 motion 写内联样式，不走这里。
         */
-        style={
-          isMobile
-            ? undefined
-            : { maxHeight: `calc(100svh - ${AI_FLOAT_VIEWPORT_MARGIN}px)` }
-        }
+        style={isMobile ? undefined : { maxHeight: `calc(100svh - ${AI_FLOAT_VIEWPORT_MARGIN}px)` }}
         className={cn(
           'fixed z-30 flex flex-col overflow-hidden bg-kumo-base',
           /*
@@ -507,11 +490,7 @@ export function AiPanel({
         */}
         <div
           className="flex h-full w-full flex-col"
-          style={
-            isDeforming
-              ? { width: floatSize.width, height: floatSize.height }
-              : undefined
-          }
+          style={isDeforming ? { width: floatSize.width, height: floatSize.height } : undefined}
         >
           <AiPanelSurface
             onClose={onClose}
@@ -945,12 +924,7 @@ function AiPanelSurface({
             而权限视图只是一次「临时去改个设置」的往返，不该把对话归零。
             `hidden`（display:none）同时把里面的链接、输入框移出 tab 顺序。
           */}
-          <div
-            className={cn(
-              'flex min-h-0 flex-1 flex-col',
-              view === 'permissions' && 'hidden',
-            )}
-          >
+          <div className={cn('flex min-h-0 flex-1 flex-col', view === 'permissions' && 'hidden')}>
             {/*
               会话区：消息、空态、工具执行态、审批卡，以及「跟随滚动 / 回到底部」都在
               `AiConversationScroller` 里 —— 那是**与全屏对话页共用**的一份，

@@ -22,13 +22,7 @@
  */
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import {
-  listModules,
-  loadConfig,
-  readModuleKeys,
-  ROOT,
-  supportedLocales,
-} from './lib/config.mjs'
+import { listModules, loadConfig, readModuleKeys, ROOT, supportedLocales } from './lib/config.mjs'
 
 const args = process.argv.slice(2)
 const checkOnly = args.includes('--check')
@@ -78,9 +72,7 @@ for (const name of namespaces) {
 out.push('}')
 out.push('')
 out.push('/** 命名空间名。 */')
-out.push(
-  `export type I18nNamespace = ${namespaces.map((n) => JSON.stringify(n)).join(' | ')}`,
-)
+out.push(`export type I18nNamespace = ${namespaces.map((n) => JSON.stringify(n)).join(' | ')}`)
 out.push('')
 out.push('/**')
 out.push(' * 可动态拼接的键前缀（来自 i18n.config.json 的 check.dynamicKeyPrefixes）。')
@@ -92,9 +84,7 @@ out.push('')
 out.push('/**')
 out.push(' * 动态键：裸前缀与 `<前缀><任意串>` 都算合法。')
 out.push(' */')
-out.push(
-  'export type I18nDynamicKey = I18nDynamicKeyPrefix | `${I18nDynamicKeyPrefix}${string}`',
-)
+out.push('export type I18nDynamicKey = I18nDynamicKeyPrefix | `${I18nDynamicKeyPrefix}${string}`')
 out.push('')
 out.push('/** 某命名空间下可用的键（精确键 + 动态前缀）。 */')
 out.push('export type I18nKeysOf<N extends I18nNamespace> =')

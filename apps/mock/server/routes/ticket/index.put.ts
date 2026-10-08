@@ -51,7 +51,8 @@ interface UpdateTicketBody {
 }
 
 export default defineHandler(async (event) => {
-  const body = await readBody<UpdateTicketBody>(event).catch(() => ({}) as UpdateTicketBody)
+  const body = ((await readBody<UpdateTicketBody>(event).catch(() => undefined)) ??
+    {}) as UpdateTicketBody
   const id = Number(body?.id)
   if (!id) return fail(400, '工单 ID 不能为空')
 

@@ -63,14 +63,12 @@ export const SELECT_TOOLS_SPEC: RouterToolSpec = {
           'out_of_scope',
           'ambiguous',
         ],
-        description:
-          '本轮请求的主要意图（取 enum 里的一个值）；只用于日志，不影响工具选择',
+        description: '本轮请求的主要意图（取 enum 里的一个值）；只用于日志，不影响工具选择',
       },
       tools: {
         type: 'array',
         items: { type: 'string' },
-        description:
-          '要加载的工具名（取 Catalog 里的名字）；一个都不需要时传空数组',
+        description: '要加载的工具名（取 Catalog 里的名字）；一个都不需要时传空数组',
       },
     },
     required: ['intent', 'tools'],

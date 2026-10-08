@@ -11,20 +11,14 @@ import { FeatureForm } from '../feature-form'
 import type { FeatureFormValues } from '../feature-form'
 import { useFeature } from '#/features/ai/page'
 import { createNewFeatureSpec } from './feature'
-import {
-  featureBreadcrumbPath,
-  useFeatureBreadcrumbTrail,
-} from '../feature-breadcrumb'
+import { featureBreadcrumbPath, useFeatureBreadcrumbTrail } from '../feature-breadcrumb'
 import {
   MENU_PLACEHOLDER_COMPONENT,
   MENU_ROOT_ID,
   MENU_TYPE,
   findMenuPath,
 } from '../feature-options'
-import {
-  useFeaturesTree,
-  useInvalidateFeaturesTree,
-} from '../use-features-tree'
+import { useFeaturesTree, useInvalidateFeaturesTree } from '../use-features-tree'
 
 /**
  * 新建功能 / 功能组（/$appId/system/menus/new?pid=<父id>[&type=group]）。
@@ -97,11 +91,7 @@ export function NewFeaturePage({
         await mutation.mutateAsync({
           body: {
             menu_name: values.menu_name,
-            menu_type: isGroup
-              ? MENU_TYPE.directory
-              : isButton
-                ? MENU_TYPE.action
-                : MENU_TYPE.menu,
+            menu_type: isGroup ? MENU_TYPE.directory : isButton ? MENU_TYPE.action : MENU_TYPE.menu,
             parent_id: pid,
             // 后端目前仍要求 component 非空，先填占位值（见 MENU_PLACEHOLDER_COMPONENT）
             component: MENU_PLACEHOLDER_COMPONENT,
@@ -128,9 +118,7 @@ export function NewFeaturePage({
         })
         goBackToParent()
       } catch (error) {
-        setSubmitError(
-          extractApiErrorMessage(error, t('form.failed', '创建失败，请稍后重试')),
-        )
+        setSubmitError(extractApiErrorMessage(error, t('form.failed', '创建失败，请稍后重试')))
       }
     },
     [goBackToParent, invalidateFeaturesTree, isGroup, mutation, pid, t, toast],
@@ -148,9 +136,7 @@ export function NewFeaturePage({
       [`/${appId}/system/menus/new`]: {
         label: title,
         parent:
-          pid === MENU_ROOT_ID
-            ? featureBreadcrumbPath(appId)
-            : featureBreadcrumbPath(appId, pid),
+          pid === MENU_ROOT_ID ? featureBreadcrumbPath(appId) : featureBreadcrumbPath(appId, pid),
       },
     }),
     [appId, pid, title],

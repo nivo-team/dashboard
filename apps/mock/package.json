@@ -1,8 +1,8 @@
 {
   "name": "@admin/mock",
   "private": true,
-  "type": "module",
   "description": "契约自持的 Mock API（Nitro v3）：接口定义与 OpenAPI 契约同源，契约由路由反向生成。",
+  "type": "module",
   "scripts": {
     "dev": "nitro dev",
     "build": "nitro build",

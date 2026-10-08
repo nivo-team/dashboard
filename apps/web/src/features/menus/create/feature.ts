@@ -57,7 +57,8 @@ export function createNewFeatureSpec(options: NewFeaturePageOptions): FeatureSpe
         shape: 'parentId / kind（group|feature|button）/ menuType（1|2|3）',
         read: () => ({
           parentId: options.pid ?? null,
-          kind: options.type === 'group' ? 'group' : options.type === 'button' ? 'button' : 'feature',
+          kind:
+            options.type === 'group' ? 'group' : options.type === 'button' ? 'button' : 'feature',
           menuType,
         }),
       },

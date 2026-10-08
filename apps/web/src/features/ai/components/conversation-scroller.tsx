@@ -96,9 +96,7 @@ export function AiConversationScroller({
     element.scrollTo({
       top: element.scrollHeight,
       // 尊重系统的「减少动效」：不该为一个回滚按钮硬播一段动画
-      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        ? 'auto'
-        : 'smooth',
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
     })
     setPinnedToBottom(true)
   }

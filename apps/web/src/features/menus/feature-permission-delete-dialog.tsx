@@ -33,15 +33,11 @@ export function FeaturePermissionDeleteDialog({
   return (
     <LayerDialog.Alert open={open} onOpenChange={onOpenChange}>
       <LayerDialog.Content size="sm">
-        <LayerDialog.Title>
-          {t('permissionDialog.deleteTitle', '删除权限')}
-        </LayerDialog.Title>
+        <LayerDialog.Title>{t('permissionDialog.deleteTitle', '删除权限')}</LayerDialog.Title>
         <LayerDialog.Description>
-          {t(
-            'permissionDialog.deleteConfirm',
-            '确定要删除「{{name}}」吗？该操作不可撤销。',
-            { name: target?.menu_name ?? '' },
-          )}
+          {t('permissionDialog.deleteConfirm', '确定要删除「{{name}}」吗？该操作不可撤销。', {
+            name: target?.menu_name ?? '',
+          })}
         </LayerDialog.Description>
 
         <LayerDialog.Body>
@@ -53,11 +49,7 @@ export function FeaturePermissionDeleteDialog({
         </LayerDialog.Body>
 
         <LayerDialog.Actions dismissLabel={t('form.cancel', '取消')}>
-          <LayerDialog.Actions.Primary
-            variant="destructive"
-            onClick={onConfirm}
-            loading={deleting}
-          >
+          <LayerDialog.Actions.Primary variant="destructive" onClick={onConfirm} loading={deleting}>
             {t('permissionDialog.delete', '删除')}
           </LayerDialog.Actions.Primary>
         </LayerDialog.Actions>

@@ -77,22 +77,28 @@ const FIELD_ROWS = 4
  * 时长与缓动统一（500ms / ease-out），四个属性同时起步，读起来才是「一次布局变化」
  * 而不是几段互不相干的动画。
  */
-const TRANSITION_PUSH = 'motion-safe:transition-[padding] motion-safe:duration-500 motion-safe:ease-out'
-const TRANSITION_PANEL = 'motion-safe:transition-[width,opacity,border-color] motion-safe:duration-500 motion-safe:ease-out'
-const TRANSITION_SWAP = 'motion-safe:transition-[opacity,scale] motion-safe:duration-500 motion-safe:ease-out'
-const TRANSITION_FADE = 'motion-safe:transition-opacity motion-safe:duration-500 motion-safe:ease-out'
+const TRANSITION_PUSH =
+  'motion-safe:transition-[padding] motion-safe:duration-500 motion-safe:ease-out'
+const TRANSITION_PANEL =
+  'motion-safe:transition-[width,opacity,border-color] motion-safe:duration-500 motion-safe:ease-out'
+const TRANSITION_SWAP =
+  'motion-safe:transition-[opacity,scale] motion-safe:duration-500 motion-safe:ease-out'
+const TRANSITION_FADE =
+  'motion-safe:transition-opacity motion-safe:duration-500 motion-safe:ease-out'
 /**
  * 页面内容的宽度约束（`contentWidth`）：动的是 `max-width`。全宽与限宽都用**百分比**
  * （`max-w-full` / `max-w-[62%]`），同单位之间才会被插值成一条平滑的收窄 / 展开；
  * 一个百分比对一个像素值只会瞬间跳变。
  */
-const TRANSITION_CONTENT_WIDTH = 'motion-safe:transition-[max-width] motion-safe:duration-500 motion-safe:ease-out'
+const TRANSITION_CONTENT_WIDTH =
+  'motion-safe:transition-[max-width] motion-safe:duration-500 motion-safe:ease-out'
 /**
  * 浮窗（AI 的 Float）：动的是「升起」这件事本身 —— 位移 + 淡入 + 极轻微放大，
  * 与真实浮窗的入场动画（`styles.css` 的 `ai-float-enter`）同一个读法。
  * Tailwind v4 的 `translate-y-*` / `scale-*` 落在独立变换属性上，所以过渡属性名就是它们。
  */
-const TRANSITION_FLOAT = 'motion-safe:transition-[opacity,translate,scale] motion-safe:duration-500 motion-safe:ease-out'
+const TRANSITION_FLOAT =
+  'motion-safe:transition-[opacity,translate,scale] motion-safe:duration-500 motion-safe:ease-out'
 
 export interface AppShellPreviewProps {
   /**
@@ -255,10 +261,7 @@ function PreviewSidebar({ accentColor }: { accentColor?: string }) {
       {/* logo：强调色描边 */}
       <span className="size-4 rounded-full border-2" style={{ borderColor: accentColor }} />
       {/* 当前选中项：强调色实心条；其余是普通占位条 */}
-      <span
-        className="mt-1 h-1.5 w-9 rounded-full"
-        style={{ backgroundColor: accentColor }}
-      />
+      <span className="mt-1 h-1.5 w-9 rounded-full" style={{ backgroundColor: accentColor }} />
       <span className="h-1.5 w-9 rounded-full bg-kumo-recessed" />
       <span className="h-1.5 w-7 rounded-full bg-kumo-recessed" />
       <span className="h-1.5 w-9 rounded-full bg-kumo-recessed" />
@@ -277,23 +280,14 @@ function PreviewHeader({ accentColor }: { accentColor?: string }) {
       <div className="flex shrink-0 gap-1">
         <span className="size-2.5 rounded-[3px] bg-kumo-recessed" />
         <span className="size-2.5 rounded-[3px] bg-kumo-recessed" />
-        <span
-          className="size-2.5 rounded-[3px]"
-          style={{ backgroundColor: accentColor }}
-        />
+        <span className="size-2.5 rounded-[3px]" style={{ backgroundColor: accentColor }} />
       </div>
     </div>
   )
 }
 
 /** 列表：表头（含强调色操作位）+ 若干数据行，首行是「选中行」。 */
-function PreviewTable({
-  accentColor,
-  className,
-}: {
-  accentColor?: string
-  className?: string
-}) {
+function PreviewTable({ accentColor, className }: { accentColor?: string; className?: string }) {
   return (
     <div className={cn('flex min-h-0 flex-1', className)}>
       <div className="m-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-kumo-line">
@@ -323,9 +317,7 @@ function PreviewTable({
               className="ms-auto h-1.5 w-[16%] rounded-full"
               style={index === 0 ? { backgroundColor: accentColor } : undefined}
             />
-            {index !== 0 ? (
-              <span className="h-1.5 w-[16%] rounded-full bg-kumo-tint" />
-            ) : null}
+            {index !== 0 ? <span className="h-1.5 w-[16%] rounded-full bg-kumo-tint" /> : null}
           </div>
         ))}
       </div>
@@ -417,10 +409,7 @@ function PreviewAiBody({ accentColor }: { accentColor?: string }) {
   return (
     <>
       <div className="flex shrink-0 items-center gap-1.5 border-b border-kumo-line px-2 py-2">
-        <span
-          className="size-3 shrink-0 rounded-[3px]"
-          style={{ backgroundColor: accentColor }}
-        />
+        <span className="size-3 shrink-0 rounded-[3px]" style={{ backgroundColor: accentColor }} />
         <span className="h-1.5 w-[42%] rounded-full bg-kumo-tint" />
       </div>
 
@@ -475,13 +464,7 @@ function PreviewAiColumn({
  * 位置只用逻辑属性（`end-*`），RTL 下自动换到另一侧 —— 真实浮窗同理（`end-4 bottom-4`）。
  * 尺寸用百分比，缩略图被放进更窄的容器时会跟着一起缩。
  */
-function PreviewAiFloat({
-  accentColor,
-  visible,
-}: {
-  accentColor?: string
-  visible: boolean
-}) {
+function PreviewAiFloat({ accentColor, visible }: { accentColor?: string; visible: boolean }) {
   return (
     <div
       className={cn(

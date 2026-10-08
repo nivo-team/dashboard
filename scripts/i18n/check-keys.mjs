@@ -21,11 +21,7 @@
  *   node scripts/i18n/check-keys.mjs --strict    # 有缺失时退出码 1（CI 用）
  *   node scripts/i18n/check-keys.mjs --json      # 机器可读输出
  */
-import {
-  listModules,
-  loadConfig,
-  readModuleKeys,
-} from './lib/config.mjs'
+import { listModules, loadConfig, readModuleKeys } from './lib/config.mjs'
 import { NS_FROM_OPTIONS_FILES, scanAll, splitKey } from './lib/scanner.mjs'
 
 const args = process.argv.slice(2)
@@ -121,11 +117,7 @@ const ambiguousLimited = ambiguous
 
 if (asJson) {
   console.log(
-    JSON.stringify(
-      { stats, missing, wrongNs, dynamic, ambiguous: ambiguousLimited },
-      null,
-      2,
-    ),
+    JSON.stringify({ stats, missing, wrongNs, dynamic, ambiguous: ambiguousLimited }, null, 2),
   )
 } else {
   console.log(
@@ -133,9 +125,7 @@ if (asJson) {
   )
 
   if (missing.length) {
-    console.log(
-      `\n✖ 代码用了但源语言找不到的键（${missing.length}）—— 用户会看到键名，必须补：`,
-    )
+    console.log(`\n✖ 代码用了但源语言找不到的键（${missing.length}）—— 用户会看到键名，必须补：`)
     for (const item of missing) {
       console.log(`  ${item.file}:${item.line}  ${item.ns}:${item.key}   (${item.reason})`)
     }

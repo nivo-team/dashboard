@@ -14,12 +14,7 @@ import type { ActiveFiltersConfig } from './types'
  * 未使用 ButtonGroup：它会拍平内侧圆角并用负边距重叠描边，
  * 与 chip 的 rounded-lg 容器叠加后视觉会变形。
  */
-export function ActiveFilterChips({
-  items,
-  onEdit,
-  onRemove,
-  onClearAll,
-}: ActiveFiltersConfig) {
+export function ActiveFilterChips({ items, onEdit, onRemove, onClearAll }: ActiveFiltersConfig) {
   const { t } = useTranslation()
 
   if (items.length === 0) return null

@@ -153,8 +153,7 @@ async function callOpenAiCompatible(config, prompt) {
         messages: [
           {
             role: 'system',
-            content:
-              '你是软件界面本地化译者，只输出合法 JSON，不输出任何多余文字。',
+            content: '你是软件界面本地化译者，只输出合法 JSON，不输出任何多余文字。',
           },
           { role: 'user', content: prompt },
         ],
@@ -165,9 +164,7 @@ async function callOpenAiCompatible(config, prompt) {
     }).catch((error) => {
       // fetch 自身的失败信息很含糊（只有 "fetch failed"），带上 cause 才可排查
       const cause = error?.cause?.message ?? error?.cause?.code ?? ''
-      throw new Error(
-        `请求网关失败：${error.message}${cause ? `（${cause}）` : ''}｜端点 ${url}`,
-      )
+      throw new Error(`请求网关失败：${error.message}${cause ? `（${cause}）` : ''}｜端点 ${url}`)
     })
 
     if (!response.ok) {

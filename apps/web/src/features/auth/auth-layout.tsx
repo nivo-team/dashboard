@@ -13,10 +13,7 @@ export interface AuthLayoutProps {
  *
  * 组织顶部无背景 Fixed 悬浮 AuthHeader 与全屏主体内容容器。
  */
-export function AuthLayout({
-  children,
-  className = '',
-}: AuthLayoutProps) {
+export function AuthLayout({ children, className = '' }: AuthLayoutProps) {
   return (
     <div className={`relative min-h-screen w-full bg-kumo-base text-kumo-default ${className}`}>
       {/* 独立认证顶栏：fixed 悬浮在顶部，左侧 Logo + 品牌，右侧多语言 + 主题 */}

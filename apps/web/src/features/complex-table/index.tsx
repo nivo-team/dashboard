@@ -1,7 +1,11 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DataTable, treeTableFeatures, useTable } from '#/components/data-table'
-import type { ColumnVisibilityState, ExpandedState, RowSelectionState } from '#/components/data-table'
+import type {
+  ColumnVisibilityState,
+  ExpandedState,
+  RowSelectionState,
+} from '#/components/data-table'
 import { PageHeader } from '#/components/page-header'
 import { TableControls } from '#/components/table-controls'
 import { useFeature } from '#/features/ai/page'
@@ -56,8 +60,15 @@ export function ComplexTablePage() {
 
   const totals = useMemo(() => summarizeComplexTable(filteredRows), [filteredRows])
 
+  /*
+    `ExpandedState` 是 `true | Record<string, boolean>`：`true` 表示"全部展开"，
+    本页只会写入对象（见 `expandAll`），所以这里按两种形态各自取 id，避免用 string 索引联合类型。
+  */
   const expandedIds = useMemo(
-    () => Object.keys(expanded).filter((id) => expanded[id]),
+    () =>
+      expanded === true
+        ? COMPLEX_TABLE_ROWS.map((row) => row.id)
+        : Object.keys(expanded).filter((id) => expanded[id]),
     [expanded],
   )
   const selectedIds = useMemo(() => Object.keys(rowSelection), [rowSelection])
@@ -131,21 +142,14 @@ export function ComplexTablePage() {
         moduleName={t('moduleName', '复杂表格')}
         tree
         emptyTitle={t('empty.title', '暂无数据')}
-        emptyDescription={t(
-          'empty.description',
-          '未找到符合条件的数据，请尝试更换关键词',
-        )}
+        emptyDescription={t('empty.description', '未找到符合条件的数据，请尝试更换关键词')}
         footer={
           <span>
-            {t(
-              'summary',
-              '共 {{orders}} 个订单 / 合计数量 {{qty}} / 合计金额 {{amount}}',
-              {
-                orders: totals.orders,
-                qty: totals.qty,
-                amount: totals.amount.toLocaleString(),
-              },
-            )}
+            {t('summary', '共 {{orders}} 个订单 / 合计数量 {{qty}} / 合计金额 {{amount}}', {
+              orders: totals.orders,
+              qty: totals.qty,
+              amount: totals.amount.toLocaleString(),
+            })}
           </span>
         }
       />

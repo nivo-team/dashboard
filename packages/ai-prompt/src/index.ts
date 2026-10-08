@@ -2,22 +2,14 @@ import { buildCapabilityLayer, buildModeRuleLayer } from './layers/capability.ts
 import { buildIdentityLayer } from './layers/identity.ts'
 import { buildOutputLayer } from './layers/output.ts'
 import { buildDomainLayer, buildGuardLayer, buildScopeCoreLayer } from './layers/scope.ts'
-import {
-  buildActiveTasksLayer,
-  buildPlaybookLayer,
-  buildWorkflowLayer,
-} from './layers/workflow.ts'
+import { buildActiveTasksLayer, buildPlaybookLayer, buildWorkflowLayer } from './layers/workflow.ts'
 import type { PromptFacts, PromptLayer, PromptStage } from './types.ts'
 
 export * from './types.ts'
 export { buildIdentityLayer } from './layers/identity.ts'
 export { buildDomainLayer, buildGuardLayer, buildScopeCoreLayer } from './layers/scope.ts'
 export { buildCapabilityLayer, buildModeRuleLayer } from './layers/capability.ts'
-export {
-  buildActiveTasksLayer,
-  buildPlaybookLayer,
-  buildWorkflowLayer,
-} from './layers/workflow.ts'
+export { buildActiveTasksLayer, buildPlaybookLayer, buildWorkflowLayer } from './layers/workflow.ts'
 export { buildOutputLayer } from './layers/output.ts'
 
 /**
@@ -96,10 +88,7 @@ function buildPageSummaryLayer(facts: PromptFacts): string | null {
  * 为什么要单独一层：提示词里多处引用「询问模式 / 自动模式」（能力边界、各工具的确认规则），
  * 但模式说明层只发给执行阶段 —— Router 阶段若看不到"当前是哪一档"，那些引用就悬空了。
  */
-function buildRuntimeContextLayer({
-  mode,
-  outputLanguageName,
-}: PromptFacts): string {
+function buildRuntimeContextLayer({ mode, outputLanguageName }: PromptFacts): string {
   return [
     '# 当前运行态',
     `- 模式：${mode === 'ask' ? '询问（动手前需要确认）' : '自动（能直接做的直接做）'}`,
@@ -253,10 +242,7 @@ export const VOLATILE_LAYERS: readonly PromptLayer[] = [
 ]
 
 /** 全部层（顺序即最终拼接顺序），供文档 / 调试 / 自检引用。 */
-export const PROMPT_LAYERS: readonly PromptLayer[] = [
-  ...STABLE_LAYERS,
-  ...VOLATILE_LAYERS,
-]
+export const PROMPT_LAYERS: readonly PromptLayer[] = [...STABLE_LAYERS, ...VOLATILE_LAYERS]
 
 /** 某层是否属于这个阶段（没声明 `stages` = 两个阶段都要）。 */
 function inStage(layer: PromptLayer, stage: PromptStage): boolean {
@@ -283,10 +269,7 @@ function assemble(layers: readonly PromptLayer[], facts: PromptFacts): string {
  * `stage` 决定加载哪些层（见 `PromptLayer.stages`），默认 `execution` —— 即"改调用方之前
  * 的老行为"。`router` 阶段会省掉操作规约，并多带一份工具目录。
  */
-export function buildSystemPrompt(
-  facts: PromptFacts,
-  stage: PromptStage = 'execution',
-): string {
+export function buildSystemPrompt(facts: PromptFacts, stage: PromptStage = 'execution'): string {
   return assemble(
     STABLE_LAYERS.filter((layer) => inStage(layer, stage)),
     facts,
@@ -312,7 +295,5 @@ export function buildTurnContext(
 
 /** 某个阶段会用到的层（供文档 / 调试 / token 自检引用）。 */
 export function layersForStage(stage: PromptStage): readonly PromptLayer[] {
-  return [...STABLE_LAYERS, ...VOLATILE_LAYERS].filter((layer) =>
-    inStage(layer, stage),
-  )
+  return [...STABLE_LAYERS, ...VOLATILE_LAYERS].filter((layer) => inStage(layer, stage))
 }

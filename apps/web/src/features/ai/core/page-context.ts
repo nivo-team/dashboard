@@ -135,11 +135,7 @@ export function matchNavLabel(pathname: string, appId: string | null): string | 
 
   // 最长前缀优先：`/example/table/10001` 同时命中「表格示例」与「示例」时取更具体的那个
   const hit = candidates
-    .filter(
-      (item) =>
-        item.path &&
-        (pathname === item.path || pathname.startsWith(`${item.path}/`)),
-    )
+    .filter((item) => item.path && (pathname === item.path || pathname.startsWith(`${item.path}/`)))
     .sort((a, b) => b.path.length - a.path.length)[0]
 
   const label = hit ? resolveNavLabel(hit.labelKey, hit.label) : null
@@ -189,10 +185,10 @@ export function formatPageContext(context: AiPageContext): string {
     context.navLabel ? `- 所在页面：${context.navLabel}` : null,
     context.routePath ? `- 路由模板：${context.routePath}` : null,
     context.title ? `- 页面标题：${context.title}` : null,
-    (capabilities?.description || page?.description)
+    capabilities?.description || page?.description
       ? `- 页面功能：${capabilities?.description || page?.description}`
       : null,
-    (capabilities?.entities?.length || page?.entities?.length)
+    capabilities?.entities?.length || page?.entities?.length
       ? `- 关键概念：${(capabilities?.entities || page?.entities || []).join('、')}`
       : null,
   ]
@@ -203,10 +199,7 @@ export function formatPageContext(context: AiPageContext): string {
     for (const f of activeForms) {
       const fieldList = f.fields
         ? f.fields
-            .map(
-              (field) =>
-                `${field.name}${field.required ? '*(必填)' : ''}[${field.label}]`,
-            )
+            .map((field) => `${field.name}${field.required ? '*(必填)' : ''}[${field.label}]`)
             .join(', ')
         : '无特定字段'
       lines.push(

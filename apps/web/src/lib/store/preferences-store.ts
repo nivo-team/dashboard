@@ -1,16 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import {
-  isKnownCapabilityGrant,
-  type AiCapabilityGrant,
-} from '#/features/ai/core/capabilities'
+import { isKnownCapabilityGrant, type AiCapabilityGrant } from '#/features/ai/core/capabilities'
 import type { AiPermissionMode } from '#/features/ai/core/types'
 import { getBrowserLocale, isLocaleKey, type LocaleKey } from '../locale'
-import {
-  DEFAULT_TIMEZONE,
-  isTimezoneKey,
-  type TimezoneKey,
-} from '../timezone-options'
+import { DEFAULT_TIMEZONE, isTimezoneKey, type TimezoneKey } from '../timezone-options'
 import { registerScopedStore } from './app-scope'
 import { enableCrossTabSync } from './cross-tab-sync'
 import { createScopedJSONStorage } from './scoped-storage'
@@ -314,9 +307,7 @@ export function isAiOutputLanguage(value: unknown): value is AiOutputLanguage {
 export const DEFAULT_AI_ENABLED = true
 
 export function isAiBotAvatar(value: unknown): value is AiBotAvatar {
-  return (
-    typeof value === 'string' && (AI_BOT_AVATARS as readonly string[]).includes(value)
-  )
+  return typeof value === 'string' && (AI_BOT_AVATARS as readonly string[]).includes(value)
 }
 
 /** 偏好存储键（实际落盘会带 `:<appId>` 后缀，见 `scoped-storage`）。 */
@@ -484,14 +475,10 @@ export const usePreferencesStore = create<PreferencesState>()(
     (set) => ({
       // 初始值优先取旧键（一次性迁移），否则按浏览器语言 / 系统主题 / 默认时区
       locale:
-        readLegacyPreference(LEGACY_PREFERENCE_KEYS.locale, isLocaleKey) ??
-        getBrowserLocale(),
-      colorMode:
-        readLegacyPreference(LEGACY_PREFERENCE_KEYS.colorMode, isColorMode) ??
-        'system',
+        readLegacyPreference(LEGACY_PREFERENCE_KEYS.locale, isLocaleKey) ?? getBrowserLocale(),
+      colorMode: readLegacyPreference(LEGACY_PREFERENCE_KEYS.colorMode, isColorMode) ?? 'system',
       timezone:
-        readLegacyPreference(LEGACY_PREFERENCE_KEYS.timezone, isTimezoneKey) ??
-        DEFAULT_TIMEZONE,
+        readLegacyPreference(LEGACY_PREFERENCE_KEYS.timezone, isTimezoneKey) ?? DEFAULT_TIMEZONE,
       accentColor: DEFAULT_ACCENT_COLOR,
       neutralColor: DEFAULT_NEUTRAL_COLOR,
       detailOpenMode: DEFAULT_DETAIL_OPEN_MODE,
@@ -582,18 +569,12 @@ export const usePreferencesStore = create<PreferencesState>()(
           「显示详细信息」（工具卡片 + 本轮用量）并改名为 `aiShowDetails` ——
           旧值直接继承，不让已经打开它的用户再开一次。
         */
-        const legacyShowToolCalls = (
-          saved as { aiShowToolCalls?: unknown }
-        ).aiShowToolCalls
+        const legacyShowToolCalls = (saved as { aiShowToolCalls?: unknown }).aiShowToolCalls
         return {
           ...current,
           locale: isLocaleKey(saved.locale) ? saved.locale : current.locale,
-          colorMode: isColorMode(saved.colorMode)
-            ? saved.colorMode
-            : current.colorMode,
-          timezone: isTimezoneKey(saved.timezone)
-            ? saved.timezone
-            : current.timezone,
+          colorMode: isColorMode(saved.colorMode) ? saved.colorMode : current.colorMode,
+          timezone: isTimezoneKey(saved.timezone) ? saved.timezone : current.timezone,
           accentColor: saved.accentColor ?? current.accentColor,
           neutralColor: saved.neutralColor ?? current.neutralColor,
           detailOpenMode: isDetailOpenMode(saved.detailOpenMode)
@@ -602,15 +583,11 @@ export const usePreferencesStore = create<PreferencesState>()(
           formOpenMode: isFormOpenMode(saved.formOpenMode)
             ? saved.formOpenMode
             : current.formOpenMode,
-          pageWidth: isPageWidthMode(saved.pageWidth)
-            ? saved.pageWidth
-            : current.pageWidth,
+          pageWidth: isPageWidthMode(saved.pageWidth) ? saved.pageWidth : current.pageWidth,
           aiPageWidth: isAiPageWidthMode(saved.aiPageWidth)
             ? saved.aiPageWidth
             : current.aiPageWidth,
-          aiPanelMode: isAiPanelMode(saved.aiPanelMode)
-            ? saved.aiPanelMode
-            : current.aiPanelMode,
+          aiPanelMode: isAiPanelMode(saved.aiPanelMode) ? saved.aiPanelMode : current.aiPanelMode,
           aiSessionMode: isAiSessionMode(saved.aiSessionMode)
             ? saved.aiSessionMode
             : current.aiSessionMode,
@@ -628,16 +605,12 @@ export const usePreferencesStore = create<PreferencesState>()(
               : typeof legacyShowToolCalls === 'boolean'
                 ? legacyShowToolCalls
                 : current.aiShowDetails,
-          aiBotAvatar: isAiBotAvatar(saved.aiBotAvatar)
-            ? saved.aiBotAvatar
-            : current.aiBotAvatar,
+          aiBotAvatar: isAiBotAvatar(saved.aiBotAvatar) ? saved.aiBotAvatar : current.aiBotAvatar,
           aiOutputMode: isAiOutputMode(saved.aiOutputMode)
             ? saved.aiOutputMode
             : current.aiOutputMode,
           aiAutoScroll:
-            typeof saved.aiAutoScroll === 'boolean'
-              ? saved.aiAutoScroll
-              : current.aiAutoScroll,
+            typeof saved.aiAutoScroll === 'boolean' ? saved.aiAutoScroll : current.aiAutoScroll,
           aiAutoNavigate:
             typeof saved.aiAutoNavigate === 'boolean'
               ? saved.aiAutoNavigate
@@ -648,8 +621,7 @@ export const usePreferencesStore = create<PreferencesState>()(
           aiOutputLanguage: isAiOutputLanguage(saved.aiOutputLanguage)
             ? saved.aiOutputLanguage
             : current.aiOutputLanguage,
-          aiEnabled:
-            typeof saved.aiEnabled === 'boolean' ? saved.aiEnabled : current.aiEnabled,
+          aiEnabled: typeof saved.aiEnabled === 'boolean' ? saved.aiEnabled : current.aiEnabled,
           aiCapabilities: Array.isArray(saved.aiCapabilities)
             ? saved.aiCapabilities.filter(isKnownCapabilityGrant)
             : current.aiCapabilities,
@@ -671,7 +643,6 @@ enableCrossTabSync(usePreferencesStore, {
   scoped: true,
 })
 
-
 /** 非 React 上下文读取偏好（i18n 初始化、时间格式化等）。 */
 export function getPreferences() {
   return usePreferencesStore.getState()
@@ -682,13 +653,8 @@ export function getPreferences() {
 // 放在模块末尾而不是 onRehydrateStorage 里：后者只在新键缺失时触发，
 // 而这里要的是「只要旧键还在就收拢一次」。
 if (typeof window !== 'undefined') {
-  const legacyKeys = [
-    ...Object.values(LEGACY_PREFERENCE_KEYS),
-    PREFERENCES_STORAGE_KEY,
-  ]
-  const hasLegacy = legacyKeys.some(
-    (key) => window.localStorage.getItem(key) !== null,
-  )
+  const legacyKeys = [...Object.values(LEGACY_PREFERENCE_KEYS), PREFERENCES_STORAGE_KEY]
+  const hasLegacy = legacyKeys.some((key) => window.localStorage.getItem(key) !== null)
   if (hasLegacy) {
     // setState 传入新对象才会触发 persist 写盘（同引用会被 zustand 跳过）
     const { locale, colorMode, timezone } = usePreferencesStore.getState()
@@ -696,7 +662,6 @@ if (typeof window !== 'undefined') {
     legacyKeys.forEach((key) => window.localStorage.removeItem(key))
   }
 }
-
 
 /**
  * 一次性迁移：把「上一版的具体默认色」收敛回 `DEFAULT_COLOR_VALUE`。
@@ -714,10 +679,7 @@ if (typeof window !== 'undefined') {
 const APPEARANCE_MIGRATION_FLAG = 'admin.appearance-default-migrated'
 const LEGACY_DEFAULT_COLORS = new Set(['#f6821f', '#64748b'])
 
-if (
-  typeof window !== 'undefined' &&
-  !window.localStorage.getItem(APPEARANCE_MIGRATION_FLAG)
-) {
+if (typeof window !== 'undefined' && !window.localStorage.getItem(APPEARANCE_MIGRATION_FLAG)) {
   const { accentColor, neutralColor } = usePreferencesStore.getState()
   const patch: { accentColor?: string; neutralColor?: string } = {}
   if (LEGACY_DEFAULT_COLORS.has(accentColor)) patch.accentColor = DEFAULT_COLOR_VALUE

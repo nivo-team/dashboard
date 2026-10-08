@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig, loadEnv, lazyPlugins } from 'vite-plus'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 
 import viteReact from '@vitejs/plugin-react'
@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => {
       // dedupe 强制走本应用的同一份实例，避免出现两份 Query 库。
       dedupe: ['@tanstack/react-router', '@tanstack/react-query', 'react', 'react-dom'],
     },
-    plugins: [
+    plugins: lazyPlugins(() => [
       tailwindcss(),
       tanstackRouter({ target: 'react', autoCodeSplitting: true }),
       viteReact(),
@@ -38,6 +38,6 @@ export default defineConfig(({ mode }) => {
           return html.replace(/<title>.*?<\/title>/, `<title>${brandName}</title>`)
         },
       },
-    ],
+    ]),
   }
 })

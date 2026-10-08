@@ -155,10 +155,7 @@ export function clampSidebarWidth(width: number): number {
 }
 
 export function clampDetailPanelWidth(width: number): number {
-  return Math.min(
-    DETAIL_PANEL_MAX_WIDTH,
-    Math.max(DETAIL_PANEL_MIN_WIDTH, Math.round(width)),
-  )
+  return Math.min(DETAIL_PANEL_MAX_WIDTH, Math.max(DETAIL_PANEL_MIN_WIDTH, Math.round(width)))
 }
 
 export function clampAiPanelWidth(width: number): number {
@@ -185,13 +182,11 @@ export const useShellUiStore = create<ShellUiState>()(
       aiFloatHeight: AI_FLOAT_DEFAULT_HEIGHT,
       motionEnabled: DEFAULT_MOTION_ENABLED,
       setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
-      setSidebarWidth: (sidebarWidth) =>
-        set({ sidebarWidth: clampSidebarWidth(sidebarWidth) }),
+      setSidebarWidth: (sidebarWidth) => set({ sidebarWidth: clampSidebarWidth(sidebarWidth) }),
       setSidebarExpandMode: (sidebarExpandMode) => set({ sidebarExpandMode }),
       setDetailPanelWidth: (detailPanelWidth) =>
         set({ detailPanelWidth: clampDetailPanelWidth(detailPanelWidth) }),
-      setAiPanelWidth: (aiPanelWidth) =>
-        set({ aiPanelWidth: clampAiPanelWidth(aiPanelWidth) }),
+      setAiPanelWidth: (aiPanelWidth) => set({ aiPanelWidth: clampAiPanelWidth(aiPanelWidth) }),
       setAiFloatSize: (width, height) =>
         set({
           aiFloatWidth: clampAiFloatWidth(width),
@@ -224,41 +219,32 @@ export const useShellUiStore = create<ShellUiState>()(
         return {
           ...current,
           sidebarOpen:
-            typeof saved.sidebarOpen === 'boolean'
-              ? saved.sidebarOpen
-              : current.sidebarOpen,
+            typeof saved.sidebarOpen === 'boolean' ? saved.sidebarOpen : current.sidebarOpen,
           sidebarWidth:
-            typeof saved.sidebarWidth === 'number' &&
-            Number.isFinite(saved.sidebarWidth)
+            typeof saved.sidebarWidth === 'number' && Number.isFinite(saved.sidebarWidth)
               ? clampSidebarWidth(saved.sidebarWidth)
               : current.sidebarWidth,
           sidebarExpandMode: isSidebarExpandMode(saved.sidebarExpandMode)
             ? saved.sidebarExpandMode
             : current.sidebarExpandMode,
           detailPanelWidth:
-            typeof saved.detailPanelWidth === 'number' &&
-            Number.isFinite(saved.detailPanelWidth)
+            typeof saved.detailPanelWidth === 'number' && Number.isFinite(saved.detailPanelWidth)
               ? clampDetailPanelWidth(saved.detailPanelWidth)
               : current.detailPanelWidth,
           aiPanelWidth:
-            typeof saved.aiPanelWidth === 'number' &&
-            Number.isFinite(saved.aiPanelWidth)
+            typeof saved.aiPanelWidth === 'number' && Number.isFinite(saved.aiPanelWidth)
               ? clampAiPanelWidth(saved.aiPanelWidth)
               : current.aiPanelWidth,
           aiFloatWidth:
-            typeof saved.aiFloatWidth === 'number' &&
-            Number.isFinite(saved.aiFloatWidth)
+            typeof saved.aiFloatWidth === 'number' && Number.isFinite(saved.aiFloatWidth)
               ? clampAiFloatWidth(saved.aiFloatWidth)
               : current.aiFloatWidth,
           aiFloatHeight:
-            typeof saved.aiFloatHeight === 'number' &&
-            Number.isFinite(saved.aiFloatHeight)
+            typeof saved.aiFloatHeight === 'number' && Number.isFinite(saved.aiFloatHeight)
               ? clampAiFloatHeight(saved.aiFloatHeight)
               : current.aiFloatHeight,
           motionEnabled:
-            typeof saved.motionEnabled === 'boolean'
-              ? saved.motionEnabled
-              : current.motionEnabled,
+            typeof saved.motionEnabled === 'boolean' ? saved.motionEnabled : current.motionEnabled,
         }
       },
     },

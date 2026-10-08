@@ -62,10 +62,7 @@ export function getBreadcrumbTrailVersion(): number {
 }
 
 /** 覆盖式注册某个 owner 的层级表（重复调用以最后一次为准）。 */
-export function setBreadcrumbTrail(
-  owner: string,
-  entries: Record<string, BreadcrumbTrailNode>,
-) {
+export function setBreadcrumbTrail(owner: string, entries: Record<string, BreadcrumbTrailNode>) {
   clearBreadcrumbTrail(owner, false)
 
   const keys = new Set<string>()

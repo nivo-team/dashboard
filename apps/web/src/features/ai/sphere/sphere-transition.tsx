@@ -1,13 +1,5 @@
 import { useMotionEnabled } from '#/lib/use-motion'
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
 /**
@@ -140,10 +132,7 @@ export function SphereTransitionProvider({
   */
   useEffect(() => {
     if (!leaving) return
-    const timer = window.setTimeout(
-      exitOnce,
-      SPHERE_PANEL_EXIT_MS + EXIT_FALLBACK_MARGIN_MS,
-    )
+    const timer = window.setTimeout(exitOnce, SPHERE_PANEL_EXIT_MS + EXIT_FALLBACK_MARGIN_MS)
     return () => window.clearTimeout(timer)
   }, [leaving, exitOnce])
 
@@ -168,8 +157,6 @@ export function SphereTransitionProvider({
   )
 
   return (
-    <SphereTransitionContext.Provider value={value}>
-      {children}
-    </SphereTransitionContext.Provider>
+    <SphereTransitionContext.Provider value={value}>{children}</SphereTransitionContext.Provider>
   )
 }

@@ -51,9 +51,8 @@ interface UpdateRoleMenusBody {
 }
 
 export default defineHandler(async (event) => {
-  const body = await readBody<UpdateRoleMenusBody>(event).catch(
-    () => ({}) as UpdateRoleMenusBody,
-  )
+  const body = ((await readBody<UpdateRoleMenusBody>(event).catch(() => undefined)) ??
+    {}) as UpdateRoleMenusBody
 
   const roleId = Number(body.role_id)
   if (!Number.isFinite(roleId)) return fail(400, '缺少 role_id')

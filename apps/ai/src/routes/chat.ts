@@ -73,11 +73,7 @@ function buildPassthroughHeaders(upstream: Headers): Headers {
 function findLastUserIndex(messages: readonly unknown[]): number {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const message = messages[i]
-    if (
-      message &&
-      typeof message === 'object' &&
-      (message as { role?: unknown }).role === 'user'
-    ) {
+    if (message && typeof message === 'object' && (message as { role?: unknown }).role === 'user') {
       return i
     }
   }

@@ -84,10 +84,7 @@ export function HomePage() {
       if (!definition) return
       // 先放在最底部，随后由 `commit` 的垂直压缩把它推到第一个放得下的位置 ——
       // 页面不需要自己算「哪里有空洞」，那是布局层的职责。
-      const bottom = layout.widgets.reduce(
-        (max, widget) => Math.max(max, widget.y + widget.h),
-        0,
-      )
+      const bottom = layout.widgets.reduce((max, widget) => Math.max(max, widget.y + widget.h), 0)
       commit([
         ...layout.widgets,
         {
@@ -140,9 +137,7 @@ export function HomePage() {
       available: DASHBOARD_WIDGETS.map((definition) => ({
         type: definition.type,
         title: t(definition.titleKey),
-        ...(definition.descriptionKey
-          ? { description: t(definition.descriptionKey) }
-          : {}),
+        ...(definition.descriptionKey ? { description: t(definition.descriptionKey) } : {}),
         added: layout.widgets.some((widget) => widget.type === definition.type),
         allowMultiple: definition.allowMultiple ?? true,
       })),

@@ -26,14 +26,7 @@ export interface RuntimeSchema {
 }
 
 /** 内置渲染器：按 schema 类型 + 字段名自动推断。 */
-export type SchemaRenderKind =
-  | 'text'
-  | 'code'
-  | 'number'
-  | 'money'
-  | 'time'
-  | 'boolean'
-  | 'array'
+export type SchemaRenderKind = 'text' | 'code' | 'number' | 'money' | 'time' | 'boolean' | 'array'
 
 export interface ColumnRendererContext<TData> {
   /** 该单元格取值（已按 path 解析，可能是数组/对象/undefined）。 */
@@ -141,9 +134,7 @@ function toText(value: unknown, empty: string): string {
 function createDefaultRenderers<TData>(): Record<SchemaRenderKind, ColumnRenderer<TData>> {
   return {
     text: ({ value, empty }) => (
-      <span className="text-sm text-kumo-default whitespace-nowrap">
-        {toText(value, empty)}
-      </span>
+      <span className="text-sm text-kumo-default whitespace-nowrap">{toText(value, empty)}</span>
     ),
     code: ({ value, empty }) => (
       <span className="font-mono text-sm text-kumo-default whitespace-nowrap">
@@ -191,11 +182,7 @@ function createDefaultRenderers<TData>(): Record<SchemaRenderKind, ColumnRendere
         <ArrayHoverCard
           title={label}
           items={list.map((item, index) =>
-            itemRender ? (
-              itemRender(item, index)
-            ) : (
-              <span key={index}>{toText(item, empty)}</span>
-            ),
+            itemRender ? itemRender(item, index) : <span key={index}>{toText(item, empty)}</span>,
           )}
         />
       )
@@ -223,13 +210,7 @@ export function useSchemaColumns<TData extends Record<string, unknown>>(
   const { t } = useTranslation(options.ns)
   const { formatDateTime } = useTimezone()
 
-  const {
-    columns: columnSpecs,
-    baseMeta,
-    sortable,
-    labels,
-    renderers,
-  } = options
+  const { columns: columnSpecs, baseMeta, sortable, labels, renderers } = options
 
   return useMemo(() => {
     const columnHelper = createColumnHelper<StockFeatures, TData>()
@@ -293,14 +274,5 @@ export function useSchemaColumns<TData extends Record<string, unknown>>(
         },
       })
     })
-  }, [
-    schema,
-    columnSpecs,
-    baseMeta,
-    sortable,
-    labels,
-    renderers,
-    t,
-    formatDateTime,
-  ])
+  }, [schema, columnSpecs, baseMeta, sortable, labels, renderers, t, formatDateTime])
 }

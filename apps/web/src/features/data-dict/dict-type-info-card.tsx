@@ -55,9 +55,7 @@ export function DictTypeInfoCard({ node, parentName }: DictTypeInfoCardProps) {
         <InfoRow label={t('detail.status', '状态')}>{dictStatusBadge(node.status, t)}</InfoRow>
 
         <InfoRow label={t('detail.sort', '排序')}>
-          <span className="font-mono text-sm text-kumo-default tabular-nums">
-            {node.sort ?? 0}
-          </span>
+          <span className="font-mono text-sm text-kumo-default tabular-nums">{node.sort ?? 0}</span>
         </InfoRow>
 
         <InfoRow label={t('detail.id', '分类 ID')}>

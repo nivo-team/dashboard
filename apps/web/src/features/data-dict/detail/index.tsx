@@ -1,11 +1,4 @@
-import {
-  Button,
-  Empty,
-  LayerCard,
-  Loader,
-  Switch,
-  useKumoToastManager,
-} from '@cloudflare/kumo'
+import { Button, Empty, LayerCard, Loader, Switch, useKumoToastManager } from '@cloudflare/kumo'
 import { WarningCircleIcon } from '@phosphor-icons/react'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -195,9 +188,7 @@ export function DataDictTypeDetailPage({ typeId }: { typeId: string }) {
         setDraft(null)
         return true
       } catch (submitError) {
-        setFormError(
-          extractApiErrorMessage(submitError, t('form.failed', '操作失败，请稍后重试')),
-        )
+        setFormError(extractApiErrorMessage(submitError, t('form.failed', '操作失败，请稍后重试')))
         return false
       }
     },
@@ -268,8 +259,7 @@ export function DataDictTypeDetailPage({ typeId }: { typeId: string }) {
     return (
       <DataDictTypeErrorState
         message={
-          (error as { message?: string } | null)?.message ??
-          t('detail.notFound', '未找到该分类')
+          (error as { message?: string } | null)?.message ?? t('detail.notFound', '未找到该分类')
         }
         retryLabel={t('detail.retry', '重试加载')}
         backLabel={t('detail.backToList', '返回分类列表')}

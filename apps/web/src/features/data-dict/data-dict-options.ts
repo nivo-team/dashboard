@@ -142,10 +142,7 @@ export function dictTypeChildren(node?: DictType | null): DictType[] {
  * `GET /data_dict/type/tree` 是**无参全量**接口（不像 features 需要 `menu_id` 限子树），
  * 所以这里不需要任何根 id 硬编码，直接遍历整棵树即可。
  */
-export function findDictType(
-  nodes: DictType[] | undefined,
-  typeId: number,
-): DictType | undefined {
+export function findDictType(nodes: DictType[] | undefined, typeId: number): DictType | undefined {
   for (const node of nodes ?? []) {
     if (node.id === typeId) return node
     const hit = findDictType(node.children, typeId)
@@ -182,8 +179,7 @@ const TYPE_SEARCHABLE_FIELDS: (keyof DictType)[] = ['name', 'code', 'p_code']
 /**
  * 树表访问器（模块级常量）：过滤、展开与 `useTable` 共用同一份，引用稳定。
  */
-export const DICT_TYPE_SUB_ROWS = (row: DictType): DictType[] | undefined =>
-  row.children
+export const DICT_TYPE_SUB_ROWS = (row: DictType): DictType[] | undefined => row.children
 
 export const DICT_TYPE_ROW_ID = (row: DictType): string => String(row.id)
 

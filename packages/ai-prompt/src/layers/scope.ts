@@ -50,7 +50,9 @@ function formatScopeTargets({
 
   const entries: readonly PromptNavEntry[] = navEntries
   if (entries.length === 0) {
-    return ['- （当前应用的导航清单为空，无法定位业务模块；请如实说明并建议用户从导航进入目标模块。）']
+    return [
+      '- （当前应用的导航清单为空，无法定位业务模块；请如实说明并建议用户从导航进入目标模块。）',
+    ]
   }
 
   const roots = entries.filter((entry) => !entry.group)
@@ -64,10 +66,7 @@ function formatScopeTargets({
   })
 
   if (lines.length > MAX_MODULE_LINES) {
-    return [
-      ...lines.slice(0, MAX_MODULE_LINES),
-      '- （模块较多，完整清单请调用 `list_navigation`）',
-    ]
+    return [...lines.slice(0, MAX_MODULE_LINES), '- （模块较多，完整清单请调用 `list_navigation`）']
   }
   return lines
 }

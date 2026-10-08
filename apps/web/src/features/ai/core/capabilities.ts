@@ -149,16 +149,18 @@ export const AI_CAPABILITIES: readonly AiCapabilitySpec[] = [
         label: '编排',
         hint: '把一批操作编排成任务清单，一次性生成整组步骤并由客户端顺序执行完，再把结果交回 AI 总结',
       },
-      { grant: 'task:grant', label: '授权', hint: '在继续上一轮任务前，主动向你申请所需的操作授权' },
+      {
+        grant: 'task:grant',
+        label: '授权',
+        hint: '在继续上一轮任务前，主动向你申请所需的操作授权',
+      },
     ],
   },
 ]
 
 /** 全部格子键（顺序与矩阵一致）。 */
 export function allCapabilityGrants(): AiCapabilityGrant[] {
-  return AI_CAPABILITIES.flatMap((capability) =>
-    capability.actions.map((action) => action.grant),
-  )
+  return AI_CAPABILITIES.flatMap((capability) => capability.actions.map((action) => action.grant))
 }
 
 const KNOWN_GRANTS = new Set<string>(allCapabilityGrants())

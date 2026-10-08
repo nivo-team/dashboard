@@ -1,9 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import type { MenuNode } from '#/api'
-import {
-  clearBreadcrumbTrail,
-  setBreadcrumbTrail,
-} from '#/lib/breadcrumb-trail'
+import { clearBreadcrumbTrail, setBreadcrumbTrail } from '#/lib/breadcrumb-trail'
 import type { BreadcrumbTrailNode } from '#/lib/breadcrumb-trail'
 
 /**
@@ -20,9 +17,7 @@ const OWNER = 'system:features'
 
 /** 功能模块中某个节点的路径（`menuId` 缺省时为功能根视图）。 */
 export function featureBreadcrumbPath(appId: string, menuId?: number): string {
-  return menuId === undefined
-    ? `/${appId}/system/menus`
-    : `/${appId}/system/menus/${menuId}`
+  return menuId === undefined ? `/${appId}/system/menus` : `/${appId}/system/menus/${menuId}`
 }
 
 /**

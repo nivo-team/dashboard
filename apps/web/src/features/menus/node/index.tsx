@@ -86,8 +86,7 @@ export function FeatureNodePage({ featureId }: { featureId: string }) {
     return (
       <FeatureErrorState
         message={
-          (error as { message?: string } | null)?.message ??
-          t('detail.notFound', '未找到该功能')
+          (error as { message?: string } | null)?.message ?? t('detail.notFound', '未找到该功能')
         }
         retryLabel={t('detail.retry', '重试加载')}
         backLabel={t('detail.backToList', '返回列表')}
@@ -97,11 +96,7 @@ export function FeatureNodePage({ featureId }: { featureId: string }) {
     )
   }
 
-  return menuIsGroup(node) ? (
-    <FeatureContainer node={node} />
-  ) : (
-    <FeatureDetail node={node} />
-  )
+  return menuIsGroup(node) ? <FeatureContainer node={node} /> : <FeatureDetail node={node} />
 }
 
 /** 节点不存在 / 请求失败时的兜底视图。 */

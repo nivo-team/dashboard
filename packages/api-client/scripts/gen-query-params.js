@@ -21,15 +21,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const pkgDir = resolve(here, '..')
 
 /** 主查询参数：不进入筛选器字段目录 */
-const PRIMARY_PARAMS = [
-  'kw',
-  'page',
-  'page_size',
-  'field',
-  'order',
-  'time_field',
-  'range_time',
-]
+const PRIMARY_PARAMS = ['kw', 'page', 'page_size', 'field', 'order', 'time_field', 'range_time']
 
 /**
  * 字段展示文案（中文词典）。
@@ -64,9 +56,7 @@ function controlFor(schema) {
     return { control: 'enum', options: [...new Set(schema.enum)] }
   }
   if (schema.type === 'array') {
-    const itemType = ['integer', 'number'].includes(schema.items?.type)
-      ? 'number'
-      : 'string'
+    const itemType = ['integer', 'number'].includes(schema.items?.type) ? 'number' : 'string'
     return { control: 'array', itemType }
   }
   if (schema.type === 'integer' || schema.type === 'number') return { control: 'number' }
@@ -83,7 +73,9 @@ const matchedPath = Object.keys(spec.paths ?? {}).find(
 const operation = matchedPath ? spec.paths[matchedPath]?.[ENDPOINT_METHOD] : undefined
 
 if (!operation) {
-  console.error(`[gen-query-params] 未在 openapi.json 中找到 ${ENDPOINT_METHOD.toUpperCase()} ${ENDPOINT_PATH}`)
+  console.error(
+    `[gen-query-params] 未在 openapi.json 中找到 ${ENDPOINT_METHOD.toUpperCase()} ${ENDPOINT_PATH}`,
+  )
   process.exit(1)
 }
 

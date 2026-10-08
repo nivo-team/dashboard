@@ -24,7 +24,9 @@ export function LoginPage({
   className = '',
 }: LoginPageProps) {
   return (
-    <div className={`relative flex min-h-screen w-full bg-kumo-base text-kumo-default ${className}`}>
+    <div
+      className={`relative flex min-h-screen w-full bg-kumo-base text-kumo-default ${className}`}
+    >
       {/* ====================================================================== */}
       {/* 左侧：表单主交互区域（PC 居中占宽约 50%，移动端 100% 流式）           */}
       {/* ====================================================================== */}

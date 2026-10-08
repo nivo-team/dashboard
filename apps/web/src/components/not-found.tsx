@@ -148,12 +148,7 @@ function NotFoundPage({ className }: { className?: string }) {
                   defaults="路由 <b>{{route}}</b> 不存在<br/>控制台的其他部分运行正常，<br/>你可以放心返回。"
                   values={{ route: pathname }}
                   components={{
-                    b: (
-                      <span
-                        dir="ltr"
-                        className="font-medium wrap-break-word text-kumo-default"
-                      />
-                    ),
+                    b: <span dir="ltr" className="font-medium wrap-break-word text-kumo-default" />,
                     br: <br />,
                   }}
                 />

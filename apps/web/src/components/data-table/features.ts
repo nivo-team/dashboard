@@ -1,8 +1,4 @@
-import {
-  createExpandedRowModel,
-  stockFeatures,
-  tableFeatures,
-} from '@tanstack/react-table'
+import { createExpandedRowModel, stockFeatures, tableFeatures } from '@tanstack/react-table'
 
 /**
  * 数据表格特性集（TanStack Table v9）。

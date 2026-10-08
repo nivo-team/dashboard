@@ -1,4 +1,4 @@
-import { defineConfig } from '@hey-api/openapi-ts';
+import { defineConfig } from '@hey-api/openapi-ts'
 
 // 路径相对于本文件所在目录（`pnpm -C packages/api-client generate`）；
 // 产物直接落到包内并被 `src/index.ts` 导出，各 app 只 import 这个包，不再各自生成。
@@ -32,4 +32,4 @@ export default defineConfig({
       },
     },
   ],
-});
+})
