@@ -544,7 +544,9 @@ const search: URLSearchParams = await setPage(2)
 
 - **`nuqs/testing`（纯函数，测 parser 用）**：`isParserBijective`、`testSerializeThenParse`、`testParseThenSerialize`。
 
-> ⚠️ **本仓库当前没有 Vitest / 单测**（`AGENTS.md` 明说未配置），所以 testing adapter 目前只能在「将来加测试」时用；要用先得引入 Vitest + RTL + jsdom。
+> ⚠️ **本仓库当前没有单测**（`AGENTS.md` 写明「暂无单测」），所以 testing adapter 只能等
+> 「将来加测试」时用。**Vitest 本身已经随 Vite+ 进来了**（`pnpm exec vp test`，仓库里还没有测试文件，
+> 会报 `No test files found`），所以要用它只需要再补 RTL + jsdom 与测试配置，不必再单独引 Vitest。
 
 ### 7.6 Adapter 级 props（`NuqsAdapter` 能收什么）
 

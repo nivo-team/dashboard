@@ -22,6 +22,11 @@
 | issue → 代码的**触发层** | **没有**（仓库连 `.github/` 都没有） | 本文补的就是这两段 |
 | 合并的**门控层** | **没有**：无 CI、无 lint、无单测 | 同上 |
 
+> 上表是**建这条流水线之前**的快照，保留原样作为选型依据。**今天的实际状态**：
+> `.github/workflows/ci.yml` 已就位（铁律门控 + `pnpm typecheck` + `pnpm build` + 生成物同步）；
+> 静态检查由 **Vite+** 提供 —— `pnpm exec vp check`（fmt + oxlint + tsgolint 类型检查，
+> 当前基线 0 error / 0 warning），但它目前只当本地手段，**没有进 CI**；**单测仍然没有**。
+
 **所以缺的不是「AI 能力」，是「触发」与「门控」这两段管道。** 本文只建这两段。
 
 ---
@@ -314,11 +319,12 @@ apps/web/src/features/home/metrics-card.tsx
 - **本机网络**：`github.com:443` 与 `api.openai.com` 在本机不可达、`api.anthropic.com` 返回 403，
   但 `api.github.com` 与 SSH(22) 可用。所以**执行体必须在 Actions runner 上**（云端网络自由），
   本机只做 git over SSH 与 API 调用。
-- **`.claude/skills` 与 `.agents/skills` 是两份副本**：多 agent 工具接入后它们会漂移。
-  建议只保留一份（`.agents/skills` 为准），否则「真值只有一个」这条在自己仓库里就先破了。
-- **`CLAUDE.md` 是 `AGENTS.md` 的完整副本**：同样的漂移风险，且改动要同步两处。
-- **无 lint / 无单测**：门控只能挡住「类型错、构建错、铁律违规」，
-  运行时行为（比如卡片真的渲染出来了吗）**必须人工验收** —— 这是 docs 里一直强调
+- **`.claude/skills` 与 `CLAUDE.md` 其实都是软链**（`.claude/skills -> ../.agents/skills`、
+  `CLAUDE.md -> AGENTS.md`），所以「两份副本会漂移」这条早期判断已过时：
+  真值始终只有一份（`.agents/skills` 与 `AGENTS.md`），改一处即可，不需要同步两处。
+- **静态检查有了，单测还是没有**：`pnpm exec vp check`（fmt + oxlint + tsgolint 类型检查）能挡住格式、
+  lint 与类型问题，CI 里仍只跑 `pnpm typecheck` + `pnpm build`；但门控终究只能挡住「类型错、构建错、
+  铁律违规」，运行时行为（比如卡片真的渲染出来了吗）**必须人工验收** —— 这是 docs 里一直强调
   「不要用跑 typecheck 代替理解代码」的原因。
 - **模型成本**：每次运行都是一个完整 agent 会话（读文档 + 读代码 + 改代码），
   成本随 issue 复杂度上升。`AI_MODEL` 选便宜模型跑简单任务，是常见的省钱做法。

@@ -1,11 +1,11 @@
 ---
 name: verify
-description: 本仓库的校验总入口（TypeScript 类型检查、生产构建、浏览器人工验收与验收清单）。默认不执行——只有使用者明确点名「用 verify 校验 / 跑一下验证」时才运行；日常编码、提交与提交前都不要主动跑这些命令。
+description: 本仓库的校验总入口（Vite+ 静态检查、TypeScript 类型检查、生产构建、浏览器人工验收与验收清单）。默认不执行——只有使用者明确点名「用 verify 校验 / 跑一下验证」时才运行；日常编码、提交与提交前都不要主动跑这些命令。
 ---
 
 # 校验（verify）
 
-**这是本仓库唯一被授权执行 typecheck / build / 浏览器验收的地方，且默认关闭。**
+**这是本仓库唯一被授权执行静态检查 / typecheck / build / 浏览器验收的地方，且默认关闭。**
 
 ## 0. 触发条件（严格遵守）
 
@@ -14,7 +14,7 @@ description: 本仓库的校验总入口（TypeScript 类型检查、生产构�
 | 使用者明确点名：如「用 verify 校验」「跑一下验证」「验证这个模块」 | ✅ 执行 |
 | 日常编码、改完代码顺手确认、准备提交、提交后 | ❌ 不执行 |
 
-- **不要在「改完代码」后自动跑 `pnpm typecheck` / `pnpm build`**，也不要为了确认渲染效果去开浏览器 —— 这些都很慢，使用者会在需要时点名；
+- **不要在「改完代码」后自动跑 `pnpm exec vp check` / `pnpm typecheck` / `pnpm build`**，也不要为了确认渲染效果去开浏览器 —— 这些都很慢，使用者会在需要时点名；
 - 写代码时用**阅读与推理**保证正确性（看类型定义、看调用方、看生成产物），而不是靠反复跑校验；
 - 需要校验却没被点名时，最多提醒一句「这次没跑校验，需要的话点名 verify」。
 
@@ -31,7 +31,21 @@ export PATH="/opt/homebrew/bin:$PATH"   # 系统 node（v26 一线），pnpm 也
   —— 这是 **node 与 rolldown 原生 binding 签名不匹配**，与项目代码无关，换系统 node 即可；
 - 这几个命令的输出都**不会**因为换了 node 而变化，无需在两个 node 下各跑一遍。
 
-## 2. 类型检查
+## 2. 静态检查与类型检查
+
+Vite+ 把格式、lint、类型检查合成了一条命令（配置在根 `vite.config.ts`，对全工作区生效）：
+
+```bash
+pnpm exec vp check            # fmt + oxlint + tsgolint 类型检查；当前基线 0 error / 0 warning
+pnpm exec vp check --no-fmt   # 只看 lint + 类型
+pnpm exec vp check --fix      # 顺带按 oxfmt 规则格式化
+```
+
+- 生成的 `apps/web/src/routeTree.gen.ts`、`packages/api-client/src/generated/**`、`**/*.gen.ts`、
+  `openapi.json` 已在 `ignorePatterns` 里（`vp check` 扫 412 / 470 个文件），**不要**为了它们改代码；
+- 别用全局 `vp`（版本可能落后），一律 `pnpm exec vp …`，走本地 `vite-plus`。
+
+CI 门控仍是这两条：
 
 ```bash
 pnpm typecheck        # tsc --noEmit，无输出即通过
