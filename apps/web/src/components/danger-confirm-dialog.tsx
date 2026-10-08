@@ -103,7 +103,14 @@ export function DangerConfirmDialog({
               <span>{labels?.suffix ?? t('dangerConfirm.suffix', '以确认：')}</span>
             </div>
 
+            {/*
+              打开时把焦点直接落到输入框：Base UI 的焦点管理器默认聚焦弹窗内**第一个**可 Tab 到的
+              元素，而这里第一个是上面的「复制」按钮 —— 焦点落在复制键上会让用户以为要先去复制。
+              输入框是本弹窗唯一的必填动作，所以用 `autoFocus` 抢在管理器之前占住焦点
+              （子节点先挂载 → `autoFocus` 早于父级焦点管理器的 layout effect）。
+            */}
             <Input
+              autoFocus
               aria-label={labels?.inputAria ?? t('dangerConfirm.inputAria', '确认输入')}
               placeholder={confirmationText}
               value={typed}

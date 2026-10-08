@@ -49,7 +49,13 @@ export function FeaturePermissionDeleteDialog({
         </LayerDialog.Body>
 
         <LayerDialog.Actions dismissLabel={t('form.cancel', '取消')}>
-          <LayerDialog.Actions.Primary variant="destructive" onClick={onConfirm} loading={deleting}>
+          {/* 独立确认弹窗（无输入）：打开即聚焦删除键，Base UI 默认会停在先渲染的取消键上 */}
+          <LayerDialog.Actions.Primary
+            autoFocus
+            variant="destructive"
+            onClick={onConfirm}
+            loading={deleting}
+          >
             {t('permissionDialog.delete', '删除')}
           </LayerDialog.Actions.Primary>
         </LayerDialog.Actions>

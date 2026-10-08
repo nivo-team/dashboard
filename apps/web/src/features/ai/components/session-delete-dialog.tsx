@@ -40,7 +40,13 @@ export function AiSessionDeleteDialog({
           </p>
         </LayerDialog.Body>
         <LayerDialog.Actions dismissLabel={tc('actions.cancel', '取消')}>
+          {/*
+            打开即把焦点放到「删除」上：Base UI 默认聚焦弹窗内第一个可 Tab 项，
+            而 `Actions` 里永远先渲染取消键，所以不显式指定的话焦点会停在取消上。
+            这是纯本地、不可逆的删除，让用户一进来就能直接回车确认（Esc 仍可取消）。
+          */}
           <LayerDialog.Actions.Primary
+            autoFocus
             variant="destructive"
             onClick={() => {
               if (session) void removeSession(session.id)

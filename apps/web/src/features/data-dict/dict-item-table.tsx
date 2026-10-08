@@ -420,7 +420,9 @@ export function DictItemTable({ typeId, typeName }: DictItemTableProps) {
           </LayerDialog.Body>
 
           <LayerDialog.Actions dismissLabel={t('form.cancel', '取消')}>
+            {/* 独立确认弹窗（无输入）：打开即聚焦删除键，Base UI 默认会停在先渲染的取消键上 */}
             <LayerDialog.Actions.Primary
+              autoFocus
               variant="destructive"
               loading={deleteItemMutation.isPending}
               onClick={() => {
