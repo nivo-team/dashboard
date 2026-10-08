@@ -29,7 +29,7 @@ export function FeatureCreateActions({ parentId = MENU_ROOT_ID }: FeatureCreateA
 
   const goCreate = useCallback(
     (type?: 'group') => {
-      navigate({
+      void navigate({
         to: '/$appId/system/menus/new',
         params: { appId },
         search: { pid: parentId, type },

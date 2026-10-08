@@ -182,10 +182,10 @@ export function FeatureDetail({ node }: FeatureDetailProps) {
       parentId === 0 ||
       parentId === MENU_ROOT_ID
     ) {
-      navigate({ to: '/$appId/system/menus', params: { appId } })
+      void navigate({ to: '/$appId/system/menus', params: { appId } })
       return
     }
-    navigate({
+    void navigate({
       to: '/$appId/system/menus/$featureId',
       params: { appId, featureId: String(parentId) },
     })
@@ -197,7 +197,7 @@ export function FeatureDetail({ node }: FeatureDetailProps) {
       if (!menuIsNavigable(child) || child.menu_id === undefined || child.menu_id === null) {
         return
       }
-      navigate({
+      void navigate({
         to: '/$appId/system/menus/$featureId',
         params: { appId, featureId: String(child.menu_id) },
       })

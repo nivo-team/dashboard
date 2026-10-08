@@ -62,8 +62,8 @@ export interface FeatureCommandSpec {
   actionType?: CapabilityAction['type']
   /** 指令入参的 JSON Schema（给模型看；页面侧仍要自己校验） */
   inputSchema?: Record<string, unknown>
-  /** ★ 执行体：**页面自己的处理函数**（复用 UI 上那颗按钮的同一段逻辑） */
-  run: (input: Record<string, unknown>) => unknown | Promise<unknown>
+  /** ★ 执行体：**页面自己的处理函数**（复用 UI 上那颗按钮的同一段逻辑）；同步/异步都行 */
+  run: (input: Record<string, unknown>) => unknown
 }
 
 /**
@@ -143,7 +143,7 @@ export interface FeatureSpec {
    * 重新取数（页面自己的语义：保留筛选 / 分页 / 排序）。
    * 写操作成功后由 `page-reload-bridge` 调用 —— 不登记的话，AI 改完数据界面还停在旧值。
    */
-  reload?: () => unknown | Promise<unknown>
+  reload?: () => unknown
   /** 打开本页的新建 / 编辑表单（AI 的 `open_form` 用） */
   openForm?: (options: FormOpenOptions) => void | Promise<void>
 }

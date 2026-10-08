@@ -40,7 +40,7 @@ for (const path in localeModules) {
  */
 const initialLocale = LOCALE_LOCK ?? usePreferencesStore.getState().locale
 
-i18n.use(initReactI18next).init({
+void i18n.use(initReactI18next).init({
   resources,
   lng: initialLocale,
   fallbackLng: 'zh-CN',

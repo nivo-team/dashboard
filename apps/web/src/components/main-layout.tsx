@@ -101,9 +101,9 @@ function SettingsModuleHeader() {
 
   const handleBack = () => {
     if (!isMultiAppEnabled()) {
-      navigate({ to: `/${appId}/home` as any })
+      void navigate({ to: `/${appId}/home` as any })
     } else {
-      navigate({ to: '/' as any })
+      void navigate({ to: '/' as any })
     }
     if (isMobile) {
       setOpenMobile(false)
@@ -172,7 +172,7 @@ function MainSidebar({ onOpenCommandPalette }: { onOpenCommandPalette: () => voi
   )
 
   const handleNav = (to: string) => {
-    navigate({ to: to as any })
+    void navigate({ to: to as any })
     if (isMobile) {
       setOpenMobile(false)
     }
@@ -227,7 +227,7 @@ function SettingsSidebar({ onOpenCommandPalette }: { onOpenCommandPalette: () =>
   )
 
   const handleNav = (to: string) => {
-    navigate({ to: to as any })
+    void navigate({ to: to as any })
     if (isMobile) {
       setOpenMobile(false)
     }

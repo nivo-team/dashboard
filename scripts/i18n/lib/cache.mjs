@@ -90,7 +90,7 @@ export function putCached(
   sourceText,
   targetText,
   meta = {},
-  config = loadConfig(),
+  _config = loadConfig(),
 ) {
   cache.entries[entryId(moduleName, keyPath)] = {
     src: sourceText,

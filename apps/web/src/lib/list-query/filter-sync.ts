@@ -1,5 +1,6 @@
 import type { QueryFilterField } from '#/api'
 import type { FilterCondition } from '#/components/table-controls'
+import { toDisplayText } from '#/lib/to-text'
 
 /**
  * 把当前 URL/QueryState 还原成 FilterCondition 数组，供 FilterBuilder 和 ActiveFilterChips 使用
@@ -20,8 +21,8 @@ export function queryToFilterConditions(
         conditions.push({
           id: `cond_${field.param}`,
           field: field.param,
-          value: hasMin ? String(minVal) : '',
-          valueTo: hasMax ? String(maxVal) : '',
+          value: hasMin ? toDisplayText(minVal) : '',
+          valueTo: hasMax ? toDisplayText(maxVal) : '',
         })
       }
     } else {
@@ -30,7 +31,7 @@ export function queryToFilterConditions(
         conditions.push({
           id: `cond_${field.param}`,
           field: field.param,
-          value: String(val),
+          value: toDisplayText(val),
         })
       }
     }

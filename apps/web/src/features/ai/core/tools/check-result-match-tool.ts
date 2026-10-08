@@ -1,4 +1,5 @@
 import { readFeatureData, resolveFeature } from '#/features/ai/page/registry'
+import { toDisplayText } from '#/lib/to-text'
 import type { AiToolDefinition } from '../types'
 
 /**
@@ -67,7 +68,7 @@ function isMatchMode(value: unknown): value is MatchMode {
  */
 function cellMatches(cell: unknown, value: string, mode: MatchMode, regex: RegExp | null): boolean {
   if (cell === null || cell === undefined) return false
-  const text = typeof cell === 'string' ? cell : String(cell)
+  const text = toDisplayText(cell)
   switch (mode) {
     case 'exact':
       return text === value

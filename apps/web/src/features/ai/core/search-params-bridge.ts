@@ -11,7 +11,7 @@ import { useEffect, useRef } from 'react'
  * 3. 若当前页面尚未挂载或无本地调度器，回退至通过 TanStack Router 导航更新 URL。
  */
 
-export type SearchParamsUpdater = (patch: Record<string, unknown>) => Promise<unknown> | unknown
+export type SearchParamsUpdater = (patch: Record<string, unknown>) => unknown
 
 let currentUpdater: SearchParamsUpdater | null = null
 

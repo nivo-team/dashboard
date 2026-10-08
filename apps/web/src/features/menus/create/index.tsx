@@ -75,10 +75,10 @@ export function NewFeaturePage({
   /** 回到父节点的落点视图：根 / 功能组 → 容器视图，功能 → 详情视图。 */
   const goBackToParent = useCallback(() => {
     if (pid === MENU_ROOT_ID) {
-      navigate({ to: '/$appId/system/menus', params: { appId } })
+      void navigate({ to: '/$appId/system/menus', params: { appId } })
       return
     }
-    navigate({
+    void navigate({
       to: '/$appId/system/menus/$featureId',
       params: { appId, featureId: String(pid) },
     })

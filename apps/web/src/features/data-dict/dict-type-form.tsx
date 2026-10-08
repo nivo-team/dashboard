@@ -2,6 +2,7 @@ import { Input, InputArea, Radio, Switch } from '@cloudflare/kumo'
 import type { TFunction } from 'i18next'
 import { useCallback, useEffect, useState } from 'react'
 import { useAiFormFields } from '#/features/ai/core'
+import { toDisplayText } from '#/lib/to-text'
 import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DICT_STATUS, DICT_VALUE_TYPE, toDictStatus, toDictValueType } from './data-dict-options'
@@ -210,7 +211,7 @@ export function DictTypeForm({
               if (onStatusChange) onStatusChange(next)
               else setInnerStatus(next)
             }
-            if (patch.sort !== undefined) setSortText(String(patch.sort ?? 0))
+            if (patch.sort !== undefined) setSortText(toDisplayText(patch.sort ?? 0))
             if (typeof patch.remark === 'string') setRemark(patch.remark)
           },
         }

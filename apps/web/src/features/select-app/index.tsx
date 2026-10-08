@@ -27,7 +27,7 @@ export function SelectAppPage({ redirect: redirectUrl }: { redirect?: string }) 
   // 选中应用并进入系统（动态同步此应用的 apiBaseUrl，并导航至带有 [appId] 前缀的业务路由 /$appId/home）
   const handleSelectApp = (appId: string) => {
     selectAppAndComplete(appId)
-    router.invalidate()
+    void router.invalidate()
     const target =
       redirectUrl &&
       redirectUrl.startsWith('/') &&
@@ -35,7 +35,7 @@ export function SelectAppPage({ redirect: redirectUrl }: { redirect?: string }) 
       redirectUrl !== '/'
         ? redirectUrl
         : `/${appId}/home`
-    navigate({ to: target as any })
+    void navigate({ to: target as any })
   }
 
   useEffect(() => {
@@ -64,7 +64,7 @@ export function SelectAppPage({ redirect: redirectUrl }: { redirect?: string }) 
       }
     }
 
-    loadApps()
+    void loadApps()
 
     return () => {
       isMounted = false

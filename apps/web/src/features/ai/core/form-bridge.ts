@@ -182,7 +182,7 @@ export function registerFormOpener(opener: FormOpener): () => void {
 
 export function openPageForm(options: FormOpenOptions): boolean {
   if (currentFormOpener) {
-    currentFormOpener(options)
+    void currentFormOpener(options)
     return true
   }
   return false

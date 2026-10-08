@@ -58,7 +58,7 @@ function useNuqsTanstackRouterAdapter(watchKeys: string[]) {
       ) => {
         if (!navigate) return
         startTransition(() => {
-          navigate({
+          void navigate({
             from: '/',
             to: pathname + renderQueryString(searchParams),
             replace: options.history === 'replace',

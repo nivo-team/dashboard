@@ -40,7 +40,7 @@ export function OAuthButtons({
   const handleProviderClick = (providerId: OAuthProviderId) => {
     // 真实生产环境：可在此重定向至后端 /oauth/:provider/authorize 授权地址
     // 模板开发环境：自动跳转至统一的回调路由并携带模拟 code 走通完整会话装配流程
-    navigate({
+    void navigate({
       to: '/oauth/$provider/callback',
       params: { provider: providerId },
       search: {

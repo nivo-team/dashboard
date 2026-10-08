@@ -67,7 +67,12 @@ out.push('export interface I18nNamespaceKeys {')
 for (const name of namespaces) {
   const keys = readModuleKeys(name, sourceLocale, config)
   out.push(`  ${JSON.stringify(name)}:`)
-  out.push(union([...keys.keys()].sort(), '    '))
+  out.push(
+    union(
+      [...keys.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
+      '    ',
+    ),
+  )
 }
 out.push('}')
 out.push('')

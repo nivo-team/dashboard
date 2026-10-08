@@ -242,13 +242,13 @@ export function TableExampleListPage() {
         onExpand: () => {
           // 分开写两个分支：`to` 用三元表达式时 TanStack 无法把 `params` 收窄到对应路由
           if (isEdit) {
-            navigate({
+            void navigate({
               to: '/$appId/example/table/$id/edit',
               params: { appId, id: String(id) },
             })
             return
           }
-          navigate({ to: '/$appId/example/table/new', params: { appId } })
+          void navigate({ to: '/$appId/example/table/new', params: { appId } })
         },
         onClose: () => {
           void setFormState({ form: null, formId: null })
@@ -286,7 +286,7 @@ export function TableExampleListPage() {
         : null
       setFormInitialData(initData)
       if (formOpenMode === 'page' || isMobile) {
-        navigate({ to: '/$appId/example/table/new', params: { appId } })
+        void navigate({ to: '/$appId/example/table/new', params: { appId } })
       } else {
         void setFormState({ form: 'create', formId: null })
         if (formOpenMode === 'split') {
@@ -303,7 +303,7 @@ export function TableExampleListPage() {
       const mergedUser = initialValues ? { ...user, ...initialValues } : user
       setFormInitialData(mergedUser)
       if (formOpenMode === 'page' || isMobile) {
-        navigate({
+        void navigate({
           to: '/$appId/example/table/$id/edit',
           params: { appId, id: String(user.id) },
         })
@@ -429,7 +429,7 @@ export function TableExampleListPage() {
         title: user.nickname || t('cell.unnamed', '未设置昵称'),
         description: `${t('detail.fields.id', 'ID')} ${id}`,
         onExpand: () => {
-          navigate({
+          void navigate({
             to: '/$appId/example/table/$id',
             params: { appId, id },
           })

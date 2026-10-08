@@ -6,6 +6,7 @@ import { createColumnHelper } from '@tanstack/react-table'
 import type { ColumnDef, StockFeatures } from '@tanstack/react-table'
 import { ArrayHoverCard } from '#/components/array-hover-card'
 import { formatNumber, useTimezone } from '#/lib/format'
+import { toDisplayText } from '#/lib/to-text'
 
 /**
  * 运行时 schema → 表格列的通用适配器。
@@ -128,7 +129,7 @@ function getByPath(row: unknown, path: string): unknown {
 function toText(value: unknown, empty: string): string {
   if (value === null || value === undefined || value === '') return empty
   if (typeof value === 'object') return empty
-  return String(value)
+  return toDisplayText(value)
 }
 
 function createDefaultRenderers<TData>(): Record<SchemaRenderKind, ColumnRenderer<TData>> {
@@ -217,7 +218,7 @@ export function useSchemaColumns<TData extends Record<string, unknown>>(
     const empty = labels?.empty ?? '-'
     const sortableSet = new Set(sortable ?? [])
     const defaults = createDefaultRenderers<TData>()
-    const rendererMap = { ...defaults, ...(renderers ?? {}) } as Record<
+    const rendererMap = { ...defaults, ...renderers } as Record<
       string,
       ColumnRenderer<TData> | undefined
     >

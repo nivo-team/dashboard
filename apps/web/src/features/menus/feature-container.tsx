@@ -78,7 +78,7 @@ export interface FeatureContainerSnapshot {
   loading: boolean
   keyword: string
   /** 重新取数（保留当前层与搜索状态）—— 页面把它接进 `feature.ts` 的 `reload` */
-  reload: () => Promise<unknown> | unknown
+  reload: () => unknown
 }
 
 interface FeatureContainerProps {
@@ -212,10 +212,10 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
       parentId === 0 ||
       parentId === MENU_ROOT_ID
     ) {
-      navigate({ to: '/$appId/system/menus', params: { appId } })
+      void navigate({ to: '/$appId/system/menus', params: { appId } })
       return
     }
-    navigate({
+    void navigate({
       to: '/$appId/system/menus/$featureId',
       params: { appId, featureId: String(parentId) },
     })
@@ -308,7 +308,7 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
       if (!menuIsNavigable(target) || target.menu_id === undefined || target.menu_id === null) {
         return
       }
-      navigate({
+      void navigate({
         to: '/$appId/system/menus/$featureId',
         params: { appId, featureId: String(target.menu_id) },
       })

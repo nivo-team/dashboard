@@ -34,7 +34,7 @@ export interface DictTypeDetailFeatureOptions {
   isDirty: boolean
   loading: boolean
   /** 重新取数（保留当前页面状态） */
-  reload: () => Promise<unknown> | unknown
+  reload: () => unknown
 }
 
 export function createDictTypeDetailFeature(options: DictTypeDetailFeatureOptions): FeatureSpec {

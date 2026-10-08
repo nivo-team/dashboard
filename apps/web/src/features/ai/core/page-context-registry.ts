@@ -40,7 +40,8 @@ export interface AiPageEndpointRef {
 export interface AiPageFormFieldSpec {
   name: string
   label: string
-  type?: 'text' | 'number' | 'switch' | 'select' | 'tags' | string
+  /** 渲染成哪种控件：本模板内置 `text | number | switch | select | tags`，页面可自行扩展 */
+  type?: string
   description?: string
   required?: boolean
   options?: Array<{ value: string; label: string }>

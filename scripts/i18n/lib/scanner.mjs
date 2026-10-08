@@ -256,7 +256,7 @@ function inRanges(ranges, pos) {
 }
 
 /** 抽取一个文件里的所有键引用。 */
-export function scanFile(file, config) {
+export function scanFile(file, _config) {
   const text = readFileSync(file, 'utf8')
   const rel = relative(ROOT, file)
   const commentRanges = collectCommentRanges(text)

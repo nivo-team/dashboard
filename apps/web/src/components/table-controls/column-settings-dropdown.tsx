@@ -346,7 +346,7 @@ export function ColumnSettingsDropdown({
                     checked={isChecked}
                     onCheckedChange={(checked) => {
                       onOtherVisibilityChange?.({
-                        ...(otherVisibility ?? {}),
+                        ...otherVisibility,
                         [opt.key]: !!checked,
                       })
                     }}

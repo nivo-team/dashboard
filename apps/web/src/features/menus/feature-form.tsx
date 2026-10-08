@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAiFormFields, type AiFormField } from '#/features/ai/core'
+import { toDisplayText } from '#/lib/to-text'
 import { MENU_STATUS, MENU_VISIBLE } from './feature-options'
 import { FeatureApiKeysField } from './feature-api-keys-field'
 
@@ -281,7 +282,7 @@ export function FeatureForm({
             if (typeof patch.permission === 'string') setPermission(patch.permission)
             if (Array.isArray(patch.api_keys)) setApiKeys(patch.api_keys.map(String))
             if (typeof patch.icon === 'string') setIcon(patch.icon)
-            if (patch.sort !== undefined) setSortText(String(patch.sort))
+            if (patch.sort !== undefined) setSortText(toDisplayText(patch.sort))
             if (patch.status !== undefined) {
               setStatus(
                 Number(patch.status) === MENU_STATUS.disabled

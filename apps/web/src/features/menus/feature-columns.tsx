@@ -7,6 +7,7 @@ import type { MenuNode } from '#/api'
 import { ArrayHoverCard } from '#/components/array-hover-card'
 import { useSchemaColumns } from '#/components/data-table'
 import type { ColumnRenderer, SchemaColumnSpec } from '#/components/data-table'
+import { toDisplayText } from '#/lib/to-text'
 import { useApiKeyLabel } from './feature-apis'
 import {
   menuIsAction,
@@ -88,7 +89,7 @@ export const FEATURE_CHILD_COLUMN_SPECS: SchemaColumnSpec<MenuNode>[] = [
 
 /** 枚举值无法识别时的兜底展示：保留原始值，避免静默丢数据。 */
 function RawEnumValue({ value, empty }: { value: unknown; empty: string }) {
-  const text = value === null || value === undefined || value === '' ? empty : String(value)
+  const text = value === null || value === undefined || value === '' ? empty : toDisplayText(value)
   return <span className="text-sm text-kumo-subtle">{text}</span>
 }
 

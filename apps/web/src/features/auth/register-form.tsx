@@ -104,7 +104,7 @@ export function RegisterForm({
 
       // 注册成功引导跳转至登录页
       setTimeout(() => {
-        navigate({ to: '/login' })
+        void navigate({ to: '/login' })
       }, 1000)
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : t('authFailed', '注册失败')

@@ -21,7 +21,7 @@ export function TableExampleEditPage({ appId, id }: { appId: string; id: string 
   useFeature(tableExampleEditFeature)
 
   const handleBack = () => {
-    navigate({ to: '/$appId/example/table', params: { appId } })
+    void navigate({ to: '/$appId/example/table', params: { appId } })
   }
 
   return (

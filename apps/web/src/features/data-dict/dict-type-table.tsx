@@ -186,7 +186,7 @@ export function DictTypeTable({
   const openType = useCallback(
     (node: DictType) => {
       if (node.id === undefined || node.id === null) return
-      navigate({
+      void navigate({
         to: '/$appId/system/data-dict/$typeId',
         params: { appId, typeId: String(node.id) },
       })

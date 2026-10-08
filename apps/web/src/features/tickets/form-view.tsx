@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { getTicketById, postTicket, putTicket, type TicketItem } from '#/api'
 import { useAiFormFields, useAiFormSubmit, type AiFormField } from '#/features/ai/core'
 import { appToastManager } from '#/lib/toast'
+import { toDisplayText } from '#/lib/to-text'
 
 /**
  * 工单表单（新建 / 编辑）—— 与 `table-example/form-view` 同一套结构：
@@ -130,7 +131,7 @@ export function TicketFormView({
       }
       if (typeof patch.description === 'string') setDescription(patch.description)
       // priority 可能是数字（模型给的）也可能是字符串（表单控件的值），统一成字符串
-      if (patch.priority !== undefined) setPriority(String(patch.priority))
+      if (patch.priority !== undefined) setPriority(toDisplayText(patch.priority))
       if (typeof patch.assignee === 'string') setAssignee(patch.assignee)
       if (typeof patch.category === 'string') setCategory(patch.category)
     },

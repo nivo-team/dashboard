@@ -6,6 +6,7 @@ import { CopyableValue } from '#/components/copyable-value'
 import { useSchemaColumns } from '#/components/data-table'
 import type { ColumnRenderer, SchemaColumnSpec } from '#/components/data-table'
 import { displayDictCode } from '#/lib/dict-key'
+import { toDisplayText } from '#/lib/to-text'
 import { DictItemText } from '#/lib/dict-messages'
 import { DICT_ITEM_SCHEMA, DICT_TYPE_SCHEMA } from './data-dict-types'
 import type { DictItem, DictType } from './data-dict-types'
@@ -79,7 +80,7 @@ export const DICT_ITEM_COLUMN_SPECS: SchemaColumnSpec<DictItem>[] = [
 
 /** 枚举值无法识别时的兜底展示：保留原始值，避免静默丢数据。 */
 export function RawEnumValue({ value, empty }: { value: unknown; empty: string }) {
-  const text = value === null || value === undefined || value === '' ? empty : String(value)
+  const text = value === null || value === undefined || value === '' ? empty : toDisplayText(value)
   return <span className="text-sm text-kumo-subtle">{text}</span>
 }
 
@@ -128,7 +129,7 @@ function renderDictTime(
 
 /** 可复制的机器串（键值 / 分类编码）：空值回落为占位符。 */
 function renderCopyable(value: unknown, empty: string): ReactNode {
-  const text = value === null || value === undefined || value === '' ? '' : String(value)
+  const text = value === null || value === undefined || value === '' ? '' : toDisplayText(value)
   return text ? (
     <CopyableValue text={text} />
   ) : (
@@ -145,7 +146,9 @@ function renderCopyable(value: unknown, empty: string): ReactNode {
  */
 function renderDictCode(value: unknown, empty: string): ReactNode {
   const text =
-    value === null || value === undefined || value === '' ? '' : displayDictCode(String(value))
+    value === null || value === undefined || value === ''
+      ? ''
+      : displayDictCode(toDisplayText(value))
   return text ? (
     <CopyableValue text={text} />
   ) : (
@@ -181,7 +184,7 @@ function useDictTypeRenderers(options?: {
       },
       code: ({ value, empty }) => (
         <span className="font-mono text-sm text-kumo-default whitespace-nowrap">
-          {value === null || value === undefined || value === '' ? empty : String(value)}
+          {value === null || value === undefined || value === '' ? empty : toDisplayText(value)}
         </span>
       ),
       copyCode: ({ value, empty }) => renderDictCode(value, empty),

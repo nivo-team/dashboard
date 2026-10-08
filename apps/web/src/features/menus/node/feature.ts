@@ -22,7 +22,7 @@ export interface FeatureNodeFeatureOptions {
   node: MenuNode | undefined
   loading: boolean
   /** 重新取数（保留当前层与搜索状态） */
-  reload: () => Promise<unknown> | unknown
+  reload: () => unknown
 }
 
 export function createFeatureNodeFeature(options: FeatureNodeFeatureOptions): FeatureSpec {

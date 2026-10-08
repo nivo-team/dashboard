@@ -26,7 +26,7 @@ async function call(method, path, body, token = authToken) {
       'content-type': 'application/json',
       authorization: `Bearer ${token}`,
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    ...(method !== 'GET' && body !== undefined ? { body: JSON.stringify(body) } : {}),
   })
   const text = await res.text()
   let json = null

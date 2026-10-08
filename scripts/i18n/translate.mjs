@@ -39,7 +39,6 @@ import { writeFileSync, existsSync } from 'node:fs'
 import {
   diffModule,
   isModuleEnabled,
-  listModules,
   loadConfig,
   moduleFile,
   normalizeLocale,
@@ -49,7 +48,7 @@ import {
   ROOT,
 } from './lib/config.mjs'
 import { getCached, loadCache, putCached, saveCache } from './lib/cache.mjs'
-import { readProviderConfig, translateBatch } from './lib/provider.mjs'
+import { translateBatch } from './lib/provider.mjs'
 
 // ---------------------------------------------------------------- 参数
 
@@ -146,7 +145,9 @@ for (const locale of targetLocales) {
       所以默认只翻真正缺失的 `added`；确需重翻时显式 `--include-stale`。
     */
     const pendingKeys =
-      force || includeStale ? [...diff.added, ...diff.stale].sort() : [...diff.added].sort()
+      force || includeStale
+        ? [...diff.added, ...diff.stale].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+        : [...diff.added].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
 
     if (!includeStale && !force) stats.staleSkipped += diff.stale.length
 
@@ -304,7 +305,7 @@ if (asJson) {
 
   if (stats.errors.length) {
     console.log('\n问题：')
-    for (const message of stats.errors.slice(0, 20)) console.log(`  ⚠ ${message}`)
+    for (const message of stats.errors.slice(0, 20)) console.log(`  ⚠ ${String(message)}`)
     if (stats.errors.length > 20) console.log(`  …还有 ${stats.errors.length - 20} 条`)
   }
 }

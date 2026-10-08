@@ -12,7 +12,8 @@ import { registerAiPageContext, clearAiPageContext } from './page-context-regist
 export interface CapabilityFormField {
   name: string
   label: string
-  type?: 'text' | 'number' | 'switch' | 'select' | 'tags' | string
+  /** 渲染成哪种控件：本模板内置 `text | number | switch | select | tags`，页面可自行扩展 */
+  type?: string
   required?: boolean
   description?: string
   options?: Array<{ value: string; label: string }>
@@ -90,7 +91,8 @@ export interface CapabilityEndpoint {
 export interface CapabilitySearchParamField {
   param: string
   label: string
-  type?: 'text' | 'number' | 'number-range' | 'boolean' | 'enum' | 'array' | string
+  /** 筛选控件形态：本模板内置 `text | number | number-range | boolean | enum | array` */
+  type?: string
   description?: string
   options?: readonly string[]
   paramTo?: string

@@ -160,7 +160,7 @@ export function DataDictTypeDetailPage({ typeId }: { typeId: string }) {
   }, [])
 
   const goList = useCallback(() => {
-    navigate({ to: '/$appId/system/data-dict', params: { appId } })
+    void navigate({ to: '/$appId/system/data-dict', params: { appId } })
   }, [appId, navigate])
 
   /**

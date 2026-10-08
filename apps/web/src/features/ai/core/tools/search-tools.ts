@@ -1,3 +1,4 @@
+import { toDisplayText } from '#/lib/to-text'
 import { updatePageSearchParams } from '../search-params-bridge'
 import type { AiToolDefinition } from '../types'
 
@@ -58,7 +59,7 @@ export const updateSearchParamsTool: AiToolDefinition = {
         if (value === null || value === undefined || value === '') {
           currentSearchParams.delete(key)
         } else {
-          currentSearchParams.set(key, String(value))
+          currentSearchParams.set(key, toDisplayText(value))
         }
       }
 

@@ -1,5 +1,3 @@
-import { defineRouteMeta } from 'nitro'
-
 /**
  * 生成统一的响应包装 schema：`{ code, message, result }`。
  *

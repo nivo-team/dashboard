@@ -25,7 +25,6 @@ const template = readFileSync(templatePath, 'utf8')
 const issue = JSON.parse(readFileSync(issuePath, 'utf8'))
 
 const title = String(issue.title ?? '').trim()
-const number = issue.number ?? ''
 
 if (!title) {
   console.error('::error::issue 标题为空，无法组装提示词')

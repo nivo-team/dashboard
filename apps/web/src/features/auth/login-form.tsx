@@ -159,13 +159,13 @@ export function LoginForm({
           redirectUrl !== '/select-app'
             ? redirectUrl
             : `/${defaultApp.id}/home`
-        navigate({ to: target as any })
+        void navigate({ to: target as any })
       } else {
         // 多应用模式：暂存登录态，进入应用选择路由以获取并选定工作空间应用
         setAuthenticatedSession(data)
         onSuccess?.()
         await router.invalidate()
-        navigate({
+        void navigate({
           to: '/',
           search: { redirect: redirectUrl },
         })

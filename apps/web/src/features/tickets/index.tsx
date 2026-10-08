@@ -27,6 +27,7 @@ import { useHasPermission } from '#/lib/permissions'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 import { useAppTableState, usePreferencesStore } from '#/lib/store'
 import { appToastManager } from '#/lib/toast'
+import { toDisplayText } from '#/lib/to-text'
 import {
   DEFAULT_HIDDEN_COLUMNS,
   MIN_COLUMN_WIDTH,
@@ -236,7 +237,7 @@ export function TicketsListPage() {
         mode: 'split',
         // 「展开」= 去独立页表单（与 table-example 同一约定）
         onExpand: () => {
-          navigate({
+          void navigate({
             to: isEdit ? '/$appId/example/tickets/$id/edit' : '/$appId/example/tickets/new',
             params: isEdit ? { appId, id: String(id) } : { appId },
           })
@@ -274,7 +275,7 @@ export function TicketsListPage() {
       const initData = initialValues ? ({ id: 0, title: '', ...initialValues } as TicketItem) : null
       setFormInitialData(initData)
       if (formOpenMode === 'page' || isMobile) {
-        navigate({ to: '/$appId/example/tickets/new', params: { appId } })
+        void navigate({ to: '/$appId/example/tickets/new', params: { appId } })
         return
       }
       void setFormState({ form: 'create', formId: null })
@@ -288,7 +289,7 @@ export function TicketsListPage() {
       const merged = initialValues ? { ...ticket, ...initialValues } : ticket
       setFormInitialData(merged)
       if (formOpenMode === 'page' || isMobile) {
-        navigate({
+        void navigate({
           to: '/$appId/example/tickets/$id/edit',
           params: { appId, id: String(ticket.id) },
         })
@@ -313,13 +314,19 @@ export function TicketsListPage() {
       status: ({ value }) => {
         const num = Number(value)
         return (
-          <span className="text-kumo-default">{STATUS_LABEL[num] ?? String(value ?? '-')}</span>
+          <span className="text-kumo-default">
+            {STATUS_LABEL[num] ??
+              (value === null || value === undefined ? '-' : toDisplayText(value))}
+          </span>
         )
       },
       priority: ({ value }) => {
         const num = Number(value)
         return (
-          <span className="text-kumo-default">{PRIORITY_LABEL[num] ?? String(value ?? '-')}</span>
+          <span className="text-kumo-default">
+            {PRIORITY_LABEL[num] ??
+              (value === null || value === undefined ? '-' : toDisplayText(value))}
+          </span>
         )
       },
     }),

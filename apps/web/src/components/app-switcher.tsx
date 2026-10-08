@@ -47,7 +47,7 @@ export function AppSwitcher({
   const handleSelect = (app: AppItem) => {
     auth.setCurrentApp(app.id)
     onAppChange?.(app)
-    router.navigate({ to: `/${app.id}/home` as any })
+    void router.navigate({ to: `/${app.id}/home` as any })
   }
 
   const currentAppName = t(`apps.${currentApp.id}.name`, currentApp.name)

@@ -11,7 +11,7 @@ import type { FeatureSpec } from '#/features/ai/page'
 export interface RoleListFeatureOptions {
   roles: readonly RoleItem[]
   loading: boolean
-  reload: () => Promise<unknown> | unknown
+  reload: () => unknown
 }
 
 export function createRoleListFeature(options: RoleListFeatureOptions): FeatureSpec {

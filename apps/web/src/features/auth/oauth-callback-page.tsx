@@ -85,7 +85,7 @@ export function OAuthCallbackPage({
             redirectUrl !== '/select-app'
               ? redirectUrl
               : `/${defaultApp.id}/home`
-          navigate({ to: target as any })
+          void navigate({ to: target as any })
         } else {
           setAuthenticatedSession({
             token: mockToken,
@@ -93,7 +93,7 @@ export function OAuthCallbackPage({
             apps: [getDefaultApp()],
           })
           await router.invalidate()
-          navigate({
+          void navigate({
             to: '/',
             search: { redirect: redirectUrl },
           })
@@ -114,7 +114,7 @@ export function OAuthCallbackPage({
       }
     }
 
-    processCallback()
+    void processCallback()
 
     return () => {
       isMounted = false

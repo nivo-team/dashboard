@@ -1,5 +1,6 @@
 import { readFeatureData, resolveFeature } from '#/features/ai/page/registry'
 import type { FeatureDataFieldSpec } from '#/features/ai/page/types'
+import { toDisplayText } from '#/lib/to-text'
 import { needsApproval } from '../approval-policy'
 import { DATA_READ_GRANT } from '../session-permissions'
 import type { AiToolDefinition } from '../types'
@@ -570,7 +571,7 @@ function matchesValue(
   }
 
   if (comparator === 'contains') {
-    return String(actual ?? '').includes(String(expected ?? ''))
+    return toDisplayText(actual).includes(toDisplayText(expected))
   }
 
   if (comparator === 'eq') return valuesEqual(actual, expected, spec.type)
@@ -815,8 +816,8 @@ function compareValues(
     return left === right ? 0 : left < right ? -1 : 1
   }
   if (type === 'boolean') return null
-  const left = String(actual ?? '')
-  const right = String(expected ?? '')
+  const left = toDisplayText(actual)
+  const right = toDisplayText(expected)
   return left === right ? 0 : left < right ? -1 : 1
 }
 
@@ -885,10 +886,11 @@ function groupKey(value: unknown): string {
     try {
       return `json:${JSON.stringify(value)}`
     } catch {
-      return `object:${String(value)}`
+      // 循环引用等情况 JSON.stringify 会抛：退回对象自身的类型标签（显式转换，避免隐式 `[object Object]`）
+      return `object:${Object.prototype.toString.call(value)}`
     }
   }
-  return `${typeof value}:${String(value)}`
+  return `${typeof value}:${toDisplayText(value)}`
 }
 
 function describeFields(fields: Map<string, FeatureDataFieldSpec>): string {

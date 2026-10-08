@@ -24,7 +24,7 @@ import { useEffect, useRef } from 'react'
  * - 登记用 `useRef` + 空依赖 effect：闭包每轮渲染更新（筛选变了要取新数据），
  *   但**注册只做一次**，不因为依赖变化引发重注册抖动。
  */
-type PageReload = () => Promise<unknown> | unknown
+type PageReload = () => unknown
 
 let currentReload: PageReload | null = null
 

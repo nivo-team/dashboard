@@ -21,7 +21,7 @@ export function TableExampleCreatePage({ appId }: { appId: string }) {
   useFeature(tableExampleCreateFeature)
 
   const handleBack = () => {
-    navigate({ to: '/$appId/example/table', params: { appId } })
+    void navigate({ to: '/$appId/example/table', params: { appId } })
   }
 
   return (

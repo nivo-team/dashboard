@@ -68,8 +68,8 @@ export const LOCALE_NAMES = {
  * @param {string} options.targetLocale
  * @param {string} options.moduleName 给模型一点模块上下文（术语更一致）
  * @param {Record<string,string>} options.entries 键 → 源文
- * @param {Record<string,string>} options.glossary 术语表（可选）
- * @param {Record<string,string>} options.moduleDescriptions 模块 → 中文说明
+ * @param {Record<string,string>} [options.glossary] 术语表（可选，缺省则不加术语约束）
+ * @param {Record<string,string>} options.moduleDescriptions 模块 → 中文说明（必传）
  */
 export function buildPrompt({
   sourceLocale,
@@ -77,7 +77,7 @@ export function buildPrompt({
   moduleName,
   entries,
   glossary = {},
-  moduleDescriptions = {},
+  moduleDescriptions,
 }) {
   const sourceName = LOCALE_NAMES[sourceLocale] ?? sourceLocale
   const targetName = LOCALE_NAMES[targetLocale] ?? targetLocale

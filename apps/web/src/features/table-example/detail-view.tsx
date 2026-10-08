@@ -110,7 +110,7 @@ export function TableExampleDetailView({
   }, [id])
 
   useEffect(() => {
-    loadDetail()
+    void loadDetail()
   }, [loadDetail])
 
   /*

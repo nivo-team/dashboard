@@ -112,7 +112,7 @@ export function createDashboardFeature(options: DashboardFeatureOptions): Featur
           additionalProperties: false,
         },
         run: (input) => {
-          const type = String(input.type ?? '').trim()
+          const type = typeof input.type === 'string' ? input.type.trim() : ''
           const option = findOption(type)
           if (!option) {
             throw new Error(
@@ -141,7 +141,7 @@ export function createDashboardFeature(options: DashboardFeatureOptions): Featur
           additionalProperties: false,
         },
         run: (input) => {
-          const id = String(input.id ?? '').trim()
+          const id = typeof input.id === 'string' ? input.id.trim() : ''
           const widget = options.widgets.find((item) => item.id === id)
           if (!widget) {
             throw new Error(

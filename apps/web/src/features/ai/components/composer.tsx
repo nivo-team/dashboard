@@ -144,16 +144,23 @@ function isTextFile(file: File): boolean {
 function fileToImageFile(file: File): Promise<AiImageFile> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = () =>
+    reader.onload = () => {
+      // `readAsDataURL` 按契约返回字符串；显式收窄，避免 `String(result)` 落到 `[object Object]`
+      const result = reader.result
+      if (typeof result !== 'string') {
+        reject(new Error('read failed'))
+        return
+      }
       resolve({
         kind: 'image',
-        url: String(reader.result),
+        url: result,
         // 少数文件系统回来的 `file.type` 是空串 —— 回落成通用图片类型
         mediaType: file.type || 'image/png',
         // 粘贴来的截图没有文件名，那就只靠媒体类型
         ...(file.name ? { name: file.name } : {}),
         size: file.size,
       })
+    }
     reader.onerror = () => reject(reader.error ?? new Error('read failed'))
     reader.readAsDataURL(file)
   })

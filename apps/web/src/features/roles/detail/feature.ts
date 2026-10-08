@@ -12,7 +12,7 @@ export interface RoleDetailFeatureOptions {
   /** 当前勾选的菜单 id（草稿优先，未改动时是接口返回的授权）。 */
   menuIds: readonly number[]
   loading: boolean
-  reload: () => Promise<unknown> | unknown
+  reload: () => unknown
 }
 
 export function createRoleDetailFeature(options: RoleDetailFeatureOptions): FeatureSpec {

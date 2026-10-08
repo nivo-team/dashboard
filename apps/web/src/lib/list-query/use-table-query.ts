@@ -86,7 +86,7 @@ export function useTableQuery<
   useAiSearchParamsUpdater(
     useCallback(
       (patch) => {
-        void setRawQuery(patch)
+        setRawQuery(patch)
       },
       [setRawQuery],
     ),
@@ -114,9 +114,9 @@ export function useTableQuery<
       const next = typeof updater === 'function' ? updater(sorting) : updater
       const first = next[0]
       if (!first) {
-        void setRawQuery({ field: null, order: null, page: 1 })
+        setRawQuery({ field: null, order: null, page: 1 })
       } else {
-        void setRawQuery({
+        setRawQuery({
           field: first.id,
           order: first.desc ? 'desc' : 'asc',
           page: 1,
@@ -135,27 +135,27 @@ export function useTableQuery<
   const onSearch = useCallback(
     (customVal?: string) => {
       const kw = (customVal !== undefined ? customVal : searchInput).trim()
-      void setRawQuery({ kw: kw || null, page: 1 })
+      setRawQuery({ kw: kw || null, page: 1 })
     },
     [searchInput, setRawQuery],
   )
 
   const onClear = useCallback(() => {
     setSearchInput('')
-    void setRawQuery({ kw: null, page: 1 })
+    setRawQuery({ kw: null, page: 1 })
   }, [setRawQuery])
 
   // 5. 分页控制器
   const onPageChange = useCallback(
     (page: number) => {
-      void setRawQuery({ page })
+      setRawQuery({ page })
     },
     [setRawQuery],
   )
 
   const onPageSizeChange = useCallback(
     (pageSize: number) => {
-      void setRawQuery({ page_size: pageSize, page: 1 })
+      setRawQuery({ page_size: pageSize, page: 1 })
     },
     [setRawQuery],
   )
@@ -171,7 +171,7 @@ export function useTableQuery<
   const onApplyFilters = useCallback(
     (draft: FilterCondition[]) => {
       const patch = filterConditionsToQueryPatch(draft, fields, filterKeys)
-      void setRawQuery({ ...patch, page: 1 })
+      setRawQuery({ ...patch, page: 1 })
     },
     [fields, filterKeys, setRawQuery],
   )
@@ -179,14 +179,14 @@ export function useTableQuery<
   const onClearFilters = useCallback(() => {
     const patch: Record<string, null> = {}
     for (const k of filterKeys) patch[k] = null
-    void setRawQuery({ ...patch, page: 1 })
+    setRawQuery({ ...patch, page: 1 })
   }, [filterKeys, setRawQuery])
 
   const onRemoveFilter = useCallback(
     (conditionId: string) => {
       const updated = appliedFilters.filter((c) => c.id !== conditionId)
       const patch = filterConditionsToQueryPatch(updated, fields, filterKeys)
-      void setRawQuery({ ...patch, page: 1 })
+      setRawQuery({ ...patch, page: 1 })
     },
     [appliedFilters, fields, filterKeys, setRawQuery],
   )

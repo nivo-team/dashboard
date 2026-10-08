@@ -1,4 +1,5 @@
 import { displayDictCode } from '#/lib/dict-key'
+import { toDisplayText } from '#/lib/to-text'
 import { filterTreeByMatch } from '#/lib/tree-search'
 import type { DictType } from './data-dict-types'
 
@@ -64,7 +65,7 @@ export function toEpochMs(value: unknown): number | null {
     return Number.isFinite(value) ? (value < 1e11 ? value * 1000 : value) : null
   }
 
-  const text = String(value).trim()
+  const text = toDisplayText(value).trim()
   if (!text) return null
 
   const numeric = Number(text)

@@ -30,7 +30,7 @@ export interface DictTypeListFeatureOptions {
   rootName?: string
   loading: boolean
   /** 重新取数（保留当前列表状态） */
-  reload: () => Promise<unknown> | unknown
+  reload: () => unknown
 }
 
 export function createDictTypeListFeature(options: DictTypeListFeatureOptions): FeatureSpec {
