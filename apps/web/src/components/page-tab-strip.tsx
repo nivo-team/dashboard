@@ -102,31 +102,6 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
   const navRef = useRef<HTMLElement | null>(null)
 
   /*
-    主流标签栏标准做法（参考 Ant Design / Element Plus）：
-    当激活标签改变或标签增减时，在下一帧（requestAnimationFrame 确保 DOM 尺寸就绪）
-    统一将激活的未固定标签平滑居中滚入视口，彻底杜绝贴边被裁截。
-  */
-  useEffect(() => {
-    if (!navRef.current || !activeTab) return
-    const frameId = requestAnimationFrame(() => {
-      const nav = navRef.current
-      if (!nav) return
-      // 仅对滚动区内的标签执行带入视口（固定标签无需滚动）
-      const activeNode = nav.querySelector<HTMLElement>(
-        `[data-page-tab="${CSS.escape(activeTab.to)}"]`,
-      )
-      if (!activeNode) return
-
-      activeNode.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'center',
-      })
-    })
-    return () => cancelAnimationFrame(frameId)
-  }, [activeTab?.to, tabs.length])
-
-  /*
     固定的标签与未固定的一起排（`tabs` 已是「固定的在前」的顺序），但**渲染进两个容器**：
     固定的那个不参与滚动。这里先按合并顺序取好下标 —— 右键菜单的
     「关闭左侧 / 右侧」判的就是这个顺序，不能按分组后的局部下标算。
@@ -180,6 +155,50 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
     if (!over || active.id === over.id) return
     moveTab(String(active.id), String(over.id))
   }
+
+  /*
+    主流标签栏标准做法（参考 Ant Design / Element Plus）：
+    当激活标签改变或标签增减时，在下一帧（requestAnimationFrame 确保 DOM 尺寸就绪）
+    执行智能边界对齐：
+    - 切换到最后一个标签：直接平滑滚动到底（scrollWidth），紧凑贴合，不留任何多余 padding；
+    - 切换到第一个标签：直接平滑滚动到起点（0）；
+    - 中间标签：平滑居中带入视口（inline: 'center'）。
+  */
+  useEffect(() => {
+    if (!navRef.current || !activeTab) return
+    const frameId = requestAnimationFrame(() => {
+      const nav = navRef.current
+      if (!nav) return
+
+      const lastUnpinned = unpinnedEntries[unpinnedEntries.length - 1]
+      const firstUnpinned = unpinnedEntries[0]
+
+      if (lastUnpinned && activeTab.to === lastUnpinned.tab.to) {
+        // 最后一个标签：直接滚到底，紧凑贴合不留 padding
+        nav.scrollTo({ left: nav.scrollWidth, behavior: 'smooth' })
+        return
+      }
+
+      if (firstUnpinned && activeTab.to === firstUnpinned.tab.to) {
+        // 第一个标签：直接滚到最左起点
+        nav.scrollTo({ left: 0, behavior: 'smooth' })
+        return
+      }
+
+      // 中间标签：视口居中呈现
+      const activeNode = nav.querySelector<HTMLElement>(
+        `[data-page-tab="${CSS.escape(activeTab.to)}"]`,
+      )
+      if (!activeNode) return
+
+      activeNode.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      })
+    })
+    return () => cancelAnimationFrame(frameId)
+  }, [activeTab?.to, tabs.length, unpinnedEntries])
 
   return (
     <div
@@ -298,8 +317,6 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
                     active={tab.to === activeTab?.to}
                   />
                 ))}
-                {/* 滚动末尾安全垫块：解决 WebKit overflow-x 容器末尾 padding 丢失导致最后一个 Tab 被右边缘裁切的问题 */}
-                <span aria-hidden className="w-8 shrink-0 self-stretch pointer-events-none" />
               </div>
             </nav>
           </div>
