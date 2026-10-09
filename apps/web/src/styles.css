@@ -96,12 +96,14 @@
  *
  * ## 几何怎么来的（上一版写反了，这里写清楚）
  *
- * 倒角长在标签**外侧**：一块 8×8 的方框贴在标签的左/右下角，与标签边**重叠 1px**
+ * 倒角长在标签**外侧**：一块边长 = 半径的方框贴在标签的左/右下角，与标签边**重叠 1px**
  * （圆弧末端才能接上标签自己那 1px 描边，不留缝）。
  * 圆弧的圆心在方框**外侧那个上角**（左倒角是左上角、右倒角是右上角）—— 只有这样，
- * 半径 8 的圆才同时与「标签的侧边」（竖线）和「底部那条线」（横线）**相切**：
- * 切点正是圆弧的起止点，于是圆弧从标签侧边平滑地拐到底部，像长出来的一样。
+ * 半径 r 的圆才同时与「标签的侧边」（竖线）和「底部那条线」（横线）**相切**：
+ * 切点正是圆弧的起止点（距底 r、距标签边 r），于是圆弧从标签侧边平滑地拐到底部。
  * 要画的区域 = 方框减去这个圆 —— 剩下的正好是贴着标签角的那一小弯月牙。
+ * **r 决定接得顺不顺**：切点距底就是 r，曲率半径也是 r —— r 太小（如 8）时曲线又短又陡，
+ * 看起来就像在角上贴了个钩子；这里取 10（与参考实现同档），曲线从底往上 10px 就开始外翻。
  *
  * 反过来（圆心放在方框内侧那个下角）会得到相反的形状：贴着标签的地方被挖空、
  * 外层反而糊上一块，看着就是「倒角画反了」。
@@ -126,51 +128,54 @@
   content: '';
   position: absolute;
   bottom: 0;
-  width: 8px;
-  height: 8px;
+  /* 倒角半径。**越大曲线越长越缓**：切点距底 = 半径，半径 10 意味着曲线从底往上 10px
+     就开始外翻（34px 高的标签上约占三成），看起来才是「标签的边顺着拐出去」而不是
+     「底下贴了个钩子」。参考实现取的也是 10。 */
+  width: 10px;
+  height: 10px;
 }
 
 [data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::before {
-  /* -8px + 1px：与标签边重叠 1px，圆弧才接得上标签的侧边描边 */
-  inset-inline-start: -7px;
+  /* -10px + 1px：与标签边重叠 1px，圆弧才接得上标签的侧边描边 */
+  inset-inline-start: -9px;
   background: radial-gradient(
-    circle 8px at 0 0,
-    transparent 6.9px,
-    var(--shell-chrome-line) 7.05px,
-    var(--shell-chrome-line) 8.1px,
-    var(--color-kumo-base) 8.2px
+    circle 10px at 0 0,
+    transparent 8.9px,
+    var(--shell-chrome-line) 9.05px,
+    var(--shell-chrome-line) 10.1px,
+    var(--color-kumo-base) 10.2px
   );
 }
 
 [data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::after {
-  inset-inline-end: -7px;
+  inset-inline-end: -9px;
   background: radial-gradient(
-    circle 8px at 100% 0,
-    transparent 6.9px,
-    var(--shell-chrome-line) 7.05px,
-    var(--shell-chrome-line) 8.1px,
-    var(--color-kumo-base) 8.2px
+    circle 10px at 100% 0,
+    transparent 8.9px,
+    var(--shell-chrome-line) 9.05px,
+    var(--shell-chrome-line) 10.1px,
+    var(--color-kumo-base) 10.2px
   );
 }
 
 /* RTL：凹弧要贴在标签那一侧（渐变中心是物理方向，逻辑属性换边后这里得跟着换） */
 [dir='rtl'] [data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::before {
   background: radial-gradient(
-    circle 8px at 100% 0,
-    transparent 6.9px,
-    var(--shell-chrome-line) 7.05px,
-    var(--shell-chrome-line) 8.1px,
-    var(--color-kumo-base) 8.2px
+    circle 10px at 100% 0,
+    transparent 8.9px,
+    var(--shell-chrome-line) 9.05px,
+    var(--shell-chrome-line) 10.1px,
+    var(--color-kumo-base) 10.2px
   );
 }
 
 [dir='rtl'] [data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::after {
   background: radial-gradient(
-    circle 8px at 0 0,
-    transparent 6.9px,
-    var(--shell-chrome-line) 7.05px,
-    var(--shell-chrome-line) 8.1px,
-    var(--color-kumo-base) 8.2px
+    circle 10px at 0 0,
+    transparent 8.9px,
+    var(--shell-chrome-line) 9.05px,
+    var(--shell-chrome-line) 10.1px,
+    var(--color-kumo-base) 10.2px
   );
 }
 

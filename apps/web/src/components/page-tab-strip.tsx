@@ -161,9 +161,9 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
               'flex min-w-0 max-w-[80%] shrink overflow-x-auto overscroll-x-contain [scrollbar-width:none]',
               // `items-*` 走三目：本仓的 `cn` 只拼接、不合并，两个对齐类同时在场就只剩源码顺序可赌
               variant === 'chrome'
-                ? // 左右各留 8px：给激活标签那对**底部倒角**留出画的地方（它也长在标签外侧），
-                  // `-mb-px` 则让标签往下探 1px、盖住窗口条那条下边线（详见该外观的注释）
-                  '-mb-px h-full items-end gap-0 px-2'
+                ? // 左右各留 10px：给激活标签那对**底部倒角**留出画的地方（它长在标签外侧，
+                  // 半径 10 就往外探 9px）；`-mb-px` 让标签往下探 1px、盖住窗口条的下边线
+                  '-mb-px h-full items-end gap-0 px-2.5'
                 : 'items-center gap-1',
             )}
           >
