@@ -44,23 +44,46 @@
           if (!fromUrl && !remembered) return
 
           var marks = {}
+          var titleBarH = 40
+          var platform = ''
           if (fromUrl) {
+            var rawH = parseInt(params.get('__desktop_title_bar_h'), 10)
+            if (!isNaN(rawH) && rawH > 0) titleBarH = rawH
+            platform = params.get('__desktop_platform') || ''
             params.forEach(function (value, key) {
+              if (key === '__desktop_title_bar_h' || key === '__desktop_platform') return
               if (key.indexOf('__desktop_') === 0) marks[key.slice('__desktop_'.length)] = value
             })
           } else {
             marks = (remembered && remembered.marks) || {}
+            if (remembered && remembered.titleBarH) titleBarH = remembered.titleBarH
+            if (remembered && remembered.platform) platform = remembered.platform
           }
 
           window.__DESKTOP__ = true
+          window.__DESKTOP_PLATFORM__ = platform
+          window.__DESKTOP_TITLE_BAR_H__ = titleBarH
           window.__DESKTOP_MARKS__ = marks
           var root = document.documentElement
           root.classList.add('is_desktop')
           root.dataset.isDesktop = 'true'
+          if (platform) {
+            root.dataset.desktopPlatform = platform
+            if (platform === 'darwin') root.classList.add('is_mac')
+          }
+          root.style.setProperty('--shell-chrome-h', titleBarH + 'px')
+          // 仅在 macOS 下设置 78px 红绿灯留白，其他系统为 0px
+          root.style.setProperty(
+            '--shell-traffic-light-w',
+            platform === 'darwin' ? '78px' : '0px',
+          )
 
           if (fromUrl) {
             try {
-              window.sessionStorage.setItem(STORE_KEY, JSON.stringify({ marks: marks }))
+              window.sessionStorage.setItem(
+                STORE_KEY,
+                JSON.stringify({ marks: marks, titleBarH: titleBarH, platform: platform }),
+              )
             } catch (error) {
               /* 存不下就退化成「只有带标记的这一次加载算桌面壳」 */
             }
@@ -71,6 +94,8 @@
 
           // 标记是壳自己加的，不该留在地址栏里（否则会被当成路由的 search 参数）
           params.delete('__desktop')
+          params.delete('__desktop_title_bar_h')
+          params.delete('__desktop_platform')
           Object.keys(marks).forEach(function (key) {
             params.delete('__desktop_' + key)
           })

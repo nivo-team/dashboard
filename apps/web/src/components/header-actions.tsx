@@ -58,7 +58,7 @@ export function HeaderActions({
   const supportLabel = t('profileNav.support', '支持')
 
   return (
-    <div className="ms-auto flex shrink-0 items-center gap-2">
+    <div className="ms-auto flex shrink-0 items-center gap-2 no-drag">
       {showAskAi ? (
         /*
           Tooltip 走 `render={<Button/>}`：Kumo 的 Tooltip 自己就是 trigger，

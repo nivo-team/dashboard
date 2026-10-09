@@ -3,6 +3,8 @@ import { LocaleSwitcher } from '#/components/locale-switcher'
 import { RouterLink } from '#/components/router-link'
 import { ThemeSwitcher } from '#/components/theme-switcher'
 import { useBrand } from '#/lib/brand'
+import { cn } from '#/lib/cn'
+import { handleDesktopHeaderDoubleClick, isDesktop } from '#/lib/desktop-bridge'
 
 export interface AuthHeaderProps {
   /** 额外的外层样式类 */
@@ -35,23 +37,29 @@ export function AuthHeader({ className = '', rightContrastOnLg }: AuthHeaderProp
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 flex h-16 w-full items-center justify-between px-6 pointer-events-none sm:px-10 ${className}`}
+      onDoubleClick={handleDesktopHeaderDoubleClick}
+      className={cn(
+        'fixed top-0 left-0 right-0 z-50 flex h-16 w-full items-center justify-between px-6 sm:px-10',
+        isDesktop() ? 'select-none drag' : 'pointer-events-none',
+        isDesktop() && 'ps-[var(--shell-traffic-light-w,78px)]',
+        className,
+      )}
     >
       {/* 最左侧：纯净品牌 Logo 图标（无背景、无文字） */}
-      <div className="pointer-events-auto">
+      <div className="pointer-events-auto no-drag">
         <RouterLink
           to="/login"
           variant="plain"
           aria-label={brand.name}
           title={brand.name}
-          className="flex items-center text-kumo-default transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded-lg p-1"
+          className="flex items-center text-kumo-default transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kumo-brand rounded-lg p-1 no-drag"
         >
           <LogoIcon size={24} className="shrink-0 text-kumo-default" />
         </RouterLink>
       </div>
 
       {/* 最右侧：语言切换与主题切换 */}
-      <div className="pointer-events-auto flex items-center gap-1.5">
+      <div className="pointer-events-auto flex items-center gap-1.5 no-drag">
         <LocaleSwitcher className={switcherClassName} />
         <ThemeSwitcher className={switcherClassName} />
       </div>

@@ -55,29 +55,25 @@ wails3 task test                                     # = pnpm desktop:test
 | web → Go 的通用调用 | `bridge.Registry`（`internal/bridge/`）+ 页面侧 `__bridge.call(name, payload)` |
 | Go → web 的事件推送 | `registry.Emit(name, data)` → 页面侧 `__bridge.on(name, handler)` |
 | 来源校验 | `shell.Config.OriginAllowed`（只认配置地址那一个来源） |
-| 无系统标题栏（页面自己画窗口条） | `WebviewWindowOptions.Frameless` + 页面侧 `--wails-draggable`（见下节） |
+| 系统原生标题栏与红绿灯 UI | `Frameless: false` + `MacTitleBar`（透明全尺寸标题栏融入系统红绿灯） |
+| 标题栏/红绿灯高度注入 | 启动时注入 `__desktop_title_bar_h=40`（默认 40px，落地为 `--shell-chrome-h`） |
+| 窗口拖拽与交互区保护 | 页面侧 `--wails-draggable: drag`，按钮等写 `no-drag` 退出 |
 | 窗口自身动作 | `window.minimise` / `window.toggleMaximise` / `window.close` |
 
 页面侧的唯一接口在 [`apps/web/src/lib/desktop-bridge.ts`](../web/src/lib/desktop-bridge.ts)，
 线上协议的真值在 [`internal/bridge/wire.go`](./internal/bridge/wire.go)。
 
-## 窗口条与拖拽（frameless）
+## 窗口标题栏、红绿灯与拖拽
 
-窗口是 **frameless** 的：系统标题栏连同它的最小化 / 最大化 / 关闭按钮一起没有了，
-那一条 chrome 改由**页面自己画**（[`apps/web/src/components/desktop-title-bar.tsx`](../web/src/components/desktop-title-bar.tsx)：
-左边页面标签条、右边原顶栏的行末工具区），壳这边只提供两件事：
+窗口已开启**系统原生 UI**：
+macOS 平台启用透明全尺寸内容视图（`FullSizeContent: true` + `AppearsTransparent: true`），系统原生红绿灯按钮（关闭/最小化/全屏）自然浮在网页顶部左上角，其他平台保留原生标题栏与窗口控制。
 
-- **拖拽**：页面在要拖的区域写 `--wails-draggable: drag`，交互件写 `no-drag` 退出。
+- **红绿灯高度注入**：macOS 红绿灯高度作为变量（默认 40px，支持 `-titlebar-height` 参数与 `DESKTOP_TITLE_BAR_HEIGHT` 环境变量），在壳启动时通过 URL 参数 `__desktop_title_bar_h=40` 注入页面首屏，页面内联脚本自动落地为 CSS 变量 `--shell-chrome-h: 40px`，确保所有布局几何（侧边栏、分屏面板、内容区）像素级齐平。
+- **左侧红绿灯避让**：窗口条左侧预留 `--shell-traffic-light-w: 78px` 避让区，避免页面标签或操作与红绿灯发生重叠冲突。
+- **拖拽**：页面在所有顶栏 Header（`DesktopTitleBar`、`AppHeader`、`MainHeader`、`SphereHeader`、`AuthHeader`）上写 `--wails-draggable: drag`，交互控件（按钮、链接、输入框、下拉菜单等）写 `no-drag` 退出。
   Wails 的 drag 运行时只看**鼠标落点那个元素**上的计算值，而这个自定义属性会继承 ——
   所以「条上写 drag、按钮和标签写 no-drag」就够了。别用 `-webkit-app-region`，那是 Electron 的。
-- **窗口动作**：`window.minimise` / `window.toggleMaximise` / `window.close`（前两个返回
-  `{ maximised, minimised }`）。页面现在只用 `toggleMaximise`：窗口条空白处**双击** =
-  最大化 / 还原（macOS 的双击由 Wails 自己的运行时接管，不会重复触发）。
-
-> **目前没有窗口按钮**：frameless 之后只能靠系统快捷键（Linux: `Alt+F4` / `Super+Q`）
-> 或任务栏关窗。要补按钮时前端调上面三个方法即可，不必再动壳。
-> 窗口最小尺寸是 900×600（外壳在 768px 以下会切成移动端抽屉，而汉堡按钮在顶栏里 ——
-> 顶栏在桌面壳里被窗口条取代，所以干脆不让窗口进到那个区间）。
+- **双击窗口动作**：Header 空白处**双击** = 最大化 / 还原（`window.toggleMaximise`；macOS 的双击由 Wails 的 drag 运行时直接接管）。
 
 ## 怎么加一个方法
 

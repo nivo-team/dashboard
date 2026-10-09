@@ -7,8 +7,9 @@ import (
 
 func TestStartURLMarksDesktopAndKeepsEverythingElse(t *testing.T) {
 	cfg := Config{
-		URL:   "https://admin.example.com/app?theme=dark#/home",
-		Marks: map[string]string{"channel": "beta"},
+		URL:            "https://admin.example.com/app?theme=dark#/home",
+		TitleBarHeight: DefaultTitleBarHeight,
+		Marks:          map[string]string{"channel": "beta"},
 	}
 
 	got, err := cfg.StartURL()
@@ -23,6 +24,12 @@ func TestStartURLMarksDesktopAndKeepsEverythingElse(t *testing.T) {
 	query := parsed.Query()
 	if query.Get(FlagKey) != "1" {
 		t.Fatalf("应当带上 %s=1，得到 %q", FlagKey, got)
+	}
+	if query.Get(FlagPlatformKey) == "" {
+		t.Fatalf("应当带上 %s，得到 %q", FlagPlatformKey, got)
+	}
+	if query.Get(FlagTitleBarHeightKey) != "40" {
+		t.Fatalf("应当带上 %s=40，得到 %q", FlagTitleBarHeightKey, got)
 	}
 	if query.Get(MarkPrefix+"channel") != "beta" {
 		t.Fatalf("标记应当带前缀进 URL，得到 %q", got)

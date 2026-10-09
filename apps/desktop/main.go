@@ -56,8 +56,9 @@ func main() {
 			"arch":     runtime.GOARCH,
 			"window":   "main",
 			"url":      startURL,
-			"origin":   cfg.Origin(),
-			"marks":    cfg.Marks,
+			"origin":         cfg.Origin(),
+			"titleBarHeight": cfg.TitleBarHeight,
+			"marks":          cfg.Marks,
 			"methods":  registry.Methods(),
 			"dropped":  registry.Dropped(),
 		}
@@ -101,17 +102,25 @@ func main() {
 		Width:  cfg.Width,
 		Height: cfg.Height,
 		/*
-			**无系统标题栏**：窗口条改由页面自己画（那一条横跨窗口的标签条，
-			见 `apps/web/src/components/desktop-title-bar.tsx`）—— 拖拽、双击最大化、
-			窗口按钮都得自己接。前端那条 chrome 只在「拖拽区」这一件事上依赖壳：
-			带 `--wails-draggable: drag` 的元素才能拖动窗口。
-
-			代价要说清楚：**目前还没有最小化 / 最大化 / 关闭按钮**（macOS 的交通灯
-			适配也还没做），只能靠系统快捷键（Linux: Alt+F4 / Super+Q）或任务栏。
-			要补按钮时，能力已经在 bridge 里了：`window.minimise` / `window.toggleMaximise`
-			/ `window.close`。
+			**显示系统标题栏 / 红绿灯**：
+			macOS 启用透明全尺寸内容窗口并挂载系统工具栏（UseToolbar + MacToolbarStyleUnifiedCompact），
+			使红绿灯自动向内缩进并垂直居中；
+			注意：InvisibleTitleBarHeight 必须为 0，否则 AppKit 会在原生层直接全局拦截整条顶部区域，
+			导致网页内 tabs 排序无法接收鼠标事件；窗口拖拽与禁止拖拽区域完全交由 CSS 精准控制（.drag / .no-drag）。
 		*/
-		Frameless: true,
+		Frameless: false,
+		Mac: application.MacWindow{
+			TitleBar: application.MacTitleBar{
+				AppearsTransparent:   true,
+				Hide:                 false,
+				HideTitle:            true,
+				FullSizeContent:      true,
+				UseToolbar:           true,
+				HideToolbarSeparator: true,
+				ToolbarStyle:         application.MacToolbarStyleUnifiedCompact,
+			},
+			InvisibleTitleBarHeight: 0,
+		},
 		/*
 			最小尺寸：外壳在 768px 以下会切成移动端抽屉（汉堡按钮在顶栏里，而顶栏
 			在桌面壳里被窗口条取代）。900 让窗口根本进不到那个区间，
@@ -121,6 +130,23 @@ func main() {
 		MinHeight:              600,
 		DevToolsEnabled:        cfg.Debug,
 		OpenInspectorOnStartup: cfg.Debug,
+		KeyBindings: map[string]func(window application.Window){
+			"F12": func(w application.Window) {
+				if win, ok := w.(*application.WebviewWindow); ok {
+					win.OpenDevTools()
+				}
+			},
+			"Cmd+Option+I": func(w application.Window) {
+				if win, ok := w.(*application.WebviewWindow); ok {
+					win.OpenDevTools()
+				}
+			},
+			"Cmd+Alt+I": func(w application.Window) {
+				if win, ok := w.(*application.WebviewWindow); ok {
+					win.OpenDevTools()
+				}
+			},
+		},
 	})
 
 	// 窗口自身的动作（frameless 之后没有系统按钮可点，双击窗口条也要能最大化）
@@ -163,6 +189,11 @@ func registerWindowMethods(registry *bridge.Registry, window *application.Webvie
 
 	registry.Handle("window.close", func(json.RawMessage) (any, error) {
 		window.Close()
+		return nil, nil
+	})
+
+	registry.Handle("window.openDevTools", func(json.RawMessage) (any, error) {
+		window.OpenDevTools()
 		return nil, nil
 	})
 }

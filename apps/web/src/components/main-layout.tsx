@@ -12,7 +12,7 @@ import { PageTabStrip } from '#/components/page-tab-strip'
 import { ShellSidebarProvider } from '#/components/shell-sidebar-provider'
 import { useBrand } from '#/lib/brand'
 import { cn } from '#/lib/cn'
-import { isDesktop } from '#/lib/desktop-bridge'
+import { isDesktop, handleDesktopHeaderDoubleClick } from '#/lib/desktop-bridge'
 import { DEFAULT_APP_ID, isMultiAppEnabled, useAuth } from '#/lib/auth'
 import {
   filterShellNavItems,
@@ -293,9 +293,12 @@ function MainHeader({
   leading?: React.ReactNode
 }) {
   return (
-    <header className="sticky top-0 z-10 flex h-[58px] shrink-0 items-center justify-between border-b border-kumo-line bg-kumo-canvas px-3 md:px-4">
+    <header
+      onDoubleClick={handleDesktopHeaderDoubleClick}
+      className="sticky top-0 z-10 flex h-[58px] shrink-0 items-center justify-between border-b border-kumo-line bg-kumo-canvas px-3 select-none md:px-4 drag"
+    >
       {/* 移动端汉堡按钮 */}
-      <Sidebar.Trigger className="md:hidden" />
+      <Sidebar.Trigger className="md:hidden no-drag" />
 
       {leading}
 

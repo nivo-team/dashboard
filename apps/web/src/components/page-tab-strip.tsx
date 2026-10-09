@@ -200,7 +200,7 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
           */}
           <div
             className={cn(
-              'flex min-w-0 max-w-[80%] shrink',
+              'flex min-w-0 max-w-[80%] shrink no-drag',
               // 与两个区的对齐一致：chrome 下底对齐，plain 下居中
               variant === 'chrome' ? 'items-end' : 'items-center',
             )}
@@ -419,7 +419,7 @@ function NewTabMenu() {
             shape="square"
             size="sm"
             // 自己退出拖拽区（窗口条上这一颗要能点）；不参与滚动，所以永远看得见
-            className="shrink-0 text-kumo-subtle hover:text-kumo-default [--wails-draggable:no-drag]"
+            className="shrink-0 text-kumo-subtle hover:text-kumo-default no-drag"
             icon={<PlusIcon size={16} />}
             aria-label={t('pageTabs.new', '打开新页面')}
           />

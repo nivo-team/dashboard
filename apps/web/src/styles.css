@@ -153,6 +153,7 @@
 :root {
   --shell-chrome-h: 0px;
   --shell-content-top: 58px;
+  --shell-traffic-light-w: 0px;
 
   /*
    * 窗口条那条下边线、标签自己的边框、以及标签倒角的圆弧 —— 三处共用的**实色**描边。
@@ -177,9 +178,18 @@
 }
 
 [data-desktop-chrome] {
-  /* 窗口条高度。窗口条自己就取这个变量（`h-[var(--shell-chrome-h)]`），所以只有这一个数要维护 */
-  --shell-chrome-h: 44px;
+  /* 窗口条高度：默认按 macOS 红绿灯紧凑高度 40px 适配，也可由桌面壳通过 --shell-chrome-h 动态注入覆盖 */
+  --shell-chrome-h: 40px;
   --shell-content-top: 0px;
+  /* 默认非 macOS（Windows / Linux / 普通浏览器）不留红绿灯避让留白 */
+  --shell-traffic-light-w: 0px;
+}
+
+/* 仅在 macOS（darwin）桌面壳下为红绿灯留出 78px 避让间距 */
+[data-desktop-chrome][data-desktop-platform='darwin'],
+[data-desktop-chrome].is_mac,
+.is_mac [data-desktop-chrome] {
+  --shell-traffic-light-w: 78px;
 }
 
 /*
@@ -474,6 +484,27 @@
   border-top-left-radius: inherit !important;
   border-bottom-left-radius: inherit !important;
 }
+
+/*
+ * 桌面壳窗口拖拽与防穿透工具类（纯 CSS 类，确保 100% 编译生效）：
+ * - .drag / [data-desktop-title-bar]：开启窗口拖拽；
+ * - .no-drag：直接加在容器上，禁止内部任何拖拽透传到系统窗口。
+ */
+.drag,
+[data-desktop-title-bar],
+.desktop-drag-region {
+  -webkit-app-region: drag;
+  --wails-draggable: drag;
+}
+
+.no-drag,
+.no-drag *,
+.desktop-no-drag,
+.desktop-no-drag * {
+  -webkit-app-region: no-drag !important;
+  --wails-draggable: no-drag !important;
+}
+
 
 [dir='rtl'] [data-slot='input-group'][data-focus-mode='hybrid'] > *:not(:first-child) {
   margin-left: 0 !important;

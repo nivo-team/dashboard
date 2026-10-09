@@ -248,6 +248,18 @@ export function PageTabItem({
   )
 
   useLayoutEffect(() => {
+    // 切换到激活态且属于滚动区（非固定标签）时，平滑滚动至可视区域
+    if (!active || pinned) return
+    const node = tabRef.current
+    if (!node) return
+    node.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'nearest',
+    })
+  }, [active, pinned])
+
+  useLayoutEffect(() => {
     // 只有激活标签需要（未激活标签的形状由 CSS 的 `rounded-t-lg` 负责）
     if (!chrome || !active) return
     const node = tabRef.current

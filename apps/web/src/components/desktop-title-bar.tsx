@@ -1,7 +1,7 @@
-import type { MouseEvent, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { PageTabStrip } from '#/components/page-tab-strip'
 import { cn } from '#/lib/cn'
-import { call, isDesktop } from '#/lib/desktop-bridge'
+import { handleDesktopHeaderDoubleClick, isDesktop } from '#/lib/desktop-bridge'
 
 export interface DesktopTitleBarProps {
   /**
@@ -20,17 +20,18 @@ export interface DesktopTitleBarProps {
  *
  * 它同时是三件事：
  *
- * 1. **窗口的标题栏与拖拽区**（壳把窗口设成 frameless，系统标题栏没了）。
+ * 1. **窗口的标题栏与拖拽区**：
  *    拖拽靠 `--wails-draggable: drag`：Wails 只认**鼠标落点那个元素**上的计算值，
  *    而这个自定义属性会继承，所以「条上写 drag、交互区写 no-drag」就能让空白处能拖、
  *    按钮和标签能点。`no-drag` 写在两处：标签条（`PageTabStrip`）与行末工具区。
+ *    左侧预留 `ps-[var(--shell-traffic-light-w,78px)]` 避让系统原生红绿灯按钮。
  * 2. **页面标签条**（`PageTabStrip`）：左侧是已打开的页面。
  * 3. **顶栏行末工具区的新位置**：右侧仍是那两个外壳原本的 `HeaderActions`。
  *
- * 高度取 CSS 变量 `--shell-chrome-h`（见 `src/styles.css`）：外壳的整屏几何
+ * 高度取 CSS 变量 `--shell-chrome-h`（默认 54px，见 `src/styles.css`）：外壳的整屏几何
  * （侧边栏高度、面板起始位置）都按它算，**改高度只改那一个数**。
  *
- * 双击空白处 = 最大化 / 还原（`window.toggleMaximise`，见 `apps/desktop/README.md`）。
+ * 双击空白处 = 最大化 / 还原（`handleDesktopHeaderDoubleClick`）。
  * macOS 上这一下由 Wails 自己接管（它的 drag 运行时对可拖拽区的双击直接发系统消息），
  * 所以这里的处理只在 Linux / Windows 生效 —— 不会双重响应。
  *
@@ -40,18 +41,10 @@ export interface DesktopTitleBarProps {
 export function DesktopTitleBar({ actions, homeTo }: DesktopTitleBarProps) {
   if (!isDesktop()) return null
 
-  const handleDoubleClick = (event: MouseEvent<HTMLDivElement>) => {
-    // 落在标签 / 按钮 / 菜单上的双击不抢：那是它们自己的交互区
-    if ((event.target as HTMLElement).closest('button, a, input, [role="menu"]')) return
-    void call('window.toggleMaximise').catch(() => {
-      /* 壳没实现该方法时静默忽略：窗口条本身仍然可用 */
-    })
-  }
-
   return (
     <div
       data-desktop-title-bar
-      onDoubleClick={handleDoubleClick}
+      onDoubleClick={handleDesktopHeaderDoubleClick}
       className={cn(
         // 吸顶：内容比一屏高、body 滚动时窗口条留在原地（与原来的 AppHeader 一致）
         'sticky top-0 z-40 flex h-[var(--shell-chrome-h)] shrink-0 items-center gap-1',
@@ -64,17 +57,19 @@ export function DesktopTitleBar({ actions, homeTo }: DesktopTitleBarProps) {
           （无头 Chrome 实测过：月牙 249 vs 窗口条 251）。Chrome 自己也是这个关系：
           标签条是一道灰一点的长条，激活标签才是白的。
         */
-        'border-b [border-bottom-color:var(--shell-chrome-line)] bg-kumo-tint px-2 select-none',
-        // 空白处 = 拖拽区（窗口是 frameless 的，没有系统标题栏可拖）
-        '[--wails-draggable:drag]',
+        'border-b [border-bottom-color:var(--shell-chrome-line)] bg-kumo-tint select-none',
+        // 左侧预留红绿灯安全边距，右侧保持正常间距
+        'ps-[var(--shell-traffic-light-w,78px)] pe-2',
+        // 空白处 = 拖拽区，允许拖拽窗口
+        'drag',
       )}
     >
       {/* `chrome`：桌面壳窗口条里那一条是 Chrome 那种连成一片的标签 */}
       <PageTabStrip homeTo={homeTo} variant="chrome" />
 
-      {/* 行末工具区：退出拖拽区，否则按钮点不动 */}
+      {/* 行末工具区：退出拖拽区，防止拖动窗口，确保内部按钮交互正常 */}
       {actions ? (
-        <div className="ms-auto flex shrink-0 items-center gap-2 [--wails-draggable:no-drag]">
+        <div className="ms-auto flex shrink-0 items-center gap-2 no-drag">
           {actions}
         </div>
       ) : null}

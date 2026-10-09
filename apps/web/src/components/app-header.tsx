@@ -10,6 +10,7 @@ import {
   resolveBreadcrumbTrail,
   subscribeBreadcrumbTrail,
 } from '#/lib/breadcrumb-trail'
+import { handleDesktopHeaderDoubleClick } from '#/lib/desktop-bridge'
 import { NAV_GROUPS } from '#/lib/navigation'
 import { usePreferencesStore } from '#/lib/store'
 
@@ -150,9 +151,12 @@ export function AppHeader({
   const aiEnabled = usePreferencesStore((state) => state.aiEnabled)
 
   return (
-    <header className="sticky top-0 z-10 flex h-[58px] shrink-0 items-center gap-2 border-b border-kumo-line bg-kumo-canvas px-3 md:px-4">
+    <header
+      onDoubleClick={handleDesktopHeaderDoubleClick}
+      className="sticky top-0 z-10 flex h-[58px] shrink-0 items-center gap-2 border-b border-kumo-line bg-kumo-canvas px-3 select-none md:px-4 drag"
+    >
       {/* 移动端打开侧边栏按钮；大屏幕下隐藏 */}
-      <Sidebar.Trigger className="md:hidden" />
+      <Sidebar.Trigger className="md:hidden no-drag" />
 
       {/* 行首那一格：默认是面包屑导航；外壳给了 `leading`（页面标签条）就换掉 */}
       {leading ?? (
@@ -164,7 +168,9 @@ export function AppHeader({
                 <Fragment key={`${crumb.label}-${index}`}>
                   {index > 0 ? <Breadcrumbs.Separator /> : null}
                   {crumb.href && !isLast ? (
-                    <Breadcrumbs.Link href={crumb.href}>{crumb.label}</Breadcrumbs.Link>
+                    <Breadcrumbs.Link href={crumb.href} className="no-drag">
+                      {crumb.label}
+                    </Breadcrumbs.Link>
                   ) : (
                     <Breadcrumbs.Current>{crumb.label}</Breadcrumbs.Current>
                   )}

@@ -4,6 +4,8 @@ import { useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { useActiveSessionTitle } from '#/features/ai/components/session-picker'
 import { useAiSessionStore } from '#/features/ai/core'
+import { cn } from '#/lib/cn'
+import { handleDesktopHeaderDoubleClick, isDesktop } from '#/lib/desktop-bridge'
 import { useSphereCollapse } from './use-sphere-collapse'
 
 /**
@@ -56,14 +58,20 @@ export function SphereHeader({ appId }: { appId: string }) {
 
   return (
     // 与侧边栏头行、AppHeader 同高（58px）
-    <header className="grid h-[58px] shrink-0 grid-cols-3 items-center gap-2 border-b border-kumo-line px-3">
-      <div className="flex min-w-0 items-center">
+    <header
+      onDoubleClick={handleDesktopHeaderDoubleClick}
+      className={cn(
+        'grid h-[58px] shrink-0 grid-cols-3 items-center gap-2 border-b border-kumo-line px-3 select-none drag',
+        isDesktop() && 'ps-[var(--shell-traffic-light-w,78px)]',
+      )}
+    >
+      <div className="flex min-w-0 items-center no-drag">
         {/* 侧边栏展开时按钮在侧边栏头行里，这里只在它收起后补位（一次只显示一个） */}
         {sidebarVisible ? null : (
           <Tooltip
             content={sidebarLabel}
-            className="cursor-pointer"
-            render={<Sidebar.Trigger aria-label={sidebarLabel} />}
+            className="cursor-pointer no-drag"
+            render={<Sidebar.Trigger aria-label={sidebarLabel} className="no-drag" />}
           />
         )}
       </div>
@@ -73,16 +81,17 @@ export function SphereHeader({ appId }: { appId: string }) {
         {title}
       </span>
 
-      <div className="flex min-w-0 items-center justify-end">
+      <div className="flex min-w-0 items-center justify-end no-drag">
         <Tooltip
           content={t('sphereCollapse', '收起')}
-          className="cursor-pointer"
+          className="cursor-pointer no-drag"
           render={
             <Button
               variant="ghost"
               shape="square"
               onClick={handleCollapse}
               aria-label={t('sphereCollapse', '收起')}
+              className="no-drag"
             />
           }
         >

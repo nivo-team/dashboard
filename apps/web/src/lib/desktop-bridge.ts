@@ -18,6 +18,8 @@
  * （`{id, call, payload}` / `{id, ok, data}` / `{event, data}`）—— 一侧改了另一侧必须跟着改。
  */
 
+import type { MouseEvent as ReactMouseEvent } from 'react'
+
 /** `call()` 的可选项。 */
 export interface CallOptions {
   /**
@@ -54,6 +56,8 @@ declare global {
   interface Window {
     /** 壳在导航前写进 URL、页面首屏脚本落地的桌面标记；浏览器里没有。 */
     __DESKTOP__?: boolean
+    /** 桌面端标题栏/红绿灯注入高度（px，默认 54）。 */
+    __DESKTOP_TITLE_BAR_H__?: number
     /** 壳带来的自定义标记。 */
     __DESKTOP_MARKS__?: Record<string, string>
     /** 壳投递消息进页面的入口（由本模块安装）。 */
@@ -137,6 +141,30 @@ let sequence = 0
  */
 export function isDesktop(): boolean {
   return typeof window !== 'undefined' && window.__DESKTOP__ === true
+}
+
+/** 桌面端标题栏/红绿灯高度（px），默认 40。 */
+export function desktopTitleBarHeight(): number {
+  if (typeof window === 'undefined') return 40
+  return window.__DESKTOP_TITLE_BAR_H__ ?? 40
+}
+
+/**
+ * 桌面壳 Header 空白处双击 = 最大化 / 还原窗口。
+ * 落在按钮、链接、输入框、下拉菜单等交互控件上时不抢事件。
+ */
+export function handleDesktopHeaderDoubleClick(
+  event: ReactMouseEvent<HTMLElement> | MouseEvent,
+): void {
+  if (!isDesktop()) return
+  const target = event.target as HTMLElement | null
+  if (!target) return
+  if (target.closest('button, a, input, select, textarea, [role="button"], [role="menu"], [role="menuitem"]')) {
+    return
+  }
+  void call('window.toggleMaximise').catch(() => {
+    /* 壳未实现该方法时静默忽略 */
+  })
 }
 
 /** 壳带来的自定义标记（`-mark k=v`）；浏览器里是空对象。 */
@@ -253,6 +281,57 @@ export function installDesktopBridge(): void {
 
   window.__bridgeRecv = receive
   window.__bridge = desktopBridge
+
+  /*
+   * 桌面壳精细化窗口拖拽分流：
+   * 1. 当鼠标落点在 .no-drag（Tabs 包裹容器、右侧操作区、按钮等）内部时，绝不拖动，事件完整交由前端 DOM（dnd-kit 标签排序正常生效）；
+   * 2. 当鼠标落在 Header 空白可拖拽区（.drag / [data-desktop-title-bar]）且移动超过 3px 阈值时，向宿主发送 "wails:drag"，唤起 macOS 原生窗口拖拽。
+   */
+  let dragCandidate: { startX: number; startY: number } | null = null
+
+  window.addEventListener(
+    'mousedown',
+    (event) => {
+      if (event.button !== 0) return
+      const target = event.target as HTMLElement | null
+      if (!target) return
+
+      // 若落在 .no-drag 内部或常见交互控件，坚决不触发窗口拖拽
+      if (target.closest('.no-drag, button, a, input, select, textarea, [role="button"], [data-page-tab]')) {
+        dragCandidate = null
+        return
+      }
+
+      // 若落在可拖拽 Header 上，记录起始位置
+      if (target.closest('.drag, [data-desktop-title-bar]')) {
+        dragCandidate = { startX: event.clientX, startY: event.clientY }
+      }
+    },
+    { capture: true },
+  )
+
+  window.addEventListener(
+    'mousemove',
+    (event) => {
+      if (!dragCandidate) return
+      // 避免纯点击误触：指针微幅移动超过 3px 才正式激活窗口拖拽
+      const dx = event.clientX - dragCandidate.startX
+      const dy = event.clientY - dragCandidate.startY
+      if (dx * dx + dy * dy >= 9) {
+        dragCandidate = null
+        try {
+          hostInvoke?.('wails:drag')
+        } catch {
+          /* 忽略未连接情况 */
+        }
+      }
+    },
+    { capture: true },
+  )
+
+  window.addEventListener('mouseup', () => {
+    dragCandidate = null
+  })
 
   void whenHostReady()
     .then(() => {

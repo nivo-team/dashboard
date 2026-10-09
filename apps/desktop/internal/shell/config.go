@@ -14,6 +14,8 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"runtime"
+	"strconv"
 	"strings"
 )
 
@@ -38,10 +40,13 @@ var DefaultURL = defaultURL
 // ReleaseBuild 表示这是发布构建（`-tags release` / `production`），用于启动自检。
 const ReleaseBuild = releaseBuild
 
-// URL 上的桌面标记。页面侧读 `FlagKey`，把 `MarkPrefix*` 收进 window.__DESKTOP_MARKS__。
+// URL 上的桌面标记。页面侧读 `FlagKey` 与 `FlagTitleBarHeightKey`，把 `MarkPrefix*` 收进 window.__DESKTOP_MARKS__。
 const (
-	FlagKey    = "__desktop"
-	MarkPrefix = "__desktop_"
+	FlagKey               = "__desktop"
+	FlagPlatformKey       = "__desktop_platform"
+	FlagTitleBarHeightKey = "__desktop_title_bar_h"
+	MarkPrefix            = "__desktop_"
+	DefaultTitleBarHeight = 40
 )
 
 // Config 是一次启动的全部输入。
@@ -52,6 +57,10 @@ type Config struct {
 	Title string
 	// Width / Height 是初始窗口尺寸。
 	Width, Height int
+	// TitleBarHeight 是 macOS 标题栏/红绿灯高度（px），默认 40。
+	TitleBarHeight int
+	// Platform 是当前运行的操作系统平台（如 darwin / windows / linux）。
+	Platform string
 	// Debug 打开 devtools 与检查器。
 	Debug bool
 	// Marks 是随 URL 一起交给页面的自定义标记（`-mark k=v`），
@@ -63,10 +72,11 @@ type Config struct {
 	AllowedOrigins []string
 }
 
-// EnvURL / EnvTitle 是命令行之外的兜底入口（打包成双击启动时更方便）。
+// EnvURL / EnvTitle / EnvTitleBarHeight 是命令行之外的兜底入口（打包成双击启动时更方便）。
 const (
-	EnvURL   = "DESKTOP_URL"
-	EnvTitle = "DESKTOP_TITLE"
+	EnvURL            = "DESKTOP_URL"
+	EnvTitle          = "DESKTOP_TITLE"
+	EnvTitleBarHeight = "DESKTOP_TITLE_BAR_HEIGHT"
 )
 
 type marksFlag map[string]string
@@ -108,14 +118,28 @@ func (l *listFlag) Set(value string) error {
 	return nil
 }
 
+func parseEnvInt(raw string, fallback int) int {
+	if raw == "" {
+		return fallback
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || n <= 0 {
+		return fallback
+	}
+	return n
+}
+
 // Parse 解析命令行参数。args 不含程序名（传 os.Args[1:]）。
 func Parse(args []string) (Config, error) {
 	cfg := Config{
-		URL:    firstNonEmpty(os.Getenv(EnvURL), DefaultURL),
-		Title:  firstNonEmpty(os.Getenv(EnvTitle), "Nivo Admin"),
-		Width:  1280,
-		Height: 800,
-		Marks:  map[string]string{},
+		URL:            firstNonEmpty(os.Getenv(EnvURL), DefaultURL),
+		Title:          firstNonEmpty(os.Getenv(EnvTitle), "Nivo Admin"),
+		Width:          1280,
+		Height:         800,
+		TitleBarHeight: parseEnvInt(os.Getenv(EnvTitleBarHeight), DefaultTitleBarHeight),
+		Platform:       runtime.GOOS,
+		Debug:          !ReleaseBuild || os.Getenv("DESKTOP_DEBUG") == "1",
+		Marks:          map[string]string{},
 	}
 
 	fs := flag.NewFlagSet("desktop", flag.ContinueOnError)
@@ -123,7 +147,8 @@ func Parse(args []string) (Config, error) {
 	fs.StringVar(&cfg.Title, "title", cfg.Title, "窗口标题")
 	fs.IntVar(&cfg.Width, "width", cfg.Width, "初始窗口宽度")
 	fs.IntVar(&cfg.Height, "height", cfg.Height, "初始窗口高度")
-	fs.BoolVar(&cfg.Debug, "debug", false, "打开 devtools")
+	fs.IntVar(&cfg.TitleBarHeight, "titlebar-height", cfg.TitleBarHeight, "窗口标题栏/红绿灯高度（px）")
+	fs.BoolVar(&cfg.Debug, "debug", cfg.Debug, "打开 devtools（非发布构建默认开启）")
 	fs.Var(marksFlag(cfg.Marks), "mark", "随 URL 传给页面的标记，可重复：-mark channel=beta")
 	fs.Var((*listFlag)(&cfg.AllowedOrigins), "allow-origin",
 		"额外放行、允许调用 bridge 的来源，可重复：-allow-origin https://www.example.com")
@@ -167,6 +192,14 @@ func (c Config) StartURL() (string, error) {
 
 	query := parsed.Query()
 	query.Set(FlagKey, "1")
+	platform := c.Platform
+	if platform == "" {
+		platform = runtime.GOOS
+	}
+	query.Set(FlagPlatformKey, platform)
+	if c.TitleBarHeight > 0 {
+		query.Set(FlagTitleBarHeightKey, strconv.Itoa(c.TitleBarHeight))
+	}
 	for key, value := range c.Marks {
 		query.Set(MarkPrefix+key, value)
 	}
