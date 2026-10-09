@@ -104,6 +104,15 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
     固定的那个不参与滚动。这里先按合并顺序取好下标 —— 右键菜单的
     「关闭左侧 / 右侧」判的就是这个顺序，不能按分组后的局部下标算。
   */
+  /*
+    **标签行**：两个区里都套这一层，行内布局（对齐、间距）只在这里定义一次 ——
+    固定区与滚动区因此不可能走偏（之前两边各写一套，差一点就出现「固定的比底下的高 1px」）。
+
+    行与外层的关系：外层负责裁剪 / 滚动与那 1px 的下探（`pt-px` + `-mb-px`），
+    行负责把标签贴着行的下沿排 —— 标签的白色因此正好压住窗口条下边线，看着连成一体。
+  */
+  const tabRowClass = cn('flex w-max min-w-full items-end', variant === 'chrome' ? 'gap-0' : 'gap-1')
+
   const indexed = tabs.map((tab, index) => ({ tab, index }))
   const pinnedEntries = indexed.filter((entry) => entry.tab.pinned)
   const unpinnedEntries = indexed.filter((entry) => !entry.tab.pinned)
@@ -192,16 +201,14 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
                     顶部要 1px（描边上下各探出 0.5px）、左右各 9px（外翻倒角）。
                     之前这里写 `overflow-hidden`，结果固定标签的顶部描边整条被裁掉、
                     两侧倒角也被切平（实测：顶部直边那一行完全没有墨迹）。
-                    固定区本来就不滚动，不需要裁剪。
+                    固定区本来就不滚动，不需要裁剪；`pt-px` + `-mb-px` 与滚动区完全一致。
                   */
-                  'flex shrink-0 items-center',
-                  variant === 'chrome'
-                    ? // 与滚动区同高同底：`pt-px` 给顶部描边留余量，`-mb-px` 让标签压住底部分割线
-                      '-mb-px gap-0 pt-px'
-                    : 'gap-1',
+                  'flex shrink-0',
+                  variant === 'chrome' && '-mb-px pt-px',
                 )}
               >
-                {pinnedEntries.map(({ tab, index }) => (
+                <div className={tabRowClass}>
+                  {pinnedEntries.map(({ tab, index }) => (
                   <PageTabItem
                     key={tab.to}
                     tab={tab}
@@ -210,9 +217,10 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
                     variant={variant}
                     actions={actions}
                     dragPinned={dragPinned}
-                    active={tab.to === activeTab?.to}
-                  />
-                ))}
+                      active={tab.to === activeTab?.to}
+                    />
+                  ))}
+                </div>
               </div>
             ) : null}
 
@@ -227,24 +235,25 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
                 // `items-*` 走三目：本仓的 `cn` 只拼接、不合并，两个对齐类同时在场就只剩源码顺序可赌
                 variant === 'chrome'
                   ? // 左右各留 10px：给激活标签那对**底部倒角**留出画的地方（它长在标签外侧，
-                    // 半径 10 就往外探 9px）；`pt-px` 给顶部描边留 1px 余量、
-                    // `-mb-px` 让标签往下探 1px 盖住窗口条的下边线
-                    '-mb-px items-end gap-0 px-2.5 pt-px'
-                  : 'items-center gap-1',
+                    // 半径 10 就往外探 9px）；`pt-px` + `-mb-px` 与固定区一致
+                    '-mb-px px-2.5 pt-px'
+                  : 'px-1',
               )}
             >
-              {unpinnedEntries.map(({ tab, index }) => (
-                <PageTabItem
-                  key={tab.to}
-                  tab={tab}
-                  index={index}
-                  tabs={tabs}
-                  variant={variant}
-                  actions={actions}
-                  dragPinned={dragPinned}
-                  active={tab.to === activeTab?.to}
-                />
-              ))}
+              <div className={tabRowClass}>
+                {unpinnedEntries.map(({ tab, index }) => (
+                  <PageTabItem
+                    key={tab.to}
+                    tab={tab}
+                    index={index}
+                    tabs={tabs}
+                    variant={variant}
+                    actions={actions}
+                    dragPinned={dragPinned}
+                    active={tab.to === activeTab?.to}
+                  />
+                ))}
+              </div>
             </nav>
           </div>
         </SortableContext>
