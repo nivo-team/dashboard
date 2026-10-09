@@ -248,28 +248,26 @@ export function PageTabItem({
   )
 
   useLayoutEffect(() => {
-    // 切换到激活态且属于滚动区（非固定标签）时，平滑滚动至完全可见（含外翻倒角）
+    // 切换到激活态且属于滚动区（非固定标签）时，平滑滚动至完全可见（含外翻倒角与呼吸缓冲）
     if (!active || pinned) return
     const node = tabRef.current
     if (!node) return
     const nav = node.closest('nav')
-    if (!nav) {
-      node.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
-      return
-    }
+    if (!nav) return
 
-    // 左右各留 16px 缓冲：确保向外探出 9px 的外翻倒角与呼吸间距 100% 完整可见，绝不贴边切角
-    const safetyPad = 16
-    const tabLeft = node.offsetLeft - safetyPad
-    const tabRight = node.offsetLeft + node.offsetWidth + safetyPad
+    // 基于绝对屏幕像素计算，彻底免疫 offsetParent 错位
+    const nodeRect = node.getBoundingClientRect()
+    const navRect = nav.getBoundingClientRect()
 
-    const viewLeft = nav.scrollLeft
-    const viewRight = nav.scrollLeft + nav.clientWidth
+    // 左右各保留 20px 安全余量（容纳 9px 外翻倒角与充足呼吸间距，绝不卡在边缘）
+    const safetyPad = 20
+    const leftDiff = nodeRect.left - (navRect.left + safetyPad)
+    const rightDiff = nodeRect.right - (navRect.right - safetyPad)
 
-    if (tabLeft < viewLeft) {
-      nav.scrollTo({ left: Math.max(0, tabLeft), behavior: 'smooth' })
-    } else if (tabRight > viewRight) {
-      nav.scrollTo({ left: tabRight - nav.clientWidth, behavior: 'smooth' })
+    if (leftDiff < 0) {
+      nav.scrollBy({ left: leftDiff, behavior: 'smooth' })
+    } else if (rightDiff > 0) {
+      nav.scrollBy({ left: rightDiff, behavior: 'smooth' })
     }
   }, [active, pinned])
 
