@@ -80,7 +80,13 @@
     "manage_tasks": "تخطيط المهام",
     "update_search_params": "تحديث معلمات البحث",
     "get_page_data": "قراءة بيانات الصفحة",
-    "run_page_command": "تنفيذ أمر الصفحة"
+    "run_page_command": "تنفيذ أمر الصفحة",
+    "check_result_match": "مطابقة البيانات",
+    "analyze_data": "تحليل إحصائي",
+    "request_permission": "طلب صلاحية",
+    "search_pages": "البحث في الصفحات",
+    "get_current_time": "الحصول على الوقت الحالي",
+    "reload_page_data": "تحديث بيانات الصفحة"
   },
   "approvalTitle": "هذا الإجراء يحتاج إلى موافقتك",
   "approve": "السماح مرة واحدة",
@@ -129,5 +135,11 @@
     "paused": "متوقف مؤقتًا",
     "cancelled": "ملغى"
   },
-  "usageStats": "إصابة الذاكرة {{cache}} · الإدخال {{input}} · الإخراج {{output}}"
+  "usageStats": "إصابة الذاكرة {{cache}} · الإدخال {{input}} · الإخراج {{output}}",
+  "copy": "نسخ",
+  "copied": "تم النسخ",
+  "retry": "إعادة المحاولة",
+  "rollback": "تراجع",
+  "cancelRollback": "إلغاء التراجع",
+  "rollbackHint": "جارٍ التراجع عن تعديل هذه الرسالة؛ سيؤدي الإرسال إلى الكتابة فوق الردود اللاحقة"
 }

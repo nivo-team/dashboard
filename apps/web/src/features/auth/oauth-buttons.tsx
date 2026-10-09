@@ -40,6 +40,11 @@ export function OAuthButtons({
   const handleProviderClick = (providerId: OAuthProviderId) => {
     // 真实生产环境：可在此重定向至后端 /oauth/:provider/authorize 授权地址
     // 模板开发环境：自动跳转至统一的回调路由并携带模拟 code 走通完整会话装配流程
+    /*
+      `to` 用路由 id：无路径布局段 `_auth` **不写进去**（它不体现在 URL 上），
+      但 `$provider` 是路径参数，必须走 `params` 而不是拼进字符串 ——
+      拼字符串会绕过类型检查，改路由时会静默失配。
+    */
     void navigate({
       to: '/oauth/$provider/callback',
       params: { provider: providerId },

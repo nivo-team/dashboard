@@ -150,8 +150,8 @@ apps/web/src/routes/$appId/home/
 2. 在 `src/features/home/widget-registry.tsx` 的 `DASHBOARD_WIDGETS` 加一条：
    `type`（**上线后不要再改**，存档里存的就是它）、`titleKey`、`descriptionKey`、
    `icon`、`content`、`defaultSize`（高度必须是档位）、`allowMultiple`。
-3. 在 `apps/web/src/messages/dashboard/*.json` 补 `cards.<type>.title` 等文案（**7 种语言**，
-   键树必须完全一致）。
+3. 在 `apps/web/src/messages/dashboard/<sourceLocale>.json` 补 `cards.<type>.title` 等文案
+   —— **只写默认语言**（`i18n.config.json` 的 `sourceLocale`），其余语言由翻译流水线补齐。
 
 页面、栅格、添加面板都不需要改。
 
@@ -191,7 +191,7 @@ apps/web/src/routes/$appId/home/
 - 持久化在 `admin.dashboard:<appId>`；**`layout === null` 表示「从未自定义」**，
   页面现算默认布局 —— **不要在 store 初始化时写一份默认值**，否则以后调整默认布局老用户全停在旧的。
 - **卡片注册表是「有哪些卡片可选」的唯一真值**（`src/features/home/widget-registry.tsx`）：新增卡片 =
-  写一个**只渲染内容**的组件 + 注册表加一条 + 补齐 7 语言文案。**不要在卡片里自己画外壳**
+  写一个**只渲染内容**的组件 + 注册表加一条 + 补默认语言文案（其余交给翻译流水线）。**不要在卡片里自己画外壳**
   （标题 / 拖拽手柄 / 移除按钮统一由 `DashboardWidgetFrame` 提供）。注册表里的 `type` 上线后不要再改。
 - **手写拖拽 / 缩放，不要引入栅格库**（`react-grid-layout` 不支持 RTL，一票否决）。
 - 现有三张卡片都不发请求；`metrics` 用占位值 +「示例」徽章，**不要把兜底数据伪装成后端值**。

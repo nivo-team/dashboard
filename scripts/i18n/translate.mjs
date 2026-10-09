@@ -16,7 +16,7 @@
  * | `edited` | 目标语言的值与源语言不同 | **保留，绝不覆盖** |
  *
  * 最后一条保证了「人工改过的译文不会被机器冲掉」。这也让**存量翻译**天然安全：
- * 仓库里已有的 6 种语言译文都属于 `edited`，首跑不会动它们。
+ * 仓库里已有的译文都属于 `edited`，首跑不会动它们。
  *
  * ## 用法
  *
@@ -27,11 +27,15 @@
  * pnpm i18n -- --locale=en-US,ar-SA   # 只翻指定语言（短码也行：en,ar）
  * pnpm i18n -- --force --module=users # 忽略缓存重翻
  * pnpm i18n -- --check                # 校验：是否还有未翻译的键（CI 用）
+ * pnpm i18n -- --provider             # 只打印会打到哪个网关/模型（排查配置）
  * ```
  *
  * 环境变量（CI 里更常用）：
  * - `I18N_TARGET_LOCALES=en,ar`  覆盖目标语言
  * - `I18N_MODULES=users,roles`   覆盖模块范围
+ *
+ * 模型与地址的配置见 `lib/provider.mjs`：翻译有自己的 `I18N_GATEWAY_*`，
+ * 没配的字段回退到与 agent 共用的 `DSH_GATEWAY_*`。密钥只走环境变量。
  *
  * 退出码：`--check` 时若有未翻译键为 1，其余情况 0。
  */
@@ -48,7 +52,11 @@ import {
   ROOT,
 } from './lib/config.mjs'
 import { getCached, loadCache, putCached, saveCache } from './lib/cache.mjs'
-import { translateBatch } from './lib/provider.mjs'
+import {
+  describeProvider,
+  readProviderConfig,
+  translateBatch,
+} from './lib/provider.mjs'
 
 // ---------------------------------------------------------------- 参数
 
@@ -66,6 +74,7 @@ const force = hasFlag('force')
 const includeStale = hasFlag('include-stale')
 const showStats = hasFlag('stats')
 const asJson = hasFlag('json')
+const showProvider = hasFlag('provider')
 
 // 目标语言：CLI > 环境变量 > 配置
 const targetLocales = parseLocales(
@@ -259,6 +268,58 @@ for (const locale of targetLocales) {
 
     saveCache(locale, cache, config)
   }
+}
+
+// ---------------------------------------------------------------- provider 自检
+
+/*
+  `--provider`：只打印「翻译会打到哪个地址、用哪个模型、密钥来自哪一层」，
+  不翻任何东西。地址少 `/v1`、带 `/ai/run`、模型共用了 agent 的——
+  这些配错的表现都只是一个难懂的 404，先看一眼比读日志快。
+*/
+if (showProvider) {
+  const provider = readProviderConfig(process.env, config)
+  const info = describeProvider(provider)
+
+  const LAYER = {
+    i18n: 'I18N_* 变量',
+    config: 'i18n.config.json',
+    shared: '共用 DSH_GATEWAY_*（agent）',
+    inferred: '按地址推断',
+    '': '未配置',
+  }
+  const from = (key) => LAYER[info.sources[key]] ?? info.sources[key]
+
+  const lines = [
+    `端点   ${info.endpoint}`,
+    `模型   ${info.model}   ← ${from('model')}`,
+    `鉴权   ${info.authMode}（网关 key ${info.sendsGatewayKey ? '发送' : '不发送'}，` +
+      `厂商 key ${info.sendsProviderKey ? '发送' : '不发送'}）`,
+  ]
+  if (info.gatewayId !== '(默认)') lines.push(`网关   ${info.gatewayId}`)
+
+  if (asJson) {
+    console.log(JSON.stringify(info, null, 2))
+  } else {
+    console.log('翻译 provider 配置（翻译专用变量 > i18n.config.json > 与 agent 共用）：')
+    for (const line of lines) console.log(`  ${line}`)
+    console.log(`\n来源：地址 ${from('baseUrl')}｜模型 ${from('model')}｜密钥 ${from('key')}`)
+
+    if (provider.placeholders.length) {
+      console.log(
+        `\n⚠ 这些变量还是占位符（值形如 <FILL_ME>），等于没配：${provider.placeholders.join(', ')}`,
+      )
+      console.log('  GitHub 不允许 Variable 为空，所以预置时填了占位符 —— 请到仓库设置里改成真值。')
+    }
+
+    if (provider.missing.length) {
+      console.log(`\n⚠ 配置不完整：${provider.missing.join('；')}`)
+      console.log('  补 i18n.config.json 的 provider 段，或设 I18N_GATEWAY_* 变量；缺密钥时回退 DSH_GATEWAY_KEY。')
+    } else if (!provider.placeholders.length) {
+      console.log('\n✔ 配置可用')
+    }
+  }
+  process.exit(provider.missing.length ? 1 : 0)
 }
 
 // ---------------------------------------------------------------- 输出

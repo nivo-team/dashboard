@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteDataDictByIdData, DeleteDataDictByIdResponses, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponses, DeleteRoleByIdData, DeleteRoleByIdResponses, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponses, DeleteTicketByIdData, DeleteTicketByIdResponses, DeleteUserByIdData, DeleteUserByIdResponses, GetApiData, GetApiResponses, GetAppsData, GetAppsResponses, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponses, GetDataDictResponses, GetDataDictTypeTreeData, GetDataDictTypeTreeResponses, GetMenusNavigationData, GetMenusNavigationResponses, GetPermissionsData, GetPermissionsResponses, GetProfileData, GetProfileResponses, GetRoleByIdData, GetRoleByIdResponses, GetRoleData, GetRoleMenusData, GetRoleMenusResponses, GetRoleResponses, GetSystemMenuTreeData, GetSystemMenuTreeResponses, GetTicketByIdData, GetTicketByIdResponses, GetTicketData, GetTicketResponses, GetUserByIdData, GetUserByIdResponses, GetUserData, GetUserResponses, PatchTicketByIdStatusData, PatchTicketByIdStatusResponses, PostDataDictData, PostDataDictResponses, PostDataDictTypeData, PostDataDictTypeResponses, PostLoginData, PostLoginResponses, PostLogoutData, PostLogoutResponses, PostRoleData, PostRoleResponses, PostSystemMenuData, PostSystemMenuResponses, PostTicketData, PostTicketResponses, PostUserBatchDeleteData, PostUserBatchDeleteResponses, PostUserData, PostUserResponses, PutDataDictData, PutDataDictResponses, PutDataDictTypeData, PutDataDictTypeResponses, PutRoleData, PutRoleMenusData, PutRoleMenusResponses, PutRoleResponses, PutSystemMenuData, PutSystemMenuResponses, PutTicketData, PutTicketResponses, PutUserData, PutUserResponses } from './types.gen';
+import type { DeleteDataDictByIdData, DeleteDataDictByIdResponses, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponses, DeleteExampleTableByIdData, DeleteExampleTableByIdResponses, DeleteExampleTicketsByIdData, DeleteExampleTicketsByIdResponses, DeleteRoleByIdData, DeleteRoleByIdResponses, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponses, GetApiData, GetApiResponses, GetAppsData, GetAppsResponses, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponses, GetDataDictResponses, GetDataDictTypeTreeData, GetDataDictTypeTreeResponses, GetExampleTableByIdData, GetExampleTableByIdResponses, GetExampleTableData, GetExampleTableResponses, GetExampleTicketsByIdData, GetExampleTicketsByIdResponses, GetExampleTicketsData, GetExampleTicketsResponses, GetMenusNavigationData, GetMenusNavigationResponses, GetPermissionsData, GetPermissionsResponses, GetProfileData, GetProfileResponses, GetRoleByIdData, GetRoleByIdResponses, GetRoleData, GetRoleMenusData, GetRoleMenusResponses, GetRoleResponses, GetSystemMenuTreeData, GetSystemMenuTreeResponses, PatchExampleTicketsByIdStatusData, PatchExampleTicketsByIdStatusResponses, PostDataDictData, PostDataDictResponses, PostDataDictTypeData, PostDataDictTypeResponses, PostExampleTableBatchDeleteData, PostExampleTableBatchDeleteResponses, PostExampleTableData, PostExampleTableResponses, PostExampleTicketsData, PostExampleTicketsResponses, PostLoginData, PostLoginResponses, PostLogoutData, PostLogoutResponses, PostRoleData, PostRoleResponses, PostSystemMenuData, PostSystemMenuResponses, PutDataDictData, PutDataDictResponses, PutDataDictTypeData, PutDataDictTypeResponses, PutExampleTableData, PutExampleTableResponses, PutExampleTicketsData, PutExampleTicketsResponses, PutRoleData, PutRoleMenusData, PutRoleMenusResponses, PutRoleResponses, PutSystemMenuData, PutSystemMenuResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -100,6 +100,108 @@ export const putDataDictType = <ThrowOnError extends boolean = false>(options: O
  * 获取字典分类树（顶层节点数组）
  */
 export const getDataDictTypeTree = <ThrowOnError extends boolean = false>(options?: Options<GetDataDictTypeTreeData, ThrowOnError>): RequestResult<GetDataDictTypeTreeResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetDataDictTypeTreeResponses, unknown, ThrowOnError>({ url: '/data_dict/type/tree', ...options });
+
+/**
+ * 根据 ID 删除单个用户
+ */
+export const deleteExampleTableById = <ThrowOnError extends boolean = false>(options: Options<DeleteExampleTableByIdData, ThrowOnError>): RequestResult<DeleteExampleTableByIdResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteExampleTableByIdResponses, unknown, ThrowOnError>({ url: '/example/table/{id}', ...options });
+
+/**
+ * 根据用户 ID 查询详情
+ */
+export const getExampleTableById = <ThrowOnError extends boolean = false>(options: Options<GetExampleTableByIdData, ThrowOnError>): RequestResult<GetExampleTableByIdResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetExampleTableByIdResponses, unknown, ThrowOnError>({ url: '/example/table/{id}', ...options });
+
+/**
+ * 批量删除用户
+ */
+export const postExampleTableBatchDelete = <ThrowOnError extends boolean = false>(options: Options<PostExampleTableBatchDeleteData, ThrowOnError>): RequestResult<PostExampleTableBatchDeleteResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostExampleTableBatchDeleteResponses, unknown, ThrowOnError>({
+    url: '/example/table/batch-delete',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 用户分页列表，支持关键词、多字段精确/范围筛选与服务端排序
+ */
+export const getExampleTable = <ThrowOnError extends boolean = false>(options?: Options<GetExampleTableData, ThrowOnError>): RequestResult<GetExampleTableResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetExampleTableResponses, unknown, ThrowOnError>({ url: '/example/table', ...options });
+
+/**
+ * 新建用户
+ */
+export const postExampleTable = <ThrowOnError extends boolean = false>(options: Options<PostExampleTableData, ThrowOnError>): RequestResult<PostExampleTableResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostExampleTableResponses, unknown, ThrowOnError>({
+    url: '/example/table',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 更新用户信息
+ */
+export const putExampleTable = <ThrowOnError extends boolean = false>(options: Options<PutExampleTableData, ThrowOnError>): RequestResult<PutExampleTableResponses, unknown, ThrowOnError> => (options.client ?? client).put<PutExampleTableResponses, unknown, ThrowOnError>({
+    url: '/example/table',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 根据 ID 删除单个工单（不提供批量删除接口）
+ */
+export const deleteExampleTicketsById = <ThrowOnError extends boolean = false>(options: Options<DeleteExampleTicketsByIdData, ThrowOnError>): RequestResult<DeleteExampleTicketsByIdResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteExampleTicketsByIdResponses, unknown, ThrowOnError>({ url: '/example/tickets/{id}', ...options });
+
+/**
+ * 根据工单 ID 查询详情
+ */
+export const getExampleTicketsById = <ThrowOnError extends boolean = false>(options: Options<GetExampleTicketsByIdData, ThrowOnError>): RequestResult<GetExampleTicketsByIdResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetExampleTicketsByIdResponses, unknown, ThrowOnError>({ url: '/example/tickets/{id}', ...options });
+
+/**
+ * 变更单条工单的状态
+ */
+export const patchExampleTicketsByIdStatus = <ThrowOnError extends boolean = false>(options: Options<PatchExampleTicketsByIdStatusData, ThrowOnError>): RequestResult<PatchExampleTicketsByIdStatusResponses, unknown, ThrowOnError> => (options.client ?? client).patch<PatchExampleTicketsByIdStatusResponses, unknown, ThrowOnError>({
+    url: '/example/tickets/{id}/status',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 工单分页列表，支持关键词、状态/优先级/分类筛选与服务端排序
+ */
+export const getExampleTickets = <ThrowOnError extends boolean = false>(options?: Options<GetExampleTicketsData, ThrowOnError>): RequestResult<GetExampleTicketsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetExampleTicketsResponses, unknown, ThrowOnError>({ url: '/example/tickets', ...options });
+
+/**
+ * 新建工单
+ */
+export const postExampleTickets = <ThrowOnError extends boolean = false>(options: Options<PostExampleTicketsData, ThrowOnError>): RequestResult<PostExampleTicketsResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostExampleTicketsResponses, unknown, ThrowOnError>({
+    url: '/example/tickets',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 更新单条工单（标题 / 描述 / 优先级 / 负责人 / 分类）
+ */
+export const putExampleTickets = <ThrowOnError extends boolean = false>(options: Options<PutExampleTicketsData, ThrowOnError>): RequestResult<PutExampleTicketsResponses, unknown, ThrowOnError> => (options.client ?? client).put<PutExampleTicketsResponses, unknown, ThrowOnError>({
+    url: '/example/tickets',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * 账号密码登录（验证预设测试账号：super admin / admin / user）
@@ -222,105 +324,3 @@ export const putSystemMenu = <ThrowOnError extends boolean = false>(options: Opt
  * 获取功能菜单树（顶层节点数组，后代嵌在 children 中）
  */
 export const getSystemMenuTree = <ThrowOnError extends boolean = false>(options?: Options<GetSystemMenuTreeData, ThrowOnError>): RequestResult<GetSystemMenuTreeResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetSystemMenuTreeResponses, unknown, ThrowOnError>({ url: '/system/menu/tree', ...options });
-
-/**
- * 根据 ID 删除单个工单（不提供批量删除接口）
- */
-export const deleteTicketById = <ThrowOnError extends boolean = false>(options: Options<DeleteTicketByIdData, ThrowOnError>): RequestResult<DeleteTicketByIdResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteTicketByIdResponses, unknown, ThrowOnError>({ url: '/ticket/{id}', ...options });
-
-/**
- * 根据工单 ID 查询详情
- */
-export const getTicketById = <ThrowOnError extends boolean = false>(options: Options<GetTicketByIdData, ThrowOnError>): RequestResult<GetTicketByIdResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetTicketByIdResponses, unknown, ThrowOnError>({ url: '/ticket/{id}', ...options });
-
-/**
- * 变更单条工单的状态
- */
-export const patchTicketByIdStatus = <ThrowOnError extends boolean = false>(options: Options<PatchTicketByIdStatusData, ThrowOnError>): RequestResult<PatchTicketByIdStatusResponses, unknown, ThrowOnError> => (options.client ?? client).patch<PatchTicketByIdStatusResponses, unknown, ThrowOnError>({
-    url: '/ticket/{id}/status',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * 工单分页列表，支持关键词、状态/优先级/分类筛选与服务端排序
- */
-export const getTicket = <ThrowOnError extends boolean = false>(options?: Options<GetTicketData, ThrowOnError>): RequestResult<GetTicketResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetTicketResponses, unknown, ThrowOnError>({ url: '/ticket', ...options });
-
-/**
- * 新建工单
- */
-export const postTicket = <ThrowOnError extends boolean = false>(options: Options<PostTicketData, ThrowOnError>): RequestResult<PostTicketResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostTicketResponses, unknown, ThrowOnError>({
-    url: '/ticket',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * 更新单条工单（标题 / 描述 / 优先级 / 负责人 / 分类）
- */
-export const putTicket = <ThrowOnError extends boolean = false>(options: Options<PutTicketData, ThrowOnError>): RequestResult<PutTicketResponses, unknown, ThrowOnError> => (options.client ?? client).put<PutTicketResponses, unknown, ThrowOnError>({
-    url: '/ticket',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * 用户分页列表，支持关键词、多字段精确/范围筛选与服务端排序
- */
-export const getUser = <ThrowOnError extends boolean = false>(options?: Options<GetUserData, ThrowOnError>): RequestResult<GetUserResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetUserResponses, unknown, ThrowOnError>({ url: '/user', ...options });
-
-/**
- * 新建用户
- */
-export const postUser = <ThrowOnError extends boolean = false>(options: Options<PostUserData, ThrowOnError>): RequestResult<PostUserResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostUserResponses, unknown, ThrowOnError>({
-    url: '/user',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * 更新用户信息
- */
-export const putUser = <ThrowOnError extends boolean = false>(options: Options<PutUserData, ThrowOnError>): RequestResult<PutUserResponses, unknown, ThrowOnError> => (options.client ?? client).put<PutUserResponses, unknown, ThrowOnError>({
-    url: '/user',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * 根据 ID 删除单个用户
- */
-export const deleteUserById = <ThrowOnError extends boolean = false>(options: Options<DeleteUserByIdData, ThrowOnError>): RequestResult<DeleteUserByIdResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteUserByIdResponses, unknown, ThrowOnError>({ url: '/user/{id}', ...options });
-
-/**
- * 根据用户 ID 查询详情
- */
-export const getUserById = <ThrowOnError extends boolean = false>(options: Options<GetUserByIdData, ThrowOnError>): RequestResult<GetUserByIdResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetUserByIdResponses, unknown, ThrowOnError>({ url: '/user/{id}', ...options });
-
-/**
- * 批量删除用户
- */
-export const postUserBatchDelete = <ThrowOnError extends boolean = false>(options: Options<PostUserBatchDeleteData, ThrowOnError>): RequestResult<PostUserBatchDeleteResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostUserBatchDeleteResponses, unknown, ThrowOnError>({
-    url: '/user/batch-delete',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});

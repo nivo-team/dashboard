@@ -12,6 +12,9 @@
 
 ## 目录导航
 
+- [仓库配置清单 (repo-configuration.md)](./repo-configuration.md)
+  - **给人看的**：三条 workflow 各自要配哪些 Secrets / Variables、从哪取、不填会怎样；
+    翻译如何单独拆模型、占位符为什么不能当空值用
 - [AI 技术选型调研 (ai-stack-research.md)](./ai-stack-research.md)
   - fx.sh / Vercel AI SDK / WebMCP / MCP SDK 的能力、浏览器可行性与体积实测对比
   - 结论：fx.sh 因 WASM JSPI 与 36 MB 产物排除，WebMCP 仍处 Origin Trial，故自研工具层

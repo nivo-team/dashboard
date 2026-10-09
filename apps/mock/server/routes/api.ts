@@ -18,22 +18,22 @@ const API_ITEMS = [
   { label: '当前用户权限点', method: 'GET', path: '/permissions' },
   { label: '可选应用列表', method: 'GET', path: '/apps' },
   { label: '系统接口清单', method: 'GET', path: '/api' },
-  { label: '表格示例列表', method: 'GET', path: '/user' },
-  { label: '新建表格示例记录', method: 'POST', path: '/user' },
-  { label: '更新表格示例记录', method: 'PUT', path: '/user' },
+  { label: '表格示例列表', method: 'GET', path: '/example/table' },
+  { label: '新建表格示例记录', method: 'POST', path: '/example/table' },
+  { label: '更新表格示例记录', method: 'PUT', path: '/example/table' },
   // 删除类接口**必须在清单里**：清单就是 AI 的写操作白名单（call_write_api 按它校验
   // method + 路径模板），缺一条 AI 就完全删不了那个模块。页面能力里的 endpoints 与这里
   // 应当保持一致（见 .agents/docs/ai-architecture.md §8.1 的"清单即边界"）。
-  { label: '删除表格示例记录', method: 'DELETE', path: '/user/{id}' },
-  { label: '批量删除表格示例记录', method: 'POST', path: '/user/batch-delete' },
+  { label: '删除表格示例记录', method: 'DELETE', path: '/example/table/{id}' },
+  { label: '批量删除表格示例记录', method: 'POST', path: '/example/table/batch-delete' },
   // 工单：**刻意没有批量端点** —— 批量操作靠 AI 用 manage_tasks 编排 N 次单条调用。
   // 这几个接口在清单里，AI 才动得了它们（清单即写操作白名单）。
-  { label: '工单列表', method: 'GET', path: '/ticket' },
-  { label: '工单详情', method: 'GET', path: '/ticket/{id}' },
-  { label: '新建工单', method: 'POST', path: '/ticket' },
-  { label: '更新工单', method: 'PUT', path: '/ticket' },
-  { label: '删除工单', method: 'DELETE', path: '/ticket/{id}' },
-  { label: '变更工单状态', method: 'PATCH', path: '/ticket/{id}/status' },
+  { label: '工单列表', method: 'GET', path: '/example/tickets' },
+  { label: '工单详情', method: 'GET', path: '/example/tickets/{id}' },
+  { label: '新建工单', method: 'POST', path: '/example/tickets' },
+  { label: '更新工单', method: 'PUT', path: '/example/tickets' },
+  { label: '删除工单', method: 'DELETE', path: '/example/tickets/{id}' },
+  { label: '变更工单状态', method: 'PATCH', path: '/example/tickets/{id}/status' },
   // 导航：按当前用户角色裁剪后的菜单树（只含目录与菜单，不含操作）
   { label: '导航菜单树', method: 'GET', path: '/menus/navigation' },
   { label: '菜单树', method: 'GET', path: '/system/menu/tree' },

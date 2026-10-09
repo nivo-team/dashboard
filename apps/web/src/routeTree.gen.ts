@@ -43,9 +43,7 @@ import { Route as AppIdExampleTableIdRouteImport } from './routes/$appId/example
 import { Route as AppIdExampleTableNewRouteImport } from './routes/$appId/example/table/new'
 import { Route as AppIdExampleTicketsIndexRouteImport } from './routes/$appId/example/tickets/index'
 import { Route as AppIdExampleTicketsNewRouteImport } from './routes/$appId/example/tickets/new'
-import { Route as AppIdExampleUserIndexRouteImport } from './routes/$appId/example/user/index'
-import { Route as AppIdExampleUserIdRouteImport } from './routes/$appId/example/user/$id'
-import { Route as AppIdExampleUserNewRouteImport } from './routes/$appId/example/user/new'
+import { Route as AppIdExampleTreeTableIndexRouteImport } from './routes/$appId/example/tree-table/index'
 import { Route as AppIdSystemDataDictIndexRouteImport } from './routes/$appId/system/data-dict/index'
 import { Route as AppIdSystemDataDictTypeIdRouteImport } from './routes/$appId/system/data-dict/$typeId'
 import { Route as AppIdSystemMenusIndexRouteImport } from './routes/$appId/system/menus/index'
@@ -57,7 +55,6 @@ import { Route as AppIdSphereChatChatIdRouteImport } from './routes/$appId_.sphe
 import { Route as AuthOauthProviderCallbackRouteImport } from './routes/_auth/oauth/$provider/callback'
 import { Route as AppIdExampleTableIdEditRouteImport } from './routes/$appId/example/table/$id.edit'
 import { Route as AppIdExampleTicketsIdEditRouteImport } from './routes/$appId/example/tickets/$id.edit'
-import { Route as AppIdExampleUserIdEditRouteImport } from './routes/$appId/example/user/$id.edit'
 
 const AppIdRouteRoute = AppIdRouteRouteImport.update({
   id: '/$appId',
@@ -230,21 +227,12 @@ const AppIdExampleTicketsNewRoute = AppIdExampleTicketsNewRouteImport.update({
   path: '/tickets/new',
   getParentRoute: () => AppIdExampleRouteRoute,
 } as any)
-const AppIdExampleUserIndexRoute = AppIdExampleUserIndexRouteImport.update({
-  id: '/user/',
-  path: '/user/',
-  getParentRoute: () => AppIdExampleRouteRoute,
-} as any)
-const AppIdExampleUserIdRoute = AppIdExampleUserIdRouteImport.update({
-  id: '/user/$id',
-  path: '/user/$id',
-  getParentRoute: () => AppIdExampleRouteRoute,
-} as any)
-const AppIdExampleUserNewRoute = AppIdExampleUserNewRouteImport.update({
-  id: '/user/new',
-  path: '/user/new',
-  getParentRoute: () => AppIdExampleRouteRoute,
-} as any)
+const AppIdExampleTreeTableIndexRoute =
+  AppIdExampleTreeTableIndexRouteImport.update({
+    id: '/tree-table/',
+    path: '/tree-table/',
+    getParentRoute: () => AppIdExampleRouteRoute,
+  } as any)
 const AppIdSystemDataDictIndexRoute =
   AppIdSystemDataDictIndexRouteImport.update({
     id: '/',
@@ -305,11 +293,6 @@ const AppIdExampleTicketsIdEditRoute =
     path: '/tickets/$id/edit',
     getParentRoute: () => AppIdExampleRouteRoute,
   } as any)
-const AppIdExampleUserIdEditRoute = AppIdExampleUserIdEditRouteImport.update({
-  id: '/edit',
-  path: '/edit',
-  getParentRoute: () => AppIdExampleUserIdRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/$appId': typeof AppIdRouteRouteWithChildren
@@ -341,8 +324,6 @@ export interface FileRoutesByFullPath {
   '/$appId/example/table/$id': typeof AppIdExampleTableIdRouteWithChildren
   '/$appId/example/table/new': typeof AppIdExampleTableNewRoute
   '/$appId/example/tickets/new': typeof AppIdExampleTicketsNewRoute
-  '/$appId/example/user/$id': typeof AppIdExampleUserIdRouteWithChildren
-  '/$appId/example/user/new': typeof AppIdExampleUserNewRoute
   '/$appId/system/data-dict/$typeId': typeof AppIdSystemDataDictTypeIdRoute
   '/$appId/system/menus/$featureId': typeof AppIdSystemMenusFeatureIdRoute
   '/$appId/system/menus/new': typeof AppIdSystemMenusNewRoute
@@ -352,13 +333,12 @@ export interface FileRoutesByFullPath {
   '/$appId/example/complex-table/': typeof AppIdExampleComplexTableIndexRoute
   '/$appId/example/table/': typeof AppIdExampleTableIndexRoute
   '/$appId/example/tickets/': typeof AppIdExampleTicketsIndexRoute
-  '/$appId/example/user/': typeof AppIdExampleUserIndexRoute
+  '/$appId/example/tree-table/': typeof AppIdExampleTreeTableIndexRoute
   '/$appId/system/data-dict/': typeof AppIdSystemDataDictIndexRoute
   '/$appId/system/menus/': typeof AppIdSystemMenusIndexRoute
   '/$appId/system/roles/': typeof AppIdSystemRolesIndexRoute
   '/$appId/example/table/$id/edit': typeof AppIdExampleTableIdEditRoute
   '/$appId/example/tickets/$id/edit': typeof AppIdExampleTicketsIdEditRoute
-  '/$appId/example/user/$id/edit': typeof AppIdExampleUserIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof MainIndexRoute
@@ -382,8 +362,6 @@ export interface FileRoutesByTo {
   '/$appId/example/table/$id': typeof AppIdExampleTableIdRouteWithChildren
   '/$appId/example/table/new': typeof AppIdExampleTableNewRoute
   '/$appId/example/tickets/new': typeof AppIdExampleTicketsNewRoute
-  '/$appId/example/user/$id': typeof AppIdExampleUserIdRouteWithChildren
-  '/$appId/example/user/new': typeof AppIdExampleUserNewRoute
   '/$appId/system/data-dict/$typeId': typeof AppIdSystemDataDictTypeIdRoute
   '/$appId/system/menus/$featureId': typeof AppIdSystemMenusFeatureIdRoute
   '/$appId/system/menus/new': typeof AppIdSystemMenusNewRoute
@@ -393,13 +371,12 @@ export interface FileRoutesByTo {
   '/$appId/example/complex-table': typeof AppIdExampleComplexTableIndexRoute
   '/$appId/example/table': typeof AppIdExampleTableIndexRoute
   '/$appId/example/tickets': typeof AppIdExampleTicketsIndexRoute
-  '/$appId/example/user': typeof AppIdExampleUserIndexRoute
+  '/$appId/example/tree-table': typeof AppIdExampleTreeTableIndexRoute
   '/$appId/system/data-dict': typeof AppIdSystemDataDictIndexRoute
   '/$appId/system/menus': typeof AppIdSystemMenusIndexRoute
   '/$appId/system/roles': typeof AppIdSystemRolesIndexRoute
   '/$appId/example/table/$id/edit': typeof AppIdExampleTableIdEditRoute
   '/$appId/example/tickets/$id/edit': typeof AppIdExampleTicketsIdEditRoute
-  '/$appId/example/user/$id/edit': typeof AppIdExampleUserIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -434,8 +411,6 @@ export interface FileRoutesById {
   '/$appId/example/table/$id': typeof AppIdExampleTableIdRouteWithChildren
   '/$appId/example/table/new': typeof AppIdExampleTableNewRoute
   '/$appId/example/tickets/new': typeof AppIdExampleTicketsNewRoute
-  '/$appId/example/user/$id': typeof AppIdExampleUserIdRouteWithChildren
-  '/$appId/example/user/new': typeof AppIdExampleUserNewRoute
   '/$appId/system/data-dict/$typeId': typeof AppIdSystemDataDictTypeIdRoute
   '/$appId/system/menus/$featureId': typeof AppIdSystemMenusFeatureIdRoute
   '/$appId/system/menus/new': typeof AppIdSystemMenusNewRoute
@@ -445,13 +420,12 @@ export interface FileRoutesById {
   '/$appId/example/complex-table/': typeof AppIdExampleComplexTableIndexRoute
   '/$appId/example/table/': typeof AppIdExampleTableIndexRoute
   '/$appId/example/tickets/': typeof AppIdExampleTicketsIndexRoute
-  '/$appId/example/user/': typeof AppIdExampleUserIndexRoute
+  '/$appId/example/tree-table/': typeof AppIdExampleTreeTableIndexRoute
   '/$appId/system/data-dict/': typeof AppIdSystemDataDictIndexRoute
   '/$appId/system/menus/': typeof AppIdSystemMenusIndexRoute
   '/$appId/system/roles/': typeof AppIdSystemRolesIndexRoute
   '/$appId/example/table/$id/edit': typeof AppIdExampleTableIdEditRoute
   '/$appId/example/tickets/$id/edit': typeof AppIdExampleTicketsIdEditRoute
-  '/$appId/example/user/$id/edit': typeof AppIdExampleUserIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -485,8 +459,6 @@ export interface FileRouteTypes {
     | '/$appId/example/table/$id'
     | '/$appId/example/table/new'
     | '/$appId/example/tickets/new'
-    | '/$appId/example/user/$id'
-    | '/$appId/example/user/new'
     | '/$appId/system/data-dict/$typeId'
     | '/$appId/system/menus/$featureId'
     | '/$appId/system/menus/new'
@@ -496,13 +468,12 @@ export interface FileRouteTypes {
     | '/$appId/example/complex-table/'
     | '/$appId/example/table/'
     | '/$appId/example/tickets/'
-    | '/$appId/example/user/'
+    | '/$appId/example/tree-table/'
     | '/$appId/system/data-dict/'
     | '/$appId/system/menus/'
     | '/$appId/system/roles/'
     | '/$appId/example/table/$id/edit'
     | '/$appId/example/tickets/$id/edit'
-    | '/$appId/example/user/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -526,8 +497,6 @@ export interface FileRouteTypes {
     | '/$appId/example/table/$id'
     | '/$appId/example/table/new'
     | '/$appId/example/tickets/new'
-    | '/$appId/example/user/$id'
-    | '/$appId/example/user/new'
     | '/$appId/system/data-dict/$typeId'
     | '/$appId/system/menus/$featureId'
     | '/$appId/system/menus/new'
@@ -537,13 +506,12 @@ export interface FileRouteTypes {
     | '/$appId/example/complex-table'
     | '/$appId/example/table'
     | '/$appId/example/tickets'
-    | '/$appId/example/user'
+    | '/$appId/example/tree-table'
     | '/$appId/system/data-dict'
     | '/$appId/system/menus'
     | '/$appId/system/roles'
     | '/$appId/example/table/$id/edit'
     | '/$appId/example/tickets/$id/edit'
-    | '/$appId/example/user/$id/edit'
   id:
     | '__root__'
     | '/$appId'
@@ -577,8 +545,6 @@ export interface FileRouteTypes {
     | '/$appId/example/table/$id'
     | '/$appId/example/table/new'
     | '/$appId/example/tickets/new'
-    | '/$appId/example/user/$id'
-    | '/$appId/example/user/new'
     | '/$appId/system/data-dict/$typeId'
     | '/$appId/system/menus/$featureId'
     | '/$appId/system/menus/new'
@@ -588,13 +554,12 @@ export interface FileRouteTypes {
     | '/$appId/example/complex-table/'
     | '/$appId/example/table/'
     | '/$appId/example/tickets/'
-    | '/$appId/example/user/'
+    | '/$appId/example/tree-table/'
     | '/$appId/system/data-dict/'
     | '/$appId/system/menus/'
     | '/$appId/system/roles/'
     | '/$appId/example/table/$id/edit'
     | '/$appId/example/tickets/$id/edit'
-    | '/$appId/example/user/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -844,25 +809,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIdExampleTicketsNewRouteImport
       parentRoute: typeof AppIdExampleRouteRoute
     }
-    '/$appId/example/user/': {
-      id: '/$appId/example/user/'
-      path: '/user'
-      fullPath: '/$appId/example/user/'
-      preLoaderRoute: typeof AppIdExampleUserIndexRouteImport
-      parentRoute: typeof AppIdExampleRouteRoute
-    }
-    '/$appId/example/user/$id': {
-      id: '/$appId/example/user/$id'
-      path: '/user/$id'
-      fullPath: '/$appId/example/user/$id'
-      preLoaderRoute: typeof AppIdExampleUserIdRouteImport
-      parentRoute: typeof AppIdExampleRouteRoute
-    }
-    '/$appId/example/user/new': {
-      id: '/$appId/example/user/new'
-      path: '/user/new'
-      fullPath: '/$appId/example/user/new'
-      preLoaderRoute: typeof AppIdExampleUserNewRouteImport
+    '/$appId/example/tree-table/': {
+      id: '/$appId/example/tree-table/'
+      path: '/tree-table'
+      fullPath: '/$appId/example/tree-table/'
+      preLoaderRoute: typeof AppIdExampleTreeTableIndexRouteImport
       parentRoute: typeof AppIdExampleRouteRoute
     }
     '/$appId/system/data-dict/': {
@@ -942,13 +893,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIdExampleTicketsIdEditRouteImport
       parentRoute: typeof AppIdExampleRouteRoute
     }
-    '/$appId/example/user/$id/edit': {
-      id: '/$appId/example/user/$id/edit'
-      path: '/edit'
-      fullPath: '/$appId/example/user/$id/edit'
-      preLoaderRoute: typeof AppIdExampleUserIdEditRouteImport
-      parentRoute: typeof AppIdExampleUserIdRoute
-    }
   }
 }
 
@@ -963,28 +907,15 @@ const AppIdExampleTableIdRouteChildren: AppIdExampleTableIdRouteChildren = {
 const AppIdExampleTableIdRouteWithChildren =
   AppIdExampleTableIdRoute._addFileChildren(AppIdExampleTableIdRouteChildren)
 
-interface AppIdExampleUserIdRouteChildren {
-  AppIdExampleUserIdEditRoute: typeof AppIdExampleUserIdEditRoute
-}
-
-const AppIdExampleUserIdRouteChildren: AppIdExampleUserIdRouteChildren = {
-  AppIdExampleUserIdEditRoute: AppIdExampleUserIdEditRoute,
-}
-
-const AppIdExampleUserIdRouteWithChildren =
-  AppIdExampleUserIdRoute._addFileChildren(AppIdExampleUserIdRouteChildren)
-
 interface AppIdExampleRouteRouteChildren {
   AppIdExampleIndexRoute: typeof AppIdExampleIndexRoute
   AppIdExampleTableIdRoute: typeof AppIdExampleTableIdRouteWithChildren
   AppIdExampleTableNewRoute: typeof AppIdExampleTableNewRoute
   AppIdExampleTicketsNewRoute: typeof AppIdExampleTicketsNewRoute
-  AppIdExampleUserIdRoute: typeof AppIdExampleUserIdRouteWithChildren
-  AppIdExampleUserNewRoute: typeof AppIdExampleUserNewRoute
   AppIdExampleComplexTableIndexRoute: typeof AppIdExampleComplexTableIndexRoute
   AppIdExampleTableIndexRoute: typeof AppIdExampleTableIndexRoute
   AppIdExampleTicketsIndexRoute: typeof AppIdExampleTicketsIndexRoute
-  AppIdExampleUserIndexRoute: typeof AppIdExampleUserIndexRoute
+  AppIdExampleTreeTableIndexRoute: typeof AppIdExampleTreeTableIndexRoute
   AppIdExampleTicketsIdEditRoute: typeof AppIdExampleTicketsIdEditRoute
 }
 
@@ -993,12 +924,10 @@ const AppIdExampleRouteRouteChildren: AppIdExampleRouteRouteChildren = {
   AppIdExampleTableIdRoute: AppIdExampleTableIdRouteWithChildren,
   AppIdExampleTableNewRoute: AppIdExampleTableNewRoute,
   AppIdExampleTicketsNewRoute: AppIdExampleTicketsNewRoute,
-  AppIdExampleUserIdRoute: AppIdExampleUserIdRouteWithChildren,
-  AppIdExampleUserNewRoute: AppIdExampleUserNewRoute,
   AppIdExampleComplexTableIndexRoute: AppIdExampleComplexTableIndexRoute,
   AppIdExampleTableIndexRoute: AppIdExampleTableIndexRoute,
   AppIdExampleTicketsIndexRoute: AppIdExampleTicketsIndexRoute,
-  AppIdExampleUserIndexRoute: AppIdExampleUserIndexRoute,
+  AppIdExampleTreeTableIndexRoute: AppIdExampleTreeTableIndexRoute,
   AppIdExampleTicketsIdEditRoute: AppIdExampleTicketsIdEditRoute,
 }
 

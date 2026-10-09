@@ -24,6 +24,7 @@
     "i18n:check-keys": "node scripts/i18n/check-keys.mjs",
     "i18n:check": "node scripts/i18n/check-keys.mjs --strict && node scripts/i18n/translate.mjs --check && node scripts/i18n/gen-types.mjs --check",
     "i18n:dry": "node scripts/i18n/translate.mjs --dry --stats",
+    "i18n:provider": "node scripts/i18n/translate.mjs --provider",
     "i18n": "node scripts/i18n/translate.mjs"
   },
   "devDependencies": {

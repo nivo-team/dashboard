@@ -76,6 +76,14 @@ export interface SchemaColumnSpec<TData> {
 export interface UseSchemaColumnsOptions<TData> {
   /** i18n 命名空间（默认 common）。 */
   ns?: string
+  /**
+   * 命名空间内的子前缀（对应 react-i18next 的 `keyPrefix`）。
+   *
+   * 用途：多个页面共用一个命名空间、各自占一个子键时（如 `example` 下的
+   * `table` / `tickets`），把列文案收在 `<ns>:<keyPrefix>.columns.<field>`，
+   * 免去为每个页面单开一个命名空间。
+   */
+  keyPrefix?: string
   /** 列编排：白名单 + 顺序（未列出的字段不会生成列）。 */
   columns: readonly (string | SchemaColumnSpec<TData>)[]
   /** 所有列共用的 meta（例如数据列统一最小宽度）。 */
@@ -197,7 +205,7 @@ function createDefaultRenderers<TData>(): Record<SchemaRenderKind, ColumnRendere
  * @example
  * ```tsx
  * const columns = useSchemaColumns<UserItem>(UserItemSchema, {
- *   ns: 'table-example',
+ *   ns: 'example',
  *   columns: ['nickname', 'id', 'email'],
  *   sortable: ['nickname', 'id'],
  *   baseMeta: { headerClassName: 'min-w-[120px]' },
@@ -208,7 +216,7 @@ export function useSchemaColumns<TData extends Record<string, unknown>>(
   schema: RuntimeSchema,
   options: UseSchemaColumnsOptions<TData>,
 ): ColumnDef<StockFeatures, TData>[] {
-  const { t } = useTranslation(options.ns)
+  const { t } = useTranslation(options.ns, { keyPrefix: options.keyPrefix })
   const { formatDateTime } = useTimezone()
 
   const { columns: columnSpecs, baseMeta, sortable, labels, renderers } = options

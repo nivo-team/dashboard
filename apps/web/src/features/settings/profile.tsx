@@ -127,7 +127,7 @@ export function ProfilePage() {
                     item.value === currentRegion
                   return (
                     <li key={`${item.value ?? item.region ?? index}`}>
-                      <Badge variant={isCurrent ? 'success' : 'neutral'} appearance="dot">
+                      <Badge variant={isCurrent ? 'success' : 'secondary'} appearance="dot">
                         {item.label || item.region || String(item.value ?? '-')}
                         {item.disabled ? ` · ${t('profile.status.disabled', '禁用')}` : ''}
                       </Badge>
@@ -159,7 +159,7 @@ function statusBadge(status: number | undefined, t: TFunction) {
 
   if (status === STATUS_DISABLED) {
     return (
-      <Badge variant="neutral" appearance="dot">
+      <Badge variant="secondary" appearance="dot">
         {t('profile.status.disabled', '禁用')}
       </Badge>
     )

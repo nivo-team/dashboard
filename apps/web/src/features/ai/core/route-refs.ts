@@ -95,7 +95,9 @@ interface AiRouteRefModuleSpec {
  */
 const AI_ROUTE_REF_SPECS: readonly AiRouteRefModuleSpec[] = [
   {
-    key: 'table-example',
+    // 示例中的「表格示例」页。模块名跟随**目录**（`features/example/table`），
+    // 与接口前缀 `/example/table`、权限点命名同源。
+    key: 'table',
     to: '/example',
     pages: [{ key: 'list', to: '/example/table' }],
     record: {
@@ -133,7 +135,7 @@ function pageNameOf(to: string, fallback: string): string {
   return resolveNavLabel(target.labelKey, target.label)
 }
 
-/** 面板右侧那句说明的兜底（7 语言在 `ai` 命名空间里，键名见 `messages/ai/*.json`） */
+/** 面板右侧那句说明的兜底（文案在 `ai` 命名空间里，键名见 `messages/ai/*.json`） */
 function aiText(key: string, fallback: string): string {
   return i18n.t(key, { ns: 'ai', defaultValue: fallback })
 }

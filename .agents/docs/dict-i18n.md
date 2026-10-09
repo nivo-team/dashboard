@@ -27,8 +27,10 @@ apps/web/src/messages/dict/
     └── en-US.json
 ```
 
-- **只放真实存在的语言**：没有 `tr-TR.json` 就整份回落（第 4 节），不必为 7 种语言建空文件；
-- 语言文件名取 `SUPPORTED_LOCALES` 的 key（`zh-CN` / `en-US` / `ja-JP` / `ar-SA` / `hi-IN` / `es-ES` / `tr-TR`），**不要**写成 `en` / `zh-cn` 这类简写，也不要与后端 `/lang` 的语言码（`en` / `jp`）混用；
+- **只放真实存在的语言**：某个语言没有译文文件就整份回落（第 4 节），
+  不必为每个目标语言建空文件；
+- 语言文件名取 `SUPPORTED_LOCALES` 的 key（真值见 `apps/web/src/lib/locale.ts`），
+  **不要**写成 `en` / `zh-cn` 这类简写，也不要与后端 `/lang` 的语言码（`en` / `jp`）混用；
 - 目录名 = 模块名，小写、连字符分隔。
 
 ## 3. 文件结构与 code 切分

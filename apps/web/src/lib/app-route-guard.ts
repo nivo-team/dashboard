@@ -117,7 +117,7 @@ export async function guardRoutePermission({
       /*
         命名空间必须显式给：i18n 的 `defaultNS` 是 `common`（见 `#/lib/i18n`），
         写成 `t('auth.unauthorized')` 会被当成 common 下的嵌套键、命中不到，
-        于是除中文外其余 6 种语言全部回落成硬编码中文（违反铁律 1）。
+        于是非默认语言全部回落成硬编码中文（违反铁律 1）。
       */
       appToastManager.add({
         title: i18n.t('unauthorized', { ns: 'auth', defaultValue: '无权访问该页面' }),

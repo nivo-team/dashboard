@@ -22,7 +22,7 @@ AI 核心的整体结构见 [features/ai/README.md](../../apps/web/src/features/
 每个页面用一份 `feature.ts` 说清自己是干什么的、需要什么权限、AI 能做什么、数据在哪。**
 
 ```
-src/features/table-example/            ← 一个示例模块 = 一个扁平目录（不再 `users/user/...` 嵌套）
+src/features/example/table/            ← 一个示例模块 = 一个扁平目录（不再 `users/user/...` 嵌套）
   index.tsx                             列表页入口（导出 TableExampleListPage）
   feature.ts                            ★ 列表页对 AI 的全部声明（唯一真值）
   columns.tsx                           列编排（列顺序 / 默认隐藏 / 可排序字段）
@@ -32,8 +32,8 @@ src/features/table-example/            ← 一个示例模块 = 一个扁平目�
   form-view.tsx  form-dialog.tsx        多页共用的表单实现（平铺，不建 `form/` 子目录）
   demo-data.ts  display.tsx             模块级共享（扁平放在模块根，不再有 -data/ -components/）
 
-src/features/complex-table/            ← 一页一目录：另一个示例（本地数据，无接口）
-src/features/tickets/                  ← 一页一目录：**没有批量接口**的 CRUD 示例（AI 编排样板）
+src/features/example/complex-table/            ← 一页一目录：另一个示例（本地数据，无接口）
+src/features/example/tickets/                  ← 一页一目录：**没有批量接口**的 CRUD 示例（AI 编排样板）
 
 src/routes/$appId/example/
   route.tsx        模块根：权限守卫 + <Outlet />
@@ -50,7 +50,7 @@ src/routes/$appId/example/
    参数通过 props 传（`<TableExampleDetailPage appId={appId} id={id} />`）——
    页面里因此**不出现任何路由字面量**，改名不会静默失配（旧写法把 `Route.id` 散在页面里）。
 2. **`-components/` / `-data/` 与"按域嵌套的子目录"都不再新增**：一个页面 = `src/features/` 下的
-   **一个扁平目录**（如 `features/table-example/`、`features/complex-table/`）；模块私有文件直接平铺在
+   **一个扁平目录**（如 `features/example/table/`、`features/example/complex-table/`）；模块私有文件直接平铺在
    目录内，用语义化文件名区分（`columns.tsx` / `*-feature.ts` / `*-dialog.tsx` / `form-view.tsx`），
    **不要**再建 `users/user/list/` 这种域 → 子模块 → 页面的多级目录。
 3. **一个页面一份 `feature.ts`**：页面对 AI 暴露的全部能力只能在这里声明，
@@ -113,11 +113,11 @@ src/routes/$appId/example/
 
 | 模块 | 状态 |
 | --- | --- |
-| `example/table`（表格示例：list / detail / create / edit / form，全平铺在 `features/table-example/`） | ✅ 已迁移并扁平化（参考实现：`features/table-example/feature.ts`） |
-| `example/complex-table`（复杂表格：分组表头 / 展开行 / 列显隐 / 行选择 / 汇总行） | ✅ 新增示例（参考实现：`features/complex-table/`，本地数据无接口） |
+| `example/table`（表格示例：list / detail / create / edit / form，全平铺在 `features/example/table/`） | ✅ 已迁移并扁平化（参考实现：`features/example/table/feature.ts`） |
+| `example/complex-table`（复杂表格：分组表头 / 展开行 / 列显隐 / 行选择 / 汇总行） | ✅ 新增示例（参考实现：`features/example/complex-table/`，本地数据无接口） |
 | `system/menus`（功能树 / 功能详情 / 权限点 / 表单） | ✅ 已迁移（`features/menus/`，去掉 `system/` 域层级）。三个页面各一份 `feature.ts`；根视图的数据由 `FeatureContainer` 用 `onData` 上报；功能详情的表单桥早已接好 |
 | `system/data-dict`（分类树 / 字典项 / 两个表单） | ✅ 已迁移（`features/data-dict/`，去掉 `system/` 域层级）。列表只有数据源（弹窗状态在表格组件里，指令待补）；详情：数据源 ×2 + **表单桥**（AI 可填可存） |
-| `example/tickets`（工单管理：单条 CRUD + 状态接口，**刻意没有批量端点**） | ✅ 新增示例（参考实现：`features/tickets/`）。批量操作要靠 AI 用 `manage_tasks` 编排 N 次单条调用 —— 见 [ai-architecture.md](./ai-architecture.md) 的编排一节 |
+| `example/tickets`（工单管理：单条 CRUD + 状态接口，**刻意没有批量端点**） | ✅ 新增示例（参考实现：`features/example/tickets/`）。批量操作要靠 AI 用 `manage_tasks` 编排 N 次单条调用 —— 见 [ai-architecture.md](./ai-architecture.md) 的编排一节 |
 | `home`（仪表盘：栅格 + 卡片注册表） | ✅ 已迁移（`features/home/`）。**没有接口的页面**：数据源给"现在有哪些卡片"，指令给"加 / 移 / 重置布局"（`add-widget` 免确认，移除与重置要确认） |
 
 **业务模块已全部迁完并扁平化**（table-example / complex-table / home / menus / data-dict / roles）——

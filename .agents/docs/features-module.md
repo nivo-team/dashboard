@@ -128,9 +128,9 @@ apps/web/src/routes/$appId/system/features/
 ## 6. 已知待办
 
 - **数据字典模块已实现**（`apps/web/src/routes/$appId/system/data-dict/`，现状见 [data-dict-module.md](./data-dict-module.md)）：上面的约定（弹窗表单、危险确认、面包屑注册、错误处理、RTL 注意点）都被它直接复用；注意它的数据源是「全量分类树 + 服务端分页字典项」两个，列表走服务端分页，没有照搬本模块的「单棵树本地派生」。它还有一处特殊之处：两个接口的 openapi 响应 schema 是错的，响应类型与运行时 schema 由模块自声明（搜 `⏳`）。
-- i18n：`features` 命名空间**当前只有中文**，其余 6 种语言回退 `zh-CN`，待测试通过后补齐。
+- i18n：`features` 命名空间**当前只有默认语言**，其余目标语言回退到它，待跑翻译流水线补齐。
 - RTL：尚未按 `ar-SA` 逐项巡检（列表、下钻、详情表单、三个弹窗、下拉、权限表、sticky）。
-- `apps/web/src/features/table-example/list/index.tsx` 有 3 处 `DropdownMenu.Item icon=`，RTL 下间距不镜像。
+- `apps/web/src/features/example/table/list/index.tsx` 有 3 处 `DropdownMenu.Item icon=`，RTL 下间距不镜像。
 - `apps/web/src/messages/system/*`（7 个语言文件）在本模块迁移后**已无任何引用**，确认后可删。
 - 后端放开 `component` / `path` 校验后，清理两个占位常量；接口稳定后删除演示兜底数据。
 - 浏览器端交互（sticky 吸顶、浮条、弹窗、RTL）尚未人工逐项验收；`pnpm build` / `pnpm dev` 可用（若报 `@rolldown/binding-darwin-universal` 缺失，换系统 node 即可，与代码无关）。

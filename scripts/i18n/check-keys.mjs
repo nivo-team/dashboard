@@ -80,32 +80,46 @@ for (const fileResult of scanAll(config)) {
     if (nsFromOptions) continue // 命名空间由调用方注入（schema-columns）
 
     const explicit = splitKey(entry.raw, null)
-    const owners = keyToModules.get(explicit.key) ?? []
+
+    /*
+      拼上 `keyPrefix`（`useTranslation('example', { keyPrefix: 'table' })`）——
+      i18next 运行时会把前缀拼在键前面，静态检查必须照做，
+      否则整批键会被误报成「缺失」（实际存在，只是路径少了一段）。
+
+      两种情况**不拼**，因为 i18next 也不拼：
+      1. 显式写了 `ns:key`（已给完整键）；
+      2. 调用参数里另指定了 `ns`（`t('x', { ns: 'common' })`）—— 前缀只作用于
+         本命名空间，跨命名空间取键时会被忽略。
+    */
+    const usesOtherNs = Boolean(explicit.ns) || Boolean(entry.nsOption)
+    const prefix = entry.keyPrefix && !usesOtherNs ? `${entry.keyPrefix}.` : ''
+    const fullKey = `${prefix}${explicit.key}`
+    const owners = keyToModules.get(fullKey) ?? []
 
     // 该引用所属的命名空间：显式 `ns:key` > useTranslation 声明（未声明即 common）
     const ns = explicit.ns ?? entry.ns ?? 'common'
     const keys = sourceKeys[ns]
 
     if (!keys) {
-      missing.push({ ...entry, ns, key: explicit.key, reason: `命名空间 ${ns} 不存在` })
+      missing.push({ ...entry, ns, key: fullKey, reason: `命名空间 ${ns} 不存在` })
       continue
     }
-    if (keys.has(explicit.key)) continue
+    if (keys.has(fullKey)) continue
 
     // 声明的命名空间里没有这个键 —— 但它可能在别的命名空间里
     if (owners.length === 1 && owners[0] !== ns) {
-      wrongNs.push({ ...entry, ns, key: explicit.key, actual: owners[0] })
+      wrongNs.push({ ...entry, ns, key: fullKey, actual: owners[0] })
       continue
     }
     if (owners.length > 1 && !owners.includes(ns)) {
-      ambiguous.push({ ...entry, key: explicit.key, owners, ns })
+      ambiguous.push({ ...entry, key: fullKey, owners, ns })
       continue
     }
 
     missing.push({
       ...entry,
       ns,
-      key: explicit.key,
+      key: fullKey,
       reason: `键不在 ${ns}/${config.sourceLocale}.json`,
     })
   }

@@ -56,7 +56,7 @@ const ROLE_COLUMN_SPECS: (string | SchemaColumnSpec<RoleItem>)[] = [
 /**
  * 角色列表（`/$appId/system/roles`）。
  *
- * 页面结构遵循 `src/features/table-example` 的薄容器模式：查询状态 + 表格 + 新建弹窗，
+ * 页面结构遵循 `src/features/example/table` 的薄容器模式：查询状态 + 表格 + 新建弹窗，
  * 表格列由运行时 schema 驱动（`RoleItemSchema`），列文案取 `roles:columns.*`。
  *
  * **编辑走详情页**（那里还要做菜单授权），列表页的弹窗只负责新建。

@@ -30,7 +30,7 @@ import {
   filterShellNavItems,
   NAV_DIRECTORY_PATHS,
 } from '#/lib/navigation'
-import { resolvePageTab, usePageTabsStore, type PageTab } from '#/lib/page-tabs'
+import { resolvePageTab, usePageTabsStore } from '#/lib/page-tabs'
 import { usePermissionContext } from '#/lib/permissions'
 import { useLocale } from '#/lib/use-locale'
 

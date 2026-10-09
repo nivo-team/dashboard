@@ -53,7 +53,7 @@ const RELATIVE_UNITS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
 /**
  * 相对时间（会话行尾的 4m / 9h / 20d）。
  *
- * 交给 `Intl.RelativeTimeFormat` 而不是自己拼字符串：7 种语言的语序、复数与缩写规则
+ * 交给 `Intl.RelativeTimeFormat` 而不是自己拼字符串：各语言的语序、复数与缩写规则
  * 都不一样，浏览器已经实现好了，我们只需要挑一个合适的单位。
  */
 export function formatRelative(timestamp: number, locale: string): string {

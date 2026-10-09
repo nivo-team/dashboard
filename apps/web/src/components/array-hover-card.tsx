@@ -51,7 +51,7 @@ export function ArrayHoverCard({
     >
       <span className="inline-flex max-w-full items-center gap-1">
         <span className="truncate">{summary ?? items[0]}</span>
-        {restCount > 0 ? <Badge variant="neutral">+{restCount}</Badge> : null}
+        {restCount > 0 ? <Badge variant="secondary">+{restCount}</Badge> : null}
       </span>
     </Tooltip>
   )

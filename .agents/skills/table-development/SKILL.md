@@ -6,7 +6,13 @@ description: 本仓库数据表格开发规范（DataTable + TanStack Table v9 +
 # 数据表格开发
 
 适用：`src/routes/**` 下的列表页，以及 `src/components/data-table`、`src/components/table-controls`。
-**参考实现：`src/features/table-example/list/index.tsx`（表格示例：schema 生成 23 列 + 数组悬浮卡片 + 详情跳转；薄路由在 `src/routes/$appId/example/user/index.tsx`）。列顺序与默认可见性的最新做法见数据字典分类树 / 功能树（ID 列第一、默认全显示）。**
+
+**参考实现：`src/features/example/table/`（表格示例：schema 生成列 + 详情跳转；薄路由在 `src/routes/$appId/example/table/index.tsx`）。**
+列顺序与默认可见性的最新做法见数据字典分类树 / 功能树（ID 列第一、默认全显示）。
+
+> 示例模块统一收在 `src/features/example/`（`table` / `complex-table` / `tickets`），
+> 路由在 `src/routes/$appId/example/`。**改示例时三个子模块一起看** —— 它们共用
+> `example` 命名空间与 `example:*` 权限，任一处改命名要同步另两处。
 
 ## 0. 数据来源：不重复定义数据模型
 
@@ -16,7 +22,7 @@ description: 本仓库数据表格开发规范（DataTable + TanStack Table v9 +
 | 运行时 schema | `packages/api-client/src/generated/schemas.gen.ts`（`@hey-api/schemas`，`XxxSchema` 常量） | 否 |
 | 筛选字段目录 | `packages/api-client/src/query-params.gen.ts`（`scripts/gen-query-params.js`，`pnpm api` 已串） | 否 |
 | 列编排 | 页面内 `Xxx_COLUMN_SPECS` / `DEFAULT_HIDDEN_COLUMNS` / `SORTABLE_FIELDS` | **是** |
-| 列文案 | `src/messages/<module>/<lang>.json` 的 `columns.*`（7 语言） | **是** |
+| 列文案 | `src/messages/<ns>/zh-CN.json` 的 `columns.*` | **是**（只写默认语言，其余交给翻译流水线） |
 
 禁止手写 interface 映射后端字段；列定义必须绑定生成的类型与 schema。API 变更后跑 `pnpm api` 重新生成，字段被删/改名应立即在 `typecheck` 暴露。
 
@@ -89,6 +95,23 @@ const columns = useMemo(
 )
 ```
 
+> **多个页面共用一个命名空间时**，另给 `keyPrefix` 把各自的文案收在子键里
+> （i18next 的 `keyPrefix`，相当于给该页的键统一加一层前缀）：
+>
+> ```tsx
+> // 文案落在 example:table.columns.<列 id>
+> useSchemaColumns<UserItem>(UserItemSchema, {
+>   ns: 'example',
+>   keyPrefix: 'table',
+>   columns: TABLE_EXAMPLE_COLUMN_SPECS,
+>   // …
+> })
+> ```
+>
+> 传了 `keyPrefix` 后，该页所有 `t('columns.x')` 实际取的是 `example:table.columns.x` ——
+> 补文案时别只写 `columns.x`。静态检查（`check-keys.mjs`）已按同一规则解析，
+> 漏写前缀会在 `pnpm i18n:check-keys` 报「键不在 example/zh-CN.json」。
+
 自定义列（多选 / 头像 / 操作）保持 `columnHelper.display(...)` 手写，其中操作列需
 `meta: { sticky: 'right', cellClassName: 'text-end' }`、`enableHiding: false`。
 
@@ -103,7 +126,13 @@ Kumo 的 `Table.Head` / `Table.Cell` 只接受物理 `left` / `right`，因此 `
 
 ### 2.3 补 i18n（唯一必须手写的文案）
 
-`src/messages/<module>/<lang>.json` 增加 `columns.<列 id>`，7 种语言（`zh-CN`、`en-US`、`ja-JP`、`ar-SA`、`hi-IN`、`es-ES`、`tr-TR`）全部补齐。
+`src/messages/<ns>/zh-CN.json` 增加 `columns.<列 id>`（用了 `keyPrefix` 时是
+`<ns>:<keyPrefix>.columns.<列 id>`）—— **只写默认语言**，其余语言由 `pnpm i18n`
+流水线补齐（见 [i18n-translation-pipeline.md](../../docs/i18n-translation-pipeline.md)）。
+
+**语言清单的真值只有 `i18n.config.json`**（`sourceLocale` + `targetLocales`）——
+不在这里列举有哪些语言，它变过，抄到别处必然过期。
+
 缺文案时兜底为运行时 schema 的 `description` 首个分句，因此**不要在页面里硬编码中文 label**。
 
 ### 2.4 树形表格（父子层级，可选）
@@ -190,7 +219,7 @@ const table = useTable({
   ```
 
 - **布局**：行容器是 `flex flex-wrap`，动作区按断点分三档 —— `< sm`（640px）独占一整行并与查询组同侧起排（`basis-full justify-start`，`justify-start` 是逻辑方向，LTR 靠左、RTL 靠右，移动端按钮与查询框对齐更好读）；`sm ~ lg` 与查询组同行紧跟其后；`≥ lg` 由左侧查询组的 `flex-1` 推到最右。不要再给动作区加 `ms-auto`；注意左侧组带 `min-w-0`（可收缩），空间不足时 Flexbox 会优先压缩它、而不是把动作区换行，因此小屏换行靠的是动作区的 `basis-full` 而非父级 `flex-wrap`；
-- 按钮文案取 `common` 命名空间的 `table.actions.refresh`（7 语言已就位），页面不必自带 `refreshTooltip` 这类专属文案。
+- 按钮文案取 `common` 命名空间的 `table.actions.refresh`（各语言已就位），页面不必自带 `refreshTooltip` 这类专属文案。
 
 **例外：简洁表格（详情页里的子表）** —— 如果只需要「统计文案 + 一个新增按钮」，不要为了这个按钮挂整条 `TableControls`（它会一并带来搜索、筛选、列设置与刷新，反而把简单页面做重）。改用 `DataTable` 的 `headerActions`，动作会渲染在卡片头部右侧、与统计文案同一行。想「头部只留标题、统计放到卡片底部」时，用 `headerTitle`（取代统计文案的位置）+ `footer`（渲染在表格下方、分页栏上方）：
 
@@ -237,6 +266,36 @@ const table = useTable({
 - 行点击通常与名称按钮 / 头像 / 行内菜单共用一个 `openDetail`，内部再按「详情打开方式」
   偏好分流（分屏 / 抽屉 / 跳转）—— 见 [.agents/docs/detail-preview.md](../../../.agents/docs/detail-preview.md)
   与 AGENTS.md 第 7 节。
+
+### 2.7 分组表头（多级表头，可选）
+
+用 `columnHelper.group({ columns: [...] })` 把字段归类，`DataTable` 会按 TanStack 的
+`getHeaderGroups()` 逐行渲染。**参考实现：`src/features/example/complex-table/columns.tsx`**
+（基本信息 / 分类与状态 / 数量与金额三组）。
+
+```tsx
+columnHelper.group({
+  id: 'basic',
+  header: t('groups.basic', '基本信息'),
+  columns: columnHelper.columns([
+    columnHelper.accessor('id', { id: 'id', header: label('id', '订单 / 明细号') }),
+    columnHelper.accessor('name', { id: 'name', header: label('name', '名称') }),
+  ]),
+})
+```
+
+跨格由 `DataTable` 统一负责，**页面不要自己管 `colSpan` / `rowSpan`**：
+
+- 分组表头横跨几列由 TanStack 算好（`updateHeaderSpans`），`DataTable` 把它交给 `<th colSpan>`；
+- 比最深的列**浅**的列（如多选列）上方会补一串占位表头，只有链顶那格该显示，
+  其余报 `rowSpan === 0`、`DataTable` 会跳过 —— 这是 TanStack 的官方约定
+  （见 `table-core` 的 `coreHeadersFeature.types.d.ts`）。⚠️ **没跳过 `rowSpan === 0`
+  的格会多占一格，整行分组标题全部左移、与下面的列对不上**，且表头下划线中途断掉。
+
+两条推论：
+
+- 分组表头**不要**给 `meta.headerClassName` 传 `min-w-*`：宽度由组内叶子列决定，给分组加最小宽会把分组撑得比它的列还宽；
+- 分组表头与树表可以叠加（本仓暂未同时使用）；若分组内包含树列，树列仍是**第一个可见数据列**，缩进与展开控件落在它上面。
 
 ## 3. 渲染器
 

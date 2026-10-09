@@ -1,0 +1,133 @@
+name: 代码作者门控
+
+# **业务代码只允许 AI 流水线产出** —— 人类直接提交一律拦截。
+#
+# 为什么要有这道门控：
+# 本仓的约定是「人写需求（issue）→ AI 写代码 → 人 review 合并」。光靠文档约定
+# 是不可执行的 —— 一次手滑的直接 push 就能绕过全部规范（`.agents/docs/*` 的
+# 架构约定、铁律、i18n 流程）。这道门控把它变成**机器判定**。
+#
+# 判定依据是**提交身份**：PR 引入的每个 commit，其 author email 必须在允许名单内
+# （默认是 AI 流水线与 i18n bot 的邮箱，可用 Variable 扩充）。
+# 不检查「PR 是谁开的」—— 人开 PR 是**正常且被鼓励**的（见 ai-implement 的默认路径），
+# 该拦的是「人类写的代码」，不是「人类的操作」。
+#
+# 逃生舱：PR 带 `human-override` 标签时放行，但该标签必须由**仓库成员**
+# （OWNER / MEMBER / COLLABORATOR）打上 —— 外部贡献者不能自己豁免自己。
+# 用途：紧急修一行、修 typo、回滚 —— 这类场景让 AI 走完整流程不划算。
+#
+# ⚠️ **本 workflow 依赖 Labels**：`human-override` 由 .github/labels.yml 定义。
+# 它同时会出现在**所有 PR** 上（包括 AI 自己的），所以判定必须便宜 —— 见下面只用一次 API 调用。
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+concurrency:
+  group: authorship-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check:
+    name: 提交身份
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 校验提交作者
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          # 允许的提交身份（逗号分隔的邮箱）。未配置时用下面的内置默认值。
+          ALLOWED_EMAILS: ${{ vars.AI_COMMIT_EMAILS }}
+        run: |
+          set -euo pipefail
+
+          # 内置默认：AI 流水线（ai-implement.yml 的 git config）与 i18n bot
+          # （translate.yml 的 i18n-bot）。这两个是本仓仅有的自动化提交者。
+          DEFAULT_EMAILS='cocodev@agent.qq.com,i18n-bot@users.noreply.github.com'
+
+          # 占位符（值形如 <FILL_ME>）视为「没配」—— 与全仓约定一致（见
+          # docs/repo-configuration.md §4）。不这样处理的话，预置的占位符会让
+          # **所有提交都不匹配**，把 AI 自己的 PR 也拦下来。
+          if [[ -z "${ALLOWED_EMAILS:-}" || "$ALLOWED_EMAILS" =~ ^\<.*\>$ ]]; then
+            ALLOWED="$DEFAULT_EMAILS"
+          else
+            ALLOWED="$ALLOWED_EMAILS"
+          fi
+
+          echo "允许的提交身份：$ALLOWED"
+
+          # —— 豁免检查：human-override 标签 + 由仓库成员打上 ——
+          labels="$(gh api "repos/$REPO/issues/$PR" --jq '[.labels[].name]|join(",")')"
+          if [[ ",$labels," == *",human-override,"* ]]; then
+            # 找出是谁打上的：只看该标签的 labeled 事件，取最后一个 actor
+            actor="$(gh api "repos/$REPO/issues/$PR/timeline?per_page=100" --paginate \
+              --jq '[.[] | select(.event=="labeled" and .label.name=="human-override")] | last | .actor.login // empty' 2>/dev/null || true)"
+            if [[ -n "$actor" ]]; then
+              # 权限级别：admin / write / maintain / triage 才算仓库成员。
+              # 为什么还要查：仓库若开了宽松的标签权限、或将来加了新协作者，
+              # 这一步能挡住「外部人自己给自己豁免」。
+              perm="$(gh api "repos/$REPO/collaborators/$actor/permission" --jq '.permission' 2>/dev/null || echo 'none')"
+              case "$perm" in
+                admin|write|maintain|triage)
+                  echo "::notice::PR #$PR 带 human-override，由 $actor（$perm）打上 —— 放行。"
+                  exit 0
+                  ;;
+                *)
+                  echo "::error::human-override 由 $actor（$perm）打上，不是仓库成员 —— 豁免无效。"
+                  # 继续往下走，按违规处理
+                  ;;
+              esac
+            else
+              echo "::warning::PR #$PR 带 human-override，但查不到是谁打上的 —— 按豁免无效处理。"
+            fi
+          fi
+
+          # —— 主判定：PR 引入的每个 commit 的 author / committer 邮箱 ——
+          # 只看 PR 带来的提交（base...head），不牵连 base 上的历史。
+          violations=''
+          count=0
+          while IFS=$'\t' read -r sha email_a email_c subject; do
+            [[ -z "$sha" ]] && continue
+            count=$((count + 1))
+
+            ok=false
+            IFS=',' read -ra allowed <<< "$ALLOWED"
+            for a in "${allowed[@]}"; do
+              a="$(printf '%s' "$a" | tr -d '[:space:]')"
+              [[ -z "$a" ]] && continue
+              # author 与 committer 任一在白名单即可（rebase 会改 committer，
+              # 不应因此把 AI 的提交判成人写的）
+              if [[ "$email_a" == "$a" || "$email_c" == "$a" ]]; then
+                ok=true
+                break
+              fi
+            done
+
+            if [[ "$ok" != true ]]; then
+              violations+="  ${sha}  author=${email_a}  committer=${email_c}  ${subject}"$'\n'
+            fi
+          done < <(gh api "repos/$REPO/pulls/$PR/commits?per_page=100" --paginate \
+            --jq '.[] | [.sha[0:7], .commit.author.email, .commit.committer.email, (.commit.message | split("\n")[0])] | @tsv')
+
+          if [[ -z "$violations" ]]; then
+            echo "::notice::PR #$PR 的 $count 个提交都来自允许的身份 —— 通过。"
+            exit 0
+          fi
+
+          echo "::error::PR #$PR 含有非 AI 身份提交的代码。"
+          echo "::error::本仓约定「业务代码只由 AI 流水线产出」：人写需求 → AI 写码 → 人 review。"
+          echo "::error::"
+          echo "::error::以下提交的作者不在允许名单（$ALLOWED）："
+          while IFS= read -r line; do
+            [[ -n "$line" ]] && echo "::error::$line"
+          done <<< "$(printf '%s' "$violations")"
+          echo "::error::"
+          echo "::error::正确做法：把这个改动写成一个 issue，在评论里 @ 触发账号让 AI 实现。"
+          echo "::error::确需人工直接改（紧急修复 / typo / 回滚）：让仓库成员给本 PR 打上 human-override 标签。"
+          exit 1

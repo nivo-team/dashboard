@@ -4,12 +4,17 @@
  * 从 openapi.json 生成「可筛选 query 参数目录」（`src/query-params.gen.ts`）。
  *
  * 规则：
- * 1. 只取指定接口的 query 参数（默认 GET /user）；
+ * 1. 只取指定接口的 query 参数（`--path` 指定，默认 GET /example/table）；
  * 2. 排除 primary 参数（由搜索框 / 分页 / 排序 / 时间范围控件接管）；
  * 3. 形如 xxx_min / xxx_max 的参数对合并为一个「区间」字段；
  * 4. 展示文案取内置中文词典（openapi 描述仅作兜底）。
  *
- * 用法：pnpm -C packages/api-client gen:query-params
+ * 用法：
+ *   pnpm -C packages/api-client gen:query-params
+ *   node scripts/gen-query-params.js --path=/example/table
+ *
+ * 为什么参数化而不是写死：示例接口会随目录结构调整（`/user` → `/example/table`），
+ * 写死的话每次调整都要改脚本 —— 那是把「可配置的东西」焊进了工具里。
  */
 
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -37,7 +42,9 @@ const LABELS = {
 }
 
 const ENDPOINT_METHOD = 'get'
-const ENDPOINT_PATH = '/user'
+/** 目标接口路径：`--path=/xxx` 覆盖，默认示例表格页。 */
+const ENDPOINT_PATH =
+  process.argv.find((a) => a.startsWith('--path='))?.slice('--path='.length) || '/example/table'
 const OUTPUT_PATH = 'src/query-params.gen.ts'
 
 /** 取展示文案：词典 → openapi 描述首个分句 → 参数名 */

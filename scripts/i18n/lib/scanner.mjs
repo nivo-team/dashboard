@@ -269,6 +269,8 @@ export function scanFile(file, _config) {
    * 只认字面量 `t(` 会把 `tc(...)` 整段漏掉，并把它错误归属到第一个命名空间。
    */
   const fnNs = new Map()
+  /** 翻译函数名 → 子前缀（`useTranslation('example', { keyPrefix: 'table' })` 里的 `table`）。 */
+  const fnPrefix = new Map()
   const fnNames = []
 
   for (const match of text.matchAll(
@@ -277,9 +279,18 @@ export function scanFile(file, _config) {
     const nsLiterals = [...match[2].matchAll(/['"]([a-zA-Z][\w-]*)['"]/g)].map((m) => m[1])
     const ns = nsLiterals[0] ?? 'common'
 
+    /*
+      第二个参数里的 `keyPrefix: 'xxx'` —— i18next 会把它拼在键前面。
+      静态检查必须知道这件事，否则会把 `t('columns.actions')` 当成
+      `<ns>:columns.actions`，而运行时实际取的是 `<ns>:<prefix>.columns.actions`，
+      于是整批键被误报成「缺失」。
+    */
+    const prefixMatch = match[2].match(/\bkeyPrefix:\s*['"]([^'"]+)['"]/)
+
     for (const binding of parseBindings(match[1])) {
       fnNames.push(binding.n)
       fnNs.set(binding.n, ns)
+      if (prefixMatch) fnPrefix.set(binding.n, prefixMatch[1])
     }
   }
 
@@ -318,6 +329,15 @@ export function scanFile(file, _config) {
         raw: arg.raw,
         dynamic: arg.dynamic,
         ns: nsOption ?? calleeNs ?? primaryNs,
+        /**
+         * 调用参数里**显式**给了 `ns`（`t('x', { ns: 'common' })`）。
+         * 单独记一笔：这种调用跨了命名空间，`keyPrefix` 不该生效 ——
+         * 检查工具据此决定要不要拼前缀。`ns` 字段本身已经有回退值，
+         * 无法区分「显式给的」与「继承的」，所以另开一个。
+         */
+        nsOption,
+        // 该调用所属翻译函数的 keyPrefix（i18next 会把它拼在键前）
+        keyPrefix: fnPrefix.get(calleeName) ?? '',
         kind: calleeName,
       })
     }
