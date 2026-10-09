@@ -10,7 +10,7 @@ import {
   XIcon,
   XSquareIcon,
 } from '@phosphor-icons/react'
-import { useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '#/lib/cn'
 import type { PageTab } from '#/lib/page-tabs'
@@ -24,7 +24,7 @@ import type { PageTab } from '#/lib/page-tabs'
  *
  * - `chrome`：桌面壳窗口条里那一条 —— **Chrome / Figma 那种连成一片的标签**：彼此没有间距、
  *   贴着窗口条下沿，激活态的整块形状（顶部圆角 + 底部外翻倒角 + 那条 1px 描边）
- *   由一条 **SVG 闭合路径**一次画完（见下面的 `TAB_SHAPE_OUTLINE`），
+ *   由一条 **SVG 闭合路径**一次画完（见下面的 `buildTabShape`），
  *   而不是「圆角盒子 + 角上贴渐变」—— 后者在非整数缩放下会露白、接不上。
  *   相邻的两个**未激活**标签之间有一条细分隔线（`src/styles.css` 里按
  *   `data-page-tab` / `data-active` 画），这是 Chrome 标签条最好认的特征；
@@ -58,48 +58,81 @@ export type PageTabVariant = 'chrome' | 'plain'
  */
 export const CHROME_TAB_HEIGHT = 34
 
-/** 底部外翻倒角的半径；也是标签形状向左右各探出标签盒的宽度 */
-export const CHROME_TAB_FLARE = 8
-
 /**
- * 形状自身的坐标系宽度：`8(左倒角) + 128(直边) + 8(右倒角) + 两侧各 8 的外探 = 160`。
+ * 底部外翻倒角的半径（px）。也是形状向标签盒左右各探出的宽度。
  *
- * 渲染时 SVG 被拉成 `标签宽 + 2*(倒角 + 余量)`，横向因此随文字长度自由伸缩
- * （`preserveAspectRatio="none"`）；描边走 `vector-effect: non-scaling-stroke`，
- * 拉伸时永远是 1px、不会被压扁。
+ * `#/components/page-tab-item` 用它生成路径，标签条左右留白也按它来。
  */
-const TAB_SHAPE_WIDTH = CHROME_TAB_FLARE * 2 + 128 + CHROME_TAB_FLARE * 2
+export const CHROME_TAB_FLARE = 8
 
 /**
  * 形状四周留出的**余量**（px）。
  *
- * 描边以路径为中心，上下左右各会探出 0.5px —— 不给余量就要靠 SVG 的
- * `overflow: visible` 硬撑，那是各引擎行为不一致的地方（顶部描边被自己的视口裁掉、
- * 底部的溢出还会让标签条的 `overflow-x: auto` 多出一段可滚动区域）。
- * 留 1px 后描边完全落在视口内：不用 `overflow: visible`，也不会溢出到外面。
+ * 描边以路径为中心、上下左右各探出 0.5px —— 不给余量就要靠 SVG 的 `overflow: visible`
+ * 硬撑，那是各引擎行为不一致的地方（实测：顶部描边会被自己的视口裁掉，底部的溢出还会让
+ * 标签条的 `overflow-x: auto` 多出一段可滚动区域）。留 1px 后描边完全落在视口内：
+ * 不用 `overflow: visible`，也不会溢出到外面。
  */
 const TAB_SHAPE_PAD = 1
 
+/** 还没量到标签宽度时用的兜底值：只影响形状的圆角比例，尺寸由 CSS 定，下一帧就纠正 */
+const TAB_SHAPE_FALLBACK_WIDTH = 150
+
 /**
- * 标签的轮廓：左下外翻凹角 → 左侧直边 → 左上凸圆角 → 顶边 → 右上凸圆角 →
- * 右侧直边 → 右下外翻凹角。**不闭合**（不画底边）：底面要留给下方工作区，
- * 底部那条分割线由标签底色盖住，正是「喇叭口压住底线」的效果。
+ * 圆角 / 外翻倒角的半径**随标签宽度收敛**。
  *
- * 填充用的那份在末尾补 `Z`（靠 `Z` 隐式闭合，而不是多画一条底边）。
+ * 固定态标签只有 36px 宽（`w-9`）：给它用满 8px，两边圆角加两边倒角就是 32px，
+ * 几乎吃掉整条边 —— 形状变成一个"桶"，和旁边正常宽度的标签完全不像一类东西。
+ * 所以半径跟着宽度走：窄标签收到 4px，正常宽度（≥ 80px）保持 8px。
  */
-const TAB_SHAPE_OUTLINE = [
-  `M 0,${CHROME_TAB_HEIGHT}`,
-  // 左下外翻：sweep=0 → 圆心落在切口外侧，弧朝外鼓（凹圆角）
-  `A ${CHROME_TAB_FLARE},${CHROME_TAB_FLARE} 0 0 0 ${CHROME_TAB_FLARE},${CHROME_TAB_HEIGHT - CHROME_TAB_FLARE}`,
-  `L ${CHROME_TAB_FLARE},${CHROME_TAB_FLARE}`,
-  // 左上凸圆角：sweep=1
-  `A ${CHROME_TAB_FLARE},${CHROME_TAB_FLARE} 0 0 1 ${CHROME_TAB_FLARE * 2},0`,
-  `L ${TAB_SHAPE_WIDTH - CHROME_TAB_FLARE * 2},0`,
-  `A ${CHROME_TAB_FLARE},${CHROME_TAB_FLARE} 0 0 1 ${TAB_SHAPE_WIDTH - CHROME_TAB_FLARE},${CHROME_TAB_FLARE}`,
-  `L ${TAB_SHAPE_WIDTH - CHROME_TAB_FLARE},${CHROME_TAB_HEIGHT - CHROME_TAB_FLARE}`,
-  // 右下外翻：同样 sweep=0
-  `A ${CHROME_TAB_FLARE},${CHROME_TAB_FLARE} 0 0 0 ${TAB_SHAPE_WIDTH},${CHROME_TAB_HEIGHT}`,
-].join(' ')
+export function resolveTabFlare(tabWidth: number): number {
+  return Math.max(4, Math.min(CHROME_TAB_FLARE, Math.round(tabWidth * 0.12)))
+}
+
+/**
+ * 按标签的**实测宽度**生成 1:1 的路径与 viewBox。
+ *
+ * 为什么必须 1:1：形状靠 `preserveAspectRatio="none"` 随标签宽横向拉伸，
+ * 而拉伸会把**顶部圆角也一起拉**（`x` 方向 8px 变成 8×拉伸比）—— 于是激活标签的顶角
+ * 与未激活标签的 `rounded-t-lg`（永远 8px）对不上，肉眼一眼能看出来。
+ * 把 viewBox 的宽度按实测像素写死，拉伸比就是 1，圆角与直边都不再变形。
+ *
+ * 坐标：SVG 视口 = 标签盒向左/右各 `倒角 + 余量`、向上 `余量`、下沿与标签齐平。
+ * 于是「标签左边」在坐标系里是 `倒角 + 余量`，「标签底边」是 `余量 + 标签高`。
+ */
+function buildTabShape(tabWidth: number) {
+  const flare = resolveTabFlare(tabWidth)
+  const pad = TAB_SHAPE_PAD
+  const left = flare + pad // 标签左边
+  const top = pad // 标签顶边
+  const bottom = pad + CHROME_TAB_HEIGHT // 标签底边
+  const right = left + tabWidth // 标签右边
+  const width = tabWidth + (flare + pad) * 2 // 视口宽
+
+  const outline = [
+    // 左下外翻：sweep=0 → 圆心落在切口外侧，弧朝外鼓（凹圆角）
+    `M ${pad},${bottom}`,
+    `A ${flare},${flare} 0 0 0 ${left},${bottom - flare}`,
+    `L ${left},${top + flare}`,
+    // 左上凸圆角：sweep=1
+    `A ${flare},${flare} 0 0 1 ${left + flare},${top}`,
+    `L ${right - flare},${top}`,
+    `A ${flare},${flare} 0 0 1 ${right},${top + flare}`,
+    `L ${right},${bottom - flare}`,
+    // 右下外翻：同样 sweep=0
+    `A ${flare},${flare} 0 0 0 ${right + flare},${bottom}`,
+  ].join(' ')
+
+  return { outline, viewBox: `0 0 ${width} ${bottom}`, width, height: bottom, flare }
+}
+
+export type PageTabVariant = 'chrome' | 'plain'
+
+/**
+ * chrome 外观下标签的高度。**必须与 SVG 的 viewBox 高度一致**（两者一起决定形状），
+ * 所以它只在这里定义一次：标签高度、SVG 高度、条上「+」那一行的高度都取它。
+ */
+export const CHROME_TAB_HEIGHT = 34
 
 /**
  * 拖拽刚结束的那一下 click 要忽略。
@@ -171,6 +204,41 @@ export function PageTabItem({
   const TabIcon = tab.icon
 
   /*
+    形状要按标签的**实测宽度**生成（理由见 `buildTabShape`）：靠 CSS 拉伸会让顶部圆角
+    跟着变形，和未激活标签的 `rounded-t-lg` 对不上。这里量一次、之后由 ResizeObserver
+    跟着内容变化（换语言、标题变长都会变宽）。
+    没量到之前用一个兜底宽度：只影响圆角比例，尺寸仍由 CSS 定，下一帧就纠正。
+  */
+  const [shapeWidth, setShapeWidth] = useState<number | null>(null)
+  const tabRef = useRef<HTMLDivElement | null>(null)
+  /** 同一个节点要喂给两处：dnd-kit 的 `setNodeRef` 与自己的测量 ref */
+  const setTabRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      setNodeRef(node)
+      tabRef.current = node
+    },
+    [setNodeRef],
+  )
+
+  useLayoutEffect(() => {
+    // 未激活标签也要量：它们的圆角同样跟着宽度收敛（见 `resolveTabFlare`）
+    if (!chrome) return
+    const node = tabRef.current
+    if (!node) return
+
+    const measure = () => setShapeWidth(node.getBoundingClientRect().width)
+    measure()
+
+    // 环境里没有 ResizeObserver（老 WebKit）时退化成「只量一次」，形状依旧正确
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(measure)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [chrome])
+
+  const shape = buildTabShape(shapeWidth ?? TAB_SHAPE_FALLBACK_WIDTH)
+
+  /*
     右键菜单的可用性：**固定的标签不参与「关闭左侧 / 右侧」**（固定就是「别动它」），
     所以某一侧只剩固定标签时那两项是禁用的。
   */
@@ -190,7 +258,7 @@ export function PageTabItem({
         而把柄（`listeners`）只挂在内容按钮上 —— 从 ✕ 上起手不会误触发排序。
       */}
       <div
-        ref={setNodeRef}
+        ref={setTabRef}
         data-page-tab={tab.to}
         data-active={active}
         className={cn(
@@ -204,7 +272,8 @@ export function PageTabItem({
           // 固定态是定宽小方块；普通标签给个上限，长标题才会截断而不是把标签撑宽
           pinned ? (chrome ? 'w-9' : 'w-8') : 'max-w-[200px]',
           // chrome 的高度由 CHROME_TAB_HEIGHT 定（要跟 SVG 的 viewBox 对上），plain 用 Tailwind 的 h-8
-          chrome ? 'rounded-t-lg border border-b-0' : 'h-8 rounded-md border',
+          // 圆角在 chrome 外观下由测量值决定（见下面的 style），plain 用 Tailwind 的 rounded-md
+          chrome ? 'border border-b-0' : 'h-8 rounded-md border',
           /*
             chrome 外观下**激活标签自己不画边框、不铺底色** —— 整块形状（含外翻倒角与
             那条 1px 描边）由下面的 SVG 一次画完。留 `border` 只是为了与未激活标签
@@ -225,7 +294,14 @@ export function PageTabItem({
           transform: foreignGroup ? undefined : CSS.Transform.toString(transform),
           transition: foreignGroup ? undefined : transition,
           // chrome 的高度只在常量里写一次（SVG 的 viewBox 也用它）
-          ...(chrome ? { height: CHROME_TAB_HEIGHT } : null),
+          ...(chrome
+            ? {
+                height: CHROME_TAB_HEIGHT,
+                // 顶部圆角用逻辑属性：RTL 下自动镜像到另一侧
+                borderStartStartRadius: shape.flare,
+                borderStartEndRadius: shape.flare,
+              }
+            : null),
         }}
       >
         {/*
@@ -239,24 +315,26 @@ export function PageTabItem({
           <svg
             aria-hidden
             className="page-tab-shape"
-            /*
-              viewBox 比形状本身大一圈（四周各 TAB_SHAPE_PAD），坐标系与渲染尺寸 1:1 对得上：
-              横向 `形状宽 + 2*(倒角+余量)`、纵向 `标签高 + 余量` —— 描边因此永远在视口内。
-            */
-            viewBox={`${-(CHROME_TAB_FLARE + TAB_SHAPE_PAD)} ${-TAB_SHAPE_PAD} ${
-              TAB_SHAPE_WIDTH + (CHROME_TAB_FLARE + TAB_SHAPE_PAD) * 2
-            } ${CHROME_TAB_HEIGHT + TAB_SHAPE_PAD}`}
+            // 1:1 的坐标系（`buildTabShape` 按实测宽度生成），拉伸比为 1 → 圆角与直边都不变形
+            viewBox={shape.viewBox}
             preserveAspectRatio="none"
-            // 铺开范围：左右各 `倒角 + 余量`，上下各在顶部留 `余量`（底部与标签齐平，底面本来就开口）
+            /*
+              铺开范围：左右各 `倒角 + 余量`；顶部留 `余量`（描边上下各探出 0.5px，
+              留在视口内就不必依赖 `overflow: visible`）；底部与标签齐平 —— 底面本来就开口。
+            */
             style={{
               insetBlockStart: -TAB_SHAPE_PAD,
               height: `calc(100% + ${TAB_SHAPE_PAD}px)`,
-              insetInline: -(CHROME_TAB_FLARE + TAB_SHAPE_PAD),
-              width: `calc(100% + ${(CHROME_TAB_FLARE + TAB_SHAPE_PAD) * 2}px)`,
+              // 还没量到时先用 CSS 撑开（下一帧换成实测像素，两者数值一致）
+              width:
+                shapeWidth === null
+                  ? `calc(100% + ${(CHROME_TAB_FLARE + TAB_SHAPE_PAD) * 2}px)`
+                  : shape.width,
+              insetInline: -(shape.flare + TAB_SHAPE_PAD),
             }}
           >
-            <path className="page-tab-shape-fill" d={`${TAB_SHAPE_OUTLINE} Z`} />
-            <path className="page-tab-shape-line" d={TAB_SHAPE_OUTLINE} />
+            <path className="page-tab-shape-fill" d={`${shape.outline} Z`} />
+            <path className="page-tab-shape-line" d={shape.outline} />
           </svg>
         ) : null}
 
