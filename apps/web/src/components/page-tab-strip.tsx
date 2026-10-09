@@ -14,7 +14,13 @@ import type { Icon } from '@phosphor-icons/react'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { PageTabItem, markDragEnd, type PageTabVariant, type TabActions } from '#/components/page-tab-item'
+import {
+  CHROME_TAB_HEIGHT,
+  markDragEnd,
+  PageTabItem,
+  type PageTabVariant,
+  type TabActions,
+} from '#/components/page-tab-item'
 import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
 import { cn } from '#/lib/cn'
 import {
@@ -187,9 +193,11 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
       <div
         className={cn(
           'flex shrink-0 items-center',
-          // 与标签那一行**完全同一格**：同高、同样往下探 1px（`-mb-px` 见导航那条注释）
-          variant === 'chrome' && '-mb-px h-[34px]',
+          // 与标签那一行**完全同一格**：同高（用标签高度那个常量）、同样往下探 1px
+          variant === 'chrome' && '-mb-px',
         )}
+        // 高度取 CHROME_TAB_HEIGHT：与标签、SVG 的 viewBox 同一个数
+        style={variant === 'chrome' ? { height: CHROME_TAB_HEIGHT } : undefined}
       >
         <NewTabMenu />
       </div>

@@ -91,92 +91,37 @@
 }
 
 /*
- * 2. **底部倒角**（外翻的凹角）：激活标签左右下角各一块，标签底色顺着一段圆弧流向下面，
- *    整条标签条因此像「长」在内容上。
+ * 2. **激活标签的形状（含底部外翻倒角）** 由 `#/components/page-tab-item` 画一条 SVG 路径：
+ *    一份 `fill`（闭合，末尾 `Z`）+ 一份同路径的 `stroke`（**不闭合**）。描边要单独一份，
+ *    是因为底面不能有线 —— 底边要留给下方工作区：标签底色压住底部那条分割线，
+ *    与工作区连成一体，正是「喇叭口压住底线」的效果。
  *
- * ## 几何怎么来的（上一版写反了，这里写清楚）
+ *    为什么不用「圆角 + 角上一个径向渐变伪元素」那套（本文件曾经的做法）：
+ *    渐变描边在 125% / 150% 这类非整数设备缩放下，圆弧每个像素的覆盖率会在 0.5px 之间抖，
+ *    于是露白、发虚、与直边接不上。SVG 路径是**几何上连续**的一条线，
+ *    配 `vector-effect: non-scaling-stroke` 后缩放多少都是实心 1px。
  *
- * 倒角长在标签**外侧**：一块边长 = 半径的方框贴在标签的左/右下角，与标签边**重叠 1px**
- * （圆弧末端才能接上标签自己那 1px 描边，不留缝）。
- * 圆弧的圆心在方框**外侧那个上角**（左倒角是左上角、右倒角是右上角）—— 只有这样，
- * 半径 r 的圆才同时与「标签的侧边」（竖线）和「底部那条线」（横线）**相切**：
- * 切点正是圆弧的起止点（距底 r、距标签边 r），于是圆弧从标签侧边平滑地拐到底部。
- * 要画的区域 = 方框减去这个圆 —— 剩下的正好是贴着标签角的那一小弯月牙。
- * **r 决定接得顺不顺**：切点距底就是 r，曲率半径也是 r —— r 太小（如 8）时曲线又短又陡，
- * 看起来就像在角上贴了个钩子；这里取 10（与参考实现同档），曲线从底往上 10px 就开始外翻。
- *
- * 反过来（圆心放在方框内侧那个下角）会得到相反的形状：贴着标签的地方被挖空、
- * 外层反而糊上一块，看着就是「倒角画反了」。
- *
- * ## 描边为什么是「实色 + 满墨 ~1.05px」
- *
- * 描边色用 `--shell-chrome-line`（定义在文件顶部）：它是窗口条下边线、标签边框与这段圆弧
- * **共用**的实色，取值等于「原来的半透明 `--color-kumo-line` 叠在窗口条底色上」的结果 ——
- * 于是三处永远一致，叠在一起也不会二次合成（半透明那条路线会让三处各自合成出略不同的灰）。
- *
- * 宽度用**满墨 1.05px**（两侧只留 0.1~0.15px 抗锯齿）：参考实现给的 0.6px 实心带会与底色
- * 混掉约四成，圆弧看着比旁边那条 1px 边框淡；曲线上每个像素的覆盖率本就不可能满格，
- * 稍宽一点才追平直边框的视觉重量。底色仍是 `bg-kumo-base`（倒角属于标签本体）。
- *
- * 渐变中心是**物理**方向，RTL 下要单独反过来写一次。
- *
- * 参考：一份已落地的 Chrome 风格标签条实现
- * （multica-ai/multica 8e1bf6c，"merge active tab into content surface, Chrome-style"）。
+ *    形状向标签盒左右各探出一个倒角宽度（`CHROME_TAB_FLARE`），水平铺开由组件写在
+ *    内联样式里，这里只管怎么画；`preserveAspectRatio="none"` 让形状随标签宽横向拉伸。
  */
-[data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::before,
-[data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::after {
-  content: '';
+.page-tab-shape {
   position: absolute;
-  bottom: 0;
-  /* 倒角半径。**越大曲线越长越缓**：切点距底 = 半径，半径 10 意味着曲线从底往上 10px
-     就开始外翻（34px 高的标签上约占三成），看起来才是「标签的边顺着拐出去」而不是
-     「底下贴了个钩子」。参考实现取的也是 10。 */
-  width: 10px;
-  height: 10px;
+  inset-block: 0;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
 }
 
-[data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::before {
-  /* -10px + 1px：与标签边重叠 1px，圆弧才接得上标签的侧边描边 */
-  inset-inline-start: -9px;
-  background: radial-gradient(
-    circle 10px at 0 0,
-    transparent 8.9px,
-    var(--shell-chrome-line) 9.05px,
-    var(--shell-chrome-line) 10.1px,
-    var(--color-kumo-base) 10.2px
-  );
+.page-tab-shape-fill {
+  fill: var(--color-kumo-base);
 }
 
-[data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::after {
-  inset-inline-end: -9px;
-  background: radial-gradient(
-    circle 10px at 100% 0,
-    transparent 8.9px,
-    var(--shell-chrome-line) 9.05px,
-    var(--shell-chrome-line) 10.1px,
-    var(--color-kumo-base) 10.2px
-  );
-}
-
-/* RTL：凹弧要贴在标签那一侧（渐变中心是物理方向，逻辑属性换边后这里得跟着换） */
-[dir='rtl'] [data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::before {
-  background: radial-gradient(
-    circle 10px at 100% 0,
-    transparent 8.9px,
-    var(--shell-chrome-line) 9.05px,
-    var(--shell-chrome-line) 10.1px,
-    var(--color-kumo-base) 10.2px
-  );
-}
-
-[dir='rtl'] [data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::after {
-  background: radial-gradient(
-    circle 10px at 0 0,
-    transparent 8.9px,
-    var(--shell-chrome-line) 9.05px,
-    var(--shell-chrome-line) 10.1px,
-    var(--color-kumo-base) 10.2px
-  );
+.page-tab-shape-line {
+  fill: none;
+  stroke: var(--shell-chrome-line);
+  stroke-width: 1px;
+  /* 描边在**视口坐标系**里计算：横向拉伸不会把它压扁或拉粗（1px 永远是 1px） */
+  vector-effect: non-scaling-stroke;
 }
 
 /*

@@ -22,8 +22,10 @@ import type { PageTab } from '#/lib/page-tabs'
  *
  * 行为、菜单、拖拽完全一样，只有几何与配色不同：
  *
- * - `chrome`：桌面壳窗口条里那一条 —— **Chrome 那种连成一片的标签**：彼此没有间距、
- *   贴着窗口条下沿、只圆上面两个角，激活态相当于「抬起来」的那一张（浅底 + 描边 + 深色字）。
+ * - `chrome`：桌面壳窗口条里那一条 —— **Chrome / Figma 那种连成一片的标签**：彼此没有间距、
+ *   贴着窗口条下沿，激活态的整块形状（顶部圆角 + 底部外翻倒角 + 那条 1px 描边）
+ *   由一条 **SVG 闭合路径**一次画完（见下面的 `TAB_SHAPE_OUTLINE`），
+ *   而不是「圆角盒子 + 角上贴渐变」—— 后者在非整数缩放下会露白、接不上。
  *   相邻的两个**未激活**标签之间有一条细分隔线（`src/styles.css` 里按
  *   `data-page-tab` / `data-active` 画），这是 Chrome 标签条最好认的特征；
  * - `plain`：浏览器顶栏里的小卡片（默认）：彼此留间距、四角都圆的独立小块。
@@ -49,6 +51,45 @@ export interface TabActions {
 }
 
 export type PageTabVariant = 'chrome' | 'plain'
+
+/**
+ * chrome 外观下标签的高度。**必须与 SVG 的 viewBox 高度一致**（两者一起决定形状），
+ * 所以它只在这里定义一次：标签高度、SVG 高度、条上「+」那一行的高度都取它。
+ */
+export const CHROME_TAB_HEIGHT = 34
+
+/** 底部外翻倒角的半径；也是标签形状向左右各探出标签盒的宽度 */
+export const CHROME_TAB_FLARE = 8
+
+/**
+ * 形状的 viewBox：`8(左倒角) + 128(直边) + 8(右倒角) + 两侧各 8 的外探 = 160`。
+ *
+ * 渲染时 SVG 被拉成 `标签宽 + 16`（见 `styles.css` 的 `.page-tab-shape`），
+ * 横向因此随文字长度自由伸缩（`preserveAspectRatio="none"`）；
+ * 描边走 `vector-effect: non-scaling-stroke`，拉伸时永远是 1px、不会被压扁。
+ */
+const TAB_SHAPE_WIDTH = CHROME_TAB_FLARE * 2 + 128 + CHROME_TAB_FLARE * 2
+
+/**
+ * 标签的轮廓：左下外翻凹角 → 左侧直边 → 左上凸圆角 → 顶边 → 右上凸圆角 →
+ * 右侧直边 → 右下外翻凹角。**不闭合**（不画底边）：底面要留给下方工作区，
+ * 底部那条分割线由标签底色盖住，正是「喇叭口压住底线」的效果。
+ *
+ * 填充用的那份在末尾补 `Z`（靠 `Z` 隐式闭合，而不是多画一条底边）。
+ */
+const TAB_SHAPE_OUTLINE = [
+  `M 0,${CHROME_TAB_HEIGHT}`,
+  // 左下外翻：sweep=0 → 圆心落在切口外侧，弧朝外鼓（凹圆角）
+  `A ${CHROME_TAB_FLARE},${CHROME_TAB_FLARE} 0 0 0 ${CHROME_TAB_FLARE},${CHROME_TAB_HEIGHT - CHROME_TAB_FLARE}`,
+  `L ${CHROME_TAB_FLARE},${CHROME_TAB_FLARE}`,
+  // 左上凸圆角：sweep=1
+  `A ${CHROME_TAB_FLARE},${CHROME_TAB_FLARE} 0 0 1 ${CHROME_TAB_FLARE * 2},0`,
+  `L ${TAB_SHAPE_WIDTH - CHROME_TAB_FLARE * 2},0`,
+  `A ${CHROME_TAB_FLARE},${CHROME_TAB_FLARE} 0 0 1 ${TAB_SHAPE_WIDTH - CHROME_TAB_FLARE},${CHROME_TAB_FLARE}`,
+  `L ${TAB_SHAPE_WIDTH - CHROME_TAB_FLARE},${CHROME_TAB_HEIGHT - CHROME_TAB_FLARE}`,
+  // 右下外翻：同样 sweep=0
+  `A ${CHROME_TAB_FLARE},${CHROME_TAB_FLARE} 0 0 0 ${TAB_SHAPE_WIDTH},${CHROME_TAB_HEIGHT}`,
+].join(' ')
 
 /**
  * 拖拽刚结束的那一下 click 要忽略。
@@ -140,25 +181,61 @@ export function PageTabItem({
       */}
       <div
         ref={setNodeRef}
-        style={{
-          // 另一组的标签不跟着动：位移与过渡都摘掉，它就停在原地
-          transform: foreignGroup ? undefined : CSS.Transform.toString(transform),
-          transition: foreignGroup ? undefined : transition,
-        }}
         data-page-tab={tab.to}
         data-active={active}
         className={cn(
           'group/tab relative flex min-w-0 shrink-0 items-center',
           // 固定态是定宽小方块；普通标签给个上限，长标题才会截断而不是把标签撑宽
           pinned ? (chrome ? 'w-9' : 'w-8') : 'max-w-[200px]',
-          chrome ? 'h-[34px] rounded-t-lg border border-b-0' : 'h-8 rounded-md border',
-          // 描边与窗口条下边线、倒角圆弧同色（实色，见 styles.css 的 `--shell-chrome-line`）
-          active
-            ? 'bg-kumo-base [border-color:var(--shell-chrome-line)]'
-            : 'border-transparent hover:bg-kumo-tint',
+          // chrome 的高度由 CHROME_TAB_HEIGHT 定（要跟 SVG 的 viewBox 对上），plain 用 Tailwind 的 h-8
+          chrome ? 'rounded-t-lg border border-b-0' : 'h-8 rounded-md border',
+          /*
+            chrome 外观下**激活标签自己不画边框、不铺底色** —— 整块形状（含外翻倒角与
+            那条 1px 描边）由下面的 SVG 一次画完。留 `border` 只是为了与未激活标签
+            保持同样的盒模型，切换标签时内容不会跳 1px。
+          */
+          chrome
+            ? active
+              ? 'border-transparent'
+              : // 窗口条本身已经是 tint，悬浮再叠 tint 等于没反应 → 悬浮是**提亮**（Chrome 的做法）
+                'border-transparent hover:bg-kumo-base/60'
+            : active
+              ? 'bg-kumo-base [border-color:var(--shell-chrome-line)]'
+              : 'border-transparent hover:bg-kumo-tint',
           stackClass,
         )}
+        style={{
+          // 另一组的标签不跟着动：位移与过渡都摘掉，它就停在原地
+          transform: foreignGroup ? undefined : CSS.Transform.toString(transform),
+          transition: foreignGroup ? undefined : transition,
+          // chrome 的高度只在常量里写一次（SVG 的 viewBox 也用它）
+          ...(chrome ? { height: CHROME_TAB_HEIGHT } : null),
+        }}
       >
+        {/*
+          形状本体：一条**闭合路径**（填充）+ 一条**不闭合的同一路径**（描边）。
+          描边单独一份是因为底面不能有线：`Z` 会把底边也描出来，而底边要留给下方工作区
+          （标签底色压住底部那条分割线，与工作区连成一体）。
+          `vector-effect: non-scaling-stroke` 保证拉伸时描边永远是 1px 的实心线 ——
+          不像径向渐变那套，在 125% / 150% 这类非整数缩放下会露白或断裂。
+        */}
+        {chrome && active ? (
+          <svg
+            aria-hidden
+            className="page-tab-shape"
+            viewBox={`0 0 ${TAB_SHAPE_WIDTH} ${CHROME_TAB_HEIGHT}`}
+            preserveAspectRatio="none"
+            // 形状向标签盒左右各探出一个倒角宽度（横向铺开只在这里写一次）
+            style={{
+              insetInline: -CHROME_TAB_FLARE,
+              width: `calc(100% + ${CHROME_TAB_FLARE * 2}px)`,
+            }}
+          >
+            <path className="page-tab-shape-fill" d={`${TAB_SHAPE_OUTLINE} Z`} />
+            <path className="page-tab-shape-line" d={TAB_SHAPE_OUTLINE} />
+          </svg>
+        ) : null}
+
         <DropdownMenu.Trigger
           render={
             <button

@@ -57,7 +57,14 @@ export function DesktopTitleBar({ actions, homeTo }: DesktopTitleBarProps) {
         'sticky top-0 z-40 flex h-[var(--shell-chrome-h)] shrink-0 items-center gap-1',
         // 底边线用**实色** `--shell-chrome-line`：它是与标签边框 / 倒角圆弧共用的那一支，
         // 半透明的 `border-kumo-line` 会因为各处底色不同而合成出不同的灰（见 styles.css）
-        'border-b [border-bottom-color:var(--shell-chrome-line)] bg-kumo-canvas px-2 select-none',
+        /*
+          底色用 `bg-kumo-tint`（浅色下 97%）而不是 `bg-kumo-canvas`（98.75%）：
+          **激活标签（`bg-kumo-base` = 100%）必须比它明显亮**，否则标签那对倒角外侧的
+          「月牙」与窗口条只差 2/255 —— 肉眼看不见，倒角就只剩一条悬空的弧线
+          （无头 Chrome 实测过：月牙 249 vs 窗口条 251）。Chrome 自己也是这个关系：
+          标签条是一道灰一点的长条，激活标签才是白的。
+        */
+        'border-b [border-bottom-color:var(--shell-chrome-line)] bg-kumo-tint px-2 select-none',
         // 空白处 = 拖拽区（窗口是 frameless 的，没有系统标题栏可拖）
         '[--wails-draggable:drag]',
       )}
