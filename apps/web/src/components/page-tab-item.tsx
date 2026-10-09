@@ -248,16 +248,32 @@ export function PageTabItem({
   )
 
   useLayoutEffect(() => {
-    // 切换到激活态且属于滚动区（非固定标签）时，平滑滚动至视野居中舒适区域
+    // 切换到激活态且属于滚动区（非固定标签）时，精确计算「元素起点 + Tab 宽度」，确保完整可见
     if (!active || pinned) return
     const node = tabRef.current
     if (!node) return
+    const nav = node.closest('nav')
+    if (!nav) return
 
-    node.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'center',
-    })
+    // 1. 元素在滚动内容长条中的绝对起点与宽度（免疫任何 offsetParent 错位）
+    const nodeRect = node.getBoundingClientRect()
+    const navRect = nav.getBoundingClientRect()
+    const elementLeft = nodeRect.left - navRect.left + nav.scrollLeft
+    const tabWidth = node.offsetWidth || nodeRect.width
+    const elementRight = elementLeft + tabWidth
+
+    // 2. 左右各保留 20px 安全余量（容纳 9px 外翻倒角与呼吸留白）
+    const padding = 20
+    const viewLeft = nav.scrollLeft
+    const viewRight = nav.scrollLeft + nav.clientWidth
+
+    if (elementLeft - padding < viewLeft) {
+      // 左侧出界：滚动到让元素左沿露出
+      nav.scrollTo({ left: Math.max(0, elementLeft - padding), behavior: 'smooth' })
+    } else if (elementRight + padding > viewRight) {
+      // 右侧出界：精确滚动到让「元素起点 + Tab 宽度」完整呈现在可视区域右侧
+      nav.scrollTo({ left: elementRight + padding - nav.clientWidth, behavior: 'smooth' })
+    }
   }, [active, pinned])
 
   useLayoutEffect(() => {
