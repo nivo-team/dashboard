@@ -14,6 +14,7 @@
 - **React 19** + **Vite+ 1.1.0**（Vite 8 / Rolldown 内核，`vp` 工具链，配置在根 `vite.config.ts`）
   + **TanStack Router / Query** + **zustand 5**（persist）
 - **Tailwind CSS v4**（无 config）+ **Kumo**（Cloudflare 设计系统，基于 Base UI）
+  + **dnd-kit**（只用于页面标签页的拖拽排序，见 [routing-architecture.md](./.agents/docs/routing-architecture.md)）
 - **i18next**（7 语言；`ar-SA` 自动 `dir="rtl"`）
 - 路径别名 `#/*` 与 `@/*` → `./src/*`；包管理器 **pnpm**
 - **AI 核心集中在 [`src/features/ai/`](./apps/web/src/features/ai/README.md)**（逻辑 / UI / 渲染 / 全屏页 / 页面声明框架）—— 改 AI 先读那里的地图

@@ -7,10 +7,10 @@ import { ALL_NAV_TARGETS, ALL_SHELL_NAV_TARGETS } from './navigation'
 import { useShellUiStore } from './store/shell-ui-store'
 
 /**
- * 桌面窗口条的**页面标签页**（page tabs）数据层。
+ * **页面标签页**（page tabs）数据层：桌面壳窗口条与浏览器顶栏共用同一份状态。
  *
- * 形态是浏览器标签页那一套：你访问过的页面各占一个标签，点谁切谁、关掉就没了。
- * 两条刻意的取舍：
+ * 形态是浏览器标签页那一套：你访问过的页面各占一个标签，点谁切谁、关掉就没了，
+ * 还能**拖拽排序**（dnd-kit，见 `#/components/page-tab-strip`）与**固定**。几条刻意的取舍：
  *
  * 1. **标签 = 导航清单里的一项，而不是「每一个访问过的 URL」**。
  *    依据是 `NAV_GROUPS`（业务导航，`to` 相对 appId）与 `ALL_SHELL_NAV_TARGETS`
@@ -18,9 +18,17 @@ import { useShellUiStore } from './store/shell-ui-store'
  *    和 `/$appId/system/menus` 共用「菜单管理」这一个标签，进详情页不会越点越多标签，
  *    也正是 `navigation.ts` 那条「名单只有一个真值」的延续：**加页面不改这里**。
  *
- * 2. **存档只记「打开过哪些页面」**（`sessionStorage`，见下）：刷新之后标签条原样回来，
- *    当前页仍是激活态（激活永远由 URL 决定）；窗口关掉后一般随之清空 —— 标签页是「这一次开着的东西」。
- *    刻意不落 `localStorage`：那不是「恢复标签」而是「每次启动都弹出一堆上次的页面」。
+ * 2. **排序有一条不变量：固定的永远在最前面**（`normalizeTabs`）—— 每次写入后统一维持，
+ *    读的地方不必再排序；拖拽也不能跨越固定 / 未固定那条界线（见 `moveTab`）。固定态进存档。
+ *
+ * 3. **存档只记「打开过哪些页面 + 固定态」**（`sessionStorage`，见下）：刷新之后标签条
+ *    原样回来，当前页仍是激活态（激活永远由 URL 决定）；窗口关掉后一般随之清空 ——
+ *    标签页是「这一次开着的东西」。刻意不落 `localStorage`：那不是「恢复标签」
+ *    而是「每次启动都弹出一堆上次的页面」。
+ *
+ * 4. **关 / 排序只改数据，不负责跳转**：「关掉当前页之后该看哪一页」是路由的事，
+ *    这里连 router 都不认识；调用方（`#/components/page-tab-strip` 的 `useTabActions`）
+ *    在动作之后读一次新状态再决定跳哪儿。
  *
  * 消费方是 `#/components/page-tab-strip`：桌面壳里挂在窗口条上（`#/components/desktop-title-bar`），
  * 浏览器里由设置项 `pageTabsEnabled` 决定要不要挂在顶栏行首（见 `#/lib/store/shell-ui-store`）。
@@ -44,6 +52,13 @@ export interface PageTab {
   labelKey?: string
   /** 图标。**不进存档**（组件引用没法序列化），恢复时按 `to` 重新解析 */
   icon?: Icon
+  /**
+   * 是否固定：固定的排在整条标签条**最前面**，且渲染成**只有图标**的窄标签。
+   *
+   * 与浏览器标签页的固定语义一致：它表达「这一页我要一直留着」，
+   * 所以既占更少横向空间，也不会被拖到未固定区段里去（见 `moveTab`）。
+   */
+  pinned?: boolean
 }
 
 /**
@@ -123,12 +138,52 @@ export function resolvePageTab(pathname: string): PageTab | null {
 }
 
 interface PageTabsState {
-  /** 已打开的标签页，按打开顺序排列（新的追加在行尾，与浏览器一致） */
+  /**
+   * 已打开的标签页。顺序即显示顺序，**固定（`pinned`）的永远在前**——
+   * 这条不变量由 `normalizeTabs` 在每次写入后统一维持，读的地方不必再排序。
+   */
   tabs: PageTab[]
-  /** 打开（或激活）一个标签页：已存在就只更新标题信息，不重复添加 */
+  /** 打开（或激活）一个标签页：已存在就只更新标题信息（**保留固定态**），不重复添加 */
   openTab: (tab: PageTab) => void
   /** 关闭一个标签页。**不负责跳转** —— 关掉当前页之后去哪儿由调用方决定 */
   removeTab: (to: string) => void
+  /** 关闭除 `to` 之外的全部（右键菜单「关闭其它」） */
+  closeOthers: (to: string) => void
+  /** 关闭全部（右键菜单「关闭所有」） */
+  closeAll: () => void
+  /**
+   * 关闭 `to` **某一侧**的全部（右键菜单「关闭左侧 / 关闭右侧」）。
+   *
+   * `side` 是**渲染顺序**上的前后（`start` = 排在它前面的那些），不是物理左右 ——
+   * 物理方向由调用方按 RTL 映射过来。固定的标签不参与批量关闭（固定就是「别动它」）。
+   */
+  closeSide: (to: string, side: 'start' | 'end') => void
+  /** 固定 / 取消固定（固定的排到最前，且只显示图标） */
+  togglePinned: (to: string) => void
+  /**
+   * 拖拽排序：把 `from` 挪到 `to` 的位置（dnd-kit 的 `active.id` / `over.id`）。
+   *
+   * **不跨越固定/未固定那条界线**：固定的只能排在固定的区段里，未固定的同理 ——
+   * 越界时按区段边界夹住。跨区变固定是「固定」这个动作的语义（走 `togglePinned`），
+   * 不是拖一下就能顺手变的事，否则拖到一半标签就换了个形态，很难预期。
+   */
+  moveTab: (from: string, to: string) => void
+}
+
+/**
+ * 维持「固定在前」这条不变量（`Array.prototype.sort` 在现代引擎里是稳定的，同组内保持相对顺序）。
+ */
+function normalizeTabs(tabs: PageTab[]): PageTab[] {
+  if (tabs.every((tab) => !tab.pinned)) return tabs
+  const rank = (tab: PageTab) => (tab.pinned ? 0 : 1)
+  return [...tabs].sort((a, b) => rank(a) - rank(b))
+}
+
+/** 某个位置在哪个区段里可落（`[0, pinnedCount-1]` 或 `[pinnedCount, len-1]`）。 */
+function clampToGroup(index: number, pinned: boolean, tabs: PageTab[]): number {
+  const pinnedCount = tabs.filter((tab) => tab.pinned).length
+  if (pinned) return Math.max(0, Math.min(index, Math.max(0, pinnedCount - 1)))
+  return Math.max(pinnedCount, Math.min(index, tabs.length - 1))
 }
 
 /** 存档里只放「能重建一个标签」的最小字段（图标是组件引用，序列化会丢） */
@@ -136,6 +191,7 @@ interface PersistedPageTab {
   to: string
   label: string
   labelKey?: string
+  pinned?: boolean
 }
 
 export const usePageTabsStore = create<PageTabsState>()(
@@ -145,22 +201,55 @@ export const usePageTabsStore = create<PageTabsState>()(
       openTab: (tab) =>
         set((state) => {
           const index = state.tabs.findIndex((item) => item.to === tab.to)
-          if (index === -1) return { tabs: [...state.tabs, tab] }
+          if (index === -1) return { tabs: normalizeTabs([...state.tabs, tab]) }
           /*
             已存在：只在「解析结果变了」时替换（例如同一个标签先由兜底文案建出来、
             随后导航清单里有了正式名称）。内容一样就返回原 state，避免无谓的重渲染。
+            **固定态以存档为准**：`resolvePageTab` 不产生 `pinned`，直接覆盖会把固定态抹掉。
           */
           const existing = state.tabs[index]
+          const next: PageTab = { ...tab, pinned: existing.pinned }
           const same =
-            existing.label === tab.label &&
-            existing.labelKey === tab.labelKey &&
-            existing.icon === tab.icon
+            existing.label === next.label &&
+            existing.labelKey === next.labelKey &&
+            existing.icon === next.icon
           if (same) return state
           const tabs = state.tabs.slice()
-          tabs[index] = tab
+          tabs[index] = next
           return { tabs }
         }),
       removeTab: (to) => set((state) => ({ tabs: state.tabs.filter((item) => item.to !== to) })),
+      closeOthers: (to) => set((state) => ({ tabs: state.tabs.filter((item) => item.to === to) })),
+      closeAll: () => set({ tabs: [] }),
+      closeSide: (to, side) =>
+        set((state) => {
+          const index = state.tabs.findIndex((item) => item.to === to)
+          if (index === -1) return state
+          return {
+            // 固定的留着：它们本来就在两端，不该被「关闭左侧 / 右侧」顺手带走
+            tabs: state.tabs.filter((tab, i) =>
+              tab.pinned ? true : side === 'start' ? i >= index : i <= index,
+            ),
+          }
+        }),
+      togglePinned: (to) =>
+        set((state) => ({
+          tabs: normalizeTabs(
+            state.tabs.map((item) => (item.to === to ? { ...item, pinned: !item.pinned } : item)),
+          ),
+        })),
+      moveTab: (from, to) =>
+        set((state) => {
+          const oldIndex = state.tabs.findIndex((item) => item.to === from)
+          const newIndex = state.tabs.findIndex((item) => item.to === to)
+          if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return state
+          const tab = state.tabs[oldIndex]
+          const target = clampToGroup(newIndex, !!tab.pinned, state.tabs)
+          const tabs = state.tabs.slice()
+          tabs.splice(oldIndex, 1)
+          tabs.splice(target, 0, tab)
+          return { tabs }
+        }),
     }),
     {
       /*
@@ -171,7 +260,12 @@ export const usePageTabsStore = create<PageTabsState>()(
       name: 'admin.page-tabs',
       storage: createJSONStorage(() => window.sessionStorage),
       partialize: (state): { tabs: PersistedPageTab[] } => ({
-        tabs: state.tabs.map(({ to, label, labelKey }) => ({ to, label, labelKey })),
+        tabs: state.tabs.map(({ to, label, labelKey, pinned }) => ({
+          to,
+          label,
+          labelKey,
+          pinned,
+        })),
       }),
       /**
        * 恢复时按 `to` 重新解析一遍：图标本来就没进存档，而导航清单也可能已经变了 ——
@@ -184,12 +278,14 @@ export const usePageTabsStore = create<PageTabsState>()(
         const seen = new Set<string>()
         const tabs: PageTab[] = []
         for (const item of saved.tabs) {
-          const to = (item as PersistedPageTab | null)?.to
+          const savedTab = item as PersistedPageTab | null
+          const to = savedTab?.to
           if (typeof to !== 'string' || to === '' || seen.has(to)) continue
           seen.add(to)
-          tabs.push(resolvePageTab(to) ?? { to, label: to })
+          // 固定态是用户的选择，与图标不同 —— 它进存档，恢复后仍在最前面
+          tabs.push({ ...(resolvePageTab(to) ?? { to, label: to }), pinned: !!savedTab?.pinned })
         }
-        return { ...current, tabs }
+        return { ...current, tabs: normalizeTabs(tabs) }
       },
     },
   ),

@@ -60,7 +60,8 @@ export function DesktopTitleBar({ actions, homeTo }: DesktopTitleBarProps) {
         '[--wails-draggable:drag]',
       )}
     >
-      <PageTabStrip homeTo={homeTo} />
+      {/* `chrome`：桌面壳窗口条里那一条是 Chrome 那种连成一片的标签 */}
+      <PageTabStrip homeTo={homeTo} variant="chrome" />
 
       {/* 行末工具区：退出拖拽区，否则按钮点不动 */}
       {actions ? (

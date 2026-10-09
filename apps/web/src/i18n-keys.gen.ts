@@ -1,6 +1,6 @@
 /* eslint-disable */
 // 本文件由 scripts/i18n/gen-types.mjs 生成 —— 不要手改。
-// 源语言：zh-CN｜命名空间：12 个｜键：1062 个
+// 源语言：zh-CN｜命名空间：12 个｜键：1070 个
 // 重新生成：pnpm i18n:types
 
 /**
@@ -257,10 +257,18 @@ export interface I18nNamespaceKeys {
     | "notFound.description"
     | "notFound.title"
     | "pageTabs.close"
+    | "pageTabs.closeAll"
+    | "pageTabs.closeLeft"
+    | "pageTabs.closeOthers"
+    | "pageTabs.closeRight"
+    | "pageTabs.closeTab"
+    | "pageTabs.dragHint"
     | "pageTabs.groups.pages"
     | "pageTabs.groups.shellPages"
     | "pageTabs.label"
     | "pageTabs.new"
+    | "pageTabs.pin"
+    | "pageTabs.unpin"
     | "profile.fields.currentRegion"
     | "profile.fields.email"
     | "profile.fields.nickName"

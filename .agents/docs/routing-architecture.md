@@ -150,6 +150,14 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
   标签集合存在 `sessionStorage`（`admin.page-tabs`）：刷新 / 壳 Reload 之后原样回来，
   窗口关掉后一般随之清空（激活态永远由 URL 决定，恢复时不存图标 —— 组件引用没法序列化，
   按 `to` 重新解析）；
+- **标签的交互**（拖拽排序 / 右键菜单 / 固定）都收在 `#/components/page-tab-strip` 与
+  `#/components/page-tab-item` 里，只有它们认识 router：`useTabActions` 统一处理
+  「关掉之后看哪一页」（**当前页还在就原地不动**，否则跳到那个一定活下来的落点）。
+  排序用 **dnd-kit**（`PointerSensor` + 6px 激活距离，避免把「点击切换」误判成拖拽；
+  指针拖拽结束后那一下 click 由 `markDragEnd()` 的时间戳挡掉）。
+  **固定**的标签排在最前、只显示图标，且不参与「关闭左侧 / 右侧」与跨区拖拽；
+  排序与固定的规则都在 store 里（`moveTab` / `togglePinned` / `closeSide`），
+  组件只负责把动作接上去 —— **这条边界别打破**：数据层不认识 router，界面层不认识排序规则；
 - **高度**：窗口条 44px，侧边栏与两个面板列都按 `--shell-chrome-h` 扣掉它；
   收起态侧边栏那一列（Kumo 用 `fixed` 实现）也按同一个变量挪回窗口条下面那一行 ——
   见 [ui-and-styling.md](./ui-and-styling.md) §4。

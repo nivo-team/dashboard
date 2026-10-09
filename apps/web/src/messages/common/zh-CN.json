@@ -360,6 +360,14 @@
   "pageTabs": {
     "label": "页面标签页",
     "close": "关闭 {{label}}",
+    "closeTab": "关闭",
+    "closeOthers": "关闭其它",
+    "closeLeft": "关闭左侧",
+    "closeRight": "关闭右侧",
+    "closeAll": "关闭全部",
+    "pin": "固定标签页",
+    "unpin": "取消固定",
+    "dragHint": "用鼠标拖动标签可以调整顺序。",
     "new": "打开新页面",
     "groups": {
       "pages": "页面",

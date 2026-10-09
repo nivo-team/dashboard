@@ -70,6 +70,23 @@
 }
 
 /*
+ * Chrome 那条标签条里的**细分隔线**：相邻两个「未激活」标签之间画一条竖线。
+ *
+ * 钩子在 `#/components/page-tab-item`（`data-page-tab` + `data-active`）——
+ * 「前一个兄弟也满足条件」这种关系 Tailwind 的变体表达不出来（要写组合选择器 `& + &`），
+ * 而这条线正是 Chrome 标签条最好认的特征之一，所以放这里。
+ * 逻辑属性书写：`inset-inline-start` 让它在 RTL 下自动贴到另一侧。
+ */
+[data-page-tab][data-active='false'] + [data-page-tab][data-active='false']::before {
+  content: '';
+  position: absolute;
+  inset-block: 32%;
+  inset-inline-start: 0;
+  width: 1px;
+  background-color: var(--color-kumo-line);
+}
+
+/*
  * 外壳的整屏几何 —— 两个数，桌面壳的窗口条要挤掉多少高度全从这里算。
  *
  *   --shell-chrome-h       视口顶端多出来的那一条 chrome 的高度（窗口条）。

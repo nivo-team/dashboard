@@ -1,9 +1,20 @@
+import {
+  closestCenter,
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import { restrictToHorizontalAxis } from '@dnd-kit/modifiers'
+import { horizontalListSortingStrategy, SortableContext } from '@dnd-kit/sortable'
 import { Button, DropdownMenu } from '@cloudflare/kumo'
-import { PlusIcon, XIcon } from '@phosphor-icons/react'
+import { PlusIcon } from '@phosphor-icons/react'
 import type { Icon } from '@phosphor-icons/react'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { Fragment, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { PageTabItem, markDragEnd, type PageTabVariant, type TabActions } from '#/components/page-tab-item'
 import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
 import { cn } from '#/lib/cn'
 import {
@@ -15,6 +26,7 @@ import {
 } from '#/lib/navigation'
 import { resolvePageTab, usePageTabsStore, type PageTab } from '#/lib/page-tabs'
 import { usePermissionContext } from '#/lib/permissions'
+import { useLocale } from '#/lib/use-locale'
 
 export interface PageTabStripProps {
   /**
@@ -24,36 +36,57 @@ export interface PageTabStripProps {
    * 页面会跳到这里并**重新开出一个标签**，于是「全部关光」不会留下一片空白。
    */
   homeTo: string
+  /**
+   * 外观，见 `#/components/page-tab-item`：
+   * - `chrome`：桌面壳窗口条（Chrome 那种连成一片的标签）；
+   * - `plain`：浏览器顶栏的小卡片（默认）。
+   */
+  variant?: PageTabVariant
 }
 
 /**
- * 页面标签条：左边是已打开的页面（可滚动），右边是「+」。
+ * 页面标签条：**左边是可拖拽排序的标签（可滚动），右边紧跟着「+」**。
  *
  * 两处宿主，本体同一份（`#/lib/page-tabs` 是唯一数据源）：
- * - **桌面壳**：`#/components/desktop-title-bar` 的窗口条行首（恒开）；
+ * - **桌面壳**：`#/components/desktop-title-bar` 的窗口条行首（恒开，`variant="chrome"`）；
  * - **浏览器**：顶栏行首那一格，替掉面包屑 —— 由 设置 → 外观 的「页面标签页」开关决定
  *   （默认关，见 `#/lib/store/shell-ui-store` 的 `pageTabsEnabled`）。
  *
- * 几个刻意的做法：
+ * ## 布局：三个区域，各管一件事
  *
- * - **标签是 `<button>` 而不是 `<a>`**。它长得像链接，但语义是「切换视图」而不是
- *   「打开一份新文档」：没有新标签页、没有复制链接地址，用链接反而要跟
- *   Kumo 链接主色（`text-kumo-link`）与下划线搏斗。键盘可达性由原生 button 保证。
- * - **中间键关闭**（`onAuxClick`）：浏览器标签的肌肉记忆，顺手给上。
- * - **中键/`✕` 关掉当前标签之后跳到右邻居，没有右邻居就跳左邻居**；关的不是当前标签
- *   就原地不动。这一条与浏览器一致，也让「连着关几个」不会每次都被弹走。
+ * ```
+ * [ 滚动区：标签……（最宽占 80%）] [ + ] [ ← 留白（拖拽区）] [ 行末工具区 ]
+ * ```
+ *
+ * - **滚动区**是 `flex-1` + `max-w-[80%]`：标签多了在它内部横滑，**只占八成宽**，
+ *   于是「+」与行末那排按钮之间自然留出间距（用户要求的就是这个间距）；
+ * - **「+」跟着标签走，不钉在最右边**：它在滚动区之外、紧挨着滚动区的右边缘 ——
+ *   标签少时它就在最后一个标签后面，标签多到溢出时它仍在（滚动）区外看得见；
+ * - **拖拽区不受影响**：这三个容器都**不写** `--wails-draggable`（继承窗口条的 drag），
+ *   只有标签本身与「+」写 `no-drag` —— 于是标签右边那片留白照样能拖着走窗口。
+ *
+ * ## 拖拽排序（dnd-kit）
+ *
+ * 指针移动 6px 才算拖拽（`activationConstraint`），所以「点一下切换」不会被误判；
+ * 只允许横向移动（`restrictToHorizontalAxis`）。排序规则在 store 里 ——
+ * **不跨越固定 / 未固定那条界线**（见 `#/lib/page-tabs` 的 `moveTab`）。
+ * 键盘拖拽刻意没开（它的激活键是空格 / 回车，与标签本身的激活键冲突）。
  */
-export function PageTabStrip({ homeTo }: PageTabStripProps) {
+export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
 
   const tabs = usePageTabsStore((state) => state.tabs)
   const openTab = usePageTabsStore((state) => state.openTab)
-  const removeTab = usePageTabsStore((state) => state.removeTab)
+  const moveTab = usePageTabsStore((state) => state.moveTab)
 
   /** 当前路径对应的标签（也是「哪个标签是激活态」的判据） */
   const activeTab = resolvePageTab(pathname)
+  const actions = useTabActions(homeTo, activeTab?.to ?? null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+  )
 
   /*
     路由一变就把当前页面登记成标签。放在 effect 里而不是渲染期：渲染期改 store
@@ -64,94 +97,114 @@ export function PageTabStrip({ homeTo }: PageTabStripProps) {
     if (tab) openTab(tab)
   }, [openTab, pathname])
 
-  const handleClose = (tab: PageTab) => {
-    const index = tabs.findIndex((item) => item.to === tab.to)
-    removeTab(tab.to)
-    if (tab.to !== activeTab?.to) return
-
-    const rest = tabs.filter((item) => item.to !== tab.to)
-    // 右邻居（删掉一位之后原来的下一位）优先，其次左邻居，都没有就回首页
-    const next = rest[index] ?? rest[index - 1]
-    void navigate({ to: (next?.to ?? homeTo) as never })
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    // 先记一笔：紧接着浏览器补的那个 click 不能再当成「点了标签」
+    markDragEnd()
+    if (!over || active.id === over.id) return
+    moveTab(String(active.id), String(over.id))
   }
 
   return (
-    /*
-      两个区域，**只有左边滚动**：
-      - 左边 `nav` 是滚动容器（`flex-1 min-w-0 overflow-x-auto`）：标签多了在这里横滑，
-        `scrollbar-width: none` 收掉滚动条（鼠标滚轮 / 触控板横滑照常）；
-      - 右边「+」**固定在滚动区之外** —— 滚出去的只有标签，它始终看得见
-        （原来它是滚动区里的最后一个子节点，标签一多就被推出视野）。
-      两个容器都**不写** `--wails-draggable`（继承窗口条的 drag），
-      只有标签本身与「+」写 `no-drag`：于是「标签右边那一大片空白」照样能拖窗口
-      （早期版本把整条 nav 标成 no-drag，窗口条几乎没地方能拖）。
-    */
-    <div className="flex min-w-0 flex-1 items-center gap-1">
-      <nav
-        aria-label={t('pageTabs.label', '页面标签页')}
-        className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none]"
+    <div className="flex min-w-0 flex-1 items-center gap-1 self-stretch">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        modifiers={[restrictToHorizontalAxis]}
+        onDragEnd={handleDragEnd}
+        onDragCancel={markDragEnd}
+        /*
+          读屏提示：dnd-kit 默认那段是英文、而且讲的是键盘拖拽 —— 我们没开键盘传感器，
+          说成那样只会误导。这里给一句如实的（纯指针拖拽）。
+        */
+        accessibility={{
+          screenReaderInstructions: {
+            draggable: t('pageTabs.dragHint', '用鼠标拖动标签可以调整顺序。'),
+          },
+        }}
       >
-        {tabs.map((tab) => {
-          const active = tab.to === activeTab?.to
-          const label = tab.labelKey ? t(tab.labelKey, tab.label) : tab.label
-          const TabIcon = tab.icon
+        <SortableContext items={tabs.map((tab) => tab.to)} strategy={horizontalListSortingStrategy}>
+          <nav
+            aria-label={t('pageTabs.label', '页面标签页')}
+            className={cn(
+              // `max-w-[80%]`：标签最多占八成宽，剩下那条留白就是与行末工具区之间的间距
+              'flex min-w-0 max-w-[80%] shrink items-center overflow-x-auto overscroll-x-contain [scrollbar-width:none]',
+              variant === 'chrome' ? 'h-full items-end gap-0' : 'gap-1',
+            )}
+          >
+            {tabs.map((tab, index) => (
+              <PageTabItem
+                key={tab.to}
+                tab={tab}
+                index={index}
+                tabs={tabs}
+                variant={variant}
+                actions={actions}
+                active={tab.to === activeTab?.to}
+              />
+            ))}
+          </nav>
+        </SortableContext>
+      </DndContext>
 
-          return (
-            <div
-              key={tab.to}
-              className={cn(
-                'flex h-8 min-w-[110px] max-w-[200px] shrink items-center rounded-md border',
-                // 标签自己（含里面的两个按钮）退出拖拽区，否则点不动
-                '[--wails-draggable:no-drag]',
-                // 激活态是「抬起来的一张卡」：与窗口条同底色的背景 + 一条描边
-                active ? 'border-kumo-line bg-kumo-base' : 'border-transparent hover:bg-kumo-tint',
-              )}
-            >
-              <button
-                type="button"
-                title={label}
-                aria-current={active ? 'page' : undefined}
-                onClick={() => void navigate({ to: tab.to as never })}
-                onAuxClick={(event) => {
-                  if (event.button !== 1) return
-                  event.preventDefault()
-                  handleClose(tab)
-                }}
-                className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-1.5 ps-2.5 text-start"
-              >
-                {TabIcon ? (
-                  <TabIcon
-                    size={14}
-                    aria-hidden
-                    className={cn('shrink-0', active ? 'text-kumo-default' : 'text-kumo-subtle')}
-                  />
-                ) : null}
-                <span
-                  className={cn(
-                    'truncate text-sm',
-                    active ? 'font-medium text-kumo-default' : 'text-kumo-subtle',
-                  )}
-                >
-                  {label}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                aria-label={t('pageTabs.close', { defaultValue: '关闭 {{label}}', label })}
-                onClick={() => handleClose(tab)}
-                className="me-1 flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-kumo-subtle hover:bg-kumo-tint hover:text-kumo-default"
-              >
-                <XIcon size={12} aria-hidden />
-              </button>
-            </div>
-          )
-        })}
-      </nav>
-
+      {/* 「+」在滚动区之外、紧挨着它 —— 跟着标签走，不钉在行末 */}
       <NewTabMenu />
     </div>
   )
+}
+
+/**
+ * 标签上的动作收口：**只有这里知道 router**，`#/lib/page-tabs` 那边只管数据。
+ *
+ * 「关掉之后看哪一页」的规则统一走 `settleAt`：**当前页还在就原地不动**，不在了才跳 ——
+ * 于是「关的不是当前标签」自然被放过，不需要每个动作各写一遍判断。
+ * 每个动作给出的落点都是**一定活下来**的那个：关别人时是右键点的那个标签，
+ * 关全部时是外壳首页（它会重新开成一个标签）。
+ */
+function useTabActions(homeTo: string, activeTo: string | null): TabActions {
+  const navigate = useNavigate()
+  const { isRtl } = useLocale()
+
+  return useMemo(() => {
+    const snapshot = () => usePageTabsStore.getState()
+
+    const settleAt = (fallback: string) => {
+      if (activeTo && snapshot().tabs.some((tab) => tab.to === activeTo)) return
+      void navigate({ to: fallback as never })
+    }
+
+    return {
+      activate: (to) => void navigate({ to: to as never }),
+
+      close: (to) => {
+        // 右邻居优先、其次左邻居，都没有就回首页 —— 与浏览器关标签的手感一致
+        const before = snapshot().tabs
+        const index = before.findIndex((tab) => tab.to === to)
+        const rest = before.filter((tab) => tab.to !== to)
+        const neighbor = rest[index] ?? rest[index - 1]
+        snapshot().removeTab(to)
+        settleAt(neighbor?.to ?? homeTo)
+      },
+
+      closeOthers: (to) => {
+        snapshot().closeOthers(to)
+        settleAt(to)
+      },
+
+      closeSide: (to, physical) => {
+        // 标签条按逻辑方向排布：RTL 下「左侧」是渲染顺序的后方
+        const isStartSide = physical === (isRtl ? 'right' : 'left')
+        snapshot().closeSide(to, isStartSide ? 'start' : 'end')
+        settleAt(to)
+      },
+
+      closeAll: () => {
+        snapshot().closeAll()
+        settleAt(homeTo)
+      },
+
+      togglePinned: (to) => snapshot().togglePinned(to),
+    }
+  }, [activeTo, homeTo, isRtl, navigate])
 }
 
 interface NewTabEntry {
@@ -225,7 +278,7 @@ function NewTabMenu() {
             variant="ghost"
             shape="square"
             size="sm"
-            // 自己退出拖拽区（窗口条上这一颗要能点），并**不参与滚动**：见上面两个区域的注释
+            // 自己退出拖拽区（窗口条上这一颗要能点）；不参与滚动，所以永远看得见
             className="shrink-0 text-kumo-subtle hover:text-kumo-default [--wails-draggable:no-drag]"
             icon={<PlusIcon size={16} />}
             aria-label={t('pageTabs.new', '打开新页面')}
