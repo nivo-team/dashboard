@@ -116,6 +116,13 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
   // 固定区会被撑成外层宽度，反而把滚动区挤出去。
   const tabRowClass = cn('flex w-max items-end', variant === 'chrome' ? 'gap-0' : 'gap-1')
 
+  /*
+    两个区的外层共用这一串（`pt-px pb-px -mb-0.5`）：形状比标签盒上下各多 1px
+    （`pt-px` 给顶部描边、`pb-px` 给底部倒角圆弧的下半），`-mb-0.5`（即 -2px）
+    把整个盒子往下推回原处 —— 标签的位置一动不动，只是盒子上下各多出 1px 来容纳形状。
+  */
+  const zoneClass = variant === 'chrome' ? '-mb-0.5 pt-px pb-px' : undefined
+
   const indexed = tabs.map((tab, index) => ({ tab, index }))
   const pinnedEntries = indexed.filter((entry) => entry.tab.pinned)
   const unpinnedEntries = indexed.filter((entry) => !entry.tab.pinned)
@@ -207,7 +214,7 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
                     固定区本来就不滚动，不需要裁剪；`pt-px` + `-mb-px` 与滚动区完全一致。
                   */
                   'flex shrink-0',
-                  variant === 'chrome' && '-mb-px pt-px',
+                  zoneClass,
                 )}
               >
                 <div className={tabRowClass}>
@@ -238,8 +245,8 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
                 // `items-*` 走三目：本仓的 `cn` 只拼接、不合并，两个对齐类同时在场就只剩源码顺序可赌
                 variant === 'chrome'
                   ? // 左右各留 10px：给激活标签那对**底部倒角**留出画的地方（它长在标签外侧，
-                    // 半径 10 就往外探 9px）；`pt-px` + `-mb-px` 与固定区一致
-                    '-mb-px px-2.5 pt-px'
+                    // 半径 10 就往外探 9px）；上下那 1px 与固定区共用同一串类
+                    cn('px-2.5', zoneClass)
                   : 'px-1',
               )}
             >

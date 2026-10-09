@@ -95,8 +95,12 @@ const TAB_SHAPE_FALLBACK_WIDTH = 150
  * 与未激活标签的 `rounded-t-lg`（永远 8px）对不上，肉眼一眼能看出来。
  * 把 viewBox 的宽度按实测像素写死，拉伸比就是 1，圆角与直边都不再变形。
  *
- * 坐标：SVG 视口 = 标签盒向左/右各 `倒角 + 余量`、向上 `余量`、下沿与标签齐平。
+ * 坐标：SVG 视口 = 标签盒向左/右各 `倒角 + 余量`、上下各 `余量`。
  * 于是「标签左边」在坐标系里是 `倒角 + 余量`，「标签底边」是 `余量 + 标签高`。
+ *
+ * **下沿也要留余量**：外翻倒角那两段圆弧的末端落在标签底边上，描边以路径为中心、
+ * 下半 0.5px 会探到底边之外 —— 不留余量就被 SVG 自己的视口切掉，圆弧末端只剩半条线，
+ * 看着就是「倒角这里断了一截 / 像被往下压了 0.5px」（用户报过）。
  */
 function buildTabShape(tabWidth: number) {
   const flare = CHROME_TAB_FLARE
@@ -121,7 +125,7 @@ function buildTabShape(tabWidth: number) {
     `A ${flare},${flare} 0 0 0 ${right + flare},${bottom}`,
   ].join(' ')
 
-  return { outline, viewBox: `0 0 ${width} ${bottom}`, width, height: bottom }
+  return { outline, viewBox: `0 0 ${width} ${bottom + TAB_SHAPE_PAD}`, width, height: bottom }
 }
 
 /**
@@ -311,7 +315,8 @@ export function PageTabItem({
             style={{
               // `100%` / `inset` 都以 padding box 为准，所以要各补上边框宽度（见 TAB_BORDER_WIDTH）
               insetBlockStart: -(TAB_SHAPE_PAD + TAB_BORDER_WIDTH),
-              height: `calc(100% + ${TAB_SHAPE_PAD + TAB_BORDER_WIDTH * 2}px)`,
+              // 上：余量 + 标签自己的边框；下：再留一个余量给倒角圆弧的下半
+              height: `calc(100% + ${TAB_SHAPE_PAD * 2 + TAB_BORDER_WIDTH * 2}px)`,
               // 还没量到时先用 CSS 撑开（下一帧换成实测像素，两者数值一致）
               width:
                 shapeWidth === null
