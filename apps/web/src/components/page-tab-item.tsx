@@ -75,19 +75,17 @@ export const CHROME_TAB_FLARE = 8
  */
 const TAB_SHAPE_PAD = 1
 
+/**
+ * chrome 标签自己的边框宽度（`border`，1px）。
+ *
+ * 形状要靠它**补偿坐标**：绝对定位后代的包含块是祖先的 **padding box**，不是 border box ——
+ * 而路径是照 border box（也就是标签看上去的那一圈）写的。不补偿就会整体偏 1px：
+ * 形状往右挪 1px、右边还多探出 1px。
+ */
+const TAB_BORDER_WIDTH = 1
+
 /** 还没量到标签宽度时用的兜底值：只影响形状的圆角比例，尺寸由 CSS 定，下一帧就纠正 */
 const TAB_SHAPE_FALLBACK_WIDTH = 150
-
-/**
- * 圆角 / 外翻倒角的半径**随标签宽度收敛**。
- *
- * 固定态标签只有 36px 宽（`w-9`）：给它用满 8px，两边圆角加两边倒角就是 32px，
- * 几乎吃掉整条边 —— 形状变成一个"桶"，和旁边正常宽度的标签完全不像一类东西。
- * 所以半径跟着宽度走：窄标签收到 4px，正常宽度（≥ 80px）保持 8px。
- */
-export function resolveTabFlare(tabWidth: number): number {
-  return Math.max(4, Math.min(CHROME_TAB_FLARE, Math.round(tabWidth * 0.12)))
-}
 
 /**
  * 按标签的**实测宽度**生成 1:1 的路径与 viewBox。
@@ -101,7 +99,7 @@ export function resolveTabFlare(tabWidth: number): number {
  * 于是「标签左边」在坐标系里是 `倒角 + 余量`，「标签底边」是 `余量 + 标签高`。
  */
 function buildTabShape(tabWidth: number) {
-  const flare = resolveTabFlare(tabWidth)
+  const flare = CHROME_TAB_FLARE
   const pad = TAB_SHAPE_PAD
   const left = flare + pad // 标签左边
   const top = pad // 标签顶边
@@ -123,7 +121,7 @@ function buildTabShape(tabWidth: number) {
     `A ${flare},${flare} 0 0 0 ${right + flare},${bottom}`,
   ].join(' ')
 
-  return { outline, viewBox: `0 0 ${width} ${bottom}`, width, height: bottom, flare }
+  return { outline, viewBox: `0 0 ${width} ${bottom}`, width, height: bottom }
 }
 
 /**
@@ -213,8 +211,8 @@ export function PageTabItem({
   )
 
   useLayoutEffect(() => {
-    // 未激活标签也要量：它们的圆角同样跟着宽度收敛（见 `resolveTabFlare`）
-    if (!chrome) return
+    // 只有激活标签需要（未激活标签的形状由 CSS 的 `rounded-t-lg` 负责）
+    if (!chrome || !active) return
     const node = tabRef.current
     if (!node) return
 
@@ -226,7 +224,7 @@ export function PageTabItem({
     const observer = new ResizeObserver(measure)
     observer.observe(node)
     return () => observer.disconnect()
-  }, [chrome])
+  }, [chrome, active])
 
   const shape = buildTabShape(shapeWidth ?? TAB_SHAPE_FALLBACK_WIDTH)
 
@@ -265,7 +263,9 @@ export function PageTabItem({
           pinned ? (chrome ? 'w-9' : 'w-8') : 'max-w-[200px]',
           // chrome 的高度由 CHROME_TAB_HEIGHT 定（要跟 SVG 的 viewBox 对上），plain 用 Tailwind 的 h-8
           // 圆角在 chrome 外观下由测量值决定（见下面的 style），plain 用 Tailwind 的 rounded-md
-          chrome ? 'border border-b-0' : 'h-8 rounded-md border',
+          // chrome 的顶部圆角固定 8px（`rounded-t-lg` = 0.5rem = CHROME_TAB_FLARE）：
+          // 固定态与普通标签**必须一致** —— 之前那版"窄标签收小半径"会让两者对不上
+          chrome ? 'rounded-t-lg border border-b-0' : 'h-8 rounded-md border',
           /*
             chrome 外观下**激活标签自己不画边框、不铺底色** —— 整块形状（含外翻倒角与
             那条 1px 描边）由下面的 SVG 一次画完。留 `border` 只是为了与未激活标签
@@ -286,14 +286,8 @@ export function PageTabItem({
           transform: foreignGroup ? undefined : CSS.Transform.toString(transform),
           transition: foreignGroup ? undefined : transition,
           // chrome 的高度只在常量里写一次（SVG 的 viewBox 也用它）
-          ...(chrome
-            ? {
-                height: CHROME_TAB_HEIGHT,
-                // 顶部圆角用逻辑属性：RTL 下自动镜像到另一侧
-                borderStartStartRadius: shape.flare,
-                borderStartEndRadius: shape.flare,
-              }
-            : null),
+          // chrome 的高度只在常量里写一次（SVG 的 viewBox 也用它）
+          ...(chrome ? { height: CHROME_TAB_HEIGHT } : null),
         }}
       >
         {/*
@@ -315,14 +309,15 @@ export function PageTabItem({
               留在视口内就不必依赖 `overflow: visible`）；底部与标签齐平 —— 底面本来就开口。
             */
             style={{
-              insetBlockStart: -TAB_SHAPE_PAD,
-              height: `calc(100% + ${TAB_SHAPE_PAD}px)`,
+              // `100%` / `inset` 都以 padding box 为准，所以要各补上边框宽度（见 TAB_BORDER_WIDTH）
+              insetBlockStart: -(TAB_SHAPE_PAD + TAB_BORDER_WIDTH),
+              height: `calc(100% + ${TAB_SHAPE_PAD + TAB_BORDER_WIDTH * 2}px)`,
               // 还没量到时先用 CSS 撑开（下一帧换成实测像素，两者数值一致）
               width:
                 shapeWidth === null
                   ? `calc(100% + ${(CHROME_TAB_FLARE + TAB_SHAPE_PAD) * 2}px)`
                   : shape.width,
-              insetInline: -(shape.flare + TAB_SHAPE_PAD),
+              insetInline: -(CHROME_TAB_FLARE + TAB_SHAPE_PAD + TAB_BORDER_WIDTH),
             }}
           >
             <path className="page-tab-shape-fill" d={`${shape.outline} Z`} />
