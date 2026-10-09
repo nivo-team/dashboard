@@ -275,6 +275,20 @@ export interface NavTarget {
   permission?: PermissionRequirement
 }
 
+/**
+ * **目录项**（带 `children` 的导航项）的路径集合：示例 `/example`、系统 `/system`。
+ *
+ * 它们本身是容器 —— 点进去内容就是那几个子页面，所以「开新标签」这类**页面清单**
+ * 要把它们摘掉（见 `#/components/page-tab-strip` 的「+」菜单），
+ * 列出来只会让人多点一层。侧边栏与命令面板不读它：前者本来要展示分组结构，
+ * 后者按「父 · 子」平铺，目录项也是目的地之一。
+ */
+export const NAV_DIRECTORY_PATHS: ReadonlySet<string> = new Set(
+  NAV_GROUPS.flatMap((group) =>
+    group.items.filter((item) => item.children?.length).map((item) => item.to),
+  ),
+)
+
 export const ALL_NAV_TARGETS: NavTarget[] = NAV_GROUPS.flatMap((group) =>
   group.items.flatMap((item) => {
     const itemReq = getNavFeatureRequirement(item)

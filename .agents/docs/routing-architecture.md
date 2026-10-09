@@ -125,7 +125,7 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
 - 侧边栏折叠状态、拖拽宽度、内部滚动位置**完全保留**；
 - 页面仅在 `<Outlet />` 区域替换组件，避免整页闪烁与重复渲染。
 
-### 桌面壳里的外壳形态（窗口条 + 页面标签页）
+### 桌面壳里的外壳形态（窗口条 + 页面标签条）
 在桌面壳里（`isDesktop()`，标记来自 URL，见 [apps/desktop/README.md](../../apps/desktop/README.md)）
 两个外壳都换一种形态：**窗口条**（`#/components/desktop-title-bar`）取代顶栏，
 横跨整个窗口排在侧边栏与内容列那一行**之上** —— 左侧是**页面标签条**
@@ -139,11 +139,19 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
 - **顶栏不再渲染**（`AppHeader` / `MainHeader`）：窗口条与它是同一份 chrome 的两种形态，
   不是两行。唯一例外是「桌面壳 + 移动视口」（窗口被拖到 768px 以下）：抽屉的汉堡按钮只能
   待在顶栏里，那时把顶栏渲染回来，工具区也只留一份；
+- **标签条是通用件，不只桌面壳有**：`#/components/page-tab-strip` 挂在哪儿由外壳决定 ——
+  桌面壳里是窗口条行首（恒开），浏览器里是**顶栏行首那一格**（`AppHeaderProps.leading`，
+  替掉面包屑），由 设置 → 外观 的「页面标签页」开关控制（`admin.shell-ui` 的
+  `pageTabsEnabled`，**默认关**；桌面壳里恒开，判定在 `#/lib/page-tabs` 的
+  `usePageTabsEnabled`）。两处互斥：桌面壳里不给顶栏传 `leading`；
 - **标签页的真值**在 `#/lib/page-tabs`：一个标签 = 导航清单里的一项（`NAV_GROUPS` /
   `ALL_SHELL_NAV_TARGETS` 的最长前缀命中），所以 `/$appId/system/menus/483` 与
   `/$appId/system/menus` 共用「菜单管理」这一个标签，**加页面不用动标签代码**；
-  标签集合只在内存里（刷新后从当前页重新开始，不落盘）；
-- **高度**：窗口条 44px，侧边栏与两个面板列都按 `--shell-chrome-h` 扣掉它 ——
+  标签集合存在 `sessionStorage`（`admin.page-tabs`）：刷新 / 壳 Reload 之后原样回来，
+  窗口关掉后一般随之清空（激活态永远由 URL 决定，恢复时不存图标 —— 组件引用没法序列化，
+  按 `to` 重新解析）；
+- **高度**：窗口条 44px，侧边栏与两个面板列都按 `--shell-chrome-h` 扣掉它；
+  收起态侧边栏那一列（Kumo 用 `fixed` 实现）也按同一个变量挪回窗口条下面那一行 ——
   见 [ui-and-styling.md](./ui-and-styling.md) §4。
 
 侧边栏的 `Sidebar.Provider` 接线（含**桌面非受控、移动端受控**这套移动端抽屉接法）
@@ -212,7 +220,7 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
   - `_main/settings/`：设置模块（**目录化**，与 `/` 共用 `MainLayout`；当前「个人资料 / 外观 / AI」三个子页）。
     - `settings/route.tsx`：模块根，只渲染 `<Outlet />`；`settings/index.tsx` 把 `/settings` 重定向到默认子页 `/settings/profile`（与 `$appId/example/` 同一套写法）。**设置模块的二级导航由 `MainLayout` 的 `MainSidebarSwitch` 按路由前缀切换**（`/settings`、`/settings/**` → `SettingsSidebar`，其余 → 通用导航）—— 嵌套路由只能替换内容区，无法接管外层侧边栏。两套导航共用品牌 Header（`SidebarBrandHeader`：方块 + 标题 + 移动端关闭按钮）与「快速搜索」入口（`SidebarSearchButton`，与 `AppSidebar` 同一套 Kumo 官方范式）；`SettingsSidebar` 在品牌行之下再加一行 `SettingsModuleHeader`（返回 `/` + 模块标题「设置」，参照 Cloudflare 控制台），**真正替换的只有模块行与菜单**。这是「同一 Sidebar 位置换内容」而非第二个 `Sidebar`，`Sidebar.Provider` 不重挂，折叠状态与拖拽宽度都保留。`_main` 外壳已挂 `CommandPaletteDialog`（⌘K / Ctrl+K，与 `AppShell` 同款接线），搜索按钮与快捷键共享同一面板。
     - `settings/profile.tsx`：个人资料 (`/settings/profile`)，只读展示 `GET /profile` 返回的账号资料与区域权限 —— 接口路径与前端路由无关，仍是同一支接口；后端没有更新接口，因此不做表单；接口不可用时逐项回落本地登录态（`useAuth().user`）并显式提示，不把兜底数据伪装成后端值。
-    - `settings/appearance.tsx`：外观 (`/settings/appearance`)，单张 `LayerCard`（标题「通用设置」`profile.settings.general`，形态是 `LayerCard.Secondary` + `LayerCard.Primary`）里放着**五项**本机偏好：主题（`#/lib/use-color-mode`）/ 语言（`#/lib/use-locale`）/ 时区（`#/lib/timezone`）/ 详情打开方式（`#/lib/store` 的 `detailOpenMode`，见 [./detail-preview.md](./detail-preview.md)）/ 页面宽度（`#/lib/store` 的 `pageWidth`：全宽 / 限宽居中，默认全宽，落点在 `#/lib/page-width`）—— 五者都是**即时生效 + 持久化在 `admin.preferences:<appId>`（按应用隔离，见 [./store.md](./store.md)）**，所以**没有保存按钮、没有 dirty 状态，不要套 `UnsavedChangesBar` 那套编辑态契约**。控件选型：**短枚举（≤3 项）用 Kumo `Tabs` 的 segmented 分段控件**（主题、详情打开方式、页面宽度），长枚举（语言 7 项、时区 8 项）用 `Select`；**「详情打开方式」与「页面宽度」每段选项悬浮时还会弹一个浮层，用通用缩略图把该档位的页面变化演一遍**（`#/components/app-shell-preview`，见第 5 节）。账号安全 / 已连接应用 / API Token 等更重的设置后续扩展（往 `components/main-layout.tsx` 的 `SETTINGS_NAV_ITEMS` 追加导航项、或在卡片下方再加一张 `LayerCard` 即可）。
+    - `settings/appearance.tsx`：外观 (`/settings/appearance`)，单张 `LayerCard`（标题「通用设置」`profile.settings.general`，形态是 `LayerCard.Secondary` + `LayerCard.Primary`）里放着若干本机偏好：主题（`#/lib/use-color-mode`）/ 语言（`#/lib/use-locale`）/ 时区（`#/lib/timezone`）/ 详情打开方式（`#/lib/store` 的 `detailOpenMode`，见 [./detail-preview.md](./detail-preview.md)）/ 页面宽度（`#/lib/store` 的 `pageWidth`：全宽 / 限宽居中，默认全宽，落点在 `#/lib/page-width`）—— 这些是**即时生效 + 持久化在 `admin.preferences:<appId>`（按应用隔离，见 [./store.md](./store.md)）**，所以**没有保存按钮、没有 dirty 状态，不要套 `UnsavedChangesBar` 那套编辑态契约**。同页还有两个**开关型的外壳偏好**，它们在全局的 `admin.shell-ui` 里（「换个应用还成立」）：界面动效（`motionEnabled`，默认开）与**页面标签页**（`pageTabsEnabled`，默认关；桌面壳里恒开、这一项在那边禁用 + 提示，见上面「桌面壳里的外壳形态」）。控件选型：**短枚举（≤3 项）用 Kumo `Tabs` 的 segmented 分段控件**（主题、详情打开方式、页面宽度），长枚举（语言 7 项、时区 8 项）用 `Select`，**布尔用 `Switch`**（界面动效、页面标签页）；**「详情打开方式」与「页面宽度」每段选项悬浮时还会弹一个浮层，用通用缩略图把该档位的页面变化演一遍**（`#/components/app-shell-preview`，见第 5 节）。账号安全 / 已连接应用 / API Token 等更重的设置后续扩展（往 `components/main-layout.tsx` 的 `SETTINGS_NAV_ITEMS` 追加导航项、或在卡片下方再加一张 `LayerCard` 即可）。
     - `settings/AI.tsx`：AI (`/settings/AI`)，与外观页同一套「设置卡片 + 设置行」形态（`#/components/settings-card` 的 `SettingsCard` / `SettingRow`，不要再手写 `LayerCard`）。设置行有若干项，其中**显示方式**（`admin.preferences:<appId>` 的 `aiPanelMode`，`split` = Split View / `float` = Float）与**页面宽度**（`aiPageWidth`：跟随外观 / 全宽 / 限宽居中 —— **只作用于 `/$appId/sphere`**，会话区 + 输入区收在同一个宽度约束里；上限是聊天自己的 `max-w-4xl`，**比页面的 1440px 窄**，「跟随外观」只跟外观那个选择的档，落点见 `#/lib/page-width` 的 `aiChatWidthClass`）—— 与外观页同属「即时生效 + 按应用隔离持久化」，**没有保存按钮、没有 dirty 状态**。控件是与「主题」一致的分段控件（`Tabs` + `role="group"` 兜可访问名称），并带与「详情打开方式」同款的悬浮预览（见第 5 节；页面宽度那一行直接复用外观页的宽度缩略图动画）。**卡片标题直接复用 `profile.settings.general`（「通用设置」），不另开 `aiSection` 之类的重复文案**；设置项文案在 `profile.settings.aiDisplayMode*`，**两个选项（`aiModes.split` / `aiModes.float`）是形态名、7 语言各自本地化**（中文「分屏视图 / 浮窗」，不要写成产品术语原文）。后续 AI 偏好继续往这张卡片加 `SettingRow`，或下方再加一张 `SettingsCard`。**文件名与路径保留大写的 `AI`**（缩写，与导航项显示名一致），由 `pnpm generate-routes` 生成的 `routeTree.gen.ts` 同步。
     - 入口：侧边栏「个人资料」与顶栏 `UserMenu` 的 Profile 项（都指向 `/settings/profile`）；默认文案：中文「个人资料」、英文「Profile」（日语 `プロフィール`）。
   - `_main/$.tsx`：`_main` 外壳内局部 404 兜底路由；全局挂载 `notFoundComponent: NotFound`。

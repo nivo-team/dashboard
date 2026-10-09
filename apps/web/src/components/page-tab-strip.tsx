@@ -11,6 +11,7 @@ import {
   ALL_SHELL_NAV_TARGETS,
   filterNavTargets,
   filterShellNavItems,
+  NAV_DIRECTORY_PATHS,
 } from '#/lib/navigation'
 import { resolvePageTab, usePageTabsStore, type PageTab } from '#/lib/page-tabs'
 import { usePermissionContext } from '#/lib/permissions'
@@ -26,14 +27,17 @@ export interface PageTabStripProps {
 }
 
 /**
- * 桌面窗口条上的标签条：左边是已打开的页面，右边是「+」。
+ * 页面标签条：左边是已打开的页面（可滚动），右边是「+」。
  *
- * 只在桌面壳里渲染（挂载点是 `#/components/desktop-title-bar`），浏览器里不参与。
+ * 两处宿主，本体同一份（`#/lib/page-tabs` 是唯一数据源）：
+ * - **桌面壳**：`#/components/desktop-title-bar` 的窗口条行首（恒开）；
+ * - **浏览器**：顶栏行首那一格，替掉面包屑 —— 由 设置 → 外观 的「页面标签页」开关决定
+ *   （默认关，见 `#/lib/store/shell-ui-store` 的 `pageTabsEnabled`）。
  *
  * 几个刻意的做法：
  *
  * - **标签是 `<button>` 而不是 `<a>`**。它长得像链接，但语义是「切换视图」而不是
- *   「打开一份新文档」：桌面壳里没有新标签页、没有复制链接地址，用链接反而要跟
+ *   「打开一份新文档」：没有新标签页、没有复制链接地址，用链接反而要跟
  *   Kumo 链接主色（`text-kumo-link`）与下划线搏斗。键盘可达性由原生 button 保证。
  * - **中间键关闭**（`onAuxClick`）：浏览器标签的肌肉记忆，顺手给上。
  * - **中键/`✕` 关掉当前标签之后跳到右邻居，没有右邻居就跳左邻居**；关的不是当前标签
@@ -72,78 +76,81 @@ export function PageTabStrip({ homeTo }: PageTabStripProps) {
   }
 
   return (
-    <nav
-      aria-label={t('pageTabs.label', '页面标签页')}
-      /*
-        整条标签条退出拖拽区：里面的按钮要能点（`--wails-draggable` 会继承下去）。
-        标签多到挤不下时横向滚动（`scrollbar-width: none` 收掉滚动条，鼠标滚轮 / 触控板
-        横滑照常）；每个标签有 110px 下限，所以永远不会被压成一条缝。
+    /*
+      两个区域，**只有左边滚动**：
+      - 左边 `nav` 是滚动容器（`flex-1 min-w-0 overflow-x-auto`）：标签多了在这里横滑，
+        `scrollbar-width: none` 收掉滚动条（鼠标滚轮 / 触控板横滑照常）；
+      - 右边「+」**固定在滚动区之外** —— 滚出去的只有标签，它始终看得见
+        （原来它是滚动区里的最后一个子节点，标签一多就被推出视野）。
+      两个容器都**不写** `--wails-draggable`（继承窗口条的 drag），
+      只有标签本身与「+」写 `no-drag`：于是「标签右边那一大片空白」照样能拖窗口
+      （早期版本把整条 nav 标成 no-drag，窗口条几乎没地方能拖）。
+    */
+    <div className="flex min-w-0 flex-1 items-center gap-1">
+      <nav
+        aria-label={t('pageTabs.label', '页面标签页')}
+        className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none]"
+      >
+        {tabs.map((tab) => {
+          const active = tab.to === activeTab?.to
+          const label = tab.labelKey ? t(tab.labelKey, tab.label) : tab.label
+          const TabIcon = tab.icon
 
-        **刻意不写成 `flex-1`**：那样这条 nav 会铺满剩余宽度，窗口条上「标签右边」那一大片
-        空白就落进 `no-drag` 里，整个窗口条几乎没地方能拖着走窗口。让它按内容宽取宽，
-        空白留回窗口条本体（那里才是拖拽区），行末工具区靠自己的 `ms-auto` 靠右。
-      */
-      className="flex min-w-0 shrink items-center gap-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [--wails-draggable:no-drag]"
-    >
-      {tabs.map((tab) => {
-        const active = tab.to === activeTab?.to
-        const label = tab.labelKey ? t(tab.labelKey, tab.label) : tab.label
-        const TabIcon = tab.icon
-
-        return (
-          <div
-            key={tab.to}
-            className={cn(
-              'flex h-8 min-w-[110px] max-w-[200px] shrink items-center rounded-md border',
-              // 激活态是「抬起来的一张卡」：与窗口条同底色的背景 + 一条描边
-              active
-                ? 'border-kumo-line bg-kumo-base'
-                : 'border-transparent hover:bg-kumo-tint',
-            )}
-          >
-            <button
-              type="button"
-              title={label}
-              aria-current={active ? 'page' : undefined}
-              onClick={() => void navigate({ to: tab.to as never })}
-              onAuxClick={(event) => {
-                if (event.button !== 1) return
-                event.preventDefault()
-                handleClose(tab)
-              }}
-              className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-1.5 ps-2.5 text-start"
+          return (
+            <div
+              key={tab.to}
+              className={cn(
+                'flex h-8 min-w-[110px] max-w-[200px] shrink items-center rounded-md border',
+                // 标签自己（含里面的两个按钮）退出拖拽区，否则点不动
+                '[--wails-draggable:no-drag]',
+                // 激活态是「抬起来的一张卡」：与窗口条同底色的背景 + 一条描边
+                active ? 'border-kumo-line bg-kumo-base' : 'border-transparent hover:bg-kumo-tint',
+              )}
             >
-              {TabIcon ? (
-                <TabIcon
-                  size={14}
-                  aria-hidden
-                  className={cn('shrink-0', active ? 'text-kumo-default' : 'text-kumo-subtle')}
-                />
-              ) : null}
-              <span
-                className={cn(
-                  'truncate text-sm',
-                  active ? 'font-medium text-kumo-default' : 'text-kumo-subtle',
-                )}
+              <button
+                type="button"
+                title={label}
+                aria-current={active ? 'page' : undefined}
+                onClick={() => void navigate({ to: tab.to as never })}
+                onAuxClick={(event) => {
+                  if (event.button !== 1) return
+                  event.preventDefault()
+                  handleClose(tab)
+                }}
+                className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-1.5 ps-2.5 text-start"
               >
-                {label}
-              </span>
-            </button>
+                {TabIcon ? (
+                  <TabIcon
+                    size={14}
+                    aria-hidden
+                    className={cn('shrink-0', active ? 'text-kumo-default' : 'text-kumo-subtle')}
+                  />
+                ) : null}
+                <span
+                  className={cn(
+                    'truncate text-sm',
+                    active ? 'font-medium text-kumo-default' : 'text-kumo-subtle',
+                  )}
+                >
+                  {label}
+                </span>
+              </button>
 
-            <button
-              type="button"
-              aria-label={t('pageTabs.close', { defaultValue: '关闭 {{label}}', label })}
-              onClick={() => handleClose(tab)}
-              className="me-1 flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-kumo-subtle hover:bg-kumo-tint hover:text-kumo-default"
-            >
-              <XIcon size={12} aria-hidden />
-            </button>
-          </div>
-        )
-      })}
+              <button
+                type="button"
+                aria-label={t('pageTabs.close', { defaultValue: '关闭 {{label}}', label })}
+                onClick={() => handleClose(tab)}
+                className="me-1 flex size-5 shrink-0 cursor-pointer items-center justify-center rounded text-kumo-subtle hover:bg-kumo-tint hover:text-kumo-default"
+              >
+                <XIcon size={12} aria-hidden />
+              </button>
+            </div>
+          )
+        })}
+      </nav>
 
       <NewTabMenu />
-    </nav>
+    </div>
   )
 }
 
@@ -159,6 +166,9 @@ interface NewTabEntry {
  *
  * 名单直接复用命令面板那两份导航数据（`ALL_NAV_TARGETS` / `ALL_SHELL_NAV_TARGETS`）
  * 与同一套权限过滤管道 —— **加页面只改 `navigation.ts`**，这里不会漏。
+ * 只有两处收窄：**目录项不进菜单**（`NAV_DIRECTORY_PATHS`：示例 / 系统这些带 children
+ * 的容器，点进去还是那几个子页面，列出来只是让人多点一层），以及按权限过滤。
+ *
  * 点击只是普通跳转：标签由 `PageTabStrip` 的路由同步逻辑开出来，这里不自己建标签，
  * 否则「点了一次菜单」和「直接粘 URL 进来」会走出两套不同的标签状态。
  */
@@ -175,20 +185,21 @@ function NewTabMenu() {
       labelKey ? t(labelKey, fallback) : fallback
 
     // 业务页面的 `to` 相对 appId，要拼前缀；二级项带上父级名（`示例 · 表格示例`）才认得出位置
-    const pages = filterNavTargets(ALL_NAV_TARGETS, { context: permissionContext }).map(
-      (item): NewTabEntry => {
-        const self = label(item.labelKey, item.label)
-        const parent = item.parentLabelKey
-          ? label(item.parentLabelKey, item.parentLabel ?? item.parentLabelKey)
-          : undefined
-        return {
-          id: `page:${item.to}`,
-          label: parent ? `${parent} · ${self}` : self,
-          to: `/${appId}${item.to}`,
-          icon: item.icon,
-        }
-      },
-    )
+    const pages = filterNavTargets(ALL_NAV_TARGETS, {
+      context: permissionContext,
+      filter: (item) => !NAV_DIRECTORY_PATHS.has(item.to),
+    }).map((item): NewTabEntry => {
+      const self = label(item.labelKey, item.label)
+      const parent = item.parentLabelKey
+        ? label(item.parentLabelKey, item.parentLabel ?? item.parentLabelKey)
+        : undefined
+      return {
+        id: `page:${item.to}`,
+        label: parent ? `${parent} · ${self}` : self,
+        to: `/${appId}${item.to}`,
+        icon: item.icon,
+      }
+    })
 
     // 外壳页面的 `to` 已是绝对路径，不能再拼 appId
     const shell = filterShellNavItems(ALL_SHELL_NAV_TARGETS, { context: permissionContext }).map(
@@ -214,7 +225,8 @@ function NewTabMenu() {
             variant="ghost"
             shape="square"
             size="sm"
-            className="shrink-0 text-kumo-subtle hover:text-kumo-default"
+            // 自己退出拖拽区（窗口条上这一颗要能点），并**不参与滚动**：见上面两个区域的注释
+            className="shrink-0 text-kumo-subtle hover:text-kumo-default [--wails-draggable:no-drag]"
             icon={<PlusIcon size={16} />}
             aria-label={t('pageTabs.new', '打开新页面')}
           />

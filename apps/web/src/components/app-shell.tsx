@@ -8,8 +8,10 @@ import { CommandPaletteDialog } from '#/components/command-palette'
 import { DesktopTitleBar } from '#/components/desktop-title-bar'
 import { DetailPreviewProvider } from '#/components/detail-preview'
 import { HeaderActions } from '#/components/header-actions'
+import { PageTabStrip } from '#/components/page-tab-strip'
 import { ShellSidebarProvider } from '#/components/shell-sidebar-provider'
 import { isDesktop } from '#/lib/desktop-bridge'
+import { usePageTabsEnabled } from '#/lib/page-tabs'
 import {
   clearAiPanelMaximized,
   markAiPanelMaximized,
@@ -96,6 +98,13 @@ export function AppShell() {
    */
   const desktopChrome = isDesktop()
   const showHeader = !desktopChrome || isMobileViewport
+  /**
+   * 页面标签页是否生效：桌面壳里恒开（窗口条要它），浏览器里看 设置 → 外观 的开关。
+   *
+   * 浏览器里它挂在**顶栏行首那一格**（替掉面包屑）；桌面壳里由窗口条自己渲染 ——
+   * 所以这里只在「有顶栏、且不是桌面壳」时把它交给 `AppHeader`，两边不会同时出现。
+   */
+  const pageTabsEnabled = usePageTabsEnabled()
 
   /**
    * 顶栏「Ask AI」按钮。
@@ -256,6 +265,12 @@ export function AppShell() {
         <div className="flex min-w-0 flex-1 flex-col bg-kumo-canvas">
           {showHeader ? (
             <AppHeader
+              // 标签页开着就由它替掉面包屑（两者都在顶栏行首那一格，见 AppHeaderProps.leading）
+              leading={
+                pageTabsEnabled && !desktopChrome ? (
+                  <PageTabStrip homeTo={`/${appId}/home`} />
+                ) : undefined
+              }
               onOpenCommandPalette={() => setPaletteOpen(true)}
               // 见 `handleToggleAskAi`：折叠态下这一下是展开，展开态下才是关闭
               onToggleAskAi={handleToggleAskAi}

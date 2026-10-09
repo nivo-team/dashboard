@@ -91,6 +91,22 @@ export const AI_FLOAT_VIEWPORT_MARGIN = 80
 export const DEFAULT_MOTION_ENABLED = true
 
 /**
+ * 页面标签页（`#/lib/page-tabs`）是否启用，**默认关**。
+ *
+ * 它是一套「访问过的页面各占一个标签」的多标签导航，形态见 `#/lib/page-tabs`。
+ * 默认关是因为它替掉顶栏的面包屑（顶栏行首那一格只有一个位置），
+ * 对多数人来说面包屑比多标签更常用；想要的人去 设置 → 外观 打开。
+ *
+ * **桌面壳里恒开**（`isDesktop() || pageTabsEnabled`，见 `usePageTabsEnabled`）：
+ * 那边窗口条上除了标签条就只剩工具区，关掉换来的是一整条空着的窗口条 ——
+ * 设置项在桌面壳里因此是禁用 + 提示，不会出现「开关关着却还开着」。
+ *
+ * 与 `motionEnabled` 同属「换个应用还成立」的外壳形态偏好，所以放这个全局 store，
+ * 而不是按应用隔离的 `admin.preferences:<appId>`。
+ */
+export const DEFAULT_PAGE_TABS_ENABLED = false
+
+/**
  * 侧边栏折叠时的快速展开方式：
  * - `logo`：**仅悬浮在 Logo 展开**（默认）—— 鼠标悬浮在侧边栏顶部的 Logo / 品牌区域时触发临时展开；悬浮其他菜单项时不展开；
  * - `full`：**悬浮展开** —— 鼠标悬浮在侧边栏任意区域均触发临时展开；
@@ -123,12 +139,15 @@ interface ShellUiState {
   aiFloatHeight: number
   /** 界面动效总开关（默认开；关掉后 AI 面板与全屏对话页的过渡直接切换） */
   motionEnabled: boolean
+  /** 页面标签页开关（默认关；桌面壳里恒开，见 `DEFAULT_PAGE_TABS_ENABLED`） */
+  pageTabsEnabled: boolean
   setSidebarOpen: (open: boolean) => void
   setSidebarWidth: (width: number) => void
   setSidebarExpandMode: (mode: SidebarExpandMode) => void
   setDetailPanelWidth: (width: number) => void
   setAiPanelWidth: (width: number) => void
   setMotionEnabled: (enabled: boolean) => void
+  setPageTabsEnabled: (enabled: boolean) => void
   /**
    * 浮窗的两个方向一起写。
    *
@@ -148,6 +167,7 @@ type PersistedShellUi = Pick<
   | 'aiFloatWidth'
   | 'aiFloatHeight'
   | 'motionEnabled'
+  | 'pageTabsEnabled'
 >
 
 export function clampSidebarWidth(width: number): number {
@@ -181,6 +201,7 @@ export const useShellUiStore = create<ShellUiState>()(
       aiFloatWidth: AI_FLOAT_DEFAULT_WIDTH,
       aiFloatHeight: AI_FLOAT_DEFAULT_HEIGHT,
       motionEnabled: DEFAULT_MOTION_ENABLED,
+      pageTabsEnabled: DEFAULT_PAGE_TABS_ENABLED,
       setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
       setSidebarWidth: (sidebarWidth) => set({ sidebarWidth: clampSidebarWidth(sidebarWidth) }),
       setSidebarExpandMode: (sidebarExpandMode) => set({ sidebarExpandMode }),
@@ -193,6 +214,7 @@ export const useShellUiStore = create<ShellUiState>()(
           aiFloatHeight: clampAiFloatHeight(height),
         }),
       setMotionEnabled: (motionEnabled) => set({ motionEnabled }),
+      setPageTabsEnabled: (pageTabsEnabled) => set({ pageTabsEnabled }),
     }),
     {
       name: 'admin.shell-ui',
@@ -206,6 +228,7 @@ export const useShellUiStore = create<ShellUiState>()(
         aiFloatWidth: state.aiFloatWidth,
         aiFloatHeight: state.aiFloatHeight,
         motionEnabled: state.motionEnabled,
+        pageTabsEnabled: state.pageTabsEnabled,
       }),
       /**
        * 旧存档没有 `detailPanelWidth` / `aiPanelWidth`（后续新增）—— 缺失或非法一律回落
@@ -245,6 +268,11 @@ export const useShellUiStore = create<ShellUiState>()(
               : current.aiFloatHeight,
           motionEnabled:
             typeof saved.motionEnabled === 'boolean' ? saved.motionEnabled : current.motionEnabled,
+          /* 标签页是布尔：只认 boolean，缺失时回落到**默认关**（升级用户不该突然多出一条标签栏） */
+          pageTabsEnabled:
+            typeof saved.pageTabsEnabled === 'boolean'
+              ? saved.pageTabsEnabled
+              : current.pageTabsEnabled,
         }
       },
     },

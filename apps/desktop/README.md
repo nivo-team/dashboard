@@ -51,7 +51,7 @@ wails3 task test                                     # = pnpm desktop:test
 | 能力 | 落点 |
 |---|---|
 | 加载远程站点（不用构建产物） | `WebviewWindowOptions.URL` + `internal/shell/config.go` |
-| 页面**执行前**的桌面标记 | 壳改写 URL（`?__desktop=1`）→ 站点首屏内联脚本落地成 `window.__DESKTOP__` |
+| 页面**执行前**的桌面标记 | 壳改写 URL（`?__desktop=1`）→ 站点首屏内联脚本落地成 `window.__DESKTOP__`，并记进窗口会话（刷新后仍在） |
 | web → Go 的通用调用 | `bridge.Registry`（`internal/bridge/`）+ 页面侧 `__bridge.call(name, payload)` |
 | Go → web 的事件推送 | `registry.Emit(name, data)` → 页面侧 `__bridge.on(name, handler)` |
 | 来源校验 | `shell.Config.OriginAllowed`（只认配置地址那一个来源） |
@@ -194,6 +194,24 @@ window.__DESKTOP_MARKS__ === { channel: 'beta' }   // 来自 -mark k=v
 
 随后把 `__desktop*` 参数从地址栏抹掉（否则会被当成路由的 search 参数）。
 **默认 `data-is-desktop="false"`** —— 浏览器、SSR、没跑内联脚本的旧站点都走这条。
+
+### 标记要在**每次加载**都在（否则一刷新就没了）
+
+壳只在**启动那一次**导航时能改写地址（页面加载之后的注入点赶不上首屏），而标记紧接着就被
+上面那句「从地址栏抹掉」清掉了 —— 于是第 2 次加载（用户按 F5、壳自己 `Reload`、
+`window.location.reload()`）就再也没有标记：窗口条与标签条会整个消失，看起来像「刷新后
+标签页丢了」。
+
+所以首屏内联脚本把「这个窗口是桌面壳」连同 `-mark` 的键值记进 **`sessionStorage`**
+（`admin.desktop`），后续每次加载先读它，读到就照常落地 `window.__DESKTOP__` 与
+`is_desktop`。三个性质正是这里要的：
+
+- **只属于这一个窗口会话**：刷新、站内跳转都在；窗口关掉后一般随之清空（就算 webview 把它
+  留下来也无害：下一次启动壳照样会写 URL，两者说的是同一件事）；
+- **不跟浏览器串**：sessionStorage 按浏览上下文隔离，同源的浏览器标签页各有各的；
+- **不碰路由**：标记不进 URL，也就不需要路由去忽略一个参数。
+
+浏览器里没有这个存档，行为与以前完全一样（`data-is-desktop="false"`）。
 
 ## 配置
 

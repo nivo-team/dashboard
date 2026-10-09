@@ -128,6 +128,28 @@
 }
 
 /*
+ * …而「收起态」的那一列（Kumo 从文档流里摘出来的 `fixed` 层）还会整个跑到窗口条底下
+ * ——用户看到的就是「收起侧边栏被新顶栏盖住」。
+ *
+ * 成因：收起 / 悬浮窥探时 Kumo 把 `[data-sidebar='content-container']` 改成
+ * `fixed + inset-y-0 + h-full`，于是它按**视口**定位：上沿顶到窗口最顶端（被窗口条盖住，
+ * 品牌行与图标列看不见），下沿探出视口 44px（Footer 与拖拽手柄被裁掉）。
+ * 修法就是把它的上下沿按窗口条挪回来（高度与上面那条规则同源）。
+ *
+ * 为什么敢只按 `data-state` 判：Kumo 只在**非展开**时才给它 `fixed` ——
+ * `startPeek` 里写着 `if (peekable && !open && !isMobile)`，而 `state` 的三个值
+ * （`collapsed` / `peeking` / `expanded`）里只有 `expanded` 对应 `open === true`。
+ * 于是「不是 expanded」⟺「一定是 fixed」，不会误伤展开态与悬浮展开。
+ */
+[data-desktop-chrome]
+  [data-sidebar='sidebar']:not([data-mobile='true']):not([data-state='expanded'])
+  > [data-sidebar='content-container'] {
+  top: var(--shell-chrome-h);
+  bottom: auto;
+  height: calc(100svh - var(--shell-chrome-h));
+}
+
+/*
  * 移动端抽屉里不提供宽度拖拽。
  *
  * Kumo 的 `Sidebar.ResizeHandle` 只按**视口**断点隐藏（`hidden … sm:block`）：

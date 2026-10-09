@@ -1,7 +1,10 @@
 import type { Icon } from '@phosphor-icons/react'
 import { create } from 'zustand'
+import { createJSONStorage, persist } from 'zustand/middleware'
 
+import { isDesktop } from './desktop-bridge'
 import { ALL_NAV_TARGETS, ALL_SHELL_NAV_TARGETS } from './navigation'
+import { useShellUiStore } from './store/shell-ui-store'
 
 /**
  * 桌面窗口条的**页面标签页**（page tabs）数据层。
@@ -15,12 +18,12 @@ import { ALL_NAV_TARGETS, ALL_SHELL_NAV_TARGETS } from './navigation'
  *    和 `/$appId/system/menus` 共用「菜单管理」这一个标签，进详情页不会越点越多标签，
  *    也正是 `navigation.ts` 那条「名单只有一个真值」的延续：**加页面不改这里**。
  *
- * 2. **只在内存里，不落盘**。标签页是「这一次开着的东西」，刷新后从当前页重新开始
- *    （与 Chrome 默认不恢复会话一致）。落盘还会带来一个更现实的问题：桌面壳每次启动
- *    都重新加载远程地址，存档里的标签集合与当前 URL 必然对不上，恢复出来的是假的现场。
+ * 2. **存档只记「打开过哪些页面」**（`sessionStorage`，见下）：刷新之后标签条原样回来，
+ *    当前页仍是激活态（激活永远由 URL 决定）；窗口关掉后一般随之清空 —— 标签页是「这一次开着的东西」。
+ *    刻意不落 `localStorage`：那不是「恢复标签」而是「每次启动都弹出一堆上次的页面」。
  *
- * 消费方是 `#/components/page-tab-strip`（由 `#/components/desktop-title-bar` 渲染），
- * **只在桌面壳里挂载**：浏览器里这套东西完全不参与渲染。
+ * 消费方是 `#/components/page-tab-strip`：桌面壳里挂在窗口条上（`#/components/desktop-title-bar`），
+ * 浏览器里由设置项 `pageTabsEnabled` 决定要不要挂在顶栏行首（见 `#/lib/store/shell-ui-store`）。
  */
 
 /** 一个已打开的标签页。 */
@@ -39,7 +42,20 @@ export interface PageTab {
    * 把解析结果存进 store 就会留下一排旧语言的标题。
    */
   labelKey?: string
+  /** 图标。**不进存档**（组件引用没法序列化），恢复时按 `to` 重新解析 */
   icon?: Icon
+}
+
+/**
+ * 页面标签页当前是否生效：**桌面壳里强制开，浏览器里看设置**。
+ *
+ * 桌面壳那边不是「默认开」而是**恒开**：窗口条上除了标签条就只剩工具区，
+ * 把它们关掉换来的是一整条空着的窗口条。设置项在桌面壳里因此是禁用 + 提示
+ * （见 设置 → 外观），避免「开关关掉了却还开着」这种自相矛盾的界面。
+ */
+export function usePageTabsEnabled(): boolean {
+  const enabled = useShellUiStore((state) => state.pageTabsEnabled)
+  return isDesktop() || enabled
 }
 
 /**
@@ -115,25 +131,66 @@ interface PageTabsState {
   removeTab: (to: string) => void
 }
 
-export const usePageTabsStore = create<PageTabsState>()((set) => ({
-  tabs: [],
-  openTab: (tab) =>
-    set((state) => {
-      const index = state.tabs.findIndex((item) => item.to === tab.to)
-      if (index === -1) return { tabs: [...state.tabs, tab] }
-      /*
-        已存在：只在「解析结果变了」时替换（例如同一个标签先由兜底文案建出来、
-        随后导航清单里有了正式名称）。内容一样就返回原 state，避免无谓的重渲染。
-      */
-      const existing = state.tabs[index]
-      const same =
-        existing.label === tab.label &&
-        existing.labelKey === tab.labelKey &&
-        existing.icon === tab.icon
-      if (same) return state
-      const tabs = state.tabs.slice()
-      tabs[index] = tab
-      return { tabs }
+/** 存档里只放「能重建一个标签」的最小字段（图标是组件引用，序列化会丢） */
+interface PersistedPageTab {
+  to: string
+  label: string
+  labelKey?: string
+}
+
+export const usePageTabsStore = create<PageTabsState>()(
+  persist(
+    (set) => ({
+      tabs: [],
+      openTab: (tab) =>
+        set((state) => {
+          const index = state.tabs.findIndex((item) => item.to === tab.to)
+          if (index === -1) return { tabs: [...state.tabs, tab] }
+          /*
+            已存在：只在「解析结果变了」时替换（例如同一个标签先由兜底文案建出来、
+            随后导航清单里有了正式名称）。内容一样就返回原 state，避免无谓的重渲染。
+          */
+          const existing = state.tabs[index]
+          const same =
+            existing.label === tab.label &&
+            existing.labelKey === tab.labelKey &&
+            existing.icon === tab.icon
+          if (same) return state
+          const tabs = state.tabs.slice()
+          tabs[index] = tab
+          return { tabs }
+        }),
+      removeTab: (to) => set((state) => ({ tabs: state.tabs.filter((item) => item.to !== to) })),
     }),
-  removeTab: (to) => set((state) => ({ tabs: state.tabs.filter((item) => item.to !== to) })),
-}))
+    {
+      /*
+        存在 sessionStorage：刷新 / 壳自己 Reload 之后标签条原样回来，
+        但**不跨窗口会话**（关掉窗口后一般随之清空；就算 webview 把它留下来，
+        恢复出来的也只是「上次开着的页面」，不是持久偏好），也不跟同源的浏览器标签页互相串。
+      */
+      name: 'admin.page-tabs',
+      storage: createJSONStorage(() => window.sessionStorage),
+      partialize: (state): { tabs: PersistedPageTab[] } => ({
+        tabs: state.tabs.map(({ to, label, labelKey }) => ({ to, label, labelKey })),
+      }),
+      /**
+       * 恢复时按 `to` 重新解析一遍：图标本来就没进存档，而导航清单也可能已经变了 ——
+       * 重新解析 = 「用今天的名单把标签重建出来」，顺带去重（同一页只留一个标签）。
+       */
+      merge: (persisted, current) => {
+        const saved = (persisted ?? {}) as { tabs?: unknown }
+        if (!Array.isArray(saved.tabs)) return current
+
+        const seen = new Set<string>()
+        const tabs: PageTab[] = []
+        for (const item of saved.tabs) {
+          const to = (item as PersistedPageTab | null)?.to
+          if (typeof to !== 'string' || to === '' || seen.has(to)) continue
+          seen.add(to)
+          tabs.push(resolvePageTab(to) ?? { to, label: to })
+        }
+        return { ...current, tabs }
+      },
+    },
+  ),
+)

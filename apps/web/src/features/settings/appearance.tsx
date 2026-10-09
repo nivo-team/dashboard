@@ -21,6 +21,7 @@ import { SettingChoicePreview, usePreviewAnimation } from '#/components/settings
 import { SettingsCard, SettingRow } from '#/components/settings-card'
 import { DEFAULT_APP_ID, isMultiAppEnabled, useAuth } from '#/lib/auth'
 import { cn } from '#/lib/cn'
+import { isDesktop } from '#/lib/desktop-bridge'
 import {
   ACCENT_COLOR_OPTIONS,
   DEFAULT_COLOR_VALUE,
@@ -372,6 +373,10 @@ export function AppearanceSettingsPage() {
   const setSidebarExpandMode = useShellUiStore((state) => state.setSidebarExpandMode)
   const motionEnabled = useShellUiStore((state) => state.motionEnabled)
   const setMotionEnabled = useShellUiStore((state) => state.setMotionEnabled)
+  const pageTabsEnabled = useShellUiStore((state) => state.pageTabsEnabled)
+  const setPageTabsEnabled = useShellUiStore((state) => state.setPageTabsEnabled)
+  // 桌面壳里标签页恒开，这一项在那边是禁用 + 提示（见下面那一行的注释）
+  const inDesktopShell = isDesktop()
   const { locale, setLocale, supportedLocales } = useLocale()
   const { currentApp, availableApps, selectAppAndComplete } = useAuth()
   const { timezone, setTimezone, supportedTimezones, getTimezoneOffsetLabel } = useTimezone()
@@ -667,6 +672,38 @@ export function AppearanceSettingsPage() {
             checked={motionEnabled}
             onCheckedChange={setMotionEnabled}
             aria-label={t('profile.settings.motion', '界面动效')}
+          />
+        </SettingRow>
+
+        {/*
+            页面标签页：同属「开关型偏好 + 全局外壳偏好」（`admin.shell-ui` 的
+            `pageTabsEnabled`），默认**关** —— 它要占掉顶栏行首那一格，也就是替掉面包屑，
+            对多数人来说面包屑更常用，所以做成显式开启而不是默认打开。
+
+            **桌面壳里这一项禁用**（`checked` 也直接给 true）：窗口条上除了标签条就只剩
+            右侧工具区，标签页在那边是恒开的（见 `#/lib/page-tabs` 的 `usePageTabsEnabled`）。
+            一个能拨却没有效果的开关比没有开关更糟，所以禁用 + 换一句提示说明原因。
+            判定用 `isDesktop()`（纯读窗口标记，不需要订阅）。
+          */}
+        <SettingRow
+          label={t('profile.settings.pageTabs', '页面标签页')}
+          hint={
+            inDesktopShell
+              ? t(
+                  'profile.settings.pageTabsHintDesktop',
+                  '桌面壳里始终开启：窗口条上就是标签条，关掉只会剩一条空栏',
+                )
+              : t(
+                  'profile.settings.pageTabsHint',
+                  '在顶栏用标签页切换已打开的页面（会替掉面包屑）',
+                )
+          }
+        >
+          <Switch
+            checked={inDesktopShell || pageTabsEnabled}
+            disabled={inDesktopShell}
+            onCheckedChange={setPageTabsEnabled}
+            aria-label={t('profile.settings.pageTabs', '页面标签页')}
           />
         </SettingRow>
       </SettingsCard>

@@ -1,6 +1,6 @@
 /* eslint-disable */
 // 本文件由 scripts/i18n/gen-types.mjs 生成 —— 不要手改。
-// 源语言：zh-CN｜命名空间：12 个｜键：1059 个
+// 源语言：zh-CN｜命名空间：12 个｜键：1062 个
 // 重新生成：pnpm i18n:types
 
 /**
@@ -367,6 +367,9 @@ export interface I18nNamespaceKeys {
     | "profile.settings.motion"
     | "profile.settings.motionHint"
     | "profile.settings.neutralColor"
+    | "profile.settings.pageTabs"
+    | "profile.settings.pageTabsHint"
+    | "profile.settings.pageTabsHintDesktop"
     | "profile.settings.pageWidth"
     | "profile.settings.pageWidthHint"
     | "profile.settings.pageWidths.boxed"

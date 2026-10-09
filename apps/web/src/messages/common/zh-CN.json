@@ -100,6 +100,9 @@
       "pageWidthHint": "内容区是否限制最大宽度；后台表格建议全宽",
       "motion": "界面动效",
       "motionHint": "关闭后 AI 面板与全屏对话页的过渡直接切换，不做动画；系统的「减少动态效果」始终优先",
+      "pageTabs": "页面标签页",
+      "pageTabsHint": "在顶栏用标签页切换已打开的页面（会替掉面包屑）",
+      "pageTabsHintDesktop": "桌面壳里始终开启：窗口条上就是标签条，关掉只会剩一条空栏",
       "pageWidths": {
         "full": "全宽",
         "follow": "跟随外观",

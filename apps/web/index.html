@@ -17,23 +17,57 @@
        * 为什么走 URL：Wails 的注入点（WebviewWindowOptions.JS）三平台都在页面
        * 加载完成**之后**才执行，赶不上首屏；URL 是唯一「页面执行前就存在」的通道。
        *
+       * 为什么要记一笔：壳只在**启动那一次**导航时能改写地址，而标记随后会被下面
+       * 从地址栏抹掉（否则会被当成路由的 search 参数）—— 第 2 次加载（刷新、F5、
+       * 壳自己 Reload）就没有标记了，窗口条与标签页会整个消失。
+       * 于是把「这个窗口是桌面壳」连同标记记进 **sessionStorage**：只属于这一个窗口
+       * 会话（刷新 / 站内跳转都在，窗口关掉就没了；浏览器标签页各有各的 sessionStorage，
+       * 不会互相串），每次加载因此都能拿到标记。
+       *
        * 浏览器里什么都不做 —— <html> 保持 data-is-desktop="false"。
        */
       ;(function () {
         try {
+          var STORE_KEY = 'admin.desktop'
+
           var params = new URLSearchParams(window.location.search)
-          if (params.get('__desktop') !== '1') return
+          var fromUrl = params.get('__desktop') === '1'
+
+          var remembered = null
+          try {
+            var saved = window.sessionStorage.getItem(STORE_KEY)
+            if (saved) remembered = JSON.parse(saved)
+          } catch (error) {
+            remembered = null // 存储被禁用 / 存档损坏：当作没记住
+          }
+
+          if (!fromUrl && !remembered) return
 
           var marks = {}
-          params.forEach(function (value, key) {
-            if (key.indexOf('__desktop_') === 0) marks[key.slice('__desktop_'.length)] = value
-          })
+          if (fromUrl) {
+            params.forEach(function (value, key) {
+              if (key.indexOf('__desktop_') === 0) marks[key.slice('__desktop_'.length)] = value
+            })
+          } else {
+            marks = (remembered && remembered.marks) || {}
+          }
 
           window.__DESKTOP__ = true
           window.__DESKTOP_MARKS__ = marks
           var root = document.documentElement
           root.classList.add('is_desktop')
           root.dataset.isDesktop = 'true'
+
+          if (fromUrl) {
+            try {
+              window.sessionStorage.setItem(STORE_KEY, JSON.stringify({ marks: marks }))
+            } catch (error) {
+              /* 存不下就退化成「只有带标记的这一次加载算桌面壳」 */
+            }
+          }
+
+          // 地址里本来就没有标记时（走记忆的那条路）没什么可清理的
+          if (!fromUrl) return
 
           // 标记是壳自己加的，不该留在地址栏里（否则会被当成路由的 search 参数）
           params.delete('__desktop')
