@@ -99,6 +99,15 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
   const activeTab = resolvePageTab(pathname)
   const actions = useTabActions(homeTo, activeTab?.to ?? null)
 
+  /*
+    固定的标签与未固定的一起排（`tabs` 已是「固定的在前」的顺序），但**渲染进两个容器**：
+    固定的那个不参与滚动。这里先按合并顺序取好下标 —— 右键菜单的
+    「关闭左侧 / 右侧」判的就是这个顺序，不能按分组后的局部下标算。
+  */
+  const indexed = tabs.map((tab, index) => ({ tab, index }))
+  const pinnedEntries = indexed.filter((entry) => entry.tab.pinned)
+  const unpinnedEntries = indexed.filter((entry) => !entry.tab.pinned)
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   )
@@ -158,34 +167,69 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
         }}
       >
         <SortableContext items={tabs.map((tab) => tab.to)} strategy={horizontalListSortingStrategy}>
-          <nav
-            aria-label={t('pageTabs.label', '页面标签页')}
-            // 给 `styles.css` 当锚点：Chrome 那条底部倒角只挂在 chrome 外观上
-            data-page-tab-variant={variant}
-            className={cn(
-              // `max-w-[80%]`：标签最多占八成宽，剩下那条留白就是与行末工具区之间的间距
-              'flex min-w-0 max-w-[80%] shrink overflow-x-auto overscroll-x-contain [scrollbar-width:none]',
-              // `items-*` 走三目：本仓的 `cn` 只拼接、不合并，两个对齐类同时在场就只剩源码顺序可赌
-              variant === 'chrome'
-                ? // 左右各留 10px：给激活标签那对**底部倒角**留出画的地方（它长在标签外侧，
-                  // 半径 10 就往外探 9px）；`-mb-px` 让标签往下探 1px、盖住窗口条的下边线
-                  '-mb-px h-full items-end gap-0 px-2.5'
-                : 'items-center gap-1',
-            )}
-          >
-            {tabs.map((tab, index) => (
-              <PageTabItem
-                key={tab.to}
-                tab={tab}
-                index={index}
-                tabs={tabs}
-                variant={variant}
-                actions={actions}
-                dragPinned={dragPinned}
-                active={tab.to === activeTab?.to}
-              />
-            ))}
-          </nav>
+          {/*
+            两个区：**固定的标签不参与滚动**（单独一个容器，永远露在外面），
+            只有未固定的标签进滚动容器。`max-w-[80%]` 挂在两者外面 —— 这一整块
+            （固定的 + 可滚动的）最多占窗口条的八成，剩下那条留白是与行末工具区之间的间距。
+          */}
+          <div className="flex min-w-0 max-w-[80%] shrink items-center">
+            {pinnedEntries.length > 0 ? (
+              /*
+                固定区：**不滚动、纵向也不滚**（`overflow-hidden` 两个轴一起禁掉）。
+                与右边滚动区之间**不留间距**（外层没有 `gap`）—— 固定标签与第一个
+                未固定标签的间距由各自的 gap 负责，两区贴合才不会在中间多出一道缝。
+              */
+              <div
+                className={cn(
+                  'flex shrink-0 items-center overflow-hidden',
+                  variant === 'chrome' ? 'gap-0' : 'gap-1',
+                )}
+              >
+                {pinnedEntries.map(({ tab, index }) => (
+                  <PageTabItem
+                    key={tab.to}
+                    tab={tab}
+                    index={index}
+                    tabs={tabs}
+                    variant={variant}
+                    actions={actions}
+                    dragPinned={dragPinned}
+                    active={tab.to === activeTab?.to}
+                  />
+                ))}
+              </div>
+            ) : null}
+
+            <nav
+              aria-label={t('pageTabs.label', '页面标签页')}
+              // 给 `styles.css` 当锚点：Chrome 那条底部倒角只挂在 chrome 外观上
+              data-page-tab-variant={variant}
+              className={cn(
+                // 只允许横向滚：`overflow-x: auto` 会把 `overflow-y` 也算成 auto，
+                // 于是形状那半个像素的溢出就会凭空多出一段纵向可滚动区域 —— 显式禁掉
+                'flex min-w-0 flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none]',
+                // `items-*` 走三目：本仓的 `cn` 只拼接、不合并，两个对齐类同时在场就只剩源码顺序可赌
+                variant === 'chrome'
+                  ? // 左右各留 10px：给激活标签那对**底部倒角**留出画的地方（它长在标签外侧，
+                    // 半径 10 就往外探 9px）；`-mb-px` 让标签往下探 1px、盖住窗口条的下边线
+                    '-mb-px h-full items-end gap-0 px-2.5'
+                  : 'items-center gap-1',
+              )}
+            >
+              {unpinnedEntries.map(({ tab, index }) => (
+                <PageTabItem
+                  key={tab.to}
+                  tab={tab}
+                  index={index}
+                  tabs={tabs}
+                  variant={variant}
+                  actions={actions}
+                  dragPinned={dragPinned}
+                  active={tab.to === activeTab?.to}
+                />
+              ))}
+            </nav>
+          </div>
         </SortableContext>
       </DndContext>
 

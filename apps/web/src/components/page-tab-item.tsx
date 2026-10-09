@@ -389,9 +389,12 @@ export function PageTabItem({
             /*
               固定态：`✕` **绝对定位叠在图标上**（悬浮时图标让位）—— 36px 的小方块里
               放不下「图标 + 关闭」两个元素，并排会把图标挤扁。
+              居中用 `inset-0` + `m-auto`（定宽定高盒子的经典居中），**不要**写成
+              `end-0.5 top-1/2 -translate-y-1/2`：那样只垂直居中、水平被推到行尾
+              （实测过：✕ 明显偏右）。`inset-0` 是对称的，RTL 下同样居中。
             */
             pinned
-              ? 'absolute end-0.5 top-1/2 hidden -translate-y-1/2 group-hover/tab:flex'
+              ? 'absolute inset-0 m-auto hidden group-hover/tab:flex'
               : cn('flex', chrome ? 'me-1' : 'me-0.5'),
           )}
         >
