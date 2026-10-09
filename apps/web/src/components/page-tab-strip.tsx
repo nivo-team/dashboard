@@ -12,7 +12,7 @@ import { Button, DropdownMenu } from '@cloudflare/kumo'
 import { PlusIcon } from '@phosphor-icons/react'
 import type { Icon } from '@phosphor-icons/react'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   CHROME_TAB_HEIGHT,
@@ -98,6 +98,33 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
   /** 当前路径对应的标签（也是「哪个标签是激活态」的判据） */
   const activeTab = resolvePageTab(pathname)
   const actions = useTabActions(homeTo, activeTab?.to ?? null)
+
+  const navRef = useRef<HTMLElement | null>(null)
+
+  /*
+    主流标签栏标准做法（参考 Ant Design / Element Plus）：
+    当激活标签改变或标签增减时，在下一帧（requestAnimationFrame 确保 DOM 尺寸就绪）
+    统一将激活的未固定标签平滑居中滚入视口，彻底杜绝贴边被裁截。
+  */
+  useEffect(() => {
+    if (!navRef.current || !activeTab) return
+    const frameId = requestAnimationFrame(() => {
+      const nav = navRef.current
+      if (!nav) return
+      // 仅对滚动区内的标签执行带入视口（固定标签无需滚动）
+      const activeNode = nav.querySelector<HTMLElement>(
+        `[data-page-tab="${CSS.escape(activeTab.to)}"]`,
+      )
+      if (!activeNode) return
+
+      activeNode.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      })
+    })
+    return () => cancelAnimationFrame(frameId)
+  }, [activeTab?.to, tabs.length])
 
   /*
     固定的标签与未固定的一起排（`tabs` 已是「固定的在前」的顺序），但**渲染进两个容器**：
@@ -242,6 +269,7 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
             ) : null}
 
             <nav
+              ref={navRef}
               aria-label={t('pageTabs.label', '页面标签页')}
               // 给 `styles.css` 当锚点：Chrome 那条底部倒角只挂在 chrome 外观上
               data-page-tab-variant={variant}
