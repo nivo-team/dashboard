@@ -102,6 +102,11 @@ export function PageTabItem({
   /** 拖的是另一组的标签：自己这一组完全不参与（不可拖、不可落、不位移） */
   const foreignGroup = dragPinned !== null && dragPinned !== pinned
 
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: tab.to,
+    disabled: { draggable: foreignGroup, droppable: foreignGroup },
+  })
+
   /*
     叠放次序 —— 激活的必须压在邻居之上：它的**倒角与描边长在盒外**（左右各探出 7px），
     邻居一悬浮就有了底色，后画的兄弟会直接糊在这对倒角上（右侧那个尤其明显）。
@@ -109,11 +114,6 @@ export function PageTabItem({
     写成三目而不是叠加：本仓的 `cn` 只拼接，两个 z-* 同时在场就只剩源码顺序可赌。
   */
   const stackClass = isDragging ? 'z-20 opacity-80' : active ? 'z-10' : undefined
-
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: tab.to,
-    disabled: { draggable: foreignGroup, droppable: foreignGroup },
-  })
 
   const label = tab.labelKey ? t(tab.labelKey, tab.label) : tab.label
   const chrome = variant === 'chrome'
