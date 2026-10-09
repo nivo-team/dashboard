@@ -79,12 +79,8 @@
  *
  * 1. **细分隔线**：相邻两个「未激活」标签之间一条竖线（Chrome 标签条最好认的特征之一）。
  *    逻辑属性书写，RTL 下自动贴到另一侧。
- * 2. **底部倒角**：激活的标签左右下角各有一个外翻的凹角 —— 标签底色顺着一段圆弧流向
- *    下面的工具条，整条标签条因此像"长"在内容上。做法是标签外侧放一个 8×8 的方框，
- *    用径向渐变把「贴着标签那个角」挖成透明，剩下的部分正好是那道凹弧。
- *    渐变中心是**物理**方向（`at 100% 100%`），所以 RTL 要单独反过来写一次；
- *    颜色与激活标签的底一致（`bg-kumo-base`，改那里时这里跟着改）。
  */
+
 [data-page-tab-variant='chrome'] [data-page-tab][data-active='false'] + [data-page-tab][data-active='false']::before {
   content: '';
   position: absolute;
@@ -94,6 +90,30 @@
   background-color: var(--color-kumo-line);
 }
 
+/*
+ * 2. **底部倒角**（外翻的凹角）：激活标签左右下角各一块，标签底色顺着一段圆弧流向下面，
+ *    整条标签条因此像「长」在内容上。
+ *
+ * ## 几何怎么来的（上一版写反了，这里写清楚）
+ *
+ * 倒角长在标签**外侧**：一块 8×8 的方框贴在标签的左/右下角，与标签边**重叠 1px**
+ * （圆弧末端才能接上标签自己那 1px 描边，不留缝）。
+ * 圆弧的圆心在方框**外侧那个上角**（左倒角是左上角、右倒角是右上角）—— 只有这样，
+ * 半径 8 的圆才同时与「标签的侧边」（竖线）和「底部那条线」（横线）**相切**：
+ * 切点正是圆弧的起止点，于是圆弧从标签侧边平滑地拐到底部，像长出来的一样。
+ * 要画的区域 = 方框减去这个圆 —— 剩下的正好是贴着标签角的那一小弯月牙。
+ *
+ * 反过来（圆心放在方框内侧那个下角）会得到相反的形状：贴着标签的地方被挖空、
+ * 外层反而糊上一块，看着就是「倒角画反了」。
+ *
+ * 渐变里那两段同色（`r-0.8` → `r-0.2`）是**把圆弧描成 1px 的线**，颜色取标签的描边色 ——
+ * 于是圆弧把标签的侧边描边「交接」到底部那条线上；两侧 ±0.4px 的过渡带负责抗锯齿。
+ * 渐变中心是**物理**方向，RTL 下要单独反过来写一次。
+ * 颜色两处跟随标签本体：描边 `border-kumo-line`、底色 `bg-kumo-base`。
+ *
+ * 参考：一份已落地的 Chrome 风格标签条实现
+ * （multica-ai/multica 8e1bf6c，"merge active tab into content surface, Chrome-style"）。
+ */
 [data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::before,
 [data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::after {
   content: '';
@@ -104,22 +124,47 @@
 }
 
 [data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::before {
-  inset-inline-start: -8px;
-  background: radial-gradient(circle 8px at 100% 100%, transparent 7.5px, var(--color-kumo-base) 8px);
+  /* -8px + 1px：与标签边重叠 1px，圆弧才接得上标签的侧边描边 */
+  inset-inline-start: -7px;
+  background: radial-gradient(
+    circle 8px at 0 0,
+    transparent 6.8px,
+    var(--color-kumo-line) 7.2px,
+    var(--color-kumo-line) 7.8px,
+    var(--color-kumo-base) 8.2px
+  );
 }
 
 [data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::after {
-  inset-inline-end: -8px;
-  background: radial-gradient(circle 8px at 0 100%, transparent 7.5px, var(--color-kumo-base) 8px);
+  inset-inline-end: -7px;
+  background: radial-gradient(
+    circle 8px at 100% 0,
+    transparent 6.8px,
+    var(--color-kumo-line) 7.2px,
+    var(--color-kumo-line) 7.8px,
+    var(--color-kumo-base) 8.2px
+  );
 }
 
 /* RTL：凹弧要贴在标签那一侧（渐变中心是物理方向，逻辑属性换边后这里得跟着换） */
 [dir='rtl'] [data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::before {
-  background: radial-gradient(circle 8px at 0 100%, transparent 7.5px, var(--color-kumo-base) 8px);
+  background: radial-gradient(
+    circle 8px at 100% 0,
+    transparent 6.8px,
+    var(--color-kumo-line) 7.2px,
+    var(--color-kumo-line) 7.8px,
+    var(--color-kumo-base) 8.2px
+  );
 }
 
 [dir='rtl'] [data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::after {
-  background: radial-gradient(circle 8px at 100% 100%, transparent 7.5px, var(--color-kumo-base) 8px);
+  background: radial-gradient(
+    circle 8px at 0 0,
+    transparent 6.8px,
+    var(--color-kumo-line) 7.2px,
+    var(--color-kumo-line) 7.8px,
+    var(--color-kumo-base) 8.2px
+  );
 }
 
 /*

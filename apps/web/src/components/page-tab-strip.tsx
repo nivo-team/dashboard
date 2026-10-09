@@ -6,7 +6,7 @@ import {
   useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core'
-import { restrictToHorizontalAxis } from '@dnd-kit/modifiers'
+import { restrictToHorizontalAxis, restrictToParentElement } from '@dnd-kit/modifiers'
 import { horizontalListSortingStrategy, SortableContext } from '@dnd-kit/sortable'
 import { Button, DropdownMenu } from '@cloudflare/kumo'
 import { PlusIcon } from '@phosphor-icons/react'
@@ -128,7 +128,8 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        modifiers={[restrictToHorizontalAxis]}
+        // 只许横向移动；再限制在标签条内，拖到条外时不会飞出去
+        modifiers={[restrictToHorizontalAxis, restrictToParentElement]}
         onDragStart={({ active }) => {
           setDragPinned(!!tabs.find((tab) => tab.to === active.id)?.pinned)
         }}
