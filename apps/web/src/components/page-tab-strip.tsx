@@ -172,7 +172,13 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
             只有未固定的标签进滚动容器。`max-w-[80%]` 挂在两者外面 —— 这一整块
             （固定的 + 可滚动的）最多占窗口条的八成，剩下那条留白是与行末工具区之间的间距。
           */}
-          <div className="flex min-w-0 max-w-[80%] shrink items-center">
+          <div
+            className={cn(
+              'flex min-w-0 max-w-[80%] shrink',
+              // 与两个区的对齐一致：chrome 下底对齐，plain 下居中
+              variant === 'chrome' ? 'items-end' : 'items-center',
+            )}
+          >
             {pinnedEntries.length > 0 ? (
               /*
                 固定区：**不滚动、纵向也不滚**（`overflow-hidden` 两个轴一起禁掉）。
@@ -181,8 +187,18 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
               */
               <div
                 className={cn(
-                  'flex shrink-0 items-center overflow-hidden',
-                  variant === 'chrome' ? 'gap-0' : 'gap-1',
+                  /*
+                    **不设 `overflow`**（默认 visible）：形状比标签盒大一整圈 ——
+                    顶部要 1px（描边上下各探出 0.5px）、左右各 9px（外翻倒角）。
+                    之前这里写 `overflow-hidden`，结果固定标签的顶部描边整条被裁掉、
+                    两侧倒角也被切平（实测：顶部直边那一行完全没有墨迹）。
+                    固定区本来就不滚动，不需要裁剪。
+                  */
+                  'flex shrink-0 items-center',
+                  variant === 'chrome'
+                    ? // 与滚动区同高同底：`pt-px` 给顶部描边留余量，`-mb-px` 让标签压住底部分割线
+                      '-mb-px gap-0 pt-px'
+                    : 'gap-1',
                 )}
               >
                 {pinnedEntries.map(({ tab, index }) => (
@@ -211,8 +227,9 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
                 // `items-*` 走三目：本仓的 `cn` 只拼接、不合并，两个对齐类同时在场就只剩源码顺序可赌
                 variant === 'chrome'
                   ? // 左右各留 10px：给激活标签那对**底部倒角**留出画的地方（它长在标签外侧，
-                    // 半径 10 就往外探 9px）；`-mb-px` 让标签往下探 1px、盖住窗口条的下边线
-                    '-mb-px h-full items-end gap-0 px-2.5'
+                    // 半径 10 就往外探 9px）；`pt-px` 给顶部描边留 1px 余量、
+                    // `-mb-px` 让标签往下探 1px 盖住窗口条的下边线
+                    '-mb-px items-end gap-0 px-2.5 pt-px'
                   : 'items-center gap-1',
               )}
             >
