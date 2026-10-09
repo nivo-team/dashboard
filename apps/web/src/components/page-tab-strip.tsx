@@ -157,12 +157,11 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
   }
 
   /*
-    主流标签栏标准做法（参考 Ant Design / Element Plus）：
+    主流标签栏标准做法（参考 Ant Design / Element Plus 最小化滚动交互）：
     当激活标签改变或标签增减时，在下一帧（requestAnimationFrame 确保 DOM 尺寸就绪）
-    执行智能边界对齐：
-    - 切换到最后一个标签：直接平滑滚动到底（scrollWidth），紧凑贴合，不留任何多余 padding；
-    - 切换到第一个标签：直接平滑滚动到起点（0）；
-    - 中间标签：平滑居中带入视口（inline: 'center'）。
+    执行按需滚动：
+    - 若当前激活的 Tab 已经 100% 完全可见（含外翻倒角），完全不触发任何滚动，零视觉抖动；
+    - 仅在被遮挡出界时才滚动：最后一个标签滚到底，第一个标签滚到头，中间标签平滑带入。
   */
   useEffect(() => {
     if (!navRef.current || !activeTab) return
@@ -170,6 +169,22 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
       const nav = navRef.current
       if (!nav) return
 
+      const activeNode = nav.querySelector<HTMLElement>(
+        `[data-page-tab="${CSS.escape(activeTab.to)}"]`,
+      )
+      if (!activeNode) return
+
+      // 1. 物理可见性检测：判断激活标签是否已经完全处于可视区内部（留 10px 包含外翻倒角）
+      const nodeRect = activeNode.getBoundingClientRect()
+      const navRect = nav.getBoundingClientRect()
+      const pad = 10
+      const isLeftVisible = nodeRect.left >= navRect.left + pad
+      const isRightVisible = nodeRect.right <= navRect.right - pad
+
+      // 若已经完全可见：立即返回，绝不产生任何多余位移！
+      if (isLeftVisible && isRightVisible) return
+
+      // 2. 只有确实被遮挡出界时，才按需触发平滑带入
       const lastUnpinned = unpinnedEntries[unpinnedEntries.length - 1]
       const firstUnpinned = unpinnedEntries[0]
 
@@ -185,16 +200,11 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
         return
       }
 
-      // 中间标签：视口居中呈现
-      const activeNode = nav.querySelector<HTMLElement>(
-        `[data-page-tab="${CSS.escape(activeTab.to)}"]`,
-      )
-      if (!activeNode) return
-
+      // 中间标签：视口适度带入
       activeNode.scrollIntoView({
         behavior: 'smooth',
         block: 'nearest',
-        inline: 'center',
+        inline: 'nearest',
       })
     })
     return () => cancelAnimationFrame(frameId)
