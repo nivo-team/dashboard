@@ -1,0 +1,35 @@
+version: '3'
+
+# `wails3 build` / `wails3 package` 走这里（CLI 内置 go-task，`build` 会执行 build 任务）。
+#
+# 只保留这个壳真正用得上的任务：Wails 模板工程那套 per-OS 打包 / docker / msix /
+# 图标生成在这里没有意义 —— 壳的产物就是一个可执行文件，地址由构建环境给
+# （见 scripts/build.mjs 与 internal/shell/default_release.go）。
+#
+# 日常用 pnpm 脚本就够了；这里是给「习惯敲 wails3」的人准备的同一件事。
+tasks:
+  build:
+    summary: 发布构建（需要 DESKTOP_URL）
+    desc: |
+      地址从环境变量来，不预置默认值：
+        DESKTOP_URL=https://admin.example.com wails3 build
+    cmds:
+      - node scripts/build.mjs
+
+  dev:
+    summary: 开发模式跑壳（与 build/config.yml 里的命令一致）
+    desc: |
+      watch + 重启请用 `wails3 dev`（读 build/config.yml）；这条只是「跑起来」。
+    cmds:
+      - go run . -debug
+
+  test:
+    summary: 协议层护栏测试（纯 Go，不需要窗口）
+    cmds:
+      - go test ./...
+
+  package:
+    summary: 打包安装包 —— 尚未实现
+    cmds:
+      - echo "还没做：要 dmg/msi/AppImage 得补图标与打包配置（见 README 的「还没做」）。"
+      - exit 1

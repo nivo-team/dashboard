@@ -1,0 +1,27 @@
+# `wails3 dev` 读这个文件（CLI 默认 `-config ./build/config.yml`）。
+#
+# 它只做一件事：**监听 Go 源码 → 重启壳**。前端不归它管 —— 页面来自哪个地址由壳决定
+# （开发默认 http://localhost:3000，见 internal/shell/default_dev.go），
+# 所以 Wails 模板工程里的 Vite / 前端任务在这里是多余的：前端请另开终端跑 `pnpm dev`。
+#
+# 两个前置条件（都是 CLI 自己的规矩，不是我们的配置问题）：
+#   · CLI 会先确认一个「Vite 端口」是**空闲**的（默认 9245，`-port` / `WAILS_VITE_PORT` 可改），
+#     被占用就直接 `bind: address already in use` 退出 —— 它只是替模板工程占位，我们不用它；
+#   · 必须在 apps/desktop 目录下执行（配置文件是按相对路径找的）。
+dev_mode:
+  root_path: .
+  log_level: info
+  debounce: 500
+  ignore:
+    git: true
+    dir:
+      - .git
+      - dist
+      - node_modules
+    # 只关心 Go 源码：改 README / yaml 不该把窗口重启一遍
+    watched_extension:
+      - '*.go'
+  executes:
+    # primary = 每次重载先杀掉上一个进程再起新的（正是「重启壳」要的语义）
+    - cmd: go run . -debug
+      type: primary

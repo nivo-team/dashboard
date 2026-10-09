@@ -17,6 +17,7 @@
 - **i18next**（7 语言；`ar-SA` 自动 `dir="rtl"`）
 - 路径别名 `#/*` 与 `@/*` → `./src/*`；包管理器 **pnpm**
 - **AI 核心集中在 [`src/features/ai/`](./apps/web/src/features/ai/README.md)**（逻辑 / UI / 渲染 / 全屏页 / 页面声明框架）—— 改 AI 先读那里的地图
+- **桌面壳在 [`apps/desktop/`](./apps/desktop/README.md)**（Wails v3 + Go，超薄：只加载远程 http/https 地址 + 一条通用 bridge）—— 改 bridge 协议 / 加原生能力读那份
 - **Vite+ 工具链**（`vp`）：dev/build 走 `vp`，lint/format 用内置 oxlint/oxfmt（规则见根
   `vite.config.ts`）；**暂无单测**（`vp test` 会报「没有测试文件」）
 
@@ -27,6 +28,9 @@ pnpm dev              # 前端开发服务器 (http://localhost:3000)
 pnpm dev:all          # 一键并发：mock(3001) + web(3000) + ai(3002)，Ctrl-C 一次全停
 pnpm mock             # Mock API (http://localhost:3001)，前端默认连它
 pnpm ai               # AI 中间层 Worker（wrangler dev，http://localhost:3002）
+pnpm desktop          # 桌面壳（Wails v3 + Go，默认加载 http://localhost:3000）
+pnpm desktop:test     # 桌面壳的 Go 测试（协议层护栏）
+pnpm desktop:build    # 桌面壳出发布产物（地址来自构建环境 DESKTOP_URL，见 apps/desktop/README.md）
 pnpm build            # 前端生产构建（走 vp build，输出 apps/web/dist）
 pnpm preview          # 预览前端构建产物
 pnpm typecheck        # tsc --noEmit
@@ -78,6 +82,7 @@ pnpm i18n:types       # 重新生成 i18n 键类型（改了 zh-CN.json 后跑�
 | **改任何 AI 代码** | 先看模块地图 [src/features/ai/README.md](./apps/web/src/features/ai/README.md)（**AI 核心全在这一个目录**：core / components / markdown / sphere / page）· [ai-architecture.md](./.agents/docs/ai-architecture.md)（架构 / 数据流 / 扩展点 / 踩过的坑）· [ai-integration.md](./.agents/docs/ai-integration.md)（设计蓝图） |
 | **加/改 AI 工具、AI 权限粒度、批量任务编排** | [ai-architecture.md](./.agents/docs/ai-architecture.md) §3.1（能力矩阵）· §7.1（Todo 编排）· 清单 [ai-module-inventory.md](./.agents/docs/ai-module-inventory.md) §6 |
 | **改 AI 开发流水线 / issue 模板 / CI 门控** | [docs/ai-dev-pipeline.md](./docs/ai-dev-pipeline.md)（触发层 + 执行层 + 门控层，含标签状态机与铁律对应表） |
+| **改桌面壳 / 加原生能力（菜单 / 托盘 / 文件对话框）/ 改 bridge 协议** | [apps/desktop/README.md](./apps/desktop/README.md)（Wails v3 超薄壳：URL 桌面标记、Raw Messages 通道、`__bridge` 的 call/on）· 页面侧接口 `#/lib/desktop-bridge` |
 | 想知道「当初为什么这么选」 | [docs/](./docs/README.md)（调研与设计记录，相对稳定） |
 | 要跑校验 | skill **`verify`** —— **只有使用者点名时才跑** |
 
