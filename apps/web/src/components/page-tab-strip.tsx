@@ -111,7 +111,10 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
     行与外层的关系：外层负责裁剪 / 滚动与那 1px 的下探（`pt-px` + `-mb-px`），
     行负责把标签贴着行的下沿排 —— 标签的白色因此正好压住窗口条下边线，看着连成一体。
   */
-  const tabRowClass = cn('flex w-max min-w-full items-end', variant === 'chrome' ? 'gap-0' : 'gap-1')
+  // `w-max`：行宽跟着标签走（固定区因此正好裹住标签；滚动区里它决定可滚动的宽度）。
+  // 不用 `min-w-full` —— 百分比 min-width 在「宽度由内容决定」的父元素里是循环依赖，
+  // 固定区会被撑成外层宽度，反而把滚动区挤出去。
+  const tabRowClass = cn('flex w-max items-end', variant === 'chrome' ? 'gap-0' : 'gap-1')
 
   const indexed = tabs.map((tab, index) => ({ tab, index }))
   const pinnedEntries = indexed.filter((entry) => entry.tab.pinned)
