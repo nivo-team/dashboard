@@ -76,17 +76,38 @@ interface PageTabItemProps {
   /** 全部标签（含自己）与自己在其中的下标：用来算「左侧 / 右侧还有没有可关的」 */
   tabs: PageTab[]
   index: number
+  /**
+   * 正在拖的那个标签是不是固定的（`null` = 没有拖拽进行中）。
+   *
+   * 与自己**不同组**时这个标签整个退出拖拽交互（既不能当落点，也不跟着位移）——
+   * 固定的与未固定的是两个区段，拖动不该把另一段也带着动。
+   */
+  dragPinned: boolean | null
 }
 
-export function PageTabItem({ tab, active, variant, actions, tabs, index }: PageTabItemProps) {
+export function PageTabItem({
+  tab,
+  active,
+  variant,
+  actions,
+  tabs,
+  index,
+  dragPinned,
+}: PageTabItemProps) {
   const { t } = useTranslation()
   const [menuOpen, setMenuOpen] = useState(false)
+
+  const pinned = !!tab.pinned
+
+  /** 拖的是另一组的标签：自己这一组完全不参与（不可拖、不可落、不位移） */
+  const foreignGroup = dragPinned !== null && dragPinned !== pinned
+
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: tab.to,
+    disabled: { draggable: foreignGroup, droppable: foreignGroup },
   })
 
   const label = tab.labelKey ? t(tab.labelKey, tab.label) : tab.label
-  const pinned = !!tab.pinned
   const chrome = variant === 'chrome'
   const TabIcon = tab.icon
 
@@ -111,7 +132,11 @@ export function PageTabItem({ tab, active, variant, actions, tabs, index }: Page
       */}
       <div
         ref={setNodeRef}
-        style={{ transform: CSS.Transform.toString(transform), transition }}
+        style={{
+          // 另一组的标签不跟着动：位移与过渡都摘掉，它就停在原地
+          transform: foreignGroup ? undefined : CSS.Transform.toString(transform),
+          transition: foreignGroup ? undefined : transition,
+        }}
         data-page-tab={tab.to}
         data-active={active}
         className={cn(

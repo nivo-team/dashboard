@@ -154,7 +154,8 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
   `#/components/page-tab-item` 里，只有它们认识 router：`useTabActions` 统一处理
   「关掉之后看哪一页」（**当前页还在就原地不动**，否则跳到那个一定活下来的落点）。
   排序用 **dnd-kit**（`PointerSensor` + 6px 激活距离，避免把「点击切换」误判成拖拽；
-  指针拖拽结束后那一下 click 由 `markDragEnd()` 的时间戳挡掉）。
+  指针拖拽结束后那一下 click 由 `markDragEnd()` 的时间戳挡掉），且**只在同一组内互动** ——
+  拖未固定的标签时固定那一排整个退出（不可落、不位移），反之亦然。
   **固定**的标签排在最前、只显示图标，且不参与「关闭左侧 / 右侧」与跨区拖拽；
   排序与固定的规则都在 store 里（`moveTab` / `togglePinned` / `closeSide`），
   组件只负责把动作接上去 —— **这条边界别打破**：数据层不认识 router，界面层不认识排序规则；

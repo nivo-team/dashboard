@@ -12,7 +12,7 @@ import { Button, DropdownMenu } from '@cloudflare/kumo'
 import { PlusIcon } from '@phosphor-icons/react'
 import type { Icon } from '@phosphor-icons/react'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
-import { Fragment, useEffect, useMemo } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PageTabItem, markDragEnd, type PageTabVariant, type TabActions } from '#/components/page-tab-item'
 import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
@@ -80,6 +80,15 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
   const openTab = usePageTabsStore((state) => state.openTab)
   const moveTab = usePageTabsStore((state) => state.moveTab)
 
+  /**
+   * 正在拖的那个标签是不是固定的（`null` = 没有拖拽进行中）。
+   *
+   * 拖拽**只在同一组内互动**：固定的与未固定的是两个区段（见 `#/lib/page-tabs` 的 `moveTab`），
+   * 拖一个未固定的标签时，固定那一排既不能当落点、也不该跟着动 —— 反之亦然。
+   * 这里记住「谁在被拖」，由每个标签自己算出要不要退出交互（`useSortable` 的 `disabled`）。
+   */
+  const [dragPinned, setDragPinned] = useState<boolean | null>(null)
+
   /** 当前路径对应的标签（也是「哪个标签是激活态」的判据） */
   const activeTab = resolvePageTab(pathname)
   const actions = useTabActions(homeTo, activeTab?.to ?? null)
@@ -105,13 +114,32 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
   }
 
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-1 self-stretch">
+    <div
+      className={cn(
+        'flex min-w-0 flex-1 gap-1 self-stretch',
+        /*
+          chrome 外观里标签贴着窗口条下沿，于是「+」也要跟着贴到下沿、
+          并把自己在**标签那一行的高度（34px）**里居中 —— 否则它会以整条窗口条居中，
+          看起来比标签的图标 / 文字高一截（用户看到的就是这个）。
+        */
+        variant === 'chrome' ? 'items-end' : 'items-center',
+      )}
+    >
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
         modifiers={[restrictToHorizontalAxis]}
-        onDragEnd={handleDragEnd}
-        onDragCancel={markDragEnd}
+        onDragStart={({ active }) => {
+          setDragPinned(!!tabs.find((tab) => tab.to === active.id)?.pinned)
+        }}
+        onDragEnd={(event) => {
+          setDragPinned(null)
+          handleDragEnd(event)
+        }}
+        onDragCancel={() => {
+          setDragPinned(null)
+          markDragEnd()
+        }}
         /*
           读屏提示：dnd-kit 默认那段是英文、而且讲的是键盘拖拽 —— 我们没开键盘传感器，
           说成那样只会误导。这里给一句如实的（纯指针拖拽）。
@@ -125,10 +153,17 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
         <SortableContext items={tabs.map((tab) => tab.to)} strategy={horizontalListSortingStrategy}>
           <nav
             aria-label={t('pageTabs.label', '页面标签页')}
+            // 给 `styles.css` 当锚点：Chrome 那条底部倒角只挂在 chrome 外观上
+            data-page-tab-variant={variant}
             className={cn(
               // `max-w-[80%]`：标签最多占八成宽，剩下那条留白就是与行末工具区之间的间距
-              'flex min-w-0 max-w-[80%] shrink items-center overflow-x-auto overscroll-x-contain [scrollbar-width:none]',
-              variant === 'chrome' ? 'h-full items-end gap-0' : 'gap-1',
+              'flex min-w-0 max-w-[80%] shrink overflow-x-auto overscroll-x-contain [scrollbar-width:none]',
+              // `items-*` 走三目：本仓的 `cn` 只拼接、不合并，两个对齐类同时在场就只剩源码顺序可赌
+              variant === 'chrome'
+                ? // 左右各留 8px：给激活标签那对**底部倒角**留出画的地方（它也长在标签外侧），
+                  // `-mb-px` 则让标签往下探 1px、盖住窗口条那条下边线（详见该外观的注释）
+                  '-mb-px h-full items-end gap-0 px-2'
+                : 'items-center gap-1',
             )}
           >
             {tabs.map((tab, index) => (
@@ -139,6 +174,7 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
                 tabs={tabs}
                 variant={variant}
                 actions={actions}
+                dragPinned={dragPinned}
                 active={tab.to === activeTab?.to}
               />
             ))}
@@ -147,7 +183,15 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
       </DndContext>
 
       {/* 「+」在滚动区之外、紧挨着它 —— 跟着标签走，不钉在行末 */}
-      <NewTabMenu />
+      <div
+        className={cn(
+          'flex shrink-0 items-center',
+          // 与标签那一行**完全同一格**：同高、同样往下探 1px（`-mb-px` 见导航那条注释）
+          variant === 'chrome' && '-mb-px h-[34px]',
+        )}
+      >
+        <NewTabMenu />
+      </div>
     </div>
   )
 }

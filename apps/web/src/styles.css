@@ -70,20 +70,56 @@
 }
 
 /*
- * Chrome 那条标签条里的**细分隔线**：相邻两个「未激活」标签之间画一条竖线。
+ * ── Chrome 那条标签条的两个细节（只挂在 chrome 外观上）──────────────────────────
  *
- * 钩子在 `#/components/page-tab-item`（`data-page-tab` + `data-active`）——
- * 「前一个兄弟也满足条件」这种关系 Tailwind 的变体表达不出来（要写组合选择器 `& + &`），
- * 而这条线正是 Chrome 标签条最好认的特征之一，所以放这里。
- * 逻辑属性书写：`inset-inline-start` 让它在 RTL 下自动贴到另一侧。
+ * 钩子由 `#/components/page-tab-strip`（`data-page-tab-variant`）与
+ * `#/components/page-tab-item`（`data-page-tab` / `data-active`）提供。
+ * 放这里而不是 Tailwind 类里，是因为两条都要写「前一个兄弟也满足条件」或径向渐变 ——
+ * 变体表达不出来，硬塞进类名也读不懂。
+ *
+ * 1. **细分隔线**：相邻两个「未激活」标签之间一条竖线（Chrome 标签条最好认的特征之一）。
+ *    逻辑属性书写，RTL 下自动贴到另一侧。
+ * 2. **底部倒角**：激活的标签左右下角各有一个外翻的凹角 —— 标签底色顺着一段圆弧流向
+ *    下面的工具条，整条标签条因此像"长"在内容上。做法是标签外侧放一个 8×8 的方框，
+ *    用径向渐变把「贴着标签那个角」挖成透明，剩下的部分正好是那道凹弧。
+ *    渐变中心是**物理**方向（`at 100% 100%`），所以 RTL 要单独反过来写一次；
+ *    颜色与激活标签的底一致（`bg-kumo-base`，改那里时这里跟着改）。
  */
-[data-page-tab][data-active='false'] + [data-page-tab][data-active='false']::before {
+[data-page-tab-variant='chrome'] [data-page-tab][data-active='false'] + [data-page-tab][data-active='false']::before {
   content: '';
   position: absolute;
   inset-block: 32%;
   inset-inline-start: 0;
   width: 1px;
   background-color: var(--color-kumo-line);
+}
+
+[data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::before,
+[data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  width: 8px;
+  height: 8px;
+}
+
+[data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::before {
+  inset-inline-start: -8px;
+  background: radial-gradient(circle 8px at 100% 100%, transparent 7.5px, var(--color-kumo-base) 8px);
+}
+
+[data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::after {
+  inset-inline-end: -8px;
+  background: radial-gradient(circle 8px at 0 100%, transparent 7.5px, var(--color-kumo-base) 8px);
+}
+
+/* RTL：凹弧要贴在标签那一侧（渐变中心是物理方向，逻辑属性换边后这里得跟着换） */
+[dir='rtl'] [data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::before {
+  background: radial-gradient(circle 8px at 0 100%, transparent 7.5px, var(--color-kumo-base) 8px);
+}
+
+[dir='rtl'] [data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::after {
+  background: radial-gradient(circle 8px at 100% 100%, transparent 7.5px, var(--color-kumo-base) 8px);
 }
 
 /*
