@@ -106,10 +106,16 @@
  */
 .page-tab-shape {
   position: absolute;
-  inset-block: 0;
-  height: 100%;
+  /*
+    `z-index: -1`：绝对定位元素默认画在普通流内容**之上** —— 不加这一条，这块形状的填充
+    会把图标与文字整片盖住（曾实测：内容完全看不见）。
+    负值只在**自己的堆叠上下文**里才只压内容、不压到窗口条背景之下，所以标签根上还配了
+    `isolate`（见 `#/components/page-tab-item`）。
+  */
+  z-index: -1;
   pointer-events: none;
-  overflow: visible;
+  /* 不依赖 `overflow: visible`：形状四周留了余量，描边本来就落在视口内 */
+  overflow: hidden;
 }
 
 .page-tab-shape-fill {

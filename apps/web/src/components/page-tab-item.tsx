@@ -62,13 +62,23 @@ export const CHROME_TAB_HEIGHT = 34
 export const CHROME_TAB_FLARE = 8
 
 /**
- * 形状的 viewBox：`8(左倒角) + 128(直边) + 8(右倒角) + 两侧各 8 的外探 = 160`。
+ * 形状自身的坐标系宽度：`8(左倒角) + 128(直边) + 8(右倒角) + 两侧各 8 的外探 = 160`。
  *
- * 渲染时 SVG 被拉成 `标签宽 + 16`（见 `styles.css` 的 `.page-tab-shape`），
- * 横向因此随文字长度自由伸缩（`preserveAspectRatio="none"`）；
- * 描边走 `vector-effect: non-scaling-stroke`，拉伸时永远是 1px、不会被压扁。
+ * 渲染时 SVG 被拉成 `标签宽 + 2*(倒角 + 余量)`，横向因此随文字长度自由伸缩
+ * （`preserveAspectRatio="none"`）；描边走 `vector-effect: non-scaling-stroke`，
+ * 拉伸时永远是 1px、不会被压扁。
  */
 const TAB_SHAPE_WIDTH = CHROME_TAB_FLARE * 2 + 128 + CHROME_TAB_FLARE * 2
+
+/**
+ * 形状四周留出的**余量**（px）。
+ *
+ * 描边以路径为中心，上下左右各会探出 0.5px —— 不给余量就要靠 SVG 的
+ * `overflow: visible` 硬撑，那是各引擎行为不一致的地方（顶部描边被自己的视口裁掉、
+ * 底部的溢出还会让标签条的 `overflow-x: auto` 多出一段可滚动区域）。
+ * 留 1px 后描边完全落在视口内：不用 `overflow: visible`，也不会溢出到外面。
+ */
+const TAB_SHAPE_PAD = 1
 
 /**
  * 标签的轮廓：左下外翻凹角 → 左侧直边 → 左上凸圆角 → 顶边 → 右上凸圆角 →
@@ -184,7 +194,13 @@ export function PageTabItem({
         data-page-tab={tab.to}
         data-active={active}
         className={cn(
-          'group/tab relative flex min-w-0 shrink-0 items-center',
+          /*
+            `isolate`（isolation: isolate）不是装饰：形状那块 SVG 用 `z-index: -1` 垫到内容
+            之下，负值只在**自己的堆叠上下文**里才只压内容、不压到窗口条背景下面去。
+            靠祖先恰好带 z-index 是碰运气（激活标签当前有 z-10，但那是叠放次序的事），
+            这里显式建一个上下文，形状的层级就不再依赖别的类。
+          */
+          'group/tab relative isolate flex min-w-0 shrink-0 items-center',
           // 固定态是定宽小方块；普通标签给个上限，长标题才会截断而不是把标签撑宽
           pinned ? (chrome ? 'w-9' : 'w-8') : 'max-w-[200px]',
           // chrome 的高度由 CHROME_TAB_HEIGHT 定（要跟 SVG 的 viewBox 对上），plain 用 Tailwind 的 h-8
@@ -223,12 +239,20 @@ export function PageTabItem({
           <svg
             aria-hidden
             className="page-tab-shape"
-            viewBox={`0 0 ${TAB_SHAPE_WIDTH} ${CHROME_TAB_HEIGHT}`}
+            /*
+              viewBox 比形状本身大一圈（四周各 TAB_SHAPE_PAD），坐标系与渲染尺寸 1:1 对得上：
+              横向 `形状宽 + 2*(倒角+余量)`、纵向 `标签高 + 余量` —— 描边因此永远在视口内。
+            */
+            viewBox={`${-(CHROME_TAB_FLARE + TAB_SHAPE_PAD)} ${-TAB_SHAPE_PAD} ${
+              TAB_SHAPE_WIDTH + (CHROME_TAB_FLARE + TAB_SHAPE_PAD) * 2
+            } ${CHROME_TAB_HEIGHT + TAB_SHAPE_PAD}`}
             preserveAspectRatio="none"
-            // 形状向标签盒左右各探出一个倒角宽度（横向铺开只在这里写一次）
+            // 铺开范围：左右各 `倒角 + 余量`，上下各在顶部留 `余量`（底部与标签齐平，底面本来就开口）
             style={{
-              insetInline: -CHROME_TAB_FLARE,
-              width: `calc(100% + ${CHROME_TAB_FLARE * 2}px)`,
+              insetBlockStart: -TAB_SHAPE_PAD,
+              height: `calc(100% + ${TAB_SHAPE_PAD}px)`,
+              insetInline: -(CHROME_TAB_FLARE + TAB_SHAPE_PAD),
+              width: `calc(100% + ${(CHROME_TAB_FLARE + TAB_SHAPE_PAD) * 2}px)`,
             }}
           >
             <path className="page-tab-shape-fill" d={`${TAB_SHAPE_OUTLINE} Z`} />
