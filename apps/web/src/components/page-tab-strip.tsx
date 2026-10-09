@@ -123,12 +123,12 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
   )
 
   /*
-    两个区的外层共用这一串（`pt-px -mb-0.5`）：形状比标签盒上下各多 1px
+    两个区的外层共用这一串（`pt-px -mb-[2px]`）：形状比标签盒上下各多 1px
     （`pt-px` 让出顶部那 1px、行自己的 `mb-px` 让出底部那 1px），
-    `-mb-0.5`（即 -2px）把整个盒子推回原处 —— 标签的位置一动不动，
+    `-mb-[2px]` 把整个盒子精确推回原处 —— 纯像素度量杜绝 rem 缩放带来的浮点亚像素抖动，
     而**外层的盒子上下各多出 1px** 来容纳形状（滚动区的裁剪区因此也够大）。
   */
-  const zoneClass = variant === 'chrome' ? '-mb-0.5 pt-px' : undefined
+  const zoneClass = variant === 'chrome' ? '-mb-[2px] pt-px' : undefined
 
   const indexed = tabs.map((tab, index) => ({ tab, index }))
   const pinnedEntries = indexed.filter((entry) => entry.tab.pinned)

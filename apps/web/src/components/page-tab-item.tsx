@@ -100,37 +100,65 @@ const TAB_SHAPE_FALLBACK_WIDTH = 150
  * 与未激活标签的 `rounded-t-lg`（永远 8px）对不上，肉眼一眼能看出来。
  * 把 viewBox 的宽度按实测像素写死，拉伸比就是 1，圆角与直边都不再变形。
  *
- * 坐标：SVG 视口 = 标签盒向左/右各 `倒角 + 余量`、上下各 `余量`。
- * 于是「标签左边」在坐标系里是 `倒角 + 余量`，「标签底边」是 `余量 + 标签高`。
+ * ## 优雅消除 0.1px 亚像素错位：Fill 与 Stroke 路径分轨解耦
  *
- * **下沿也要留余量**：外翻倒角那两段圆弧的末端落在标签底边上，描边以路径为中心、
- * 下半 0.5px 会探到底边之外 —— 不留余量就被 SVG 自己的视口切掉，圆弧末端只剩半条线，
- * 看着就是「倒角这里断了一截 / 像被往下压了 0.5px」（用户报过）。
+ * - **Header 底边线（`border-b` 1px）的几何占位**：在 CSS 盒模型中，底线占据的是
+ *   `[bottom - 1, bottom]`，其**物理中心线在 `bottom - 0.5`**。
+ * - **Stroke（1px 描边）**：以路径为中心向两侧各扩 0.5px。因此外翻倒角切点的中心线
+ *   必须落在 `strokeBottom = bottom - 0.5`，这样 1px 描边恰好落在 `[bottom - 1, bottom]`，
+ *   与相邻的 Header 底边线在垂直网格上**绝对共线**，两端再各水平延伸 1px 搭接，彻底消除切点接缝；
+ * - **Fill（纯白底色）**：底边完整延伸至 `bottom`，100% 覆盖 Header 底边线，
+ *   保证标签底色平滑融入下方工作区，绝不露底。
  */
 function buildTabShape(tabWidth: number) {
   const flare = CHROME_TAB_FLARE
   const pad = TAB_SHAPE_PAD
   const left = flare + pad // 标签左边
   const top = pad // 标签顶边
-  const bottom = pad + CHROME_TAB_HEIGHT // 标签底边
+  const bottom = pad + CHROME_TAB_HEIGHT // 标签底边（对应 Header 底线的底沿）
+  const strokeBottom = bottom - 0.5 // Header 1px border-bottom 的几何中心线
   const right = left + tabWidth // 标签右边
   const width = tabWidth + (flare + pad) * 2 // 视口宽
 
-  const outline = [
-    // 左下外翻：sweep=0 → 圆心落在切口外侧，弧朝外鼓（凹圆角）
-    `M ${pad},${bottom}`,
-    `A ${flare},${flare} 0 0 0 ${left},${bottom - flare}`,
+  // 1. 描边路径（不闭合）：在 (pad, strokeBottom) 与 (right + flare, strokeBottom) 处切向水平，
+  // 并在两端各水平延伸 1px（至 0 与 width），与 Header 底线完美搭接重叠，免疫光栅化接缝
+  const strokePath = [
+    `M 0,${strokeBottom}`,
+    `L ${pad},${strokeBottom}`,
+    `A ${flare},${flare} 0 0 0 ${left},${strokeBottom - flare}`,
     `L ${left},${top + flare}`,
-    // 左上凸圆角：sweep=1
     `A ${flare},${flare} 0 0 1 ${left + flare},${top}`,
     `L ${right - flare},${top}`,
     `A ${flare},${flare} 0 0 1 ${right},${top + flare}`,
-    `L ${right},${bottom - flare}`,
-    // 右下外翻：同样 sweep=0
-    `A ${flare},${flare} 0 0 0 ${right + flare},${bottom}`,
+    `L ${right},${strokeBottom - flare}`,
+    `A ${flare},${flare} 0 0 0 ${right + flare},${strokeBottom}`,
+    `L ${width},${strokeBottom}`,
   ].join(' ')
 
-  return { outline, viewBox: `0 0 ${width} ${bottom + TAB_SHAPE_PAD}`, width, height: bottom }
+  // 2. 填充路径（闭合）：轮廓跟随描边，底边封口在 bottom，100% 遮盖整条 Header 底边线
+  const fillPath = [
+    `M 0,${bottom}`,
+    `L 0,${strokeBottom}`,
+    `L ${pad},${strokeBottom}`,
+    `A ${flare},${flare} 0 0 0 ${left},${strokeBottom - flare}`,
+    `L ${left},${top + flare}`,
+    `A ${flare},${flare} 0 0 1 ${left + flare},${top}`,
+    `L ${right - flare},${top}`,
+    `A ${flare},${flare} 0 0 1 ${right},${top + flare}`,
+    `L ${right},${strokeBottom - flare}`,
+    `A ${flare},${flare} 0 0 0 ${right + flare},${strokeBottom}`,
+    `L ${width},${strokeBottom}`,
+    `L ${width},${bottom}`,
+    'Z',
+  ].join(' ')
+
+  return {
+    fillPath,
+    strokePath,
+    viewBox: `0 0 ${width} ${bottom + TAB_SHAPE_PAD}`,
+    width,
+    height: bottom,
+  }
 }
 
 /**
@@ -283,8 +311,8 @@ export function PageTabItem({
           chrome
             ? active
               ? 'border-transparent'
-              : // 窗口条本身已经是 tint，悬浮再叠 tint 等于没反应 → 悬浮是**提亮**（Chrome 的做法）
-                'border-transparent hover:bg-kumo-base/60'
+              : // 未激活标签自身保持透明，悬浮高亮由下方的悬浮胶囊层负责（底部不贴底）
+                'border-transparent'
             : active
               ? 'bg-kumo-base [border-color:var(--shell-chrome-line)]'
               : 'border-transparent hover:bg-kumo-tint',
@@ -295,10 +323,20 @@ export function PageTabItem({
           transform: foreignGroup ? undefined : CSS.Transform.toString(transform),
           transition: foreignGroup ? undefined : transition,
           // chrome 的高度只在常量里写一次（SVG 的 viewBox 也用它）
-          // chrome 的高度只在常量里写一次（SVG 的 viewBox 也用它）
           ...(chrome ? { height: CHROME_TAB_HEIGHT } : null),
         }}
       >
+        {/*
+          未激活标签的悬浮高亮层：四周内缩并带圆角，底部不贴底（留出 4px 安全距离，
+          绝不遮挡 Header 的 border-bottom），同时保持外层盒子 34px 与内容居中绝对不动。
+        */}
+        {chrome && !active ? (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0.5 top-[3px] bottom-[4px] -z-10 rounded-md transition-colors group-hover/tab:bg-kumo-base/60"
+          />
+        ) : null}
+
         {/*
           形状本体：一条**闭合路径**（填充）+ 一条**不闭合的同一路径**（描边）。
           描边单独一份是因为底面不能有线：`Z` 会把底边也描出来，而底边要留给下方工作区
@@ -333,8 +371,8 @@ export function PageTabItem({
               insetInline: -(CHROME_TAB_FLARE + TAB_SHAPE_PAD + TAB_BORDER_WIDTH),
             }}
           >
-            <path className="page-tab-shape-fill" d={`${shape.outline} Z`} />
-            <path className="page-tab-shape-line" d={shape.outline} />
+            <path className="page-tab-shape-fill" d={shape.fillPath} />
+            <path className="page-tab-shape-line" d={shape.strokePath} />
           </svg>
         ) : null}
 
