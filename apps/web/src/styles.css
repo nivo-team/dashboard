@@ -106,8 +106,20 @@
  * 反过来（圆心放在方框内侧那个下角）会得到相反的形状：贴着标签的地方被挖空、
  * 外层反而糊上一块，看着就是「倒角画反了」。
  *
- * 渐变里那两段同色（`r-0.8` → `r-0.2`）是**把圆弧描成 1px 的线**，颜色取标签的描边色 ——
- * 于是圆弧把标签的侧边描边「交接」到底部那条线上；两侧 ±0.4px 的过渡带负责抗锯齿。
+ * ## 描边为什么是「满墨 ~1.05px」
+ *
+ * 描边色就是窗口条与标签共用的那个令牌 `--color-kumo-line`（浅色下是
+ * `oklch(14.5% 0 0 / 0.1)`，也就是**带 10% 透明度的黑**；深色下是不透明的
+ * `oklch(32% 0 0)`）。参考实现给的 0.6px 实心带在浅色下会与底色混掉约四成，
+ * 于是圆弧看着比旁边那条 1px 边框淡 —— 这里把**实心带加宽到 1.05px**
+ * （曲线上每个像素的覆盖率本就不可能满格，稍宽一点才追平直边框的视觉重量），
+ * 两侧只留 0.1~0.15px 的抗锯齿过渡。
+ *
+ * 又因为它是半透明的，**渲染出来的颜色取决于底下是什么**：圆弧整段落在标签外侧，
+ * 底下就是窗口条自己的 `bg-kumo-canvas` —— 与窗口条那条 `border-b` 的合成结果一致；
+ * 而标签自己的侧边描边叠在 `bg-kumo-base` 上，两者会差约 1.6%（浅色下 #e2e2e2 vs #e6e6e6）。
+ * 那是「标签底色与窗口条底色本来就不同」带来的，与倒角无关，不必去追。
+ *
  * 渐变中心是**物理**方向，RTL 下要单独反过来写一次。
  * 颜色两处跟随标签本体：描边 `border-kumo-line`、底色 `bg-kumo-base`。
  *
@@ -128,9 +140,9 @@
   inset-inline-start: -7px;
   background: radial-gradient(
     circle 8px at 0 0,
-    transparent 6.8px,
-    var(--color-kumo-line) 7.2px,
-    var(--color-kumo-line) 7.8px,
+    transparent 6.9px,
+    var(--color-kumo-line) 7.05px,
+    var(--color-kumo-line) 8.1px,
     var(--color-kumo-base) 8.2px
   );
 }
@@ -139,9 +151,9 @@
   inset-inline-end: -7px;
   background: radial-gradient(
     circle 8px at 100% 0,
-    transparent 6.8px,
-    var(--color-kumo-line) 7.2px,
-    var(--color-kumo-line) 7.8px,
+    transparent 6.9px,
+    var(--color-kumo-line) 7.05px,
+    var(--color-kumo-line) 8.1px,
     var(--color-kumo-base) 8.2px
   );
 }
@@ -150,9 +162,9 @@
 [dir='rtl'] [data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::before {
   background: radial-gradient(
     circle 8px at 100% 0,
-    transparent 6.8px,
-    var(--color-kumo-line) 7.2px,
-    var(--color-kumo-line) 7.8px,
+    transparent 6.9px,
+    var(--color-kumo-line) 7.05px,
+    var(--color-kumo-line) 8.1px,
     var(--color-kumo-base) 8.2px
   );
 }
@@ -160,9 +172,9 @@
 [dir='rtl'] [data-page-tab-variant='chrome'] [data-page-tab][data-active='true']::after {
   background: radial-gradient(
     circle 8px at 0 0,
-    transparent 6.8px,
-    var(--color-kumo-line) 7.2px,
-    var(--color-kumo-line) 7.8px,
+    transparent 6.9px,
+    var(--color-kumo-line) 7.05px,
+    var(--color-kumo-line) 8.1px,
     var(--color-kumo-base) 8.2px
   );
 }
