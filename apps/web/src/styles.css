@@ -70,6 +70,37 @@
 }
 
 /*
+ * 外壳的整屏几何 —— 两个数，桌面壳的窗口条要挤掉多少高度全从这里算。
+ *
+ *   --shell-chrome-h       视口顶端多出来的那一条 chrome 的高度（窗口条）。
+ *                          0px = 没有窗口条（浏览器，以及登录页 / 全屏对话页这些
+ *                          没有窗口条的外壳）。窗口条自己也用这个值当高度
+ *                          （`h-[var(--shell-chrome-h)]`），所以改高度只改这一处。
+ *   --shell-content-top    「内容列的顶」到视口顶端的偏移。浏览器里内容列上面是顶栏
+ *                          （58px = AppHeader 的 `h-[58px]`）；桌面壳里顶栏被窗口条取代、
+ *                          而窗口条在外壳那一行**之外**，内容列就贴到了这一行的顶部 → 0px。
+ *
+ * 谁在读它们：`--shell-chrome-h` 被下面这条侧边栏规则、`#/components/side-panel` 的两个
+ * 面板框架（AI 分屏列、详情分屏列）使用；`--shell-content-top` 只被详情分屏列使用。
+ * 之所以走 CSS 变量而不是 JS 常量：这些面板是 `fixed` / `sticky` 定位、还有走 portal 的，
+ * 用 CSS 变量才能让「整屏高度」跟着窗口条自动收敛，不需要把视口高度灌进 React。
+ *
+ * `data-desktop-chrome` 挂在**外壳的整屏容器**上（见 `#/components/shell-sidebar-provider`），
+ * 而不是 <html>：桌面壳里也有没有窗口条的页面（登录、全屏对话），
+ * 那些页面的侧边栏 / 面板必须保持一屏高。
+ */
+:root {
+  --shell-chrome-h: 0px;
+  --shell-content-top: 58px;
+}
+
+[data-desktop-chrome] {
+  /* 窗口条高度。窗口条自己就取这个变量（`h-[var(--shell-chrome-h)]`），所以只有这一个数要维护 */
+  --shell-chrome-h: 44px;
+  --shell-content-top: 0px;
+}
+
+/*
  * 修正 Kumo Sidebar 的层级与桌面吸顶问题。
  *
  * 1. 桌面端（未处于移动抽屉模式时）让侧边栏 sticky 吸顶且一屏高，Footer 始终贴底；
@@ -84,6 +115,16 @@
   height: 100svh;
   max-height: 100svh;
   z-index: 20;
+}
+
+/*
+ * 桌面壳里侧边栏在窗口条**下面**那一行：一屏高要减掉窗口条，否则这一列会从窗口底部
+ * 溢出 44px（Footer、拖拽手柄全被裁掉）。规则限定在带窗口条的外壳里 ——
+ * 全屏对话页的侧边栏（`contained`）没有窗口条，必须保持整屏高。
+ */
+[data-desktop-chrome] [data-sidebar='sidebar']:not([data-mobile='true']) {
+  height: calc(100svh - var(--shell-chrome-h));
+  max-height: calc(100svh - var(--shell-chrome-h));
 }
 
 /*

@@ -8,24 +8,32 @@ import type { UsePanelResizeResult } from '#/lib/use-panel-resize'
  * 无外 padding，与相邻内容之间只留一条 `border-s` 分隔线），**唯一的形态差异是纵向范围**：
  *
  * - `CONTENT_PANEL_FRAME` —— 内容区分屏面板（`#/components/detail-preview` 的 split）：
- *   属于内容区，从**顶栏下沿**开始（58px = 两个 header 的高度），占满视口剩余高度；
+ *   属于内容区，从**内容列顶部**开始，占满视口剩余高度；
  * - `SHELL_PANEL_FRAME` —— 外壳级面板（`#/features/ai/components/panel`）：与 `Sidebar` **同级**，
- *   整屏高，从视口顶部一直到底部。因此它内部的头行要与 `AppHeader` 同高（58px），
+ *   整列高，从这一列的顶部一直到底部。因此它内部的头行要与 `AppHeader` 同高（58px），
  *   两者的底边线才能连成一条。
  *
  * 写在这里而不是各自文件里：这两个值同时被面板本体与它的拖拽手柄使用，
  * 散在两处迟早会漂移（手柄比面板矮一截、或面板顶到顶栏上面去）。
+ *
+ * 高度为什么写成「视口 − 两个变量」而不是写死 `100svh` / `58px`：两个偏移都随外壳形态变
+ * ——浏览器里内容列顶上有一条 58px 顶栏；桌面壳里顶栏被 44px 的窗口条取代，而窗口条在这一行
+ * **之外**（所以内容列直接贴到行顶）。变量定义与取值集中在 `src/styles.css`，改外壳 chrome
+ * 只需要改那里一处。
  */
 
-/** 内容区分屏面板：贴住顶栏下沿，高度取视口剩余部分。 */
-export const CONTENT_PANEL_FRAME = 'top-[58px] h-[calc(100svh-58px)]'
+/** 内容区分屏面板：贴住内容列顶部，高度取视口剩余部分（扣掉窗口条）。 */
+export const CONTENT_PANEL_FRAME =
+  'top-[var(--shell-content-top)] h-[calc(100svh_-_var(--shell-content-top)_-_var(--shell-chrome-h))]'
 
 /**
  * 外壳级面板：与 `Sidebar` 完全同一套几何（`src/styles.css` 给侧边栏的
- * `sticky / top: 0 / height: 100svh / z-index: 20`），所以它在视觉上与侧边栏一个等级 ——
- * 视口顶端齐平、整屏高、滚动时不动。
+ * `sticky / top: 0 / height: 100svh / z-index: 20`，桌面壳里再扣掉窗口条），
+ * 所以它在视觉上与侧边栏一个等级 —— 行首齐平、整列高、滚动时不动。
+ *
+ * `top-0` 是「这一列的顶部」而不是「视口顶部」：桌面壳里这一列本身就在窗口条下面。
  */
-export const SHELL_PANEL_FRAME = 'top-0 h-svh'
+export const SHELL_PANEL_FRAME = 'top-0 h-[calc(100svh_-_var(--shell-chrome-h))]'
 
 export interface SidePanelResizeHandleProps {
   /** 可访问名称（如「调整面板宽度」） */

@@ -115,10 +115,11 @@ export interface AiPanelProps {
  * 形态由 设置 → AI（`/settings/AI`）的 `admin.preferences:<appId>.aiPanelMode` 决定：
  *
  * - **Split View**（`split`）：外壳级的一整列，与 `Sidebar` **同级**（`SHELL_PANEL_FRAME`
- *   就是 styles.css 给侧边栏的那套 `sticky top-0 h-svh`）—— 从视口顶端齐平开始、
- *   整屏高，夹在侧边栏与内容区之间，挤压内容而不覆盖它。它挂载在
- *   `Sidebar.Provider` 内容列**之后的兄弟节点**上（见 components/app-shell.tsx），
- *   内部头行固定 `h-[58px]` 与 `AppHeader` 同高，两条底边线连成一条。
+ *   就是 styles.css 给侧边栏的那套 `sticky top-0`，高度按 `--shell-chrome-h` 扣掉窗口条）
+ *   —— 从这一列的顶部齐平开始、整列高，夹在侧边栏与内容区之间，挤压内容而不覆盖它。
+ *   它挂载在 `Sidebar.Provider` 内容列**之后的兄弟节点**上（见 components/app-shell.tsx），
+ *   内部头行固定 `h-[58px]` 与 `AppHeader` 同高，浏览器里两条底边线连成一条
+ *   （桌面壳里顶栏被 44px 的窗口条取代，这条对齐关系不存在，头行高度暂时保持 58px）。
  *   **进场 / 退场是「宽度 0 ↔ panelWidth」的过渡**：面板贴行尾，宽度一变就把内容列推开
  *   （推动页面），内层钉住最终宽度因而读起来是「从行尾侧滑进来」而不是被挤开；
  *   退场期间面板仍需留在树上等动画跑完，所以开关是三段式状态（`splitMounted` /
@@ -624,7 +625,8 @@ export function AiPanel({
  * 两种形态共用的面板骨架：头行（标题 + 关闭）+ 可滚动内容区 + **固定在底部的输入区**。
  *
  * 头行固定 `h-[58px]` = `AppHeader` 高度，因此 Split 形态下三条横线（侧边栏品牌行、
- * 顶栏、面板头行）落在同一条底边上；Float 是浮窗，这个高度只是顺带保持统一 ——
+ * 顶栏、面板头行）落在同一条底边上（**只在浏览器里成立**：桌面壳里顶栏被 44px 的窗口条
+ * 取代，窗口条在外壳那一行之外，不再有可对齐的横线）；Float 是浮窗，这个高度只是顺带保持统一 ——
  * 顺带也是 Float **折叠态**的总高度（折叠 = 只留头行这一条）。
  *
  * 三段是 flex 列：头行与输入区 `shrink-0`、中间内容区 `min-h-0 flex-1 overflow-y-auto`，

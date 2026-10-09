@@ -66,6 +66,13 @@ Kumo 采用语义化颜色系统，通过根节点上的 `data-mode="light|dark"
     z-index: 20;
   }
   ```
+- **外壳的整屏几何 = 两个 CSS 变量**（`apps/web/src/styles.css` 顶部）：
+  | 变量 | 浏览器 | 桌面壳（带窗口条的外壳） | 谁在读 |
+  | :--- | :--- | :--- | :--- |
+  | `--shell-chrome-h` | `0px` | `44px`（窗口条高度，窗口条自己也取它） | 侧边栏高度、`SHELL_PANEL_FRAME`、`CONTENT_PANEL_FRAME` |
+  | `--shell-content-top` | `58px`（顶栏高度） | `0px`（内容列贴到那一行顶部） | `CONTENT_PANEL_FRAME`（详情分屏列的起点） |
+  取值挂在**外壳的整屏容器**上（`[data-desktop-chrome]`，见 `#/components/shell-sidebar-provider`），不是 `<html>`：桌面壳里也有没有窗口条的页面（登录、`/$appId/sphere`），它们的侧边栏 / 面板必须保持整屏高。**改窗口条高度只改这一个数**，面板与侧边栏跟着走。
+- **窗口条（桌面壳）**：`#/components/desktop-title-bar`，横跨整个窗口、排在侧边栏与内容列那一行**之上**。左边是页面标签条（`#/components/page-tab-strip`，数据层 `#/lib/page-tabs`），右边是原顶栏的行末工具区；外壳在桌面壳里**不再渲染顶栏**（`AppHeader` / `MainHeader` 是同一份 chrome 的另一种形态，不是第二行）。它同时是**窗口拖拽区**（`--wails-draggable: drag`，交互件写 `no-drag` 退出），双击空白处 = 最大化 / 还原（`window.toggleMaximise`）；拖拽只在 frameless 窗口下有意义，所以壳那边同时打开了 `Frameless`（见 [`apps/desktop/README.md`](../../apps/desktop/README.md)）。
 - **客户端链接桥接**：在 `apps/web/src/routes/__root.tsx` 中使用了 `<LinkProvider component={AppLink}>`，使得所有 Kumo 内置的 `<a href>` 均无缝转为 TanStack Router 的单页路由跳转。
 - **移动端抽屉里隐藏宽度拖拽手柄**：`Sidebar.ResizeHandle` 只按视口断点隐藏（`hidden … sm:block`），手机横屏 / 小平板会露出来，而抽屉宽度是固定的、拖它没意义（拖过 `minWidth` 还会让 Kumo `setOpen(false)` 把抽屉关掉）。`styles.css` 用 `[data-sidebar='sidebar'][data-mobile='true'] [data-sidebar='resize-handle'] { display: none }` 收掉。
 - **移动端二级菜单展开不出来 = Provider 少接了 `open`**：Kumo 的 `Sidebar.CollapsibleContent` 用 `isOpen = isCollapsibleOpen && state !== 'collapsed'` 判断可见性，而 `state` **只由桌面 `open` 推导**——桌面折叠过侧边栏后，手机抽屉里每个分组都「箭头转了、内容不出来」（还带 `inert`，子项点不进去）。修法在 `#/components/shell-sidebar-provider`（移动端受控、`open` 跟随抽屉），完整原因见 [store.md](./store.md) §5.4。

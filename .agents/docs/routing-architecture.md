@@ -125,6 +125,27 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
 - 侧边栏折叠状态、拖拽宽度、内部滚动位置**完全保留**；
 - 页面仅在 `<Outlet />` 区域替换组件，避免整页闪烁与重复渲染。
 
+### 桌面壳里的外壳形态（窗口条 + 页面标签页）
+在桌面壳里（`isDesktop()`，标记来自 URL，见 [apps/desktop/README.md](../../apps/desktop/README.md)）
+两个外壳都换一种形态：**窗口条**（`#/components/desktop-title-bar`）取代顶栏，
+横跨整个窗口排在侧边栏与内容列那一行**之上** —— 左侧是**页面标签条**
+（`#/components/page-tab-strip`：已打开的页面 + 「+」页面菜单），右侧是原本顶栏的行末工具区
+（`HeaderActions`）。于是外壳从「侧边栏 + 内容列」变成「窗口条 + 那一行」：
+
+- **窗口条由谁排**：`#/components/shell-sidebar-provider` 的 `topBar` —— Kumo 的
+  `Sidebar.Provider` 自己就是这个 flex 行，窗口条只能在它外面，所以那一层在有窗口条时是
+  `flex h-svh flex-col`、没有时是 `display: contents`（多出来的 div 不产生盒子，
+  浏览器里的布局与改动前一致）；
+- **顶栏不再渲染**（`AppHeader` / `MainHeader`）：窗口条与它是同一份 chrome 的两种形态，
+  不是两行。唯一例外是「桌面壳 + 移动视口」（窗口被拖到 768px 以下）：抽屉的汉堡按钮只能
+  待在顶栏里，那时把顶栏渲染回来，工具区也只留一份；
+- **标签页的真值**在 `#/lib/page-tabs`：一个标签 = 导航清单里的一项（`NAV_GROUPS` /
+  `ALL_SHELL_NAV_TARGETS` 的最长前缀命中），所以 `/$appId/system/menus/483` 与
+  `/$appId/system/menus` 共用「菜单管理」这一个标签，**加页面不用动标签代码**；
+  标签集合只在内存里（刷新后从当前页重新开始，不落盘）；
+- **高度**：窗口条 44px，侧边栏与两个面板列都按 `--shell-chrome-h` 扣掉它 ——
+  见 [ui-and-styling.md](./ui-and-styling.md) §4。
+
 侧边栏的 `Sidebar.Provider` 接线（含**桌面非受控、移动端受控**这套移动端抽屉接法）
 统一在 `#/components/shell-sidebar-provider` 的 `ShellSidebarProvider`，两个外壳共用一份 ——
 原因与踩过的坑见 [store.md](./store.md) §5.4。

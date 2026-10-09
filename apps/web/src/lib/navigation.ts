@@ -1,11 +1,17 @@
 import type { Icon } from '@phosphor-icons/react'
 import {
+  BookBookmarkIcon,
   GearSixIcon,
   HouseIcon,
   InfoIcon,
+  ListBulletsIcon,
+  ShieldCheckIcon,
   SparkleIcon,
   SquaresFourIcon,
   SwatchesIcon,
+  TableIcon,
+  TicketIcon,
+  TreeStructureIcon,
   UserIcon,
 } from '@phosphor-icons/react'
 import { isMultiAppEnabled } from './app-config'
@@ -17,6 +23,12 @@ export interface NavSubItem {
   /** common 命名空间下的文案键；缺失时直接展示 label。 */
   labelKey?: string
   to: string
+  /**
+   * 图标。**侧边栏的二级项本身不画图标** —— 它是给窗口条的标签页用的
+   * （见 `#/lib/page-tabs`）。留空时 `ALL_NAV_TARGETS` 回落到父项图标，
+   * 于是同一组下的几个页面在标签条上会长得一模一样（表格示例 / 复杂表格 / 工单管理）。
+   */
+  icon?: Icon
   badge?: string
   /** 绑定的 feature 或权限要求（如 'table-example:read' 或 ['table-example:read'] 或 'table-example'） */
   feature?: string | string[] | PermissionRequirement
@@ -171,18 +183,21 @@ export const NAV_GROUPS: NavGroup[] = [
             label: '表格示例',
             labelKey: 'nav.tableExample',
             to: '/example/table',
+            icon: TableIcon,
             features: 'table-example:read',
           },
           {
             label: '复杂表格',
             labelKey: 'nav.complexTable',
             to: '/example/complex-table',
+            icon: TreeStructureIcon,
             features: 'table-example:read',
           },
           {
             label: '工单管理',
             labelKey: 'nav.tickets',
             to: '/example/tickets',
+            icon: TicketIcon,
             features: 'ticket:read',
           },
         ],
@@ -218,18 +233,21 @@ export const NAV_GROUPS: NavGroup[] = [
             label: '菜单管理',
             labelKey: 'nav.systemMenus',
             to: '/system/menus',
+            icon: ListBulletsIcon,
             features: 'feature:read',
           },
           {
             label: '数据字典',
             labelKey: 'nav.systemDataDict',
             to: '/system/data-dict',
+            icon: BookBookmarkIcon,
             features: 'dict:read',
           },
           {
             label: '角色管理',
             labelKey: 'nav.systemRoles',
             to: '/system/roles',
+            icon: ShieldCheckIcon,
             features: 'role:read',
           },
         ],
@@ -276,7 +294,8 @@ export const ALL_NAV_TARGETS: NavTarget[] = NAV_GROUPS.flatMap((group) =>
       parentLabel: item.label,
       parentLabelKey: item.labelKey,
       to: child.to,
-      icon: item.icon,
+      // 二级项没写 `icon` 时回落到父项图标（命令面板与窗口条标签页都读这一个字段）
+      icon: child.icon ?? item.icon,
       keywords: [...(item.keywords ?? []), child.label],
       badge: child.badge,
       permission: getNavFeatureRequirement(child) ?? itemReq,

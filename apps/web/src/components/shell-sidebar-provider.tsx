@@ -42,8 +42,27 @@ import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
  *
  * 桌面保持**非受控**（`open` 传 `undefined`）：展开态与宽度由 Provider 自己管，
  * 变化经 `onOpenChange` / `onWidthChange` 写回 store，刷新后保持。
+ *
+ * ## 窗口条（`topBar`）：桌面壳的整行结构
+ *
+ * 桌面壳里窗口条要**横跨整个窗口**（标签从最左边开始），也就是必须排在侧边栏与内容列
+ * **那一行之上**，而 Provider 自己渲染的 wrapper 就是这个 flex 行。于是这里多包一层：
+ * 有 `topBar` 时外层是 `flex h-svh flex-col`（窗口条 + 一行），没有时外层是 `display: contents`
+ * —— 多出来的 div **不产生盒子**，浏览器里的布局与改动前完全一致，
+ * 外壳的整屏几何（`h-svh` / `min-h-svh` / `sticky`）因此一点没变。
+ *
+ * 两种形态下 Provider 的参数只差 `min-h-0 flex-1`：那一行不再自带 `min-h-svh`（外层已经钉死
+ * 一屏高），否则侧边栏的 `height: 100svh` 会把整行撑出 44px。相关的高度修正集中在
+ * `src/styles.css` 的 `--shell-chrome-h`，以及 `#/components/side-panel` 的两个面板框架。
  */
-export function ShellSidebarProvider({ children }: { children: ReactNode }) {
+export function ShellSidebarProvider({
+  children,
+  topBar,
+}: {
+  children: ReactNode
+  /** 桌面壳的窗口条（`#/components/desktop-title-bar`）；浏览器里不传 */
+  topBar?: ReactNode
+}) {
   const { isRtl } = useLocale()
   const isMobile = useIsMobileViewport()
   /** 移动端抽屉的开合：只在内存里（抽屉是「看一眼就走」的浮层，不跨会话保留）。 */
@@ -72,27 +91,45 @@ export function ShellSidebarProvider({ children }: { children: ReactNode }) {
   )
 
   return (
-    <Sidebar.Provider
-      key={isRtl ? 'rtl' : 'ltr'}
-      side={isRtl ? 'right' : 'left'}
-      collapsible="icon"
-      // 桌面初始值；移动端受控后 defaultOpen 不参与（`open` 优先）
-      defaultOpen={sidebarOpen}
-      // 桌面 = undefined（非受控）；移动端 = 抽屉自身的开合
-      open={isMobile ? mobileOpen : undefined}
-      onOpenChange={handleOpenChange}
-      mobileBreakpoint={SHELL_MOBILE_BREAKPOINT}
-      // 保持 peekable 开启，使 Kumo context 闭包具备窥探能力；具体展开逻辑由下方的 SidebarPeekBridge 精准控制。
-      peekable
-      // 允许拖拽右侧边缘调整宽度（见各侧边栏内的 Sidebar.ResizeHandle）。
-      resizable
-      defaultWidth={sidebarWidth}
-      onWidthChange={persistSidebarWidth}
-      minWidth={SIDEBAR_MIN_WIDTH}
-      maxWidth={SIDEBAR_MAX_WIDTH}
+    /*
+      有窗口条时外层是一屏高的纵向容器（`--shell-chrome-h` 由 styles.css 按
+      `data-desktop-chrome` 定为窗口条高度，侧边栏与面板都按它算高度）；
+      浏览器里退化成 `display: contents`，不产生任何盒子。
+    */
+    <div
+      data-desktop-chrome={topBar ? '' : undefined}
+      /*
+        三目而不是 `cn('contents', topBar && 'flex …')`：本仓的 `cn` 只做拼接
+        （不是 tailwind-merge），两个 display 类同时在场就只剩源码顺序可赌。
+      */
+      className={topBar ? 'flex h-svh flex-col' : 'contents'}
     >
-      <SidebarPeekBridge expandMode={sidebarExpandMode}>{children}</SidebarPeekBridge>
-    </Sidebar.Provider>
+      {topBar}
+
+      <Sidebar.Provider
+        key={isRtl ? 'rtl' : 'ltr'}
+        side={isRtl ? 'right' : 'left'}
+        collapsible="icon"
+        // 桌面初始值；移动端受控后 defaultOpen 不参与（`open` 优先）
+        defaultOpen={sidebarOpen}
+        // 桌面 = undefined（非受控）；移动端 = 抽屉自身的开合
+        open={isMobile ? mobileOpen : undefined}
+        onOpenChange={handleOpenChange}
+        mobileBreakpoint={SHELL_MOBILE_BREAKPOINT}
+        // 保持 peekable 开启，使 Kumo context 闭包具备窥探能力；具体展开逻辑由下方的 SidebarPeekBridge 精准控制。
+        peekable
+        // 允许拖拽右侧边缘调整宽度（见各侧边栏内的 Sidebar.ResizeHandle）。
+        resizable
+        defaultWidth={sidebarWidth}
+        onWidthChange={persistSidebarWidth}
+        minWidth={SIDEBAR_MIN_WIDTH}
+        maxWidth={SIDEBAR_MAX_WIDTH}
+        // 有窗口条时这一行只占剩余高度（Kumo 默认给的 `min-h-svh` 由 cn 顶掉）
+        className={topBar ? 'min-h-0 flex-1' : undefined}
+      >
+        <SidebarPeekBridge expandMode={sidebarExpandMode}>{children}</SidebarPeekBridge>
+      </Sidebar.Provider>
+    </div>
   )
 }
 

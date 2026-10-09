@@ -5,8 +5,11 @@ import { AiPanel } from '#/features/ai/components/panel'
 import { AppHeader } from '#/components/app-header'
 import { AppSidebar } from '#/components/app-sidebar'
 import { CommandPaletteDialog } from '#/components/command-palette'
+import { DesktopTitleBar } from '#/components/desktop-title-bar'
 import { DetailPreviewProvider } from '#/components/detail-preview'
+import { HeaderActions } from '#/components/header-actions'
 import { ShellSidebarProvider } from '#/components/shell-sidebar-provider'
+import { isDesktop } from '#/lib/desktop-bridge'
 import {
   clearAiPanelMaximized,
   markAiPanelMaximized,
@@ -78,6 +81,21 @@ export function AppShell() {
   const activeSessionId = useAiSessionStore((state) => state.activeSessionId)
   // 移动端浮窗是整屏，折叠不成立（`AiPanel` 里也不发折叠按钮），这里跟着一起排除
   const isMobileViewport = useIsMobileViewport()
+
+  /**
+   * 桌面壳：外壳换形。
+   *
+   * 窗口条（`DesktopTitleBar`）取代顶栏 —— 于是标签条在最左、原本的顶栏行末工具区在最右，
+   * 顶栏那一行不再渲染（`AppHeader` 与窗口条是同一份 chrome 的两种形态，不是两行）。
+   * 窗口条由 `ShellSidebarProvider` 排到侧边栏与内容列那一行**之上**，横跨整个窗口。
+   *
+   * 唯一的例外是窗口被拖到比 `md` 还窄：那时侧边栏会变成抽屉，而抽屉的汉堡按钮在顶栏里
+   * （窗口条在 `Sidebar.Provider` 之外，拿不到它的 context，放不了 `Sidebar.Trigger`）——
+   * 所以这种「桌面壳 + 移动视口」的组合下把顶栏也渲染回来，工具区则只留在顶栏一份，
+   * 避免同一排按钮出现两次。桌面壳的窗口最小宽度（900）正常情况下走不到这里。
+   */
+  const desktopChrome = isDesktop()
+  const showHeader = !desktopChrome || isMobileViewport
 
   /**
    * 顶栏「Ask AI」按钮。
@@ -199,21 +217,51 @@ export function AppShell() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
+  /**
+   * 窗口条行末的工具区（`Ask AI` / `支持` / 账号菜单）。
+   *
+   * `AppHeader` 内部本来就会渲染一份同样的工具区；桌面壳里整行顶栏被窗口条取代，
+   * 所以这里再构造一份交给窗口条。两者**不会同时在屏幕上** —— 谁出现由上面的
+   * `showHeader` 决定，因此也不存在两套 props 各自漂移的问题。
+   */
+  const headerActions = (
+    <HeaderActions
+      showAskAi={aiEnabled}
+      onAskAi={handleToggleAskAi}
+      askAiExpanded={aiPanelOpen}
+      onOpenCommandPalette={() => setPaletteOpen(true)}
+    />
+  )
+
   return (
     <>
       {/*
         侧边栏 Provider 的接线（含移动端抽屉开合）在 `ShellSidebarProvider` 里统一处理，
         两个外壳共用一份，避免「桌面非受控 / 移动端受控」这套接法各写一遍而漂移。
+        `topBar` 只在桌面壳里给：窗口条要横跨整个窗口，必须排在下面那一行之上。
       */}
-      <ShellSidebarProvider>
+      <ShellSidebarProvider
+        topBar={
+          desktopChrome ? (
+            <DesktopTitleBar
+              // 标签页全部关掉之后回应用首页（首页会随之重新开出一个标签）
+              homeTo={`/${appId}/home`}
+              // 工具区只挂一处：桌面壳里它在窗口条行末，退化出顶栏时（见 showHeader）留给顶栏
+              actions={showHeader ? undefined : headerActions}
+            />
+          ) : null
+        }
+      >
         <AppSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />
         <div className="flex min-w-0 flex-1 flex-col bg-kumo-canvas">
-          <AppHeader
-            onOpenCommandPalette={() => setPaletteOpen(true)}
-            // 见 `handleToggleAskAi`：折叠态下这一下是展开，展开态下才是关闭
-            onToggleAskAi={handleToggleAskAi}
-            isAskAiOpen={aiPanelOpen}
-          />
+          {showHeader ? (
+            <AppHeader
+              onOpenCommandPalette={() => setPaletteOpen(true)}
+              // 见 `handleToggleAskAi`：折叠态下这一下是展开，展开态下才是关闭
+              onToggleAskAi={handleToggleAskAi}
+              isAskAiOpen={aiPanelOpen}
+            />
+          ) : null}
           {/*
             注意：这里的 <main> **不再自带 padding 与 max-w**，它只是内容区的纯容器。
             原因：详情预览的分屏面板要贴住视口边缘（右侧 / 底部）并占满可用高度，

@@ -4,12 +4,14 @@ import { Outlet, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CommandPaletteDialog } from '#/components/command-palette'
+import { DesktopTitleBar } from '#/components/desktop-title-bar'
 import { HeaderActions } from '#/components/header-actions'
 import { ShortcutKbd } from '#/components/kbd'
 import { NotFound } from '#/components/not-found'
 import { ShellSidebarProvider } from '#/components/shell-sidebar-provider'
 import { useBrand } from '#/lib/brand'
 import { cn } from '#/lib/cn'
+import { isDesktop } from '#/lib/desktop-bridge'
 import { DEFAULT_APP_ID, isMultiAppEnabled, useAuth } from '#/lib/auth'
 import {
   filterShellNavItems,
@@ -20,6 +22,7 @@ import {
 import { pageContentWidthClass } from '#/lib/page-width'
 import { usePermissionContext } from '#/lib/permissions'
 import { usePreferencesStore } from '#/lib/store'
+import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 
 /** 归一化尾斜杠：`/settings` 与 `/settings/` 是同一个 index 路由，不能因此丢掉高亮。 */
 function normalizePath(pathname: string): string {
@@ -302,6 +305,20 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
    */
   const pageWidth = usePreferencesStore((state) => state.pageWidth)
 
+  /**
+   * 桌面壳：窗口条取代 `MainHeader`（与 `AppShell` 同一套换形，理由见那边的注释）。
+   *
+   * 本外壳没有面包屑，所以窗口条上「左边标签、右边工具区」正好就是原来顶栏的全部内容。
+   * 唯一例外同样是「桌面壳 + 移动视口」：抽屉的汉堡按钮只能待在顶栏里，
+   * 那种情况下把顶栏渲染回来，工具区也只留顶栏一份。
+   */
+  const desktopChrome = isDesktop()
+  const isMobileViewport = useIsMobileViewport()
+  const showHeader = !desktopChrome || isMobileViewport
+
+  /** 窗口条行末的工具区（`MainHeader` 内部那份同款；两者不会同时在屏幕上，见 `showHeader`） */
+  const headerActions = <HeaderActions onOpenCommandPalette={() => setPaletteOpen(true)} />
+
   // ⌘K / Ctrl+K 打开命令面板（与 AppShell 保持一致的交互）
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -320,10 +337,21 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
         与 AppShell 共用同一个 `ShellSidebarProvider`：侧边栏 UI 偏好（展开态 / 宽度）
         以及「桌面非受控、移动端受控」的移动端抽屉接法都只有一份真值。
       */}
-      <ShellSidebarProvider>
+      <ShellSidebarProvider
+        topBar={
+          desktopChrome ? (
+            <DesktopTitleBar
+              // 标签页全部关掉之后回设置首屏（它是最接近「本外壳首页」的一页）
+              homeTo="/settings/profile"
+              // 工具区只挂一处：桌面壳里它在窗口条行末，退化出顶栏时（见 showHeader）留给顶栏
+              actions={showHeader ? undefined : headerActions}
+            />
+          ) : null
+        }
+      >
         <MainSidebarSwitch onOpenCommandPalette={() => setPaletteOpen(true)} />
         <div className="flex min-w-0 flex-1 flex-col bg-kumo-canvas">
-          <MainHeader onOpenCommandPalette={() => setPaletteOpen(true)} />
+          {showHeader ? <MainHeader onOpenCommandPalette={() => setPaletteOpen(true)} /> : null}
           <main
             data-shell-content
             className={cn(

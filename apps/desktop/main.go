@@ -95,14 +95,36 @@ func main() {
 	})
 
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Name:                   "main",
-		Title:                  cfg.Title,
-		URL:                    startURL,
-		Width:                  cfg.Width,
-		Height:                 cfg.Height,
+		Name:   "main",
+		Title:  cfg.Title,
+		URL:    startURL,
+		Width:  cfg.Width,
+		Height: cfg.Height,
+		/*
+			**无系统标题栏**：窗口条改由页面自己画（那一条横跨窗口的标签条，
+			见 `apps/web/src/components/desktop-title-bar.tsx`）—— 拖拽、双击最大化、
+			窗口按钮都得自己接。前端那条 chrome 只在「拖拽区」这一件事上依赖壳：
+			带 `--wails-draggable: drag` 的元素才能拖动窗口。
+
+			代价要说清楚：**目前还没有最小化 / 最大化 / 关闭按钮**（macOS 的交通灯
+			适配也还没做），只能靠系统快捷键（Linux: Alt+F4 / Super+Q）或任务栏。
+			要补按钮时，能力已经在 bridge 里了：`window.minimise` / `window.toggleMaximise`
+			/ `window.close`。
+		*/
+		Frameless: true,
+		/*
+			最小尺寸：外壳在 768px 以下会切成移动端抽屉（汉堡按钮在顶栏里，而顶栏
+			在桌面壳里被窗口条取代）。900 让窗口根本进不到那个区间，
+			顺带也保证内容区（表格、AI 分屏列）还有可用宽度。
+		*/
+		MinWidth:               900,
+		MinHeight:              600,
 		DevToolsEnabled:        cfg.Debug,
 		OpenInspectorOnStartup: cfg.Debug,
 	})
+
+	// 窗口自身的动作（frameless 之后没有系统按钮可点，双击窗口条也要能最大化）
+	registerWindowMethods(registry, window)
 
 	// 从这里开始，registry 有地方投递消息了（之前 Emit 的事件会排队等着）
 	registry.Start(window.ExecJS)
@@ -110,6 +132,45 @@ func main() {
 	log.Printf("[desktop] 加载 %s（version=%s debug=%v）", startURL, version, cfg.Debug)
 	if err := app.Run(); err != nil {
 		log.Fatalf("[desktop] 运行失败：%v", err)
+	}
+}
+
+/*
+registerWindowMethods 注册窗口自身的动作（`window.*`）。
+
+存在的理由只有一个：窗口是 **frameless** 的（见上面的 WebviewWindowOptions），
+系统标题栏连同它的最小化 / 最大化 / 关闭按钮一起没有了 —— 这些能力必须有别的地方接。
+目前页面只用了第一项：
+
+  - 窗口条空白处**双击** → `window.toggleMaximise`（Linux / Windows 由页面自己接；
+    macOS 的双击由 Wails 的 drag 运行时直接处理，不会走到这里）；
+  - `window.minimise` / `window.close` 先备着：将来在窗口条上加按钮（或做成托盘菜单）时
+    直接用，不必再改壳的启动路径。
+
+命名仍守 `<域>.<动作>`；前两个统一返回窗口当前状态，调用方一次往返就能拿到新值。
+窗口方法内部都会 `InvokeSync` 到主线程，所以从 bridge 的协程里调是安全的。
+*/
+func registerWindowMethods(registry *bridge.Registry, window *application.WebviewWindow) {
+	registry.Handle("window.minimise", func(json.RawMessage) (any, error) {
+		window.Minimise()
+		return windowState(window), nil
+	})
+
+	registry.Handle("window.toggleMaximise", func(json.RawMessage) (any, error) {
+		window.ToggleMaximise()
+		return windowState(window), nil
+	})
+
+	registry.Handle("window.close", func(json.RawMessage) (any, error) {
+		window.Close()
+		return nil, nil
+	})
+}
+
+func windowState(window *application.WebviewWindow) map[string]any {
+	return map[string]any{
+		"maximised": window.IsMaximised(),
+		"minimised": window.IsMinimised(),
 	}
 }
 

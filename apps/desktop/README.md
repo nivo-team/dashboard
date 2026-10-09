@@ -55,18 +55,37 @@ wails3 task test                                     # = pnpm desktop:test
 | web → Go 的通用调用 | `bridge.Registry`（`internal/bridge/`）+ 页面侧 `__bridge.call(name, payload)` |
 | Go → web 的事件推送 | `registry.Emit(name, data)` → 页面侧 `__bridge.on(name, handler)` |
 | 来源校验 | `shell.Config.OriginAllowed`（只认配置地址那一个来源） |
+| 无系统标题栏（页面自己画窗口条） | `WebviewWindowOptions.Frameless` + 页面侧 `--wails-draggable`（见下节） |
+| 窗口自身动作 | `window.minimise` / `window.toggleMaximise` / `window.close` |
 
 页面侧的唯一接口在 [`apps/web/src/lib/desktop-bridge.ts`](../web/src/lib/desktop-bridge.ts)，
 线上协议的真值在 [`internal/bridge/wire.go`](./internal/bridge/wire.go)。
 
+## 窗口条与拖拽（frameless）
+
+窗口是 **frameless** 的：系统标题栏连同它的最小化 / 最大化 / 关闭按钮一起没有了，
+那一条 chrome 改由**页面自己画**（[`apps/web/src/components/desktop-title-bar.tsx`](../web/src/components/desktop-title-bar.tsx)：
+左边页面标签条、右边原顶栏的行末工具区），壳这边只提供两件事：
+
+- **拖拽**：页面在要拖的区域写 `--wails-draggable: drag`，交互件写 `no-drag` 退出。
+  Wails 的 drag 运行时只看**鼠标落点那个元素**上的计算值，而这个自定义属性会继承 ——
+  所以「条上写 drag、按钮和标签写 no-drag」就够了。别用 `-webkit-app-region`，那是 Electron 的。
+- **窗口动作**：`window.minimise` / `window.toggleMaximise` / `window.close`（前两个返回
+  `{ maximised, minimised }`）。页面现在只用 `toggleMaximise`：窗口条空白处**双击** =
+  最大化 / 还原（macOS 的双击由 Wails 自己的运行时接管，不会重复触发）。
+
+> **目前没有窗口按钮**：frameless 之后只能靠系统快捷键（Linux: `Alt+F4` / `Super+Q`）
+> 或任务栏关窗。要补按钮时前端调上面三个方法即可，不必再动壳。
+> 窗口最小尺寸是 900×600（外壳在 768px 以下会切成移动端抽屉，而汉堡按钮在顶栏里 ——
+> 顶栏在桌面壳里被窗口条取代，所以干脆不让窗口进到那个区间）。
+
 ## 怎么加一个方法
 
-Go 侧三行（`main.go` 的 `registerCoreMethods` 旁边）：
+Go 侧三行（`main.go` 里 `registerCoreMethods` / `registerWindowMethods` 旁边）：
 
 ```go
-registry.Handle("window.minimise", func(json.RawMessage) (any, error) {
-    window.Minimise()
-    return nil, nil
+registry.Handle("file.pick", func(json.RawMessage) (any, error) {
+	return app.Dialog.OpenFile().PromptForSingleSelection()
 })
 ```
 
@@ -75,7 +94,7 @@ registry.Handle("window.minimise", func(json.RawMessage) (any, error) {
 ```ts
 import { call } from '#/lib/desktop-bridge'
 
-await call('window.minimise')
+const path = await call('file.pick')
 ```
 
 约定：**方法名 `<域>.<动作>`**（`core.info` / `file.pick` / `window.minimise`）。
@@ -206,7 +225,7 @@ go -C apps/desktop build -tags release -o dist/nivo-desktop \
 ## 结构
 
 ```
-main.go                          组装：配置 → app → RawMessageHandler → 窗口
+main.go                          组装：配置 → app → RawMessageHandler → 窗口（frameless）→ 窗口方法
 internal/bridge/registry.go      方法表 + 出站投递（协议逻辑都在这里）
 internal/bridge/wire.go          线上协议（三种消息）
 internal/shell/config.go         启动参数、URL 标记、来源校验
@@ -219,6 +238,10 @@ Taskfile.yml                     wails3 build / task 的任务（build → scrip
 
 ## 还没做（按需再加）
 
+- **窗口按钮**：frameless 之后没有最小化 / 最大化 / 关闭按钮（能力已在
+  `window.minimise` / `window.toggleMaximise` / `window.close`，缺的只是画在哪）。
+- **macOS 适配**：交通灯位置的留白（窗口条左侧目前从最左边开始）、双击行为与
+  `Mac.CornerType` / 圆角 / 按钮状态都还没调 —— 其它平台不受影响。
 - **打包安装包**：目前是 `go build` 出单个可执行文件；要 dmg/msi/AppImage 得补
   Wails 的 `Taskfile.yml` + 图标资源（`wails3 build`）。
 - **原生能力**：菜单、托盘、文件对话框、深色模式跟随 —— 都在 Wails 的 `application`

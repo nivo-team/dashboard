@@ -353,5 +353,14 @@
     "expand": "展开",
     "close": "关闭预览",
     "resize": "调整预览宽度"
+  },
+  "pageTabs": {
+    "label": "页面标签页",
+    "close": "关闭 {{label}}",
+    "new": "打开新页面",
+    "groups": {
+      "pages": "页面",
+      "shellPages": "设置与账号"
+    }
   }
 }
