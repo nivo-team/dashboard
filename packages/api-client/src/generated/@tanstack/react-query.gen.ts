@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { deleteDataDictById, deleteDataDictTypeById, deleteRoleById, deleteSystemMenuById, deleteTicketById, deleteUserById, getApi, getApps, getDataDict, getDataDictOptions, getDataDictTypeTree, getMenusNavigation, getPermissions, getProfile, getRole, getRoleById, getRoleMenus, getSystemMenuTree, getTicket, getTicketById, getUser, getUserById, type Options, patchTicketByIdStatus, postDataDict, postDataDictType, postLogin, postLogout, postRole, postSystemMenu, postTicket, postUser, postUserBatchDelete, putDataDict, putDataDictType, putRole, putRoleMenus, putSystemMenu, putTicket, putUser } from '../sdk.gen';
-import type { DeleteDataDictByIdData, DeleteDataDictByIdResponse, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponse, DeleteRoleByIdData, DeleteRoleByIdResponse, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponse, DeleteTicketByIdData, DeleteTicketByIdResponse, DeleteUserByIdData, DeleteUserByIdResponse, GetApiData, GetApiResponse, GetAppsData, GetAppsResponse, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponse, GetDataDictResponse, GetDataDictTypeTreeData, GetDataDictTypeTreeResponse, GetMenusNavigationData, GetMenusNavigationResponse, GetPermissionsData, GetPermissionsResponse, GetProfileData, GetProfileResponse, GetRoleByIdData, GetRoleByIdResponse, GetRoleData, GetRoleMenusData, GetRoleMenusResponse, GetRoleResponse, GetSystemMenuTreeData, GetSystemMenuTreeResponse, GetTicketByIdData, GetTicketByIdResponse, GetTicketData, GetTicketResponse, GetUserByIdData, GetUserByIdResponse, GetUserData, GetUserResponse, PatchTicketByIdStatusData, PatchTicketByIdStatusResponse, PostDataDictData, PostDataDictResponse, PostDataDictTypeData, PostDataDictTypeResponse, PostLoginData, PostLoginResponse, PostLogoutData, PostLogoutResponse, PostRoleData, PostRoleResponse, PostSystemMenuData, PostSystemMenuResponse, PostTicketData, PostTicketResponse, PostUserBatchDeleteData, PostUserBatchDeleteResponse, PostUserData, PostUserResponse, PutDataDictData, PutDataDictResponse, PutDataDictTypeData, PutDataDictTypeResponse, PutRoleData, PutRoleMenusData, PutRoleMenusResponse, PutRoleResponse, PutSystemMenuData, PutSystemMenuResponse, PutTicketData, PutTicketResponse, PutUserData, PutUserResponse } from '../types.gen';
+import { deleteDataDictById, deleteDataDictTypeById, deleteExampleTableById, deleteExampleTicketsById, deleteRoleById, deleteSystemMenuById, getApi, getApps, getDataDict, getDataDictOptions, getDataDictTypeTree, getExampleTable, getExampleTableById, getExampleTickets, getExampleTicketsById, getMenusNavigation, getPermissions, getProfile, getRole, getRoleById, getRoleMenus, getSystemMenuTree, type Options, patchExampleTicketsByIdStatus, postDataDict, postDataDictType, postExampleTable, postExampleTableBatchDelete, postExampleTickets, postLogin, postLogout, postRole, postSystemMenu, putDataDict, putDataDictType, putExampleTable, putExampleTickets, putRole, putRoleMenus, putSystemMenu } from '../sdk.gen';
+import type { DeleteDataDictByIdData, DeleteDataDictByIdResponse, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponse, DeleteExampleTableByIdData, DeleteExampleTableByIdResponse, DeleteExampleTicketsByIdData, DeleteExampleTicketsByIdResponse, DeleteRoleByIdData, DeleteRoleByIdResponse, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponse, GetApiData, GetApiResponse, GetAppsData, GetAppsResponse, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponse, GetDataDictResponse, GetDataDictTypeTreeData, GetDataDictTypeTreeResponse, GetExampleTableByIdData, GetExampleTableByIdResponse, GetExampleTableData, GetExampleTableResponse, GetExampleTicketsByIdData, GetExampleTicketsByIdResponse, GetExampleTicketsData, GetExampleTicketsResponse, GetMenusNavigationData, GetMenusNavigationResponse, GetPermissionsData, GetPermissionsResponse, GetProfileData, GetProfileResponse, GetRoleByIdData, GetRoleByIdResponse, GetRoleData, GetRoleMenusData, GetRoleMenusResponse, GetRoleResponse, GetSystemMenuTreeData, GetSystemMenuTreeResponse, PatchExampleTicketsByIdStatusData, PatchExampleTicketsByIdStatusResponse, PostDataDictData, PostDataDictResponse, PostDataDictTypeData, PostDataDictTypeResponse, PostExampleTableBatchDeleteData, PostExampleTableBatchDeleteResponse, PostExampleTableData, PostExampleTableResponse, PostExampleTicketsData, PostExampleTicketsResponse, PostLoginData, PostLoginResponse, PostLogoutData, PostLogoutResponse, PostRoleData, PostRoleResponse, PostSystemMenuData, PostSystemMenuResponse, PutDataDictData, PutDataDictResponse, PutDataDictTypeData, PutDataDictTypeResponse, PutExampleTableData, PutExampleTableResponse, PutExampleTicketsData, PutExampleTicketsResponse, PutRoleData, PutRoleMenusData, PutRoleMenusResponse, PutRoleResponse, PutSystemMenuData, PutSystemMenuResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -289,6 +289,274 @@ export const getDataDictTypeTreeQueryOptions = (options?: Options<GetDataDictTyp
     },
     queryKey: getDataDictTypeTreeQueryKey(options)
 });
+
+/**
+ * 根据 ID 删除单个用户
+ */
+export const deleteExampleTableByIdMutation = (options?: Partial<Options<DeleteExampleTableByIdData>>): UseMutationOptions<DeleteExampleTableByIdResponse, DefaultError, Options<DeleteExampleTableByIdData>> => {
+    const mutationOptions: UseMutationOptions<DeleteExampleTableByIdResponse, DefaultError, Options<DeleteExampleTableByIdData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteExampleTableById({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getExampleTableByIdQueryKey = (options: Options<GetExampleTableByIdData>) => createQueryKey('getExampleTableById', options);
+
+/**
+ * 根据用户 ID 查询详情
+ */
+export const getExampleTableByIdQueryOptions = (options: Options<GetExampleTableByIdData>) => queryOptions<GetExampleTableByIdResponse, DefaultError, GetExampleTableByIdResponse, ReturnType<typeof getExampleTableByIdQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getExampleTableById({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getExampleTableByIdQueryKey(options)
+});
+
+/**
+ * 批量删除用户
+ */
+export const postExampleTableBatchDeleteMutation = (options?: Partial<Options<PostExampleTableBatchDeleteData>>): UseMutationOptions<PostExampleTableBatchDeleteResponse, DefaultError, Options<PostExampleTableBatchDeleteData>> => {
+    const mutationOptions: UseMutationOptions<PostExampleTableBatchDeleteResponse, DefaultError, Options<PostExampleTableBatchDeleteData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await postExampleTableBatchDelete({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getExampleTableQueryKey = (options?: Options<GetExampleTableData>) => createQueryKey('getExampleTable', options);
+
+/**
+ * 用户分页列表，支持关键词、多字段精确/范围筛选与服务端排序
+ */
+export const getExampleTableQueryOptions = (options?: Options<GetExampleTableData>) => queryOptions<GetExampleTableResponse, DefaultError, GetExampleTableResponse, ReturnType<typeof getExampleTableQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getExampleTable({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getExampleTableQueryKey(options)
+});
+
+export const getExampleTableInfiniteQueryKey = (options?: Options<GetExampleTableData>): QueryKey<Options<GetExampleTableData>> => createQueryKey('getExampleTable', options, true);
+
+/**
+ * 用户分页列表，支持关键词、多字段精确/范围筛选与服务端排序
+ */
+export const getExampleTableInfiniteOptions = (options?: Options<GetExampleTableData>) => {
+    const opts = infiniteQueryOptions<GetExampleTableResponse, DefaultError, InfiniteData<GetExampleTableResponse>, QueryKey<Options<GetExampleTableData>>, number | Pick<QueryKey<Options<GetExampleTableData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<GetExampleTableData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await getExampleTable({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: getExampleTableInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * 新建用户
+ */
+export const postExampleTableMutation = (options?: Partial<Options<PostExampleTableData>>): UseMutationOptions<PostExampleTableResponse, DefaultError, Options<PostExampleTableData>> => {
+    const mutationOptions: UseMutationOptions<PostExampleTableResponse, DefaultError, Options<PostExampleTableData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await postExampleTable({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 更新用户信息
+ */
+export const putExampleTableMutation = (options?: Partial<Options<PutExampleTableData>>): UseMutationOptions<PutExampleTableResponse, DefaultError, Options<PutExampleTableData>> => {
+    const mutationOptions: UseMutationOptions<PutExampleTableResponse, DefaultError, Options<PutExampleTableData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putExampleTable({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 根据 ID 删除单个工单（不提供批量删除接口）
+ */
+export const deleteExampleTicketsByIdMutation = (options?: Partial<Options<DeleteExampleTicketsByIdData>>): UseMutationOptions<DeleteExampleTicketsByIdResponse, DefaultError, Options<DeleteExampleTicketsByIdData>> => {
+    const mutationOptions: UseMutationOptions<DeleteExampleTicketsByIdResponse, DefaultError, Options<DeleteExampleTicketsByIdData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteExampleTicketsById({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getExampleTicketsByIdQueryKey = (options: Options<GetExampleTicketsByIdData>) => createQueryKey('getExampleTicketsById', options);
+
+/**
+ * 根据工单 ID 查询详情
+ */
+export const getExampleTicketsByIdQueryOptions = (options: Options<GetExampleTicketsByIdData>) => queryOptions<GetExampleTicketsByIdResponse, DefaultError, GetExampleTicketsByIdResponse, ReturnType<typeof getExampleTicketsByIdQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getExampleTicketsById({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getExampleTicketsByIdQueryKey(options)
+});
+
+/**
+ * 变更单条工单的状态
+ */
+export const patchExampleTicketsByIdStatusMutation = (options?: Partial<Options<PatchExampleTicketsByIdStatusData>>): UseMutationOptions<PatchExampleTicketsByIdStatusResponse, DefaultError, Options<PatchExampleTicketsByIdStatusData>> => {
+    const mutationOptions: UseMutationOptions<PatchExampleTicketsByIdStatusResponse, DefaultError, Options<PatchExampleTicketsByIdStatusData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await patchExampleTicketsByIdStatus({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getExampleTicketsQueryKey = (options?: Options<GetExampleTicketsData>) => createQueryKey('getExampleTickets', options);
+
+/**
+ * 工单分页列表，支持关键词、状态/优先级/分类筛选与服务端排序
+ */
+export const getExampleTicketsQueryOptions = (options?: Options<GetExampleTicketsData>) => queryOptions<GetExampleTicketsResponse, DefaultError, GetExampleTicketsResponse, ReturnType<typeof getExampleTicketsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getExampleTickets({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getExampleTicketsQueryKey(options)
+});
+
+export const getExampleTicketsInfiniteQueryKey = (options?: Options<GetExampleTicketsData>): QueryKey<Options<GetExampleTicketsData>> => createQueryKey('getExampleTickets', options, true);
+
+/**
+ * 工单分页列表，支持关键词、状态/优先级/分类筛选与服务端排序
+ */
+export const getExampleTicketsInfiniteOptions = (options?: Options<GetExampleTicketsData>) => {
+    const opts = infiniteQueryOptions<GetExampleTicketsResponse, DefaultError, InfiniteData<GetExampleTicketsResponse>, QueryKey<Options<GetExampleTicketsData>>, number | Pick<QueryKey<Options<GetExampleTicketsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<GetExampleTicketsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await getExampleTickets({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: getExampleTicketsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * 新建工单
+ */
+export const postExampleTicketsMutation = (options?: Partial<Options<PostExampleTicketsData>>): UseMutationOptions<PostExampleTicketsResponse, DefaultError, Options<PostExampleTicketsData>> => {
+    const mutationOptions: UseMutationOptions<PostExampleTicketsResponse, DefaultError, Options<PostExampleTicketsData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await postExampleTickets({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 更新单条工单（标题 / 描述 / 优先级 / 负责人 / 分类）
+ */
+export const putExampleTicketsMutation = (options?: Partial<Options<PutExampleTicketsData>>): UseMutationOptions<PutExampleTicketsResponse, DefaultError, Options<PutExampleTicketsData>> => {
+    const mutationOptions: UseMutationOptions<PutExampleTicketsResponse, DefaultError, Options<PutExampleTicketsData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putExampleTickets({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 /**
  * 账号密码登录（验证预设测试账号：super admin / admin / user）
@@ -598,271 +866,3 @@ export const getSystemMenuTreeQueryOptions = (options?: Options<GetSystemMenuTre
     },
     queryKey: getSystemMenuTreeQueryKey(options)
 });
-
-/**
- * 根据 ID 删除单个工单（不提供批量删除接口）
- */
-export const deleteTicketByIdMutation = (options?: Partial<Options<DeleteTicketByIdData>>): UseMutationOptions<DeleteTicketByIdResponse, DefaultError, Options<DeleteTicketByIdData>> => {
-    const mutationOptions: UseMutationOptions<DeleteTicketByIdResponse, DefaultError, Options<DeleteTicketByIdData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await deleteTicketById({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-export const getTicketByIdQueryKey = (options: Options<GetTicketByIdData>) => createQueryKey('getTicketById', options);
-
-/**
- * 根据工单 ID 查询详情
- */
-export const getTicketByIdQueryOptions = (options: Options<GetTicketByIdData>) => queryOptions<GetTicketByIdResponse, DefaultError, GetTicketByIdResponse, ReturnType<typeof getTicketByIdQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await getTicketById({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: getTicketByIdQueryKey(options)
-});
-
-/**
- * 变更单条工单的状态
- */
-export const patchTicketByIdStatusMutation = (options?: Partial<Options<PatchTicketByIdStatusData>>): UseMutationOptions<PatchTicketByIdStatusResponse, DefaultError, Options<PatchTicketByIdStatusData>> => {
-    const mutationOptions: UseMutationOptions<PatchTicketByIdStatusResponse, DefaultError, Options<PatchTicketByIdStatusData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await patchTicketByIdStatus({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-export const getTicketQueryKey = (options?: Options<GetTicketData>) => createQueryKey('getTicket', options);
-
-/**
- * 工单分页列表，支持关键词、状态/优先级/分类筛选与服务端排序
- */
-export const getTicketQueryOptions = (options?: Options<GetTicketData>) => queryOptions<GetTicketResponse, DefaultError, GetTicketResponse, ReturnType<typeof getTicketQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await getTicket({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: getTicketQueryKey(options)
-});
-
-export const getTicketInfiniteQueryKey = (options?: Options<GetTicketData>): QueryKey<Options<GetTicketData>> => createQueryKey('getTicket', options, true);
-
-/**
- * 工单分页列表，支持关键词、状态/优先级/分类筛选与服务端排序
- */
-export const getTicketInfiniteOptions = (options?: Options<GetTicketData>) => {
-    const opts = infiniteQueryOptions<GetTicketResponse, DefaultError, InfiniteData<GetTicketResponse>, QueryKey<Options<GetTicketData>>, number | Pick<QueryKey<Options<GetTicketData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
-    // @ts-ignore
-    {
-        queryFn: async ({ pageParam, queryKey, signal }) => {
-            // @ts-ignore
-            const page: Pick<QueryKey<Options<GetTicketData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
-                query: {
-                    page: pageParam
-                }
-            };
-            const params = createInfiniteParams(queryKey, page);
-            const { data } = await getTicket({
-                ...options,
-                ...params,
-                signal,
-                throwOnError: true
-            });
-            return data;
-        },
-        queryKey: getTicketInfiniteQueryKey(options)
-    });
-    return opts as Omit<typeof opts, 'initialData'>;
-};
-
-/**
- * 新建工单
- */
-export const postTicketMutation = (options?: Partial<Options<PostTicketData>>): UseMutationOptions<PostTicketResponse, DefaultError, Options<PostTicketData>> => {
-    const mutationOptions: UseMutationOptions<PostTicketResponse, DefaultError, Options<PostTicketData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await postTicket({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-/**
- * 更新单条工单（标题 / 描述 / 优先级 / 负责人 / 分类）
- */
-export const putTicketMutation = (options?: Partial<Options<PutTicketData>>): UseMutationOptions<PutTicketResponse, DefaultError, Options<PutTicketData>> => {
-    const mutationOptions: UseMutationOptions<PutTicketResponse, DefaultError, Options<PutTicketData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await putTicket({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-export const getUserQueryKey = (options?: Options<GetUserData>) => createQueryKey('getUser', options);
-
-/**
- * 用户分页列表，支持关键词、多字段精确/范围筛选与服务端排序
- */
-export const getUserQueryOptions = (options?: Options<GetUserData>) => queryOptions<GetUserResponse, DefaultError, GetUserResponse, ReturnType<typeof getUserQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await getUser({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: getUserQueryKey(options)
-});
-
-export const getUserInfiniteQueryKey = (options?: Options<GetUserData>): QueryKey<Options<GetUserData>> => createQueryKey('getUser', options, true);
-
-/**
- * 用户分页列表，支持关键词、多字段精确/范围筛选与服务端排序
- */
-export const getUserInfiniteOptions = (options?: Options<GetUserData>) => {
-    const opts = infiniteQueryOptions<GetUserResponse, DefaultError, InfiniteData<GetUserResponse>, QueryKey<Options<GetUserData>>, number | Pick<QueryKey<Options<GetUserData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
-    // @ts-ignore
-    {
-        queryFn: async ({ pageParam, queryKey, signal }) => {
-            // @ts-ignore
-            const page: Pick<QueryKey<Options<GetUserData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
-                query: {
-                    page: pageParam
-                }
-            };
-            const params = createInfiniteParams(queryKey, page);
-            const { data } = await getUser({
-                ...options,
-                ...params,
-                signal,
-                throwOnError: true
-            });
-            return data;
-        },
-        queryKey: getUserInfiniteQueryKey(options)
-    });
-    return opts as Omit<typeof opts, 'initialData'>;
-};
-
-/**
- * 新建用户
- */
-export const postUserMutation = (options?: Partial<Options<PostUserData>>): UseMutationOptions<PostUserResponse, DefaultError, Options<PostUserData>> => {
-    const mutationOptions: UseMutationOptions<PostUserResponse, DefaultError, Options<PostUserData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await postUser({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-/**
- * 更新用户信息
- */
-export const putUserMutation = (options?: Partial<Options<PutUserData>>): UseMutationOptions<PutUserResponse, DefaultError, Options<PutUserData>> => {
-    const mutationOptions: UseMutationOptions<PutUserResponse, DefaultError, Options<PutUserData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await putUser({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-/**
- * 根据 ID 删除单个用户
- */
-export const deleteUserByIdMutation = (options?: Partial<Options<DeleteUserByIdData>>): UseMutationOptions<DeleteUserByIdResponse, DefaultError, Options<DeleteUserByIdData>> => {
-    const mutationOptions: UseMutationOptions<DeleteUserByIdResponse, DefaultError, Options<DeleteUserByIdData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await deleteUserById({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-export const getUserByIdQueryKey = (options: Options<GetUserByIdData>) => createQueryKey('getUserById', options);
-
-/**
- * 根据用户 ID 查询详情
- */
-export const getUserByIdQueryOptions = (options: Options<GetUserByIdData>) => queryOptions<GetUserByIdResponse, DefaultError, GetUserByIdResponse, ReturnType<typeof getUserByIdQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await getUserById({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: getUserByIdQueryKey(options)
-});
-
-/**
- * 批量删除用户
- */
-export const postUserBatchDeleteMutation = (options?: Partial<Options<PostUserBatchDeleteData>>): UseMutationOptions<PostUserBatchDeleteResponse, DefaultError, Options<PostUserBatchDeleteData>> => {
-    const mutationOptions: UseMutationOptions<PostUserBatchDeleteResponse, DefaultError, Options<PostUserBatchDeleteData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await postUserBatchDelete({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};

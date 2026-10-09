@@ -15,7 +15,7 @@
   + **TanStack Router / Query** + **zustand 5**（persist）
 - **Tailwind CSS v4**（无 config）+ **Kumo**（Cloudflare 设计系统，基于 Base UI）
   + **dnd-kit**（只用于页面标签页的拖拽排序，见 [routing-architecture.md](./.agents/docs/routing-architecture.md)）
-- **i18next**（7 语言；`ar-SA` 自动 `dir="rtl"`）
+- **i18next**（多语言；**语言清单的真值只有 `i18n.config.json` 一处**，别照抄文档里的列表）
 - 路径别名 `#/*` 与 `@/*` → `./src/*`；包管理器 **pnpm**
 - **AI 核心集中在 [`src/features/ai/`](./apps/web/src/features/ai/README.md)**（逻辑 / UI / 渲染 / 全屏页 / 页面声明框架）—— 改 AI 先读那里的地图
 - **桌面壳在 [`apps/desktop/`](./apps/desktop/README.md)**（Wails v3 + Go，超薄：只加载远程 http/https 地址 + 一条通用 bridge）—— 改 bridge 协议 / 加原生能力读那份
@@ -41,7 +41,8 @@ pnpm contract         # 按 contract.config.json 同步契约（默认从本地 
 pnpm api              # 一键：同步契约 + 在 packages/api-client 内生成 SDK/类型/schema/Query/派生索引
 pnpm guardrails       # 铁律的机器检查（CI 用，scripts/ai/check-guardrails.mjs）
 pnpm i18n:dry         # 只看「哪些键待翻译」，不写文件、不调 AI
-pnpm i18n             # 补翻译：只翻增量、带缓存（需 DSH_GATEWAY_* 凭据）
+pnpm i18n:provider    # 只打印翻译会打到哪个网关/模型（核对配置用）
+pnpm i18n             # 补翻译：只翻增量、带缓存（I18N_GATEWAY_* 或共用 DSH_GATEWAY_*）
 pnpm i18n:check       # 键是否齐全 + 译文是否最新 + 类型是否同步（CI 用）
 pnpm i18n:types       # 重新生成 i18n 键类型（改了 zh-CN.json 后跑）
 ```
@@ -84,6 +85,8 @@ pnpm i18n:types       # 重新生成 i18n 键类型（改了 zh-CN.json 后跑�
 | **加/改 AI 工具、AI 权限粒度、批量任务编排** | [ai-architecture.md](./.agents/docs/ai-architecture.md) §3.1（能力矩阵）· §7.1（Todo 编排）· 清单 [ai-module-inventory.md](./.agents/docs/ai-module-inventory.md) §6 |
 | **改 AI 开发流水线 / issue 模板 / CI 门控** | [docs/ai-dev-pipeline.md](./docs/ai-dev-pipeline.md)（触发层 + 执行层 + 门控层，含标签状态机与铁律对应表） |
 | **改桌面壳 / 加原生能力（菜单 / 托盘 / 文件对话框）/ 改 bridge 协议** | [apps/desktop/README.md](./apps/desktop/README.md)（Wails v3 超薄壳：URL 桌面标记、Raw Messages 通道、`__bridge` 的 call/on）· 页面侧接口 `#/lib/desktop-bridge` |
+| **配仓库的 Secrets / Variables / 分支保护** | [docs/repo-configuration.md](./docs/repo-configuration.md)（每条流水线要配什么、触发白名单、person token、占位符为何不能当空值） |
+| **了解「谁才能写代码」/ 触发 AI 的规则** | [docs/ai-dev-pipeline.md](./docs/ai-dev-pipeline.md) §4（只有 @ 白名单账号才触发）· §8.1（代码作者门控 + 逃生舱） |
 | 想知道「当初为什么这么选」 | [docs/](./docs/README.md)（调研与设计记录，相对稳定） |
 | 要跑校验 | skill **`verify`** —— **只有使用者点名时才跑** |
 
@@ -92,9 +95,12 @@ pnpm i18n:types       # 重新生成 i18n 键类型（改了 zh-CN.json 后跑�
 
 ## 铁律（任何改动都适用，不必读文档）
 
-1. **只写源语言 `zh-CN`，其它语言交给流水线**：新增/修改用户可见文案时**只改**
-   `apps/web/src/messages/<ns>/zh-CN.json`，**不要手写其它 6 种语言** ——
+1. **只写默认语言，其它语言交给流水线**：新增/修改用户可见文案时**只改**
+   `apps/web/src/messages/<ns>/<sourceLocale>.json`（默认语言 = `i18n.config.json`
+   的 `sourceLocale`，**现读现用、别记**），**不要手写其它语言** ——
    它们由 `pnpm i18n`（或 CI 的 `translate.yml`）用 AI 补齐，带缓存、只翻增量。
+   **语言清单的真值也只有 `i18n.config.json` 一处**（`sourceLocale` + `targetLocales`），
+   **不要在文档、注释或代码里列举语言** —— 它变过，抄到别处必然过期。
    写错键名会在 `pnpm typecheck` / `pnpm build` 直接报错（用 `#/lib/use-typed-t` 的
    `useT('ns')`）；`pnpm i18n:check` 会拦住「没补翻译就合并」。详见
    [i18n-translation-pipeline.md](./.agents/docs/i18n-translation-pipeline.md)。

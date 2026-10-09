@@ -387,7 +387,7 @@ export function AiComposer({
   /**
    * 面板按 `kind` 分段的顺序 —— 与命令面板一样「名字在左、灰键在中、说明在右」，
    * 段标题把「添加到对话」和「引用某个位置」分开。**顺序只在这一个数组里**，
-   * 段名走 `ai` 命名空间（7 语言）。
+   * 段名走 `ai` 命名空间（各语言齐备）。
    */
   const MENTION_SECTIONS: ReadonlyArray<{
     kind: AiRouteRefKind

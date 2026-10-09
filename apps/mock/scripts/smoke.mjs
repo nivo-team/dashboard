@@ -259,17 +259,17 @@ check(
 
 /* ---------------------------------------------------------------- 用户 */
 console.log('\n用户')
-const users = await call('GET', '/user?page=1&page_size=5')
+const users = await call('GET', '/example/table?page=1&page_size=5')
 check(
-  'GET /user 分页',
+  'GET /example/table 分页',
   users.json?.result?.items?.length === 5,
   `total=${users.json?.result?.total}`,
 )
-const users2 = await call('GET', '/user?page=2&page_size=5')
+const users2 = await call('GET', '/example/table?page=2&page_size=5')
 const ids1 = (users.json?.result?.items ?? []).map((u) => u.id)
 const ids2 = (users2.json?.result?.items ?? []).map((u) => u.id)
 check('跨页 id 不重复', !ids1.some((id) => ids2.includes(id)), `${ids1[0]}..${ids2[0]}`)
-const search = await call('GET', `/user?kw=${encodeURIComponent('星空')}`)
+const search = await call('GET', `/example/table?kw=${encodeURIComponent('星空')}`)
 check(
   'kw 搜索生效',
   search.json?.result?.total <= users.json?.result?.total,
@@ -277,8 +277,8 @@ check(
 )
 
 // 服务端排序验证
-const sortedAsc = await call('GET', '/user?page=1&page_size=3&field=id&order=asc')
-const sortedDesc = await call('GET', '/user?page=1&page_size=3&field=id&order=desc')
+const sortedAsc = await call('GET', '/example/table?page=1&page_size=3&field=id&order=asc')
+const sortedDesc = await call('GET', '/example/table?page=1&page_size=3&field=id&order=desc')
 const ascIds = (sortedAsc.json?.result?.items ?? []).map((u) => u.id)
 const descIds = (sortedDesc.json?.result?.items ?? []).map((u) => u.id)
 check(
@@ -288,7 +288,7 @@ check(
 )
 
 // 用户 CRUD 闭环验证
-const createdUser = await call('POST', '/user', {
+const createdUser = await call('POST', '/example/table', {
   nickname: '冒烟测试用户',
   email: 'smoke_user@example.com',
   avatar_url: 'https://example.com/avatar.png',
@@ -296,13 +296,13 @@ const createdUser = await call('POST', '/user', {
 const newUserId = createdUser.json?.result?.id
 check('POST /user 创建用户', createdUser.json?.code === 0 && !!newUserId, `id=${newUserId}`)
 
-const userDetail = await call('GET', `/user/${newUserId}`)
+const userDetail = await call('GET', `/example/table/${newUserId}`)
 check(
-  'GET /user/{id} 查询详情',
+  'GET /example/table/{id} 查询详情',
   userDetail.json?.code === 0 && userDetail.json?.result?.nickname === '冒烟测试用户',
 )
 
-const updatedUser = await call('PUT', '/user', {
+const updatedUser = await call('PUT', '/example/table', {
   id: newUserId,
   nickname: '冒烟测试用户-已改名',
   email: 'smoke_user_mod@example.com',
@@ -313,24 +313,24 @@ check(
 )
 
 // 过滤参数验证
-const filterUser = await call('GET', `/user?email=smoke_user_mod@example.com`)
+const filterUser = await call('GET', `/example/table?email=smoke_user_mod@example.com`)
 check(
   '多字段过滤生效 (email)',
   (filterUser.json?.result?.items ?? []).some((u) => u.id === newUserId),
 )
 
 // 单项删除验证
-const deletedSingle = await call('DELETE', `/user/${newUserId}`)
-check('DELETE /user/{id} 单项删除', deletedSingle.json?.code === 0)
-const deletedDetail = await call('GET', `/user/${newUserId}`)
-check('删除后 GET /user/{id} 返回 404', deletedDetail.json?.code === 404)
+const deletedSingle = await call('DELETE', `/example/table/${newUserId}`)
+check('DELETE /example/table/{id} 单项删除', deletedSingle.json?.code === 0)
+const deletedDetail = await call('GET', `/example/table/${newUserId}`)
+check('删除后 GET /example/table/{id} 返回 404', deletedDetail.json?.code === 404)
 
 // 批量删除验证
-const batchUser1 = await call('POST', '/user', {
+const batchUser1 = await call('POST', '/example/table', {
   nickname: '批量用户1',
   email: 'batch1@example.com',
 })
-const batchUser2 = await call('POST', '/user', {
+const batchUser2 = await call('POST', '/example/table', {
   nickname: '批量用户2',
   email: 'batch2@example.com',
 })
@@ -338,14 +338,14 @@ const bId1 = batchUser1.json?.result?.id
 const bId2 = batchUser2.json?.result?.id
 check('创建批量测试用户', !!bId1 && !!bId2)
 
-const batchDeleteRes = await call('POST', '/user/batch-delete', { ids: [bId1, bId2] })
+const batchDeleteRes = await call('POST', '/example/table/batch-delete', { ids: [bId1, bId2] })
 check(
-  'POST /user/batch-delete 批量删除',
+  'POST /example/table/batch-delete 批量删除',
   batchDeleteRes.json?.code === 0 && batchDeleteRes.json?.result?.deleted_count === 2,
   `deleted=${batchDeleteRes.json?.result?.deleted_count}`,
 )
-const batchVerify1 = await call('GET', `/user/${bId1}`)
-const batchVerify2 = await call('GET', `/user/${bId2}`)
+const batchVerify1 = await call('GET', `/example/table/${bId1}`)
+const batchVerify2 = await call('GET', `/example/table/${bId2}`)
 check('批量删除后用户不存在', batchVerify1.json?.code === 404 && batchVerify2.json?.code === 404)
 
 /* ------------------------------------------------------------ 功能菜单 */
@@ -487,7 +487,7 @@ const expected = [
   '/permissions',
   '/apps',
   '/api',
-  '/user',
+  '/example/table',
   '/menus/navigation',
   '/role',
   '/role/{id}',

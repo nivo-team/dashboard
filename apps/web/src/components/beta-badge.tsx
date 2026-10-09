@@ -8,7 +8,7 @@ import { Badge } from '@cloudflare/kumo'
  */
 export function BetaBadge({ className }: { className?: string }) {
   return (
-    <Badge variant="neutral" className={className}>
+    <Badge variant="beta" className={className}>
       Beta
     </Badge>
   )

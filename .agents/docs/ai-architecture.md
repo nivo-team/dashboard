@@ -319,8 +319,8 @@ endpoints })` 声明「我是干什么的、我用了哪些接口」。动机是
 3. 加进 `tools/index.ts` 的 `AI_TOOLS`；
 4. 需要确认的话在 `execute` 里读 `ctx.mode` 决定要不要 `await ctx.requestApproval(...)`；
 5. 补工具名：`common:profile.settings.aiToolNames.<name>`（权限清单里的名字）与
-   `ai:tools.<name>`（工具调用卡片标题）**两处都要**，且两处都**只写 zh-CN** ——
-   其它 6 种语言由 `pnpm i18n` 流水线补齐（铁律 1）。
+   `ai:tools.<name>`（工具调用卡片标题）**两处都要**，且两处都**只写默认语言** ——
+   其余语言由 `pnpm i18n` 流水线补齐（铁律 1）。
    两处都走 `t(key, tool.name)` 兜底：少写一个就会在中文界面露出英文蛇形原名。
 
 **别做**：在 UI 或运行时里另维护一份工具名单；把过滤散到工具内部（权限过滤只在
@@ -353,7 +353,7 @@ useAiPageContext(Route.id, {
 **加一个偏好设置**
 
 `preferences-store.ts` 有**固定 8 处**要改：类型常量 / interface 字段 / action /
-持久化名单 / 初始值 / setter / `partialize` / `merge`。再补设置页的 `SettingRow` 与 7 语言文案。
+持久化名单 / 初始值 / setter / `partialize` / `merge`。再补设置页的 `SettingRow` 与默认语言文案。
 
 **加一档权限**
 
@@ -809,7 +809,7 @@ useAiPageContext(Route.id, {
   详情页面的名字是 `common:nav.userDetail`）/
   `configurePermissions*`（配置权限那一项）/ `permissions*`（面板权限视图：标题 / 返回 / 保存 / 未保存提示；
   配置体自身的档位与工具名复用 `common:profile.settings.aiPermission*`）；会话区 `greetings.*` / `greetingPrompt` /
-  `thinking` / `tool*` / `tools.*`），7 语言齐。设置项在 `common:profile.settings` 下（卡片标题复用 `general`）：
+  `thinking` / `tool*` / `tools.*`），各语言齐备。设置项在 `common:profile.settings` 下（卡片标题复用 `general`）：
   `aiDisplayMode` / `aiDisplayModeHint` / `aiModes.*` ——
   **必须挂 `profile.settings` 下**
   （曾误挂到 `profile` 顶层，各语言一律回落成中文默认值）。「Ask AI」是**产品入口名**、

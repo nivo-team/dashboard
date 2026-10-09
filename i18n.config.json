@@ -20,6 +20,9 @@
     "dataDict": {
       "enabled": true
     },
+    "example": {
+      "enabled": true
+    },
     "langs": {
       "enabled": false,
       "reason": "仅 zh-CN 的遗留命名空间，待确认后删除"
@@ -32,13 +35,14 @@
     },
     "system": {
       "enabled": true
-    },
-    "users": {
-      "enabled": true
-    },
-    "tickets": {
-      "enabled": true
     }
+  },
+  "provider": {
+    "baseUrl": "",
+    "model": "",
+    "authMode": "",
+    "gatewayId": "",
+    "timeoutMs": 120000
   },
   "cache": {
     "dir": ".cache/i18n",

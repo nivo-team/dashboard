@@ -94,7 +94,7 @@ apps/web/src/messages/
 - **路径规则**：`/apps/web/src/messages/{module}/{lang}.json`
 - **解析机制**：
   - 目录名 `{module}` 自动作为 i18n 的 Namespace（如 `auth`、`common`）；
-  - 文件名 `{lang}` 自动作为语言 Key（`zh-CN`、`en-US`、`ja-JP`、`ar-SA`、`hi-IN`、`es-ES`、`tr-TR`）；
+  - 文件名 `{lang}` 自动作为语言 Key（取值见 `SUPPORTED_LOCALES`，真值在 `apps/web/src/lib/locale.ts`）；
   - 默认命名空间为 `common`，支持组件内通过 `useTranslation('auth')` 引用模块专属翻译文本；
   - 针对阿拉伯语（`ar-SA`），系统会自动在 `document.documentElement` 设置 `dir="rtl"`，结合 Tailwind CSS 逻辑属性（如 `ms-*`、`me-*`、`pe-*`）实现无缝的双向排版适配；
   - 语言持久化于 `localStorage`（键名 `admin.locale`）。
@@ -124,9 +124,10 @@ apps/web/src/messages/
 > [.agents/docs/dict-i18n.md](./dict-i18n.md)。
 
 - `apps/web/src/lib/i18n.ts` 用 `import.meta.glob('/apps/web/src/messages/*/*.json', { eager: true })` 自动注册：
-  **目录名 = 命名空间，文件名 = 语言码**。全量支持 7 种语言（zh-CN / en-US / ja-JP / ar-SA /
-  hi-IN / es-ES / tr-TR）。
-- **新契约：开发时只写源语言 `zh-CN`**，其它 6 种语言由翻译流水线补齐
+  **目录名 = 命名空间，文件名 = 语言码**。语言清单的真值在 `i18n.config.json`
+  （`sourceLocale` + `targetLocales`），运行时与 `apps/web/src/lib/locale.ts` 的
+  `SUPPORTED_LOCALES` 一致 —— **本文不列举具体语言**。
+- **新契约：开发时只写源语言 `zh-CN`**，其它语言由翻译流水线补齐
   （`pnpm i18n`，带缓存、只翻增量）—— **不要手写其它语言**。
   写错键名用 `#/lib/use-typed-t` 的 `useT('ns')` 会在编译期报错。
   完整机制见 [i18n-translation-pipeline.md](./i18n-translation-pipeline.md)。

@@ -495,6 +495,718 @@
         "description": "获取字典分类树（顶层节点数组）"
       }
     },
+    "/example/table/{id}": {
+      "delete": {
+        "tags": [
+          "用户"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "用户 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "0 表示成功"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "null",
+                      "description": "成功时为空"
+                    }
+                  },
+                  "required": [
+                    "code"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "根据 ID 删除单个用户"
+      },
+      "get": {
+        "tags": [
+          "用户"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "用户 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "用户详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "根据用户 ID 查询详情"
+      }
+    },
+    "/example/table/batch-delete": {
+      "post": {
+        "tags": [
+          "用户"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "批量删除结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchDeleteResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "批量删除用户",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "待删除的用户 ID 列表"
+                  }
+                },
+                "required": [
+                  "ids"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/example/table": {
+      "get": {
+        "tags": [
+          "用户"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "页码，从 1 开始"
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "每页条数"
+          },
+          {
+            "in": "query",
+            "name": "kw",
+            "schema": {
+              "type": "string"
+            },
+            "description": "关键词（昵称 / 邮箱 / ID 模糊匹配）"
+          },
+          {
+            "in": "query",
+            "name": "field",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "id",
+                "nickname",
+                "email",
+                "createtime",
+                "logintime"
+              ]
+            },
+            "description": "排序字段名"
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "description": "排序方向"
+          },
+          {
+            "in": "query",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "用户 ID 精确匹配"
+          },
+          {
+            "in": "query",
+            "name": "nickname",
+            "schema": {
+              "type": "string"
+            },
+            "description": "昵称模糊匹配"
+          },
+          {
+            "in": "query",
+            "name": "email",
+            "schema": {
+              "type": "string"
+            },
+            "description": "邮箱模糊匹配"
+          },
+          {
+            "in": "query",
+            "name": "createtime_min",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "注册时间下限（秒级时间戳）"
+          },
+          {
+            "in": "query",
+            "name": "createtime_max",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "注册时间上限（秒级时间戳）"
+          },
+          {
+            "in": "query",
+            "name": "logintime_min",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "最后登录时间下限（秒级时间戳）"
+          },
+          {
+            "in": "query",
+            "name": "logintime_max",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "最后登录时间上限（秒级时间戳）"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "用户分页结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "用户分页列表，支持关键词、多字段精确/范围筛选与服务端排序"
+      },
+      "post": {
+        "tags": [
+          "用户"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "新建的用户详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "新建用户",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nickname": {
+                    "type": "string",
+                    "description": "用户昵称"
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "用户邮箱"
+                  },
+                  "avatar_url": {
+                    "type": "string",
+                    "description": "头像 URL"
+                  }
+                },
+                "required": [
+                  "nickname"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "用户"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "更新后的用户详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "更新用户信息",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "用户 ID"
+                  },
+                  "nickname": {
+                    "type": "string",
+                    "description": "用户昵称"
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "用户邮箱"
+                  },
+                  "avatar_url": {
+                    "type": "string",
+                    "description": "头像 URL"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/example/tickets/{id}": {
+      "delete": {
+        "tags": [
+          "工单"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "工单 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "0 表示成功"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "null",
+                      "description": "成功时为空"
+                    }
+                  },
+                  "required": [
+                    "code"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "根据 ID 删除单个工单（不提供批量删除接口）"
+      },
+      "get": {
+        "tags": [
+          "工单"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "工单 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "工单详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "根据工单 ID 查询详情"
+      }
+    },
+    "/example/tickets/{id}/status": {
+      "patch": {
+        "tags": [
+          "工单"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "工单 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "更新后的工单",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "变更单条工单的状态",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "integer",
+                    "description": "1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/example/tickets": {
+      "get": {
+        "tags": [
+          "工单"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "页码，从 1 开始"
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "每页条数"
+          },
+          {
+            "in": "query",
+            "name": "kw",
+            "schema": {
+              "type": "string"
+            },
+            "description": "关键词（标题 / 描述 / 负责人 / ID 模糊匹配）"
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "状态精确匹配：1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭"
+          },
+          {
+            "in": "query",
+            "name": "priority",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "优先级精确匹配：1 低 / 2 中 / 3 高 / 4 紧急"
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            },
+            "description": "分类精确匹配"
+          },
+          {
+            "in": "query",
+            "name": "assignee",
+            "schema": {
+              "type": "string"
+            },
+            "description": "负责人模糊匹配"
+          },
+          {
+            "in": "query",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "工单 ID 精确匹配"
+          },
+          {
+            "in": "query",
+            "name": "created_at_min",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "创建时间下限（秒级时间戳）"
+          },
+          {
+            "in": "query",
+            "name": "created_at_max",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "创建时间上限（秒级时间戳）"
+          },
+          {
+            "in": "query",
+            "name": "field",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "id",
+                "title",
+                "status",
+                "priority",
+                "created_at",
+                "updated_at"
+              ]
+            },
+            "description": "排序字段名"
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "description": "排序方向"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "工单分页结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketListResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "工单分页列表，支持关键词、状态/优先级/分类筛选与服务端排序"
+      },
+      "post": {
+        "tags": [
+          "工单"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "新建的工单",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "新建工单",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "标题"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "描述"
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "description": "1 低 / 2 中 / 3 高 / 4 紧急"
+                  },
+                  "assignee": {
+                    "type": "string",
+                    "description": "负责人"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "分类"
+                  }
+                },
+                "required": [
+                  "title"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "工单"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "更新后的工单",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResult"
+                }
+              }
+            }
+          }
+        },
+        "description": "更新单条工单（标题 / 描述 / 优先级 / 负责人 / 分类）",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "工单 ID"
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "标题"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "描述"
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "description": "1 低 / 2 中 / 3 高 / 4 紧急"
+                  },
+                  "assignee": {
+                    "type": "string",
+                    "description": "负责人"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "分类"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "/login": {
       "post": {
         "tags": [
@@ -1114,718 +1826,6 @@
         },
         "description": "获取功能菜单树（顶层节点数组，后代嵌在 children 中）"
       }
-    },
-    "/ticket/{id}": {
-      "delete": {
-        "tags": [
-          "工单"
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "工单 ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "删除结果",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "integer",
-                      "description": "0 表示成功"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "result": {
-                      "type": "null",
-                      "description": "成功时为空"
-                    }
-                  },
-                  "required": [
-                    "code"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "description": "根据 ID 删除单个工单（不提供批量删除接口）"
-      },
-      "get": {
-        "tags": [
-          "工单"
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "工单 ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "工单详情",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TicketResult"
-                }
-              }
-            }
-          }
-        },
-        "description": "根据工单 ID 查询详情"
-      }
-    },
-    "/ticket/{id}/status": {
-      "patch": {
-        "tags": [
-          "工单"
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "工单 ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "更新后的工单",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TicketResult"
-                }
-              }
-            }
-          }
-        },
-        "description": "变更单条工单的状态",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "status": {
-                    "type": "integer",
-                    "description": "1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭"
-                  }
-                },
-                "required": [
-                  "status"
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
-    "/ticket": {
-      "get": {
-        "tags": [
-          "工单"
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "page",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "页码，从 1 开始"
-          },
-          {
-            "in": "query",
-            "name": "page_size",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "每页条数"
-          },
-          {
-            "in": "query",
-            "name": "kw",
-            "schema": {
-              "type": "string"
-            },
-            "description": "关键词（标题 / 描述 / 负责人 / ID 模糊匹配）"
-          },
-          {
-            "in": "query",
-            "name": "status",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "状态精确匹配：1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭"
-          },
-          {
-            "in": "query",
-            "name": "priority",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "优先级精确匹配：1 低 / 2 中 / 3 高 / 4 紧急"
-          },
-          {
-            "in": "query",
-            "name": "category",
-            "schema": {
-              "type": "string"
-            },
-            "description": "分类精确匹配"
-          },
-          {
-            "in": "query",
-            "name": "assignee",
-            "schema": {
-              "type": "string"
-            },
-            "description": "负责人模糊匹配"
-          },
-          {
-            "in": "query",
-            "name": "id",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "工单 ID 精确匹配"
-          },
-          {
-            "in": "query",
-            "name": "created_at_min",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "创建时间下限（秒级时间戳）"
-          },
-          {
-            "in": "query",
-            "name": "created_at_max",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "创建时间上限（秒级时间戳）"
-          },
-          {
-            "in": "query",
-            "name": "field",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "id",
-                "title",
-                "status",
-                "priority",
-                "created_at",
-                "updated_at"
-              ]
-            },
-            "description": "排序字段名"
-          },
-          {
-            "in": "query",
-            "name": "order",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "asc",
-                "desc"
-              ]
-            },
-            "description": "排序方向"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "工单分页结果",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TicketListResult"
-                }
-              }
-            }
-          }
-        },
-        "description": "工单分页列表，支持关键词、状态/优先级/分类筛选与服务端排序"
-      },
-      "post": {
-        "tags": [
-          "工单"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "新建的工单",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TicketResult"
-                }
-              }
-            }
-          }
-        },
-        "description": "新建工单",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "title": {
-                    "type": "string",
-                    "description": "标题"
-                  },
-                  "description": {
-                    "type": "string",
-                    "description": "描述"
-                  },
-                  "priority": {
-                    "type": "integer",
-                    "description": "1 低 / 2 中 / 3 高 / 4 紧急"
-                  },
-                  "assignee": {
-                    "type": "string",
-                    "description": "负责人"
-                  },
-                  "category": {
-                    "type": "string",
-                    "description": "分类"
-                  }
-                },
-                "required": [
-                  "title"
-                ]
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "工单"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "更新后的工单",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TicketResult"
-                }
-              }
-            }
-          }
-        },
-        "description": "更新单条工单（标题 / 描述 / 优先级 / 负责人 / 分类）",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "integer",
-                    "description": "工单 ID"
-                  },
-                  "title": {
-                    "type": "string",
-                    "description": "标题"
-                  },
-                  "description": {
-                    "type": "string",
-                    "description": "描述"
-                  },
-                  "priority": {
-                    "type": "integer",
-                    "description": "1 低 / 2 中 / 3 高 / 4 紧急"
-                  },
-                  "assignee": {
-                    "type": "string",
-                    "description": "负责人"
-                  },
-                  "category": {
-                    "type": "string",
-                    "description": "分类"
-                  }
-                },
-                "required": [
-                  "id"
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
-    "/user": {
-      "get": {
-        "tags": [
-          "用户"
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "page",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "页码，从 1 开始"
-          },
-          {
-            "in": "query",
-            "name": "page_size",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "每页条数"
-          },
-          {
-            "in": "query",
-            "name": "kw",
-            "schema": {
-              "type": "string"
-            },
-            "description": "关键词（昵称 / 邮箱 / ID 模糊匹配）"
-          },
-          {
-            "in": "query",
-            "name": "field",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "id",
-                "nickname",
-                "email",
-                "createtime",
-                "logintime"
-              ]
-            },
-            "description": "排序字段名"
-          },
-          {
-            "in": "query",
-            "name": "order",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "asc",
-                "desc"
-              ]
-            },
-            "description": "排序方向"
-          },
-          {
-            "in": "query",
-            "name": "id",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "用户 ID 精确匹配"
-          },
-          {
-            "in": "query",
-            "name": "nickname",
-            "schema": {
-              "type": "string"
-            },
-            "description": "昵称模糊匹配"
-          },
-          {
-            "in": "query",
-            "name": "email",
-            "schema": {
-              "type": "string"
-            },
-            "description": "邮箱模糊匹配"
-          },
-          {
-            "in": "query",
-            "name": "createtime_min",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "注册时间下限（秒级时间戳）"
-          },
-          {
-            "in": "query",
-            "name": "createtime_max",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "注册时间上限（秒级时间戳）"
-          },
-          {
-            "in": "query",
-            "name": "logintime_min",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "最后登录时间下限（秒级时间戳）"
-          },
-          {
-            "in": "query",
-            "name": "logintime_max",
-            "schema": {
-              "type": "integer"
-            },
-            "description": "最后登录时间上限（秒级时间戳）"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "用户分页结果",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserListResult"
-                }
-              }
-            }
-          }
-        },
-        "description": "用户分页列表，支持关键词、多字段精确/范围筛选与服务端排序"
-      },
-      "post": {
-        "tags": [
-          "用户"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "新建的用户详情",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserResult"
-                }
-              }
-            }
-          }
-        },
-        "description": "新建用户",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "nickname": {
-                    "type": "string",
-                    "description": "用户昵称"
-                  },
-                  "email": {
-                    "type": "string",
-                    "description": "用户邮箱"
-                  },
-                  "avatar_url": {
-                    "type": "string",
-                    "description": "头像 URL"
-                  }
-                },
-                "required": [
-                  "nickname"
-                ]
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "用户"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "更新后的用户详情",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserResult"
-                }
-              }
-            }
-          }
-        },
-        "description": "更新用户信息",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "integer",
-                    "description": "用户 ID"
-                  },
-                  "nickname": {
-                    "type": "string",
-                    "description": "用户昵称"
-                  },
-                  "email": {
-                    "type": "string",
-                    "description": "用户邮箱"
-                  },
-                  "avatar_url": {
-                    "type": "string",
-                    "description": "头像 URL"
-                  }
-                },
-                "required": [
-                  "id"
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
-    "/user/{id}": {
-      "delete": {
-        "tags": [
-          "用户"
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "用户 ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "删除结果",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "integer",
-                      "description": "0 表示成功"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "result": {
-                      "type": "null",
-                      "description": "成功时为空"
-                    }
-                  },
-                  "required": [
-                    "code"
-                  ]
-                }
-              }
-            }
-          }
-        },
-        "description": "根据 ID 删除单个用户"
-      },
-      "get": {
-        "tags": [
-          "用户"
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "用户 ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "用户详情",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserResult"
-                }
-              }
-            }
-          }
-        },
-        "description": "根据用户 ID 查询详情"
-      }
-    },
-    "/user/batch-delete": {
-      "post": {
-        "tags": [
-          "用户"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "批量删除结果",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BatchDeleteResult"
-                }
-              }
-            }
-          }
-        },
-        "description": "批量删除用户",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "ids": {
-                    "type": "array",
-                    "items": {
-                      "type": "integer"
-                    },
-                    "description": "待删除的用户 ID 列表"
-                  }
-                },
-                "required": [
-                  "ids"
-                ]
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -2240,6 +2240,223 @@
           "result"
         ]
       },
+      "UserItem": {
+        "type": "object",
+        "description": "用户列表行",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "用户 ID"
+          },
+          "nickname": {
+            "type": "string",
+            "description": "昵称"
+          },
+          "avatar_url": {
+            "type": "string",
+            "description": "头像地址"
+          },
+          "email": {
+            "type": "string",
+            "description": "邮箱"
+          },
+          "createtime": {
+            "type": "integer",
+            "description": "注册时间（秒级时间戳）"
+          },
+          "logintime": {
+            "type": "integer",
+            "description": "最近登录时间（秒级时间戳）"
+          }
+        },
+        "required": [
+          "id",
+          "nickname"
+        ]
+      },
+      "UserListResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "description": "总条数"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UserItem"
+                }
+              }
+            },
+            "required": [
+              "total",
+              "items"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "UserResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/UserItem"
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "BatchDeleteResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "deleted_count": {
+                "type": "integer",
+                "description": "成功删除数量"
+              }
+            },
+            "required": [
+              "deleted_count"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "TicketItem": {
+        "type": "object",
+        "description": "工单行",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "工单 ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "标题"
+          },
+          "description": {
+            "type": "string",
+            "description": "描述"
+          },
+          "status": {
+            "type": "integer",
+            "description": "1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭"
+          },
+          "priority": {
+            "type": "integer",
+            "description": "1 低 / 2 中 / 3 高 / 4 紧急"
+          },
+          "assignee": {
+            "type": "string",
+            "description": "负责人"
+          },
+          "category": {
+            "type": "string",
+            "description": "分类"
+          },
+          "created_at": {
+            "type": "integer",
+            "description": "创建时间（秒级时间戳）"
+          },
+          "updated_at": {
+            "type": "integer",
+            "description": "更新时间（秒级时间戳）"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "status"
+        ]
+      },
+      "TicketListResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "description": "总条数"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TicketItem"
+                }
+              }
+            },
+            "required": [
+              "total",
+              "items"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
+      "TicketResult": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "0 表示成功"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/TicketItem"
+          }
+        },
+        "required": [
+          "code",
+          "result"
+        ]
+      },
       "LoginResult": {
         "type": "object",
         "properties": {
@@ -2405,7 +2622,7 @@
               },
               "permissions": {
                 "type": "array",
-                "description": "权限点，形如 table-example:delete",
+                "description": "权限点，形如 example:delete",
                 "items": {
                   "type": "string"
                 }
@@ -2881,223 +3098,6 @@
             "items": {
               "$ref": "#/components/schemas/MenuNode"
             }
-          }
-        },
-        "required": [
-          "code",
-          "result"
-        ]
-      },
-      "TicketItem": {
-        "type": "object",
-        "description": "工单行",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "description": "工单 ID"
-          },
-          "title": {
-            "type": "string",
-            "description": "标题"
-          },
-          "description": {
-            "type": "string",
-            "description": "描述"
-          },
-          "status": {
-            "type": "integer",
-            "description": "1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭"
-          },
-          "priority": {
-            "type": "integer",
-            "description": "1 低 / 2 中 / 3 高 / 4 紧急"
-          },
-          "assignee": {
-            "type": "string",
-            "description": "负责人"
-          },
-          "category": {
-            "type": "string",
-            "description": "分类"
-          },
-          "created_at": {
-            "type": "integer",
-            "description": "创建时间（秒级时间戳）"
-          },
-          "updated_at": {
-            "type": "integer",
-            "description": "更新时间（秒级时间戳）"
-          }
-        },
-        "required": [
-          "id",
-          "title",
-          "status"
-        ]
-      },
-      "TicketListResult": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "description": "0 表示成功"
-          },
-          "message": {
-            "type": "string"
-          },
-          "result": {
-            "type": "object",
-            "properties": {
-              "total": {
-                "type": "integer",
-                "description": "总条数"
-              },
-              "items": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/TicketItem"
-                }
-              }
-            },
-            "required": [
-              "total",
-              "items"
-            ]
-          }
-        },
-        "required": [
-          "code",
-          "result"
-        ]
-      },
-      "TicketResult": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "description": "0 表示成功"
-          },
-          "message": {
-            "type": "string"
-          },
-          "result": {
-            "$ref": "#/components/schemas/TicketItem"
-          }
-        },
-        "required": [
-          "code",
-          "result"
-        ]
-      },
-      "UserItem": {
-        "type": "object",
-        "description": "用户列表行",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "description": "用户 ID"
-          },
-          "nickname": {
-            "type": "string",
-            "description": "昵称"
-          },
-          "avatar_url": {
-            "type": "string",
-            "description": "头像地址"
-          },
-          "email": {
-            "type": "string",
-            "description": "邮箱"
-          },
-          "createtime": {
-            "type": "integer",
-            "description": "注册时间（秒级时间戳）"
-          },
-          "logintime": {
-            "type": "integer",
-            "description": "最近登录时间（秒级时间戳）"
-          }
-        },
-        "required": [
-          "id",
-          "nickname"
-        ]
-      },
-      "UserListResult": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "description": "0 表示成功"
-          },
-          "message": {
-            "type": "string"
-          },
-          "result": {
-            "type": "object",
-            "properties": {
-              "total": {
-                "type": "integer",
-                "description": "总条数"
-              },
-              "items": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/UserItem"
-                }
-              }
-            },
-            "required": [
-              "total",
-              "items"
-            ]
-          }
-        },
-        "required": [
-          "code",
-          "result"
-        ]
-      },
-      "UserResult": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "description": "0 表示成功"
-          },
-          "message": {
-            "type": "string"
-          },
-          "result": {
-            "$ref": "#/components/schemas/UserItem"
-          }
-        },
-        "required": [
-          "code",
-          "result"
-        ]
-      },
-      "BatchDeleteResult": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "description": "0 表示成功"
-          },
-          "message": {
-            "type": "string"
-          },
-          "result": {
-            "type": "object",
-            "properties": {
-              "deleted_count": {
-                "type": "integer",
-                "description": "成功删除数量"
-              }
-            },
-            "required": [
-              "deleted_count"
-            ]
           }
         },
         "required": [

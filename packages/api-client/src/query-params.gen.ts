@@ -1,6 +1,6 @@
 /**
  * 本文件由 scripts/gen-query-params.js 自动生成，请勿手动编辑。
- * 数据源：openapi.json 中 GET /user 的 query 参数。
+ * 数据源：openapi.json 中 GET /example/table 的 query 参数。
  * 重新生成：pnpm -C packages/api-client gen:query-params（或随 pnpm api 一并执行）
  */
 
@@ -41,7 +41,7 @@ export const PRIMARY_QUERY_PARAMS = [
   "range_time"
 ] as const
 
-/** GET /user 的可筛选字段目录 */
+/** GET /example/table 的可筛选字段目录 */
 export const USER_FILTER_FIELDS: QueryFilterField[] = [
   {
     "name": "id",

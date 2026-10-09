@@ -7,7 +7,8 @@ name: i18n 翻译
 # 只有真正变更的键才会调用模型。
 #
 # 与 ai-implement.yml 的分工：那边是「issue → 写代码」，这边是「代码 → 补翻译」。
-# 两者共用同一套网关凭据（DSH_GATEWAY_*），不新增 Secret。
+# 二者**可以共用**网关凭据（DSH_GATEWAY_*），但翻译有自己的 I18N_* 变量可覆盖 ——
+# 模型可单独拆，地址/密钥按字段独立回退（见 scripts/i18n/lib/provider.mjs）。
 #
 # 三个触发入口：
 #   1. 给 issue 打 `i18n:ready` 标签（人打的，天然可信）；
@@ -63,21 +64,22 @@ jobs:
         with:
           node-version: 24
 
+      # 配置检查交给脚本自己的 --provider —— 必填项随鉴权形态而变
+      # （provider-native 下密钥可选），在 workflow 里硬写一份必然与脚本分叉。
       - name: 检查配置
         env:
+          I18N_GATEWAY_KEY: ${{ secrets.I18N_GATEWAY_KEY }}
+          I18N_GATEWAY_BASE_URL: ${{ vars.I18N_GATEWAY_BASE_URL }}
+          I18N_GATEWAY_MODEL: ${{ vars.I18N_GATEWAY_MODEL }}
+          I18N_GATEWAY_API: ${{ vars.I18N_GATEWAY_API }}
+          I18N_GATEWAY_AUTH_MODE: ${{ vars.I18N_GATEWAY_AUTH_MODE }}
+          I18N_GATEWAY_ID: ${{ vars.I18N_GATEWAY_ID }}
+          I18N_PROVIDER_KEY: ${{ secrets.I18N_PROVIDER_KEY }}
           DSH_GATEWAY_KEY: ${{ secrets.DSH_GATEWAY_KEY }}
           DSH_GATEWAY_BASE_URL: ${{ vars.DSH_GATEWAY_BASE_URL }}
           DSH_GATEWAY_MODEL: ${{ vars.DSH_GATEWAY_MODEL }}
           DSH_GATEWAY_API: ${{ vars.DSH_GATEWAY_API }}
-        run: |
-          missing=0
-          for name in DSH_GATEWAY_KEY DSH_GATEWAY_BASE_URL DSH_GATEWAY_MODEL; do
-            if [ -z "${!name:-}" ]; then
-              echo "::error::$name 未配置（Settings → Secrets and variables → Actions）"
-              missing=1
-            fi
-          done
-          exit $missing
+        run: node scripts/i18n/translate.mjs --provider
 
       - name: i18n 现状报告（翻译前）
         run: node scripts/i18n/translate.mjs --dry --stats
@@ -94,6 +96,14 @@ jobs:
 
       - name: 运行翻译
         env:
+          # 翻译专用优先；未配的字段由脚本按字段回退到下面的共用 DSH_*。
+          I18N_GATEWAY_KEY: ${{ secrets.I18N_GATEWAY_KEY }}
+          I18N_GATEWAY_BASE_URL: ${{ vars.I18N_GATEWAY_BASE_URL }}
+          I18N_GATEWAY_MODEL: ${{ vars.I18N_GATEWAY_MODEL }}
+          I18N_GATEWAY_API: ${{ vars.I18N_GATEWAY_API }}
+          I18N_GATEWAY_AUTH_MODE: ${{ vars.I18N_GATEWAY_AUTH_MODE }}
+          I18N_GATEWAY_ID: ${{ vars.I18N_GATEWAY_ID }}
+          I18N_PROVIDER_KEY: ${{ secrets.I18N_PROVIDER_KEY }}
           DSH_GATEWAY_KEY: ${{ secrets.DSH_GATEWAY_KEY }}
           DSH_GATEWAY_BASE_URL: ${{ vars.DSH_GATEWAY_BASE_URL }}
           DSH_GATEWAY_MODEL: ${{ vars.DSH_GATEWAY_MODEL }}

@@ -20,7 +20,7 @@ import { ok } from '../utils/response'
  * ## 权限点命名
  *
  * `{模块}:{动作}`，动作取 `read` / `create` / `edit` / `delete` / `write`。
- * 模块名与 `feature.ts` 里声明的一致（`table-example` / `dict` / `feature`），
+ * 模块名与 `feature.ts` 里声明的一致（`example` / `dict` / `feature`），
  * 这样「页面能力、页面指令、AI 工具」三处说的是同一套语言。
  *
  * ## Mock 的三种角色
@@ -36,22 +36,22 @@ import { ok } from '../utils/response'
  * 否则「admin 不能删」会在判定第一道就被短路掉。
  */
 const ALL_PERMISSIONS = [
-  // 表格示例（模块名与权限 key 统一为 `table-example`）
-  'table-example:read',
-  'table-example:create',
-  'table-example:edit',
+  /*
+    示例模块（表格示例 + 复杂表格 + 工单）。
+
+    权限 key 统一为 `example` —— 与接口前缀 `/example/*`、目录 `features/example/`
+    同源。三个示例页共用这一套，不再各自开一个命名空间（那会让权限点跟着页面名走，
+    接真实后端时对不上任何资源）。
+  */
+  'example:read',
+  'example:create',
+  'example:edit',
   // 更新（直连接口改一条记录）与编辑分开：客户端 UI 不会自动同步
-  'table-example:update',
-  'table-example:delete',
+  'example:update',
+  'example:delete',
   // AI 填写表单（只改页面状态、不落库）与提交（落库、不可撤销）分开 —— 风险等级不同
-  'table-example:fill',
-  'table-example:submit',
-  // 工单管理（**没有批量接口**的示例模块：批量操作靠 AI 自主编排）
-  'ticket:read',
-  'ticket:create',
-  'ticket:edit',
-  'ticket:update',
-  'ticket:delete',
+  'example:fill',
+  'example:submit',
   // 数据字典
   'dict:read',
   'dict:create',
@@ -121,7 +121,7 @@ defineRouteMeta({
                   role: { type: 'string', description: '角色标识' },
                   permissions: {
                     type: 'array',
-                    description: '权限点，形如 table-example:delete',
+                    description: '权限点，形如 example:delete',
                     items: { type: 'string' },
                   },
                 },

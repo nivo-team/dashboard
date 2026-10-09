@@ -1,30 +1,39 @@
 name: AI 实现
 
-# 由人打上的 `ai:ready` 标签触发；也可在 Actions 页面手动指定 issue 号触发（用于重跑）。
+# **只有被人 @ 到白名单账号时才触发**（Variable `AI_TRIGGER_ACCOUNTS`）。
 #
-# 信任模型（抄自报告里 Warp Oz 的可复用部分）：
-# - `issues.labeled` 事件**天然可信** —— 只有协作者有权限打标签，所以不需要额外做成员校验；
-# - issue 正文是不可信输入，只经 `.github/ai/build-prompt.mjs` 走 Node 字符串处理，
-#   **绝不插进 shell**；
-# - 本 workflow 刻意**不**使用 `pull_request_target`，也不 checkout 任何 PR 的代码 ——
-#   agent 拿到的永远是默认分支，从根上避开 prompt 注入改流水线的路径。
+# 与旧版的区别（为什么收紧）：
+# - 旧版：打 `ai:ready` 标签，或评论里出现 `/ai` 就触发。触发面太宽 ——
+#   `/ai` 尤其容易被普通讨论误触发（任何人写一句「/ai 应该这样」就把流水线点着了）；
+# - 新版：**只有 @ 到白名单账号**才跑，且评论者必须是协作者。
+#   `@` 是一个明确的「请你做」信号，不会误伤讨论。
+#
+# 信任模型：
+# - 触发者必须是 OWNER / MEMBER / COLLABORATOR —— 外部人的 @ 一律忽略；
+# - issue / PR 正文与评论都是**不可信输入**，只经 `.github/ai/build-prompt.mjs`
+#   走 Node 字符串处理，**绝不插进 shell**；
+# - 刻意**不**使用 `pull_request_target`；
+# - issue 场景永远从默认分支开始；PR 场景只接受**同仓库**分支，fork PR 直接拒绝
+#   （在特权上下文里执行外部代码是明确的危险，见 gate job）。
+#
+# **强制 person token**：本 workflow 要求 `AI_PAT`，缺了直接失败 ——
+# 不再回落到 `GITHUB_TOKEN`。原因见 `GH_TOKEN` 处的注释。
 
 on:
-  issues:
-    types: [labeled]
-  # 在 issue 里追加一条含触发词的评论，就能让 AI 带着**完整讨论上下文**再跑一轮
-  # （评论会一起喂给模型，见 build-prompt.mjs）。触发词用 `/ai`：
-  # 它不像 @mention 那样产生通知，也不会被普通讨论误触发。
+  # 评论是唯一的自动入口。issue 与 PR 的评论都走这个事件
+  # （PR 本质是 issue，`github.event.issue.pull_request` 非空即为 PR）。
   issue_comment:
     types: [created]
+  # 手动重跑入口：维护者在 Actions 页面显式指定编号。这是唯一绕过
+  # 「@ 白名单账号」的路径，且需要仓库写权限才能操作，等价于维护者本人授权。
   workflow_dispatch:
     inputs:
       issue_number:
-        description: 要实现的 issue 编号
+        description: 要实现的 issue 或 PR 编号（重跑用）
         required: true
         type: string
 
-# 同一个 issue 的实现任务串行；**不取消**在途任务（半途取消会留下未提交的工作区）
+# 同一个 issue / PR 的任务串行；**不取消**在途任务（半途取消会留下未提交的工作区）
 concurrency:
   group: ai-implement-${{ github.event.issue.number || inputs.issue_number }}
   cancel-in-progress: false
@@ -34,60 +43,198 @@ permissions:
   issues: write
   pull-requests: write
 
-env:
-  ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
-  # 开 PR 必须用 PAT：用 GITHUB_TOKEN 开的 PR **不会触发** pull_request 类 workflow
-  # （GitHub 防递归机制），那样 CI 就不会自动跑，门控等于形同虚设。
-  # 未配置 AI_PAT 时回落到 GITHUB_TOKEN —— 流程仍能跑通，但开出的 PR 需要人工重新触发 CI。
-  GH_TOKEN: ${{ secrets.AI_PAT || secrets.GITHUB_TOKEN }}
-
 jobs:
-  implement:
-    # 三种入口：
-    # 1. 手动触发（workflow_dispatch）—— 重跑用
-    # 2. 打上 ai:ready 标签（issues.labeled）—— 首次开工
-    # 3. 在 issue 里评论含 `/ai`（issue_comment.created）—— 追加需求 / 要求返工
-    #
-    # 评论入口的信任模型比标签入口严：打标签天然只有协作者能做，而**任何人都能评论**，
-    # 所以这里显式要求 author_association ∈ OWNER / MEMBER / COLLABORATOR。
-    # 还要**排除 AI 自己发的评论** —— 它的作者是 PAT 背后的真人账号，
-    # `user.type != 'Bot'` 挡不住，因此用 `<!-- ai-agent -->` 标记识别（见 build-prompt.mjs）。
+  # ───────────────────────────────────────────────────────────────────
+  # 触发判定：所有 AI 任务的唯一闸门
+  #
+  # 为什么单独一个 job 而不是把条件写进主 job 的 `if`：判定涉及
+  # 「协作者身份 + @ 词边界匹配 + 自触发排除 + ai:skip + fork 拒绝」，
+  # 而且其中几项要调 API —— 一行 `if` 表达不了。放独立 job 还有个好处：
+  # **判定不通过时主 job 显示为 skipped**，而不是「成功但什么都没做」。
+  # ───────────────────────────────────────────────────────────────────
+  gate:
+    name: 触发判定
+    # 粗筛：只有「@ 了某人、且不是 AI 自己的评论」才值得启动 runner 做精确判定。
+    # 精确判定（白名单账号、词边界、协作者身份）在下面的脚本里。
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'issues' &&
-       github.event.label.name == 'ai:ready' &&
-       !contains(github.event.issue.labels.*.name, 'ai:skip')) ||
       (github.event_name == 'issue_comment' &&
-       github.event.issue.pull_request == null &&
-       !contains(github.event.issue.labels.*.name, 'ai:skip') &&
-       contains(github.event.comment.body, '/ai') &&
-       !contains(github.event.comment.body, '<!-- ai-agent -->') &&
-       github.event.comment.user.login != 'cocodevooo' &&
-       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+       contains(github.event.comment.body, '@') &&
+       !contains(github.event.comment.body, '<!-- ai-agent -->'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # 最小权限：gate 只读，不写任何东西
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    outputs:
+      should_run: ${{ steps.judge.outputs.should_run }}
+      number: ${{ steps.judge.outputs.number }}
+      is_pr: ${{ steps.judge.outputs.is_pr }}
+
+    steps:
+      - name: 判定是否被授权触发
+        id: judge
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          # 白名单账号：逗号分隔，例如 `owocc,cocodevooo`
+          TRIGGER_ACCOUNTS: ${{ vars.AI_TRIGGER_ACCOUNTS }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_ASSOC: ${{ github.event.comment.author_association }}
+          EVENT_NUMBER: ${{ github.event.issue.number }}
+          EVENT_IS_PR: ${{ github.event.issue.pull_request != null }}
+          MANUAL_NUMBER: ${{ inputs.issue_number }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # AI 自己发的评论都带这个标记（见 build-prompt.mjs）—— 用来排除自触发。
+          # AI 的评论作者是 PAT 背后的真人账号，`user.type != 'Bot'` 挡不住。
+          AI_MARKER='<!-- ai-agent -->'
+
+          should_run=false
+          number=''
+          is_pr='false'
+
+          if [[ -z "${TRIGGER_ACCOUNTS:-}" || "$TRIGGER_ACCOUNTS" =~ ^\<.*\>$ ]]; then
+            echo "::error::Variable AI_TRIGGER_ACCOUNTS 未配置（或仍是占位符 <FILL_ME>）——"
+            echo "::error::没有白名单账号，任何 @ 都不会触发。"
+            echo "::error::到 Settings → Secrets and variables → Actions 配置，例如：cocodevooo"
+            exit 1
+          fi
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            number="${MANUAL_NUMBER:-}"
+            if [[ -z "$number" ]]; then
+              echo "::notice::手动触发但未提供编号，跳过。"
+            else
+              is_pr="$(gh api "repos/$REPO/issues/$number" --jq 'if .pull_request then "true" else "false" end' 2>/dev/null || echo false)"
+              should_run=true
+              echo "::notice::手动触发 #$number（is_pr=$is_pr）"
+            fi
+          elif [[ "$EVENT_NAME" == "issue_comment" ]]; then
+            number="$EVENT_NUMBER"
+            is_pr="$EVENT_IS_PR"
+
+            if [[ "$COMMENT_BODY" == *"$AI_MARKER"* ]]; then
+              echo "::notice::这是 AI 自己发的评论，跳过（防自触发）。"
+            else
+              case "$COMMENT_ASSOC" in
+                OWNER|MEMBER|COLLABORATOR) authorized=true ;;
+                *) authorized=false ;;
+              esac
+
+              if [[ "$authorized" != true ]]; then
+                echo "::notice::评论者不是协作者（${COMMENT_ASSOC:-NONE}），跳过。"
+              else
+                # @ 匹配：账号名可以是逗号分隔的列表。
+                # - 用词边界收尾，避免 `@owocc` 误匹配 `@owoccx`；
+                # - **大小写不敏感** —— GitHub 账号名本就大小写不敏感，而 bash 的
+                #   `=~` 区分大小写。不归一化的话，用户写 `@Cocodevooo` 会静默不触发，
+                #   而 GitHub 的 @ 补全恰好可能给出任意大小写。两边都转小写再比。
+                found=false
+                body_lc="$(printf '%s' "$COMMENT_BODY" | tr '[:upper:]' '[:lower:]')"
+                IFS=',' read -ra accounts <<< "$TRIGGER_ACCOUNTS"
+                for raw in "${accounts[@]}"; do
+                  acc="$(printf '%s' "$raw" | tr -d '[:space:]@' | tr '[:upper:]' '[:lower:]')"
+                  [[ -z "$acc" ]] && continue
+                  if [[ "$body_lc" =~ @${acc}([^a-z0-9_-]|$) ]]; then
+                    found=true
+                    break
+                  fi
+                done
+
+                if [[ "$found" == true ]]; then
+                  should_run=true
+                  echo "::notice::检测到 @ 白名单账号，触发 #$number（is_pr=$is_pr）"
+                else
+                  echo "::notice::评论里没有 @ 白名单账号（$TRIGGER_ACCOUNTS），跳过。"
+                fi
+              fi
+            fi
+          fi
+
+          # —— 放行前的两项通用校验（手动触发也适用）——
+          if [[ "$should_run" == true ]]; then
+            # 1) `ai:skip` 显式跳过（人工已接手这个 issue）
+            labels="$(gh api "repos/$REPO/issues/$number" --jq '[.labels[].name]|join(",")' 2>/dev/null || echo '')"
+            if [[ ",$labels," == *",ai:skip,"* ]]; then
+              echo "::notice::#$number 带 ai:skip 标签，跳过。"
+              should_run=false
+            fi
+
+            # 2) PR 场景只接受同仓库分支 —— fork PR 的代码会在有写权限的上下文里
+            #    被 checkout 并执行（pnpm install 会跑 postinstall），必须拒绝。
+            if [[ "$should_run" == true && "$is_pr" == true ]]; then
+              head_repo="$(gh api "repos/$REPO/pulls/$number" --jq '.head.repo.full_name' 2>/dev/null || echo '')"
+              if [[ -z "$head_repo" || "$head_repo" != "$REPO" ]]; then
+                echo "::error::PR #$number 来自 fork（${head_repo:-未知}），拒绝在特权上下文里执行外部代码。"
+                should_run=false
+              else
+                echo "::notice::PR #$number 来自同仓库分支，放行。"
+              fi
+            fi
+          fi
+
+          {
+            echo "should_run=$should_run"
+            echo "number=$number"
+            echo "is_pr=$is_pr"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "判定结果：should_run=$should_run number=$number is_pr=$is_pr"
+
+  # ───────────────────────────────────────────────────────────────────
+  # 实现：在 issue 上从默认分支开工；在 PR 上 checkout 该 PR 的 head 继续改
+  # ───────────────────────────────────────────────────────────────────
+  implement:
+    name: 实现
+    needs: gate
+    if: needs.gate.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      # 目标可能是 issue 也可能是 PR —— 统一叫 TARGET_NUMBER，下游不再区分来源
+      TARGET_NUMBER: ${{ needs.gate.outputs.number }}
+      TARGET_IS_PR: ${{ needs.gate.outputs.is_pr }}
+      # **强制 person token**：开 PR / 推送必须用 PAT。
+      # 为什么不允许回落到 GITHUB_TOKEN：用 GITHUB_TOKEN 开的 PR **不会触发**
+      # pull_request 类 workflow（GitHub 防递归机制），CI 因此不跑，门控形同虚设。
+      # 缺 AI_PAT 时下面的「检查配置」会直接失败，而不是悄悄用一个失效的 token。
+      GH_TOKEN: ${{ secrets.AI_PAT }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.AI_PAT || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.AI_PAT }}
+          # PR 场景 checkout 该 PR 的 head（同仓库分支，gate 已校验过）；
+          # issue 场景回到默认分支 —— 保证 agent 拿到的是经过 review 的基线。
+          ref: ${{ needs.gate.outputs.is_pr == 'true' && format('refs/pull/{0}/head', needs.gate.outputs.number) || github.event.repository.default_branch }}
 
-      - name: 读取 issue（写成文件，不进 shell 插值）
-        # comments 一起取回来：追加评论往往是需求的真正上下文（见 build-prompt.mjs）
-        run: gh issue view "$ISSUE_NUMBER" --json title,body,number,labels,comments > /tmp/issue.json
+      - name: 读取上下文（写成文件，不进 shell 插值）
+        # comments 一起取回来：追加评论往往是需求的真正上下文（见 build-prompt.mjs）。
+        # PR 与 issue 的 JSON 字段名一致（PR 本质是 issue），所以下游不用分支。
+        run: |
+          set -euo pipefail
+          if [[ "$TARGET_IS_PR" == "true" ]]; then
+            gh pr view "$TARGET_NUMBER" --json title,body,number,labels,comments > /tmp/issue.json
+          else
+            gh issue view "$TARGET_NUMBER" --json title,body,number,labels,comments > /tmp/issue.json
+          fi
 
       - name: 标记 ai:running
         run: |
-          gh issue edit "$ISSUE_NUMBER" --add-label 'ai:running' || true
-          gh issue edit "$ISSUE_NUMBER" --remove-label 'ai:needs-info' || true
+          gh issue edit "$TARGET_NUMBER" --add-label 'ai:running' || true
+          gh issue edit "$TARGET_NUMBER" --remove-label 'ai:needs-info' || true
 
-      # pnpm 必须早于 setup-node（cache: pnpm 依赖 pnpm 已存在）
+      # pnpm 必须早于 setup-node（cache: pnpm 依赖 pnpm 已存在）。
+      # 不传 version —— 版本唯一真值是 package.json 的 packageManager。
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -109,56 +256,62 @@ jobs:
 
       - name: 检查配置
         # 缺配置时在这里**逐项**报出来，而不是等模型调用才失败 —— 后者要读一长串
-        # 日志才能看出是少了个变量。清单与说明见 .github/ai/dsh-patch.yml 末尾。
+        # 日志才能看出是少了个变量。清单与说明见 docs/repo-configuration.md。
         env:
           DSH_GATEWAY_KEY: ${{ secrets.DSH_GATEWAY_KEY }}
           DSH_GATEWAY_BASE_URL: ${{ vars.DSH_GATEWAY_BASE_URL }}
           DSH_GATEWAY_MODEL: ${{ vars.DSH_GATEWAY_MODEL }}
           DSH_GATEWAY_API: ${{ vars.DSH_GATEWAY_API }}
+          DSH_GATEWAY_THINKING: ${{ vars.DSH_GATEWAY_THINKING }}
           AI_PAT: ${{ secrets.AI_PAT }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          AI_AGENT: ${{ vars.AI_AGENT || 'dsh' }}
         run: |
           set -euo pipefail
+
+          # 占位符（值形如 <FILL_ME>）视为「没配」。
+          # 为什么需要：GitHub **不允许 Variable 为空值**（`Variable value cannot be empty`），
+          # 所以预置仓库配置时只能填占位符让人再改。若不识别，`[[ -z ]]` 会把占位符
+          # 当成真值 —— 检查假通过，然后 agent 拿着一个无效端点失败。
+          is_set() {
+            local v="${1:-}"
+            [[ -n "${v// /}" && ! "$v" =~ ^\<.*\>$ ]]
+          }
+
           missing=()
-          case "$AI_AGENT" in
-            dsh)
-              # 手写路由（非 pi-ai 内置 catalog）必须自己声明协议与端点，
-              # 所以 api / baseURL / model 都是必填，没有 catalog 可继承。
-              [[ -z "$DSH_GATEWAY_KEY" ]]      && missing+=("Secret   DSH_GATEWAY_KEY      网关 API key")
-              [[ -z "$DSH_GATEWAY_BASE_URL" ]] && missing+=("Variable DSH_GATEWAY_BASE_URL 端点")
-              [[ -z "$DSH_GATEWAY_MODEL" ]]    && missing+=("Variable DSH_GATEWAY_MODEL    模型 id")
-              [[ -z "$DSH_GATEWAY_API" ]]      && missing+=("Variable DSH_GATEWAY_API      协议（如 openai-completions）")
-              ;;
-            claude)
-              [[ -z "$ANTHROPIC_API_KEY" ]] && missing+=("Secret   ANTHROPIC_API_KEY")
-              ;;
-            omp)
-              [[ -z "$OPENAI_API_KEY" ]] && missing+=("Secret   OPENAI_API_KEY")
-              ;;
-            *)
-              echo "::error::未知的 AI_AGENT: $AI_AGENT（支持 dsh | claude | omp）"
-              exit 1
-              ;;
-          esac
+          placeholders=()
+          # 注意：函数体末尾不能是 `[[ … ]] && …` —— 条件为假时函数返回非 0，
+          # 在 `set -e` 下会**直接中断脚本**（这句不成立就静默退出）。显式 return 0。
+          note_ph() { if [[ "$2" =~ ^\<.*\>$ ]]; then placeholders+=("$1"); fi; return 0; }
+
+          # —— person token 是本流水线的**硬性要求**（不再回落到 GITHUB_TOKEN）——
+          is_set "$AI_PAT" || missing+=("Secret   AI_PAT            person token（本流水线强制要求，见 docs/repo-configuration.md）")
+
+          # —— 唯一的一把密钥 + provider 变量（换 provider 只改这几个 Variable）——
+          # 手写路由（非 pi-ai 内置 catalog）必须自己声明协议与端点，
+          # 所以 api / baseURL / model 都是必填，没有 catalog 可继承。
+          is_set "$DSH_GATEWAY_KEY"      || missing+=("Secret   DSH_GATEWAY_KEY      网关 API key（唯一密钥，换 provider 只改它以外的变量）")
+          is_set "$DSH_GATEWAY_BASE_URL" || missing+=("Variable DSH_GATEWAY_BASE_URL 端点")
+          is_set "$DSH_GATEWAY_MODEL"    || missing+=("Variable DSH_GATEWAY_MODEL    模型 id")
+          is_set "$DSH_GATEWAY_API"      || missing+=("Variable DSH_GATEWAY_API      协议（如 openai-completions）")
+          is_set "$DSH_GATEWAY_THINKING" || missing+=("Variable DSH_GATEWAY_THINKING 推理方言（如 deepseek）")
+          note_ph DSH_GATEWAY_BASE_URL "$DSH_GATEWAY_BASE_URL"
+          note_ph DSH_GATEWAY_MODEL "$DSH_GATEWAY_MODEL"
+          note_ph DSH_GATEWAY_API "$DSH_GATEWAY_API"
+          note_ph DSH_GATEWAY_THINKING "$DSH_GATEWAY_THINKING"
+
+          if (( ${#placeholders[@]} )); then
+            echo "::error::以下配置还是占位符（值形如 <FILL_ME>），等于没配：${placeholders[*]}"
+            echo "::error::到 Settings → Secrets and variables → Actions 改成真值。清单见 docs/repo-configuration.md"
+            exit 1
+          fi
 
           if (( ${#missing[@]} )); then
             echo "::error::缺少以下配置 —— 到 Settings → Secrets and variables → Actions 补齐："
             for item in "${missing[@]}"; do
               echo "::error::  ${item}"
             done
-            echo "::error::完整清单见 .github/ai/dsh-patch.yml 末尾。"
             exit 1
           fi
-          echo "配置检查通过（agent=$AI_AGENT）"
-
-          # AI_PAT 不是硬性必需，但缺了会踩两个坑：① 仓库默认不允许用
-          # GITHUB_TOKEN 创建 PR（"not permitted to create or approve pull
-          # requests"）；② 用 GITHUB_TOKEN 开的 PR **不会触发** CI，门控形同虚设。
-          if [[ -z "$AI_PAT" ]]; then
-            echo "::warning::未配置 AI_PAT。若仓库也没开「Allow GitHub Actions to create and approve pull requests」，开 PR 会失败；即使成功，该 PR 也不会自动触发 CI。建议配一个 fine-grained PAT（contents + pull_requests + issues 写权限）。"
-          fi
+          echo "配置检查通过"
 
       - name: 组装提示词
         run: node .github/ai/build-prompt.mjs .github/ai/prompts/implement.md /tmp/issue.json /tmp/prompt.md
@@ -172,24 +325,16 @@ jobs:
           # ── 网关配置：全部来自 Variables；这个文件里**不含任何具体值** ──
           # 未设置的 Variable 会展开成空字符串，而 patch 里是 `!!js process.env.X`，
           # 空串/undefined 都会让该字段落回 DSH 自己的默认行为。
+          #
+          # 换 provider（含换成 OpenAI 兼容端点）**只改这四个 Variable**，
+          # 凭据始终是下面同一把 DSH_GATEWAY_KEY，不需要新增任何 Secret。
           DSH_GATEWAY_BASE_URL: ${{ vars.DSH_GATEWAY_BASE_URL }}
           DSH_GATEWAY_MODEL: ${{ vars.DSH_GATEWAY_MODEL }}
           DSH_GATEWAY_API: ${{ vars.DSH_GATEWAY_API }}
-          DSH_GATEWAY_MODEL_NAME: ${{ vars.DSH_GATEWAY_MODEL_NAME }}
-          DSH_GATEWAY_REASONING: ${{ vars.DSH_GATEWAY_REASONING }}
           DSH_GATEWAY_THINKING: ${{ vars.DSH_GATEWAY_THINKING }}
-          DSH_GATEWAY_CONTEXT_WINDOW: ${{ vars.DSH_GATEWAY_CONTEXT_WINDOW }}
-          DSH_AGENT_REASONING: ${{ vars.DSH_AGENT_REASONING }}
-          # 网关凭证：换 provider 时**只改这个 Secret 的值**，名字不用动
           DSH_GATEWAY_KEY: ${{ secrets.DSH_GATEWAY_KEY }}
           # headless profile 的插件依赖落在 DSH_HOME 下，放 runner 临时目录避免污染
           DSH_HOME: ${{ runner.temp }}/dsh-home
-          AI_AGENT: ${{ vars.AI_AGENT || 'dsh' }}
-          # 以下仅其它执行体（claude / omp）用得到
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          ANTHROPIC_BASE_URL: ${{ vars.ANTHROPIC_BASE_URL }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           set -o pipefail
           bash .github/ai/run-agent.sh /tmp/prompt.md 2>&1 | tee /tmp/agent.log
@@ -223,12 +368,12 @@ jobs:
 
           echo "STATUS=$STATUS CHANGED=$CHANGED"
 
-      # ---------- 有改动：提交、推送、开 PR ----------
+      # ---------- 有改动：提交、推送、（issue 场景）开 PR ----------
 
-      - name: 提交并推送分支
+      - name: 提交并推送
+        id: push
         if: steps.result.outputs.changed == 'true'
         env:
-          BRANCH: ai/issue-${{ env.ISSUE_NUMBER }}
           # ⚠️ agent 的输出是**不可信文本**：一律经 env 传入、在 shell 里以变量引用，
           # 绝不把 ${{ }} 直接嵌进 run 脚本 —— 那等于给模型开了一个命令注入的口子
           # （`$(...)` 会在 shell 里被二次求值）。issue 正文同理，见 build-prompt.mjs。
@@ -237,23 +382,34 @@ jobs:
           set -euo pipefail
           # AI 的提交身份。email 必须**关联到 AI 专用账号**（cocodevooo），
           # 提交才会显示成那个账号（带头像、可点击）；未关联时只显示这串名字与邮箱。
-          # 换账号时：改这里 + 改下面的自触发判断。
+          # 换账号时：改这里 + 改 gate 里排除自触发的判断。
           git config user.name 'cocodevooo'
           git config user.email 'cocodev@agent.qq.com'
-          # 远端已有这个分支时，**在上一轮成果的基础上继续改** —— 否则第二轮会从
-          # main 重来、把上一轮的工作覆盖掉。而人追加评论时几乎总是想迭代，不是想重做。
-          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
-            echo "分支 $BRANCH 已存在 —— 基于它继续（增量迭代）"
-            git fetch origin "$BRANCH"
-            git checkout -B "$BRANCH" "origin/$BRANCH"
+
+          if [[ "$TARGET_IS_PR" == "true" ]]; then
+            # PR 场景：推回该 PR 自己的 head 分支（不新建分支、不新开 PR）
+            BRANCH="$(gh pr view "$TARGET_NUMBER" --json headRefName --jq '.headRefName')"
+            echo "PR 场景：在已有分支 $BRANCH 上追加提交"
           else
-            echo "分支 $BRANCH 不存在 —— 从默认分支开始"
-            git checkout -B "$BRANCH"
+            BRANCH="ai/issue-$TARGET_NUMBER"
+            # 远端已有这个分支时，**在上一轮成果的基础上继续改** —— 否则第二轮会从
+            # 默认分支重来、把上一轮的工作覆盖掉。而人追加需求时几乎总是想迭代。
+            if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+              echo "分支 $BRANCH 已存在 —— 基于它继续（增量迭代）"
+              git fetch origin "$BRANCH"
+              git checkout -B "$BRANCH" "origin/$BRANCH"
+            else
+              echo "分支 $BRANCH 不存在 —— 从默认分支开始"
+              git checkout -B "$BRANCH"
+            fi
           fi
+
           git add -A
-          git commit -m "feat(ai): 实现 issue #${ISSUE_NUMBER} —— ${HINT}"
-          # 分支可能已存在（同一 issue 重跑），用 force-with-lease 覆盖自己的旧提交
-          git push -u origin "$BRANCH" --force-with-lease
+          git commit -m "feat(ai): 实现 #${TARGET_NUMBER} —— ${HINT}"
+          # 用 HEAD:refs/heads/… 而不是裸分支名 —— PR 场景下 checkout 的是
+          # `refs/pull/N/head`（detached HEAD），没有本地分支名可推。
+          git push origin "HEAD:refs/heads/$BRANCH" --force-with-lease
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
 
       - name: 生成改动摘要（PR 描述 / issue 评论共用）
         if: steps.result.outputs.changed == 'true'
@@ -266,7 +422,11 @@ jobs:
           {
             echo "由 AI 流水线实现，**合并需要人工点击**。"
             echo
-            echo "Closes #${ISSUE_NUMBER}"
+            if [[ "$TARGET_IS_PR" == "true" ]]; then
+              echo "跟进 PR #${TARGET_NUMBER}"
+            else
+              echo "Closes #${TARGET_NUMBER}"
+            fi
             echo
             echo "---"
             echo
@@ -284,7 +444,7 @@ jobs:
             echo
             echo "## 验收提醒（AI 不可自证的部分）"
             echo
-            echo "- [ ] 7 语言文案齐全、键树一致"
+            echo "- [ ] 文案齐全、键树一致"
             echo "- [ ] 无 \`dark:\` / \`font-bold\` / \`tracking-*\`"
             echo "- [ ] 配色只用 Kumo 语义令牌"
             echo "- [ ] 改动范围与 issue 的「明确不做」不冲突"
@@ -299,12 +459,15 @@ jobs:
             echo "</details>"
           } > /tmp/pr-body.md
 
+      # 开 PR 只在 **issue 场景** 且开启 AI_CREATE_PR 时发生。
+      # PR 场景本来就已有 PR，只需把改动推上去（上一步已做）。
       - name: 开 PR（或更新说明）
-        # **默认关闭** —— 走「提示手动创建 PR」那条路。想开启自动建 PR，在仓库
-        # Variables 里设 AI_CREATE_PR=true（并配好 AI_PAT，理由见下一步的注释）。
-        if: steps.result.outputs.changed == 'true' && vars.AI_CREATE_PR == 'true'
+        if: >-
+          steps.result.outputs.changed == 'true' &&
+          vars.AI_CREATE_PR == 'true' &&
+          needs.gate.outputs.is_pr != 'true'
         env:
-          BRANCH: ai/issue-${{ env.ISSUE_NUMBER }}
+          BRANCH: ${{ steps.push.outputs.branch }}
           HINT: ${{ steps.result.outputs.hint }}
         run: |
           set -euo pipefail
@@ -313,38 +476,28 @@ jobs:
             gh pr edit "$EXISTING" --body-file /tmp/pr-body.md
             echo "已更新现有 PR #$EXISTING"
           else
-            if ! gh pr create \
-              --base main \
+            gh pr create \
+              --base "${{ github.event.repository.default_branch }}" \
               --head "$BRANCH" \
-              --title "AI: issue #${ISSUE_NUMBER} —— ${HINT}" \
-              --body-file /tmp/pr-body.md 2>/tmp/pr-error.txt; then
-              if grep -q 'not permitted to create' /tmp/pr-error.txt; then
-                echo "::error::仓库不允许 Actions 创建 PR。二选一：① Settings → Actions → General → Workflow permissions 勾选「Allow GitHub Actions to create and approve pull requests」；② 配一个 AI_PAT Secret（fine-grained，含 contents / pull_requests / issues 写权限）—— 推荐后者，它还能让 PR 自动触发 CI。注意：代码已经推上去了，分支 $BRANCH 就在仓库里，可以先去手动开 PR。"
-              fi
-              cat /tmp/pr-error.txt
-              exit 1
-            fi
+              --title "AI: #${TARGET_NUMBER} —— ${HINT}" \
+              --body-file /tmp/pr-body.md
           fi
-          gh issue edit "$ISSUE_NUMBER" --add-label 'ai:pr-opened' || true
-          gh issue edit "$ISSUE_NUMBER" --remove-label 'ai:running' || true
+          gh issue edit "$TARGET_NUMBER" --add-label 'ai:pr-opened' || true
+          gh issue edit "$TARGET_NUMBER" --remove-label 'ai:running' || true
 
-      - name: 提示手动创建 PR（默认路径）
-        # 为什么默认不自动建 PR —— 两个独立的限制：
-        #   ① GitHub 默认不允许 Actions 用 GITHUB_TOKEN 创建 PR；
-        #   ② 更要命的是，用 GITHUB_TOKEN 创建 PR 产生的 opened 事件**不会触发**
-        #      其它 workflow（防递归机制），CI 因此不会跑，门控形同虚设。
-        # 而人手动开的 PR 是正常事件，CI 会照常跑 —— 所以「点一下」反而更可靠，
-        # 也省掉维护 PAT 的成本。要无人值守再去配 AI_PAT + AI_CREATE_PR=true。
-        if: steps.result.outputs.changed == 'true' && vars.AI_CREATE_PR != 'true'
+      # issue 场景、未开 AI_CREATE_PR 时的默认路径：只推分支，由人点一下开 PR。
+      # （人开的 PR 是正常事件，CI 会照常跑 —— 这正是门控的入口。）
+      - name: 提示手动创建 PR（issue 默认路径）
+        if: >-
+          steps.result.outputs.changed == 'true' &&
+          vars.AI_CREATE_PR != 'true' &&
+          needs.gate.outputs.is_pr != 'true'
         env:
-          BRANCH: ai/issue-${{ env.ISSUE_NUMBER }}
+          BRANCH: ${{ steps.push.outputs.branch }}
         run: |
           set -euo pipefail
-          # compare 链接点进去就是「创建 PR」页面，直接带上 base/head
-          PR_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/main...${BRANCH}?expand=1"
+          PR_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/${{ github.event.repository.default_branch }}...${BRANCH}?expand=1"
           {
-            # 这个标记让 build-prompt 认得出「这是 AI 上轮说的」，也用于**避免自触发**
-            # —— 评论触发要求内容含 `/ai`，而 AI 的评论作者是真人账号，标记是唯一可靠的区分。
             echo "<!-- ai-agent -->"
             echo "AI 已完成改动并推送到分支 \`${BRANCH}\`，**没有自动创建 PR** —— 按设计由人点一下："
             echo
@@ -357,13 +510,33 @@ jobs:
             cat /tmp/pr-body.md
           } > /tmp/comment-pr.md
 
-          gh issue comment "$ISSUE_NUMBER" --body-file /tmp/comment-pr.md
-          gh issue edit "$ISSUE_NUMBER" --add-label 'ai:branch-ready' || true
-          gh issue edit "$ISSUE_NUMBER" --remove-label 'ai:running' || true
+          gh issue comment "$TARGET_NUMBER" --body-file /tmp/comment-pr.md
+          gh issue edit "$TARGET_NUMBER" --add-label 'ai:branch-ready' || true
+          gh issue edit "$TARGET_NUMBER" --remove-label 'ai:running' || true
 
-      # ---------- 无改动或 block：把结论写回 issue ----------
+      # PR 场景：改动已推回 PR 自己的分支，只需说明一句。
+      - name: 回写 PR（改动已推回该 PR）
+        if: >-
+          steps.result.outputs.changed == 'true' &&
+          needs.gate.outputs.is_pr == 'true'
+        env:
+          BRANCH: ${{ steps.push.outputs.branch }}
+        run: |
+          set -euo pipefail
+          {
+            echo "<!-- ai-agent -->"
+            echo "已按本轮要求更新并推回本 PR 的分支 \`${BRANCH}\`，请重新 review。"
+            echo
+            echo "---"
+            echo
+            cat /tmp/pr-body.md
+          } > /tmp/comment-pr.md
+          gh pr comment "$TARGET_NUMBER" --body-file /tmp/comment-pr.md
+          gh issue edit "$TARGET_NUMBER" --remove-label 'ai:running' || true
 
-      - name: 无改动 / 被阻塞时回写 issue
+      # ---------- 无改动或 block：把结论写回 ----------
+
+      - name: 无改动 / 被阻塞时回写
         if: steps.result.outputs.changed != 'true'
         env:
           STATUS: ${{ steps.result.outputs.status }}
@@ -386,9 +559,9 @@ jobs:
             echo "</details>"
           } > /tmp/comment.md
 
-          gh issue comment "$ISSUE_NUMBER" --body-file /tmp/comment.md
-          gh issue edit "$ISSUE_NUMBER" --add-label 'ai:blocked' || true
-          gh issue edit "$ISSUE_NUMBER" --remove-label 'ai:running' || true
+          gh issue comment "$TARGET_NUMBER" --body-file /tmp/comment.md
+          gh issue edit "$TARGET_NUMBER" --add-label 'ai:blocked' || true
+          gh issue edit "$TARGET_NUMBER" --remove-label 'ai:running' || true
 
-          echo "::error::AI 未产出改动，已把结论回写到 issue #${ISSUE_NUMBER}"
+          echo "::error::AI 未产出改动，已把结论回写到 #${TARGET_NUMBER}"
           exit 1

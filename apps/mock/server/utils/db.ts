@@ -216,7 +216,7 @@ function seedMenus(): MenuRow[] {
       sort: 1,
     },
 
-    // 示例（表格示例 / 复杂表格）—— 权限 key 与模块名统一为 `table-example`
+    // 示例（表格示例 / 复杂表格 / 树形表格 / 工单）—— 权限 key 统一为 `example`
     {
       menu_id: 10,
       parent_id: 0,
@@ -240,7 +240,7 @@ function seedMenus(): MenuRow[] {
       menu_name: '查看表格示例',
       menu_type: 3,
       path: '',
-      permission: 'table-example:read',
+      permission: 'example:read',
       sort: 1,
     },
     {
@@ -249,7 +249,7 @@ function seedMenus(): MenuRow[] {
       menu_name: '新建记录',
       menu_type: 3,
       path: '',
-      permission: 'table-example:create',
+      permission: 'example:create',
       sort: 2,
     },
     {
@@ -258,7 +258,7 @@ function seedMenus(): MenuRow[] {
       menu_name: '编辑记录',
       menu_type: 3,
       path: '',
-      permission: 'table-example:edit',
+      permission: 'example:edit',
       sort: 3,
     },
     {
@@ -267,7 +267,7 @@ function seedMenus(): MenuRow[] {
       menu_name: '删除记录',
       menu_type: 3,
       path: '',
-      permission: 'table-example:delete',
+      permission: 'example:delete',
       sort: 4,
     },
     {
@@ -278,6 +278,14 @@ function seedMenus(): MenuRow[] {
       path: '/example/complex-table',
       sort: 2,
     },
+    {
+      menu_id: 200,
+      parent_id: 10,
+      menu_name: '树形表格',
+      menu_type: 2,
+      path: '/example/tree-table',
+      sort: 3,
+    },
     // 工单管理：**没有批量接口**的 CRUD 示例，用来演示 AI 自主编排
     {
       menu_id: 17,
@@ -285,7 +293,7 @@ function seedMenus(): MenuRow[] {
       menu_name: '工单管理',
       menu_type: 2,
       path: '/example/tickets',
-      sort: 3,
+      sort: 4,
     },
     {
       menu_id: 18,
@@ -293,7 +301,7 @@ function seedMenus(): MenuRow[] {
       menu_name: '查看工单',
       menu_type: 3,
       path: '',
-      permission: 'ticket:read',
+      permission: 'example:read',
       sort: 1,
     },
     {
@@ -302,7 +310,7 @@ function seedMenus(): MenuRow[] {
       menu_name: '新建工单',
       menu_type: 3,
       path: '',
-      permission: 'ticket:create',
+      permission: 'example:create',
       sort: 2,
     },
     {
@@ -311,7 +319,7 @@ function seedMenus(): MenuRow[] {
       menu_name: '编辑工单',
       menu_type: 3,
       path: '',
-      permission: 'ticket:edit',
+      permission: 'example:edit',
       sort: 3,
     },
     {
@@ -320,7 +328,7 @@ function seedMenus(): MenuRow[] {
       menu_name: '删除工单',
       menu_type: 3,
       path: '',
-      permission: 'ticket:delete',
+      permission: 'example:delete',
       sort: 4,
     },
 

@@ -278,7 +278,7 @@ return { ok: true, value: /* 标量或 ≤100 项的小数组 */ }
   submitPermission?: string
 ```
 
-**页面声明**（`features/table-example/list/feature.ts` 等）按下面的口径补：
+**页面声明**（`features/example/table/list/feature.ts` 等）按下面的口径补：
 
 | 动作 | 权限点 |
 |---|---|
@@ -368,7 +368,7 @@ inputSchema: {
 
 | # | 任务 | 写入范围（**只许动这些**） |
 |---|---|---|
-| **T1** | 字段注解 + 脱敏 + 读数据授权 + 权限点细分（一条链） | `features/ai/page/types.ts`、`features/ai/core/page-capabilities.ts`、`features/ai/core/content-redact.ts`(新)、`features/ai/core/tools/feature-tools.ts`、`features/ai/core/session-permissions.ts`、`features/ai/core/tools/data-tools.ts`(只加 `*:update`)、`features/table-example/list/feature.ts`、`features/data-dict/list/feature.ts` |
+| **T1** | 字段注解 + 脱敏 + 读数据授权 + 权限点细分（一条链） | `features/ai/page/types.ts`、`features/ai/core/page-capabilities.ts`、`features/ai/core/content-redact.ts`(新)、`features/ai/core/tools/feature-tools.ts`、`features/ai/core/session-permissions.ts`、`features/ai/core/tools/data-tools.ts`(只加 `*:update`)、`features/example/table/list/feature.ts`、`features/data-dict/list/feature.ts` |
 | **T2** | `check_result_match`（新工具，独占新文件） | `features/ai/core/tools/check-result-match-tool.ts`(新) |
 | **T3** | `analyze_data`（新工具，独占新文件） | `features/ai/core/tools/analyze-tool.ts`(新) |
 | **T4** | 统一注册 + 上下文扩展 + 计数器（**Lead 做**） | `features/ai/core/tools/index.ts`、`features/ai/core/types.ts`、`features/ai/core/chat.ts`、`features/ai/core/session-store.ts` |
@@ -380,8 +380,10 @@ inputSchema: {
 
 ## 3. 硬约束（仓库铁律，违反即返工）
 
-1. **用户可见文案 7 语言齐**（`zh-CN`/`en-US`/`ja-JP`/`ar-SA`/`hi-IN`/`es-ES`/`tr-TR`）——
-   只改中文等于没改。工具的内部错误文案**发给模型**、不进 UI，可以只写中文；**任何进 UI 的文案必须 7 语言**。
+1. **用户可见文案只写源语言 `zh-CN`**，其它语言由 `pnpm i18n` 流水线补齐
+   （目标语言清单以 `i18n.config.json` 的 `targetLocales` 为准，当前为 `ar-SA`）。
+   **不要手写其它语言** —— 写了会被流水线覆盖，且浪费 token。
+   工具的内部错误文案**发给模型**、不进 UI，同样只写中文即可。
 2. **不要跑** `typecheck` / `build` / `dev`（仓库约定：只有使用者点名 verify 时才跑）。正确性靠**阅读类型与调用方**保证。
 3. **不要新建平行的名单**：字段注解、权限点、工具清单一律复用既有出口
    （`AI_TOOLS` / `resolveFeature` / `hasPageCapabilityPermission`）。

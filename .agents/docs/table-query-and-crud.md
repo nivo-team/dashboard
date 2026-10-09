@@ -194,5 +194,6 @@ export function useTableQuery<
 ### 5.2 契约与构建保证
 
 - 修改 Mock 路由后，运行 `pnpm contract && pnpm api` 生成最新 SDK 与 Query 钩子；
-- 遵循铁律：用户可见文案 7 语言齐备（`zh-CN`, `en-US`, `ja-JP`, `ar-SA`, `hi-IN`, `es-ES`, `tr-TR`）；
+- 遵循铁律：用户可见文案**只写源语言 `zh-CN`**，其它语言由 `pnpm i18n` 流水线补齐
+  （目标语言清单以 `i18n.config.json` 的 `targetLocales` 为准，当前为 `ar-SA`）；
 - 严禁在日常提交过程中主动运行 `pnpm verify`。

@@ -34,7 +34,7 @@
 | 运行时 | `features/ai/core/runtime.ts` 是全仓唯一 `import 'ai'`（Vercel AI SDK v7）之处，**动态加载** |
 | 持久化 | 会话在 IndexedDB（按 app 分区）；本机偏好与 AI 设置项在 localStorage（`admin.preferences:<appId>` 按 app）。**原 `admin.ai`（厂商 / 模型）已删除**，该键不再被写入或读取 |
 | 接入面 | 10 份 `feature.ts`（新）+ 5 处 AI 表单桥（旧路径仍可用） |
-| 7 语言 | `ai` 命名空间 121 个叶键，**7 语言完全一致**（`pnpm guardrails` 全量门控） |
+| i18n | `ai` 命名空间约 130 个叶键；源语言与各目标语言的键集合应一致（`pnpm guardrails` 门控）。语言清单见 `i18n.config.json` |
 
 ---
 
@@ -397,13 +397,13 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 
 ### 4.7 i18n
 
-- `messages/ai/*.json`：7 语言各 **121 个叶键**（95 个顶层键 = 90 直接键 + 5 分组：
-  `tools` 15 / `sessionGroups` 5 / `greetings` 3 / `toolDetail` 3 / `taskCard` 5）。
-  **7 语言键集合完全一致**（`pnpm guardrails` 全量校验）。
+- `messages/ai/*.json`：约 **130 个叶键**（含 5 个分组：`tools` / `sessionGroups` /
+  `greetings` / `toolDetail` / `taskCard`）。**源语言与目标语言的键集合应一致**
+  （`pnpm guardrails` 校验）。语言清单见 `i18n.config.json`。
   （模型相关的 `selectModel` / `modelNone` / `modelEmpty` / `goToSettings` / `visionUnsupported` /
   `reasoning` 已删；`aiSettings` / `reasoningTitle` / `reasoningThinking` 仍在用。）
 - `common` 命名空间 `profile.settings.ai*`（通用设置 / 枚举项 / 权限）；**厂商模型与导入导出的
-  66 个直接键（含分组展开共 74 个叶键）已随本次清理删除**（7 语言一致）；
+  66 个直接键（含分组展开共 74 个叶键）已随本次清理删除**；
   入口名 `profileNav.ai` / `askAi`（「Ask AI」是产品名，各语言保留原文；`aiModes.split/float` 必须本地化）。
 - AI 引用的 `nav.*` 只有 `nav.userDetail`（`@` 引用的详情页名字）。
 

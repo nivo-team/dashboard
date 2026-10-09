@@ -27,7 +27,7 @@
 
 ## example / 表格示例（`$appId/example/user`）
 
-**代码**：`src/features/table-example/{index.tsx,feature.ts,columns.tsx}` · 路由 `src/routes/$appId/example/user/index.tsx`
+**代码**：`src/features/example/table/{index.tsx,feature.ts,columns.tsx}` · 路由 `src/routes/$appId/example/user/index.tsx`
 
 **功能**
 - 分页列表（默认 15 条/页）、关键词搜索（`kw`）、多字段精确/范围筛选、服务端排序
@@ -82,7 +82,7 @@
 
 ## example / 表格示例详情（`$appId/example/user/$id`）
 
-**代码**：`src/features/table-example/{detail-page.tsx,detail-feature.ts,detail-view.tsx,detail-loader.ts}`
+**代码**：`src/features/example/table/{detail-page.tsx,detail-feature.ts,detail-view.tsx,detail-loader.ts}`
 
 **功能**：查看单条记录资料（昵称/邮箱/注册时间等）、返回列表；**同一组件也被列表页的分屏预览复用**。
 
@@ -98,7 +98,7 @@
 
 ## example / 表格示例 新建 · 编辑（`$appId/example/user/new`、`$appId/example/user/$id/edit`）
 
-**代码**：`src/features/table-example/{create-page.tsx,create-feature.ts,edit-page.tsx,edit-feature.ts}`、共用表单 `src/features/table-example/{form-view.tsx,form-dialog.tsx}`
+**代码**：`src/features/example/table/{create-page.tsx,create-feature.ts,edit-page.tsx,edit-feature.ts}`、共用表单 `src/features/example/table/{form-view.tsx,form-dialog.tsx}`
 
 **功能**：表单录入 / 修改（昵称必填，邮箱与头像可选），提交后 toast + 返回列表。
 
@@ -114,7 +114,7 @@
 
 ## example / 复杂表格（`$appId/example/complex-table`）
 
-**代码**：`src/features/complex-table/{index.tsx,feature.ts,columns.tsx,data.ts}` · 路由 `src/routes/$appId/example/complex-table/index.tsx`
+**代码**：`src/features/example/complex-table/{index.tsx,feature.ts,columns.tsx,data.ts}` · 路由 `src/routes/$appId/example/complex-table/index.tsx`
 
 **功能**
 - 分组表头（基本信息 / 分类与状态 / 数量与金额）
@@ -142,7 +142,7 @@
 
 ## example / 工单管理（`$appId/example/tickets`）
 
-**代码**：`src/features/tickets/{index.tsx,feature.ts,columns.tsx,form-view.tsx,form-dialog.tsx,form-page.tsx}` · 路由 `src/routes/$appId/example/tickets/{index,new,$id.edit}.tsx`
+**代码**：`src/features/example/tickets/{index.tsx,feature.ts,columns.tsx,form-view.tsx,form-dialog.tsx,form-page.tsx}` · 路由 `src/routes/$appId/example/tickets/{index,new,$id.edit}.tsx`
 
 **这一页为什么存在**：它是「**后端没有批量接口**」的标准样板，用来验收 AI 的**自主编排**能力。
 
@@ -303,7 +303,7 @@
 
 | # | 步骤 | 预期 |
 | --- | --- | --- |
-| 1 | 打开 `/nivo/home` | 默认布局渲染；卡片标题 / 描述取自 `dashboard` 命名空间（7 语言） |
+| 1 | 打开 `/nivo/home` | 默认布局渲染；卡片标题 / 描述取自 `dashboard` 命名空间 |
 | 2 | 点「自定义」 | 进入编辑态：出现拖拽 / 缩放手柄与「添加卡片 / 重置 / 完成」 |
 | 3 | 拖动一张卡片换位 | 松手即保存；**刷新后位置保持** |
 | 4 | 拖右下角手柄改尺寸 | 尺寸保留；刷新后保持 |

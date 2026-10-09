@@ -30,7 +30,7 @@ export interface NavSubItem {
    */
   icon?: Icon
   badge?: string
-  /** 绑定的 feature 或权限要求（如 'table-example:read' 或 ['table-example:read'] 或 'table-example'） */
+  /** 绑定的 feature 或权限要求（如 'example:read' 或 ['example:read'] 或 'table-example'） */
   feature?: string | string[] | PermissionRequirement
   features?: string | string[] | PermissionRequirement
   /** 访问该二级菜单所需的权限要求 */
@@ -165,7 +165,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     // 「示例」模块：承载表格能力的样板页，权限 key 与模块名统一为 `table-example`
-    features: 'table-example:read',
+    features: 'example:read',
     items: [
       {
         label: '示例',
@@ -175,7 +175,7 @@ export const NAV_GROUPS: NavGroup[] = [
         keywords: ['example', 'examples', 'demo', 'table', '示例', '样例', '表格'],
         // 示例模块默认展开，方便新用户一眼看到「表格示例 / 复杂表格」
         defaultOpen: true,
-        features: ['table-example:read'],
+        features: ['example:read'],
         // 两个示例页彼此独立，任一可读就该看到入口（子项各自按权限收敛）
         groupPermissionMode: 'any',
         children: [
@@ -184,21 +184,28 @@ export const NAV_GROUPS: NavGroup[] = [
             labelKey: 'nav.tableExample',
             to: '/example/table',
             icon: TableIcon,
-            features: 'table-example:read',
+            features: 'example:read',
           },
           {
             label: '复杂表格',
             labelKey: 'nav.complexTable',
             to: '/example/complex-table',
+            icon: TableIcon,
+            features: 'example:read',
+          },
+          {
+            label: '树形表格',
+            labelKey: 'nav.treeTable',
+            to: '/example/tree-table',
             icon: TreeStructureIcon,
-            features: 'table-example:read',
+            features: 'example:read',
           },
           {
             label: '工单管理',
             labelKey: 'nav.tickets',
             to: '/example/tickets',
             icon: TicketIcon,
-            features: 'ticket:read',
+            features: 'example:read',
           },
         ],
       },

@@ -133,7 +133,7 @@ export async function guardRoutePermission({ appId, href, permission, fallbackTo
 - 权限从未同步过（`lastUpdated === null`）时先 `ensureUserPermissions()` 拉一次。
 - 无权限提示的 i18n **必须显式给命名空间**：
   `i18n.t('unauthorized', { ns: 'auth' })`。写成 `'auth.unauthorized'` 会因为
-  `defaultNS` 是 `common` 而命中不到，除中文外 6 种语言全回落中文硬编码（违反铁律 1）。
+  `defaultNS` 是 `common` 而命中不到，非默认语言全部回落成硬编码中文（违反铁律 1）。
 
 各模块挂载点（模块根 `route.tsx` 一处，子路由按操作细粒度）：
 

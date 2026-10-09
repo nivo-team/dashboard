@@ -141,6 +141,270 @@ export const ENDPOINT_SPECS: Record<string, EndpointSpec> = {
   "GET /data_dict/type/tree": {
     "summary": "获取字典分类树（顶层节点数组）"
   },
+  "DELETE /example/table/{id}": {
+    "summary": "根据 ID 删除单个用户",
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "用户 ID"
+      }
+    ]
+  },
+  "GET /example/table/{id}": {
+    "summary": "根据用户 ID 查询详情",
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "用户 ID"
+      }
+    ]
+  },
+  "POST /example/table/batch-delete": {
+    "summary": "批量删除用户",
+    "params": [
+      {
+        "name": "ids",
+        "in": "body",
+        "required": true
+      }
+    ]
+  },
+  "GET /example/table": {
+    "summary": "用户分页列表，支持关键词、多字段精确/范围筛选与服务端排序",
+    "params": [
+      {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "description": "页码，从 1 开始"
+      },
+      {
+        "name": "page_size",
+        "in": "query",
+        "required": false,
+        "description": "每页条数"
+      },
+      {
+        "name": "kw",
+        "in": "query",
+        "required": false,
+        "description": "关键词（昵称 / 邮箱 / ID 模糊匹配）"
+      },
+      {
+        "name": "field",
+        "in": "query",
+        "required": false,
+        "description": "排序字段名"
+      },
+      {
+        "name": "order",
+        "in": "query",
+        "required": false,
+        "description": "排序方向"
+      },
+      {
+        "name": "id",
+        "in": "query",
+        "required": false,
+        "description": "用户 ID 精确匹配"
+      },
+      {
+        "name": "nickname",
+        "in": "query",
+        "required": false,
+        "description": "昵称模糊匹配"
+      },
+      {
+        "name": "email",
+        "in": "query",
+        "required": false,
+        "description": "邮箱模糊匹配"
+      },
+      {
+        "name": "createtime_min",
+        "in": "query",
+        "required": false,
+        "description": "注册时间下限（秒级时间戳）"
+      },
+      {
+        "name": "createtime_max",
+        "in": "query",
+        "required": false,
+        "description": "注册时间上限（秒级时间戳）"
+      },
+      {
+        "name": "logintime_min",
+        "in": "query",
+        "required": false,
+        "description": "最后登录时间下限（秒级时间戳）"
+      },
+      {
+        "name": "logintime_max",
+        "in": "query",
+        "required": false,
+        "description": "最后登录时间上限（秒级时间戳）"
+      }
+    ]
+  },
+  "POST /example/table": {
+    "summary": "新建用户",
+    "params": [
+      {
+        "name": "nickname",
+        "in": "body",
+        "required": true
+      }
+    ]
+  },
+  "PUT /example/table": {
+    "summary": "更新用户信息",
+    "params": [
+      {
+        "name": "id",
+        "in": "body",
+        "required": true
+      }
+    ]
+  },
+  "DELETE /example/tickets/{id}": {
+    "summary": "根据 ID 删除单个工单（不提供批量删除接口）",
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "工单 ID"
+      }
+    ]
+  },
+  "GET /example/tickets/{id}": {
+    "summary": "根据工单 ID 查询详情",
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "工单 ID"
+      }
+    ]
+  },
+  "PATCH /example/tickets/{id}/status": {
+    "summary": "变更单条工单的状态",
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "工单 ID"
+      },
+      {
+        "name": "status",
+        "in": "body",
+        "required": true
+      }
+    ]
+  },
+  "GET /example/tickets": {
+    "summary": "工单分页列表，支持关键词、状态/优先级/分类筛选与服务端排序",
+    "params": [
+      {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "description": "页码，从 1 开始"
+      },
+      {
+        "name": "page_size",
+        "in": "query",
+        "required": false,
+        "description": "每页条数"
+      },
+      {
+        "name": "kw",
+        "in": "query",
+        "required": false,
+        "description": "关键词（标题 / 描述 / 负责人 / ID 模糊匹配）"
+      },
+      {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "description": "状态精确匹配：1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭"
+      },
+      {
+        "name": "priority",
+        "in": "query",
+        "required": false,
+        "description": "优先级精确匹配：1 低 / 2 中 / 3 高 / 4 紧急"
+      },
+      {
+        "name": "category",
+        "in": "query",
+        "required": false,
+        "description": "分类精确匹配"
+      },
+      {
+        "name": "assignee",
+        "in": "query",
+        "required": false,
+        "description": "负责人模糊匹配"
+      },
+      {
+        "name": "id",
+        "in": "query",
+        "required": false,
+        "description": "工单 ID 精确匹配"
+      },
+      {
+        "name": "created_at_min",
+        "in": "query",
+        "required": false,
+        "description": "创建时间下限（秒级时间戳）"
+      },
+      {
+        "name": "created_at_max",
+        "in": "query",
+        "required": false,
+        "description": "创建时间上限（秒级时间戳）"
+      },
+      {
+        "name": "field",
+        "in": "query",
+        "required": false,
+        "description": "排序字段名"
+      },
+      {
+        "name": "order",
+        "in": "query",
+        "required": false,
+        "description": "排序方向"
+      }
+    ]
+  },
+  "POST /example/tickets": {
+    "summary": "新建工单",
+    "params": [
+      {
+        "name": "title",
+        "in": "body",
+        "required": true
+      }
+    ]
+  },
+  "PUT /example/tickets": {
+    "summary": "更新单条工单（标题 / 描述 / 优先级 / 负责人 / 分类）",
+    "params": [
+      {
+        "name": "id",
+        "in": "body",
+        "required": true
+      }
+    ]
+  },
   "POST /login": {
     "summary": "账号密码登录（验证预设测试账号：super admin / admin / user）",
     "params": [
@@ -303,270 +567,6 @@ export const ENDPOINT_SPECS: Record<string, EndpointSpec> = {
         "in": "query",
         "required": false,
         "description": "以某个节点为根的子树；不传或传入未知 id 时返回整棵树"
-      }
-    ]
-  },
-  "DELETE /ticket/{id}": {
-    "summary": "根据 ID 删除单个工单（不提供批量删除接口）",
-    "params": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "description": "工单 ID"
-      }
-    ]
-  },
-  "GET /ticket/{id}": {
-    "summary": "根据工单 ID 查询详情",
-    "params": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "description": "工单 ID"
-      }
-    ]
-  },
-  "PATCH /ticket/{id}/status": {
-    "summary": "变更单条工单的状态",
-    "params": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "description": "工单 ID"
-      },
-      {
-        "name": "status",
-        "in": "body",
-        "required": true
-      }
-    ]
-  },
-  "GET /ticket": {
-    "summary": "工单分页列表，支持关键词、状态/优先级/分类筛选与服务端排序",
-    "params": [
-      {
-        "name": "page",
-        "in": "query",
-        "required": false,
-        "description": "页码，从 1 开始"
-      },
-      {
-        "name": "page_size",
-        "in": "query",
-        "required": false,
-        "description": "每页条数"
-      },
-      {
-        "name": "kw",
-        "in": "query",
-        "required": false,
-        "description": "关键词（标题 / 描述 / 负责人 / ID 模糊匹配）"
-      },
-      {
-        "name": "status",
-        "in": "query",
-        "required": false,
-        "description": "状态精确匹配：1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭"
-      },
-      {
-        "name": "priority",
-        "in": "query",
-        "required": false,
-        "description": "优先级精确匹配：1 低 / 2 中 / 3 高 / 4 紧急"
-      },
-      {
-        "name": "category",
-        "in": "query",
-        "required": false,
-        "description": "分类精确匹配"
-      },
-      {
-        "name": "assignee",
-        "in": "query",
-        "required": false,
-        "description": "负责人模糊匹配"
-      },
-      {
-        "name": "id",
-        "in": "query",
-        "required": false,
-        "description": "工单 ID 精确匹配"
-      },
-      {
-        "name": "created_at_min",
-        "in": "query",
-        "required": false,
-        "description": "创建时间下限（秒级时间戳）"
-      },
-      {
-        "name": "created_at_max",
-        "in": "query",
-        "required": false,
-        "description": "创建时间上限（秒级时间戳）"
-      },
-      {
-        "name": "field",
-        "in": "query",
-        "required": false,
-        "description": "排序字段名"
-      },
-      {
-        "name": "order",
-        "in": "query",
-        "required": false,
-        "description": "排序方向"
-      }
-    ]
-  },
-  "POST /ticket": {
-    "summary": "新建工单",
-    "params": [
-      {
-        "name": "title",
-        "in": "body",
-        "required": true
-      }
-    ]
-  },
-  "PUT /ticket": {
-    "summary": "更新单条工单（标题 / 描述 / 优先级 / 负责人 / 分类）",
-    "params": [
-      {
-        "name": "id",
-        "in": "body",
-        "required": true
-      }
-    ]
-  },
-  "GET /user": {
-    "summary": "用户分页列表，支持关键词、多字段精确/范围筛选与服务端排序",
-    "params": [
-      {
-        "name": "page",
-        "in": "query",
-        "required": false,
-        "description": "页码，从 1 开始"
-      },
-      {
-        "name": "page_size",
-        "in": "query",
-        "required": false,
-        "description": "每页条数"
-      },
-      {
-        "name": "kw",
-        "in": "query",
-        "required": false,
-        "description": "关键词（昵称 / 邮箱 / ID 模糊匹配）"
-      },
-      {
-        "name": "field",
-        "in": "query",
-        "required": false,
-        "description": "排序字段名"
-      },
-      {
-        "name": "order",
-        "in": "query",
-        "required": false,
-        "description": "排序方向"
-      },
-      {
-        "name": "id",
-        "in": "query",
-        "required": false,
-        "description": "用户 ID 精确匹配"
-      },
-      {
-        "name": "nickname",
-        "in": "query",
-        "required": false,
-        "description": "昵称模糊匹配"
-      },
-      {
-        "name": "email",
-        "in": "query",
-        "required": false,
-        "description": "邮箱模糊匹配"
-      },
-      {
-        "name": "createtime_min",
-        "in": "query",
-        "required": false,
-        "description": "注册时间下限（秒级时间戳）"
-      },
-      {
-        "name": "createtime_max",
-        "in": "query",
-        "required": false,
-        "description": "注册时间上限（秒级时间戳）"
-      },
-      {
-        "name": "logintime_min",
-        "in": "query",
-        "required": false,
-        "description": "最后登录时间下限（秒级时间戳）"
-      },
-      {
-        "name": "logintime_max",
-        "in": "query",
-        "required": false,
-        "description": "最后登录时间上限（秒级时间戳）"
-      }
-    ]
-  },
-  "POST /user": {
-    "summary": "新建用户",
-    "params": [
-      {
-        "name": "nickname",
-        "in": "body",
-        "required": true
-      }
-    ]
-  },
-  "PUT /user": {
-    "summary": "更新用户信息",
-    "params": [
-      {
-        "name": "id",
-        "in": "body",
-        "required": true
-      }
-    ]
-  },
-  "DELETE /user/{id}": {
-    "summary": "根据 ID 删除单个用户",
-    "params": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "description": "用户 ID"
-      }
-    ]
-  },
-  "GET /user/{id}": {
-    "summary": "根据用户 ID 查询详情",
-    "params": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "description": "用户 ID"
-      }
-    ]
-  },
-  "POST /user/batch-delete": {
-    "summary": "批量删除用户",
-    "params": [
-      {
-        "name": "ids",
-        "in": "body",
-        "required": true
       }
     ]
   }

@@ -1,17 +1,19 @@
 # i18n：单语言开发 + AI 翻译流水线
 
-> **一句话**：开发阶段**只写 `zh-CN`**，其它 6 种语言由 `pnpm i18n` 用 AI 补齐 ——
-> 带缓存（只翻增量）、支持按模块翻、译文由人开 PR 审核。
+> **一句话**：开发阶段**只写默认语言**（`i18n.config.json` 的 `sourceLocale`），
+> 其余语言由 `pnpm i18n` 用 AI 补齐 —— 带缓存（只翻增量）、支持按模块翻、
+> 译文由人开 PR 审核。
 >
-> 这套机制把「7 语言必须齐」从**写代码时的要求**改成了 **CI 流程的要求**。
+> **语言清单的真值只有 `i18n.config.json` 一处**（`sourceLocale` + `targetLocales`）。
+> 本文**刻意不列举具体语言** —— 它变过，写在这里必然过期。
 > 契约见 [AGENTS.md](../../AGENTS.md) 铁律 1。
 
 ## 1. 为什么这么改
 
-原来的规则是「用户可见文案必须 7 语言齐全」，靠人（或 AI）在写功能时手工补 6 份译文。
+原来的规则是「用户可见文案必须所有目标语言齐全」，靠人（或 AI）在写功能时手工补译文。
 实际后果：
 
-- AI agent 每写一个页面都要额外产出 6 份译文，注意力被切碎、token 翻倍；
+- AI agent 每写一个页面都要额外产出多份译文，注意力被切碎、token 翻倍；
 - 译文中途还可能写错键名，而这些错误**门控照不到**（门控当时只看 JSON 之间的键树一致性，
   不看代码用了什么键）；
 - 一旦漏翻，非中文用户在界面上直接看到**键名**。
@@ -37,7 +39,8 @@
 
 pnpm i18n:types     # 改了 zh-CN.json 之后重新生成键类型
 pnpm i18n:dry       # 先看计划：会翻哪些键、哪些命中缓存
-pnpm i18n           # 真翻（需 DSH_GATEWAY_* 凭据）
+pnpm i18n:provider  # 核对配置：打到哪个网关、用哪个模型、密钥来自哪一层
+pnpm i18n           # 真翻（I18N_GATEWAY_* ；未配的字段回退共用 DSH_GATEWAY_*）
 pnpm i18n:check     # 校验是否还有未翻译的键（CI 同款）
 ```
 
@@ -61,7 +64,7 @@ I18N_MODULES=users,roles pnpm i18n        # 环境变量写法（CI 更常用）
 
 推论：
 
-- **存量译文天然安全**：仓库里已有的 6 种语言译文都是 `edited`，首跑不会动它们；
+- **存量译文天然安全**：仓库里已有的译文都是 `edited`，首跑不会动它们；
 - **人工修正不会被机器冲掉**：改了某条译文后再跑翻译，它仍是 `edited`，脚本跳过。
 
 ### `stale` 为什么默认不翻
@@ -88,13 +91,76 @@ I18N_MODULES=users,roles pnpm i18n        # 环境变量写法（CI 更常用）
 
 实测：同一批键跑第二次，网关调用次数**不增加**。
 
+## 4.5 模型与地址：三层回退（翻译可独立，也可共用 agent）
+
+翻译**程序化直调** OpenAI 兼容的 `/chat/completions`，不经 agent / CLI。
+配置按**字段**独立地三层回退 —— 只覆盖想改的那一项即可：
+
+| 优先级 | 来源 | 放什么 |
+| --- | --- | --- |
+| 1 | `I18N_*` 环境变量 | 翻译专属覆盖（CI 的 Secret / Variable、本地临时改） |
+| 2 | `i18n.config.json` 的 `provider` 段 | 可进 git 的非敏感默认（地址、模型名） |
+| 3 | `DSH_GATEWAY_*` 环境变量 | **与 AI 开发流水线（agent）共用**的那套 |
+
+**逐字段独立**是关键：
+
+```bash
+# 只换翻译模型，地址与密钥继续共用 agent 的
+I18N_GATEWAY_MODEL=qwen/qwen3-max pnpm i18n
+
+# 只把翻译指向另一个网关，模型仍共用
+I18N_GATEWAY_BASE_URL=https://…/ai/v1 pnpm i18n
+```
+
+**密钥只走环境变量**（`i18n.config.json` 要进仓库，不该出现密钥）：
+
+| 变量 | 用途 | 缺失时回退 |
+| --- | --- | --- |
+| `I18N_GATEWAY_KEY` | 主密钥（形态见下表） | `DSH_GATEWAY_KEY` |
+| `I18N_PROVIDER_KEY` | 可选；provider-native 且**不用 BYOK** 时的厂商 key | —— |
+
+`authMode` 留空时**按地址推断**，共用 agent 的地址时通常什么都不用配：
+
+| authMode | 地址形态 | 密钥发到哪个头 |
+| --- | --- | --- |
+| `provider-native` | `gateway.ai.cloudflare.com/v1/<acct>/<gw>/<provider>` | `cf-aig-authorization` |
+| `rest-api` | `api.cloudflare.com/client/v4/accounts/<acct>/ai/v1` | `Authorization` |
+| `direct` | 厂商原生 / 自建网关 | `Authorization` |
+
+三种形态的语义与 [`apps/ai/src/model-config.ts`](../../apps/ai/src/model-config.ts) 一致 ——
+同一个 AI Gateway，别两处各说各话。
+
+**核对配置**用 `pnpm i18n:provider`（只打印、不翻译、不写文件）：
+
+```
+翻译 provider 配置（翻译专用变量 > i18n.config.json > 与 agent 共用）：
+  端点   https://gateway.ai.cloudflare.com/v1/<account_id>/gw/openai/chat/completions
+  模型   qwen/qwen3-max   ← I18N_* 变量
+  鉴权   provider-native（网关 key 发送，厂商 key 不发送）
+
+来源：地址 共用 DSH_GATEWAY_*（agent）｜模型 I18N_* 变量｜密钥 共用 DSH_GATEWAY_*（agent）
+```
+
+**程序化调用怎么保证拿到 JSON**：请求带 `response_format: { type: 'json_object' }`；
+若网关 / 模型不吃这个字段（400 且报文提到 `response_format`）会**去掉它重试一次** ——
+提示词本身已要求「只输出 JSON」，加上 `parseJsonResponse` 的容错（容忍 ```json 围栏与前后解释），
+去掉通常也能拿到。返回后**只接受输入里出现过的键**，模型自造或漏掉的键都不会污染语言文件。
+
 ## 5. 配置：`i18n.config.json`（仓库根，唯一真值）
 
 ```jsonc
 {
-  "sourceLocale": "zh-CN",
-  "targetLocales": ["en-US", "ja-JP", "ar-SA", "hi-IN", "es-ES", "tr-TR"],
+  // 语言清单的真值就在这两行 —— 别抄到别处
+  "sourceLocale": "zh-CN",           // 开发默认语言：AI 只写它
+  "targetLocales": ["ar-SA"],        // 翻译流水线的目标语言
   "modules": { "langs": { "enabled": false } },   // 按模块开关
+  "provider": {                                    // 见 §4.5；密钥不写这里
+    "baseUrl": "",                                 // 留空 = 回退 DSH_GATEWAY_BASE_URL
+    "model": "",                                   // 留空 = 回退 DSH_GATEWAY_MODEL
+    "authMode": "",                                // 留空 = 按 baseUrl 推断
+    "gatewayId": "",                               // 可选，cf-aig-gateway-id
+    "timeoutMs": 120000
+  },
   "cache": { "dir": ".cache/i18n", "ttlDays": 30, "version": 1 },
   "limits": { "maxKeysPerRun": 2000, "concurrency": 4, "batchSize": 40 },
   "check": {
@@ -174,7 +240,7 @@ CI 的三道 i18n 检查在 [`.github/workflows/ci.yml`](../../.github/workflows
 打 i18n:ready 标签 / 手动 Run workflow
         │
         ▼
-  1 检查配置（DSH_GATEWAY_* 缺一即点名报错）
+  1 translate --provider         配置检查（只打印端点/模型/密钥来源，缺项即失败）
   2 translate --dry --stats      现状报告
   3 恢复 .cache/i18n 缓存        命中即 0 token
   4 translate                    真翻（只翻增量）
@@ -185,8 +251,12 @@ CI 的三道 i18n 检查在 [`.github/workflows/ci.yml`](../../.github/workflows
   在 issue 里回「一键创建 PR」链接 → 人开 PR → 审核译文 → 合并
 ```
 
-凭据复用 AI 开发流水线那套（`DSH_GATEWAY_KEY` / `_BASE_URL` / `_MODEL` / `_API`），
-不新增 Secret；完整清单见 [`.github/ai/dsh-patch.yml`](../../.github/ai/dsh-patch.yml) 末尾。
+**配置检查交给脚本自己的 `--provider`**，不在 workflow 里再抄一份必填清单 ——
+必填项随鉴权形态而变（`provider-native` 下密钥可选），硬写一份必然与脚本分叉。
+
+workflow 同时注入 `I18N_*` 与共用的 `DSH_GATEWAY_*`：只配后者也能跑（逐字段回退），
+想单独拆模型就加一个 `I18N_GATEWAY_MODEL` Variable 即可。完整凭据清单见
+[`.github/ai/dsh-patch.yml`](../../.github/ai/dsh-patch.yml) 末尾。
 
 **默认不自动开 PR**：用 `GITHUB_TOKEN` 开的 PR 不会触发 CI（防递归），
 反而制造「门控在工作」的错觉 —— 与 [docs/ai-dev-pipeline.md](../../docs/ai-dev-pipeline.md) §14.3 同一取舍。
@@ -207,7 +277,7 @@ VITE_I18N_LOCK_LOCALE=zh-CN
 
 - **`dict/**` 不参与**：字典文案按 [dict-i18n.md](./dict-i18n.md) 的设计「只放真实存在的语言，
   缺就整份回落」，语言之间本来就可以不同，`check-guardrails` 对它跳过键树比对；
-  翻译脚本对它的行为是「源语言 → 目标语言」逐项复制翻译，**不强制 7 语言齐全**。
+  翻译脚本对它的行为是「源语言 → 目标语言」逐项复制翻译，**不强制所有目标语言齐全**。
 - **`langs` 命名空间**：只有 `zh-CN` 且全仓零引用，`enabled: false`（待确认后删除）。
 - **AI 译文质量无法自动判定**：只能靠缓存 + `--dry` 报告 + 人工 PR review，
   所以**译文 diff 必须进 PR 可见**。

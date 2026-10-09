@@ -422,6 +422,230 @@ export const DictTypeTreeResultSchema = {
     ]
 } as const;
 
+export const UserItemSchema = {
+    type: 'object',
+    description: '用户列表行',
+    properties: {
+        id: {
+            type: 'integer',
+            description: '用户 ID'
+        },
+        nickname: {
+            type: 'string',
+            description: '昵称'
+        },
+        avatar_url: {
+            type: 'string',
+            description: '头像地址'
+        },
+        email: {
+            type: 'string',
+            description: '邮箱'
+        },
+        createtime: {
+            type: 'integer',
+            description: '注册时间（秒级时间戳）'
+        },
+        logintime: {
+            type: 'integer',
+            description: '最近登录时间（秒级时间戳）'
+        }
+    },
+    required: [
+        'id',
+        'nickname'
+    ]
+} as const;
+
+export const UserListResultSchema = {
+    type: 'object',
+    properties: {
+        code: {
+            type: 'integer',
+            description: '0 表示成功'
+        },
+        message: {
+            type: 'string'
+        },
+        result: {
+            type: 'object',
+            properties: {
+                total: {
+                    type: 'integer',
+                    description: '总条数'
+                },
+                items: {
+                    type: 'array',
+                    items: {
+                        $ref: '#/components/schemas/UserItem'
+                    }
+                }
+            },
+            required: [
+                'total',
+                'items'
+            ]
+        }
+    },
+    required: [
+        'code',
+        'result'
+    ]
+} as const;
+
+export const UserResultSchema = {
+    type: 'object',
+    properties: {
+        code: {
+            type: 'integer',
+            description: '0 表示成功'
+        },
+        message: {
+            type: 'string'
+        },
+        result: {
+            $ref: '#/components/schemas/UserItem'
+        }
+    },
+    required: [
+        'code',
+        'result'
+    ]
+} as const;
+
+export const BatchDeleteResultSchema = {
+    type: 'object',
+    properties: {
+        code: {
+            type: 'integer',
+            description: '0 表示成功'
+        },
+        message: {
+            type: 'string'
+        },
+        result: {
+            type: 'object',
+            properties: {
+                deleted_count: {
+                    type: 'integer',
+                    description: '成功删除数量'
+                }
+            },
+            required: [
+                'deleted_count'
+            ]
+        }
+    },
+    required: [
+        'code',
+        'result'
+    ]
+} as const;
+
+export const TicketItemSchema = {
+    type: 'object',
+    description: '工单行',
+    properties: {
+        id: {
+            type: 'integer',
+            description: '工单 ID'
+        },
+        title: {
+            type: 'string',
+            description: '标题'
+        },
+        description: {
+            type: 'string',
+            description: '描述'
+        },
+        status: {
+            type: 'integer',
+            description: '1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭'
+        },
+        priority: {
+            type: 'integer',
+            description: '1 低 / 2 中 / 3 高 / 4 紧急'
+        },
+        assignee: {
+            type: 'string',
+            description: '负责人'
+        },
+        category: {
+            type: 'string',
+            description: '分类'
+        },
+        created_at: {
+            type: 'integer',
+            description: '创建时间（秒级时间戳）'
+        },
+        updated_at: {
+            type: 'integer',
+            description: '更新时间（秒级时间戳）'
+        }
+    },
+    required: [
+        'id',
+        'title',
+        'status'
+    ]
+} as const;
+
+export const TicketListResultSchema = {
+    type: 'object',
+    properties: {
+        code: {
+            type: 'integer',
+            description: '0 表示成功'
+        },
+        message: {
+            type: 'string'
+        },
+        result: {
+            type: 'object',
+            properties: {
+                total: {
+                    type: 'integer',
+                    description: '总条数'
+                },
+                items: {
+                    type: 'array',
+                    items: {
+                        $ref: '#/components/schemas/TicketItem'
+                    }
+                }
+            },
+            required: [
+                'total',
+                'items'
+            ]
+        }
+    },
+    required: [
+        'code',
+        'result'
+    ]
+} as const;
+
+export const TicketResultSchema = {
+    type: 'object',
+    properties: {
+        code: {
+            type: 'integer',
+            description: '0 表示成功'
+        },
+        message: {
+            type: 'string'
+        },
+        result: {
+            $ref: '#/components/schemas/TicketItem'
+        }
+    },
+    required: [
+        'code',
+        'result'
+    ]
+} as const;
+
 export const LoginResultSchema = {
     type: 'object',
     properties: {
@@ -590,7 +814,7 @@ export const PermissionsResultSchema = {
                 },
                 permissions: {
                     type: 'array',
-                    description: '权限点，形如 table-example:delete',
+                    description: '权限点，形如 example:delete',
                     items: {
                         type: 'string'
                     }
@@ -1076,230 +1300,6 @@ export const MenuTreeResultSchema = {
             items: {
                 $ref: '#/components/schemas/MenuNode'
             }
-        }
-    },
-    required: [
-        'code',
-        'result'
-    ]
-} as const;
-
-export const TicketItemSchema = {
-    type: 'object',
-    description: '工单行',
-    properties: {
-        id: {
-            type: 'integer',
-            description: '工单 ID'
-        },
-        title: {
-            type: 'string',
-            description: '标题'
-        },
-        description: {
-            type: 'string',
-            description: '描述'
-        },
-        status: {
-            type: 'integer',
-            description: '1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭'
-        },
-        priority: {
-            type: 'integer',
-            description: '1 低 / 2 中 / 3 高 / 4 紧急'
-        },
-        assignee: {
-            type: 'string',
-            description: '负责人'
-        },
-        category: {
-            type: 'string',
-            description: '分类'
-        },
-        created_at: {
-            type: 'integer',
-            description: '创建时间（秒级时间戳）'
-        },
-        updated_at: {
-            type: 'integer',
-            description: '更新时间（秒级时间戳）'
-        }
-    },
-    required: [
-        'id',
-        'title',
-        'status'
-    ]
-} as const;
-
-export const TicketListResultSchema = {
-    type: 'object',
-    properties: {
-        code: {
-            type: 'integer',
-            description: '0 表示成功'
-        },
-        message: {
-            type: 'string'
-        },
-        result: {
-            type: 'object',
-            properties: {
-                total: {
-                    type: 'integer',
-                    description: '总条数'
-                },
-                items: {
-                    type: 'array',
-                    items: {
-                        $ref: '#/components/schemas/TicketItem'
-                    }
-                }
-            },
-            required: [
-                'total',
-                'items'
-            ]
-        }
-    },
-    required: [
-        'code',
-        'result'
-    ]
-} as const;
-
-export const TicketResultSchema = {
-    type: 'object',
-    properties: {
-        code: {
-            type: 'integer',
-            description: '0 表示成功'
-        },
-        message: {
-            type: 'string'
-        },
-        result: {
-            $ref: '#/components/schemas/TicketItem'
-        }
-    },
-    required: [
-        'code',
-        'result'
-    ]
-} as const;
-
-export const UserItemSchema = {
-    type: 'object',
-    description: '用户列表行',
-    properties: {
-        id: {
-            type: 'integer',
-            description: '用户 ID'
-        },
-        nickname: {
-            type: 'string',
-            description: '昵称'
-        },
-        avatar_url: {
-            type: 'string',
-            description: '头像地址'
-        },
-        email: {
-            type: 'string',
-            description: '邮箱'
-        },
-        createtime: {
-            type: 'integer',
-            description: '注册时间（秒级时间戳）'
-        },
-        logintime: {
-            type: 'integer',
-            description: '最近登录时间（秒级时间戳）'
-        }
-    },
-    required: [
-        'id',
-        'nickname'
-    ]
-} as const;
-
-export const UserListResultSchema = {
-    type: 'object',
-    properties: {
-        code: {
-            type: 'integer',
-            description: '0 表示成功'
-        },
-        message: {
-            type: 'string'
-        },
-        result: {
-            type: 'object',
-            properties: {
-                total: {
-                    type: 'integer',
-                    description: '总条数'
-                },
-                items: {
-                    type: 'array',
-                    items: {
-                        $ref: '#/components/schemas/UserItem'
-                    }
-                }
-            },
-            required: [
-                'total',
-                'items'
-            ]
-        }
-    },
-    required: [
-        'code',
-        'result'
-    ]
-} as const;
-
-export const UserResultSchema = {
-    type: 'object',
-    properties: {
-        code: {
-            type: 'integer',
-            description: '0 表示成功'
-        },
-        message: {
-            type: 'string'
-        },
-        result: {
-            $ref: '#/components/schemas/UserItem'
-        }
-    },
-    required: [
-        'code',
-        'result'
-    ]
-} as const;
-
-export const BatchDeleteResultSchema = {
-    type: 'object',
-    properties: {
-        code: {
-            type: 'integer',
-            description: '0 表示成功'
-        },
-        message: {
-            type: 'string'
-        },
-        result: {
-            type: 'object',
-            properties: {
-                deleted_count: {
-                    type: 'integer',
-                    description: '成功删除数量'
-                }
-            },
-            required: [
-                'deleted_count'
-            ]
         }
     },
     required: [

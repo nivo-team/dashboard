@@ -88,7 +88,7 @@ export function RawEnumValue({ value, empty }: { value: unknown; empty: string }
 export function dictValueTypeBadge(value: unknown, t: TFunction, empty = '-'): ReactNode {
   const key = dictValueTypeKey(value)
   if (!key) return <RawEnumValue value={value} empty={empty} />
-  return <Badge variant={key === 'number' ? 'purple' : 'neutral'}>{t(`valueType.${key}`)}</Badge>
+  return <Badge variant={key === 'number' ? 'info' : 'secondary'}>{t(`valueType.${key}`)}</Badge>
 }
 
 /** 状态徽章（启用 / 禁用）—— 分类树与字典项表共用。 */
@@ -96,7 +96,7 @@ export function dictStatusBadge(value: unknown, t: TFunction, empty = '-'): Reac
   const key = dictStatusKey(value)
   if (!key) return <RawEnumValue value={value} empty={empty} />
   return (
-    <Badge variant={key === 'enabled' ? 'success' : 'neutral'} appearance="dot">
+    <Badge variant={key === 'enabled' ? 'success' : 'secondary'} appearance="dot">
       {t(`status.${key}`)}
     </Badge>
   )
@@ -107,7 +107,7 @@ export function dictIsDefaultBadge(value: unknown, t: TFunction, empty = '-'): R
   const key = dictIsDefaultKey(value)
   if (!key) return <RawEnumValue value={value} empty={empty} />
   return key === 'yes' ? (
-    <Badge variant="green">{t('isDefault.yes')}</Badge>
+    <Badge variant="success">{t('isDefault.yes')}</Badge>
   ) : (
     <span className="text-sm text-kumo-subtle">{t('isDefault.no')}</span>
   )

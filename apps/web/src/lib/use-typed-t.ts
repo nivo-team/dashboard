@@ -1,5 +1,5 @@
 /**
- * 类型安全的翻译函数：`useT('table-example')` 的 `t` 只接受该命名空间真实存在的键。
+ * 类型安全的翻译函数：`useT('example')` 的 `t` 只接受该命名空间真实存在的键。
  *
  * ## 为什么需要它
  *
@@ -20,7 +20,7 @@
  * ## 用法
  *
  * ```tsx
- * const t = useT('table-example')
+ * const t = useT('example')
  * t('columns.nickname')      // ✅ 编译期通过
  * t('columns.nicknameX')     // ❌ 编译期报错
  * t(`cell.${kind}`)          // ✅ 动态前缀白名单（i18n.config.json）

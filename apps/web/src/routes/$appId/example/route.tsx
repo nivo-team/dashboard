@@ -12,7 +12,7 @@ export const Route = createFileRoute('/$appId/example')({
   beforeLoad: async ({ params, location }) => {
     await guardRoutePermission({
       appId: params.appId,
-      permission: 'table-example:read',
+      permission: 'example:read',
       href: location.href,
     })
   },

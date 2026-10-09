@@ -286,6 +286,140 @@ export type DictTypeTreeResult = {
     result: Array<DictTypeNode>;
 };
 
+/**
+ * 用户列表行
+ */
+export type UserItem = {
+    /**
+     * 用户 ID
+     */
+    id: number;
+    /**
+     * 昵称
+     */
+    nickname: string;
+    /**
+     * 头像地址
+     */
+    avatar_url?: string;
+    /**
+     * 邮箱
+     */
+    email?: string;
+    /**
+     * 注册时间（秒级时间戳）
+     */
+    createtime?: number;
+    /**
+     * 最近登录时间（秒级时间戳）
+     */
+    logintime?: number;
+};
+
+export type UserListResult = {
+    /**
+     * 0 表示成功
+     */
+    code: number;
+    message?: string;
+    result: {
+        /**
+         * 总条数
+         */
+        total: number;
+        items: Array<UserItem>;
+    };
+};
+
+export type UserResult = {
+    /**
+     * 0 表示成功
+     */
+    code: number;
+    message?: string;
+    result: UserItem;
+};
+
+export type BatchDeleteResult = {
+    /**
+     * 0 表示成功
+     */
+    code: number;
+    message?: string;
+    result: {
+        /**
+         * 成功删除数量
+         */
+        deleted_count: number;
+    };
+};
+
+/**
+ * 工单行
+ */
+export type TicketItem = {
+    /**
+     * 工单 ID
+     */
+    id: number;
+    /**
+     * 标题
+     */
+    title: string;
+    /**
+     * 描述
+     */
+    description?: string;
+    /**
+     * 1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭
+     */
+    status: number;
+    /**
+     * 1 低 / 2 中 / 3 高 / 4 紧急
+     */
+    priority?: number;
+    /**
+     * 负责人
+     */
+    assignee?: string;
+    /**
+     * 分类
+     */
+    category?: string;
+    /**
+     * 创建时间（秒级时间戳）
+     */
+    created_at?: number;
+    /**
+     * 更新时间（秒级时间戳）
+     */
+    updated_at?: number;
+};
+
+export type TicketListResult = {
+    /**
+     * 0 表示成功
+     */
+    code: number;
+    message?: string;
+    result: {
+        /**
+         * 总条数
+         */
+        total: number;
+        items: Array<TicketItem>;
+    };
+};
+
+export type TicketResult = {
+    /**
+     * 0 表示成功
+     */
+    code: number;
+    message?: string;
+    result: TicketItem;
+};
+
 export type LoginResult = {
     /**
      * 0 表示成功
@@ -389,7 +523,7 @@ export type PermissionsResult = {
          */
         role: string;
         /**
-         * 权限点，形如 table-example:delete
+         * 权限点，形如 example:delete
          */
         permissions: Array<string>;
     };
@@ -697,140 +831,6 @@ export type MenuTreeResult = {
     result: Array<MenuNode>;
 };
 
-/**
- * 工单行
- */
-export type TicketItem = {
-    /**
-     * 工单 ID
-     */
-    id: number;
-    /**
-     * 标题
-     */
-    title: string;
-    /**
-     * 描述
-     */
-    description?: string;
-    /**
-     * 1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭
-     */
-    status: number;
-    /**
-     * 1 低 / 2 中 / 3 高 / 4 紧急
-     */
-    priority?: number;
-    /**
-     * 负责人
-     */
-    assignee?: string;
-    /**
-     * 分类
-     */
-    category?: string;
-    /**
-     * 创建时间（秒级时间戳）
-     */
-    created_at?: number;
-    /**
-     * 更新时间（秒级时间戳）
-     */
-    updated_at?: number;
-};
-
-export type TicketListResult = {
-    /**
-     * 0 表示成功
-     */
-    code: number;
-    message?: string;
-    result: {
-        /**
-         * 总条数
-         */
-        total: number;
-        items: Array<TicketItem>;
-    };
-};
-
-export type TicketResult = {
-    /**
-     * 0 表示成功
-     */
-    code: number;
-    message?: string;
-    result: TicketItem;
-};
-
-/**
- * 用户列表行
- */
-export type UserItem = {
-    /**
-     * 用户 ID
-     */
-    id: number;
-    /**
-     * 昵称
-     */
-    nickname: string;
-    /**
-     * 头像地址
-     */
-    avatar_url?: string;
-    /**
-     * 邮箱
-     */
-    email?: string;
-    /**
-     * 注册时间（秒级时间戳）
-     */
-    createtime?: number;
-    /**
-     * 最近登录时间（秒级时间戳）
-     */
-    logintime?: number;
-};
-
-export type UserListResult = {
-    /**
-     * 0 表示成功
-     */
-    code: number;
-    message?: string;
-    result: {
-        /**
-         * 总条数
-         */
-        total: number;
-        items: Array<UserItem>;
-    };
-};
-
-export type UserResult = {
-    /**
-     * 0 表示成功
-     */
-    code: number;
-    message?: string;
-    result: UserItem;
-};
-
-export type BatchDeleteResult = {
-    /**
-     * 0 表示成功
-     */
-    code: number;
-    message?: string;
-    result: {
-        /**
-         * 成功删除数量
-         */
-        deleted_count: number;
-    };
-};
-
 export type GetApiData = {
     body?: never;
     path?: never;
@@ -1124,6 +1124,427 @@ export type GetDataDictTypeTreeResponses = {
 };
 
 export type GetDataDictTypeTreeResponse = GetDataDictTypeTreeResponses[keyof GetDataDictTypeTreeResponses];
+
+export type DeleteExampleTableByIdData = {
+    body?: never;
+    path: {
+        /**
+         * 用户 ID
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/example/table/{id}';
+};
+
+export type DeleteExampleTableByIdResponses = {
+    /**
+     * 删除结果
+     */
+    200: {
+        /**
+         * 0 表示成功
+         */
+        code: number;
+        message?: string;
+        /**
+         * 成功时为空
+         */
+        result?: null;
+    };
+};
+
+export type DeleteExampleTableByIdResponse = DeleteExampleTableByIdResponses[keyof DeleteExampleTableByIdResponses];
+
+export type GetExampleTableByIdData = {
+    body?: never;
+    path: {
+        /**
+         * 用户 ID
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/example/table/{id}';
+};
+
+export type GetExampleTableByIdResponses = {
+    /**
+     * 用户详情
+     */
+    200: UserResult;
+};
+
+export type GetExampleTableByIdResponse = GetExampleTableByIdResponses[keyof GetExampleTableByIdResponses];
+
+export type PostExampleTableBatchDeleteData = {
+    body: {
+        /**
+         * 待删除的用户 ID 列表
+         */
+        ids: Array<number>;
+    };
+    path?: never;
+    query?: never;
+    url: '/example/table/batch-delete';
+};
+
+export type PostExampleTableBatchDeleteResponses = {
+    /**
+     * 批量删除结果
+     */
+    200: BatchDeleteResult;
+};
+
+export type PostExampleTableBatchDeleteResponse = PostExampleTableBatchDeleteResponses[keyof PostExampleTableBatchDeleteResponses];
+
+export type GetExampleTableData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 页码，从 1 开始
+         */
+        page?: number;
+        /**
+         * 每页条数
+         */
+        page_size?: number;
+        /**
+         * 关键词（昵称 / 邮箱 / ID 模糊匹配）
+         */
+        kw?: string;
+        /**
+         * 排序字段名
+         */
+        field?: 'id' | 'nickname' | 'email' | 'createtime' | 'logintime';
+        /**
+         * 排序方向
+         */
+        order?: 'asc' | 'desc';
+        /**
+         * 用户 ID 精确匹配
+         */
+        id?: number;
+        /**
+         * 昵称模糊匹配
+         */
+        nickname?: string;
+        /**
+         * 邮箱模糊匹配
+         */
+        email?: string;
+        /**
+         * 注册时间下限（秒级时间戳）
+         */
+        createtime_min?: number;
+        /**
+         * 注册时间上限（秒级时间戳）
+         */
+        createtime_max?: number;
+        /**
+         * 最后登录时间下限（秒级时间戳）
+         */
+        logintime_min?: number;
+        /**
+         * 最后登录时间上限（秒级时间戳）
+         */
+        logintime_max?: number;
+    };
+    url: '/example/table';
+};
+
+export type GetExampleTableResponses = {
+    /**
+     * 用户分页结果
+     */
+    200: UserListResult;
+};
+
+export type GetExampleTableResponse = GetExampleTableResponses[keyof GetExampleTableResponses];
+
+export type PostExampleTableData = {
+    body: {
+        /**
+         * 用户昵称
+         */
+        nickname: string;
+        /**
+         * 用户邮箱
+         */
+        email?: string;
+        /**
+         * 头像 URL
+         */
+        avatar_url?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/example/table';
+};
+
+export type PostExampleTableResponses = {
+    /**
+     * 新建的用户详情
+     */
+    200: UserResult;
+};
+
+export type PostExampleTableResponse = PostExampleTableResponses[keyof PostExampleTableResponses];
+
+export type PutExampleTableData = {
+    body: {
+        /**
+         * 用户 ID
+         */
+        id: number;
+        /**
+         * 用户昵称
+         */
+        nickname?: string;
+        /**
+         * 用户邮箱
+         */
+        email?: string;
+        /**
+         * 头像 URL
+         */
+        avatar_url?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/example/table';
+};
+
+export type PutExampleTableResponses = {
+    /**
+     * 更新后的用户详情
+     */
+    200: UserResult;
+};
+
+export type PutExampleTableResponse = PutExampleTableResponses[keyof PutExampleTableResponses];
+
+export type DeleteExampleTicketsByIdData = {
+    body?: never;
+    path: {
+        /**
+         * 工单 ID
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/example/tickets/{id}';
+};
+
+export type DeleteExampleTicketsByIdResponses = {
+    /**
+     * 删除结果
+     */
+    200: {
+        /**
+         * 0 表示成功
+         */
+        code: number;
+        message?: string;
+        /**
+         * 成功时为空
+         */
+        result?: null;
+    };
+};
+
+export type DeleteExampleTicketsByIdResponse = DeleteExampleTicketsByIdResponses[keyof DeleteExampleTicketsByIdResponses];
+
+export type GetExampleTicketsByIdData = {
+    body?: never;
+    path: {
+        /**
+         * 工单 ID
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/example/tickets/{id}';
+};
+
+export type GetExampleTicketsByIdResponses = {
+    /**
+     * 工单详情
+     */
+    200: TicketResult;
+};
+
+export type GetExampleTicketsByIdResponse = GetExampleTicketsByIdResponses[keyof GetExampleTicketsByIdResponses];
+
+export type PatchExampleTicketsByIdStatusData = {
+    body: {
+        /**
+         * 1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭
+         */
+        status: number;
+    };
+    path: {
+        /**
+         * 工单 ID
+         */
+        id: number;
+    };
+    query?: never;
+    url: '/example/tickets/{id}/status';
+};
+
+export type PatchExampleTicketsByIdStatusResponses = {
+    /**
+     * 更新后的工单
+     */
+    200: TicketResult;
+};
+
+export type PatchExampleTicketsByIdStatusResponse = PatchExampleTicketsByIdStatusResponses[keyof PatchExampleTicketsByIdStatusResponses];
+
+export type GetExampleTicketsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 页码，从 1 开始
+         */
+        page?: number;
+        /**
+         * 每页条数
+         */
+        page_size?: number;
+        /**
+         * 关键词（标题 / 描述 / 负责人 / ID 模糊匹配）
+         */
+        kw?: string;
+        /**
+         * 状态精确匹配：1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭
+         */
+        status?: number;
+        /**
+         * 优先级精确匹配：1 低 / 2 中 / 3 高 / 4 紧急
+         */
+        priority?: number;
+        /**
+         * 分类精确匹配
+         */
+        category?: string;
+        /**
+         * 负责人模糊匹配
+         */
+        assignee?: string;
+        /**
+         * 工单 ID 精确匹配
+         */
+        id?: number;
+        /**
+         * 创建时间下限（秒级时间戳）
+         */
+        created_at_min?: number;
+        /**
+         * 创建时间上限（秒级时间戳）
+         */
+        created_at_max?: number;
+        /**
+         * 排序字段名
+         */
+        field?: 'id' | 'title' | 'status' | 'priority' | 'created_at' | 'updated_at';
+        /**
+         * 排序方向
+         */
+        order?: 'asc' | 'desc';
+    };
+    url: '/example/tickets';
+};
+
+export type GetExampleTicketsResponses = {
+    /**
+     * 工单分页结果
+     */
+    200: TicketListResult;
+};
+
+export type GetExampleTicketsResponse = GetExampleTicketsResponses[keyof GetExampleTicketsResponses];
+
+export type PostExampleTicketsData = {
+    body: {
+        /**
+         * 标题
+         */
+        title: string;
+        /**
+         * 描述
+         */
+        description?: string;
+        /**
+         * 1 低 / 2 中 / 3 高 / 4 紧急
+         */
+        priority?: number;
+        /**
+         * 负责人
+         */
+        assignee?: string;
+        /**
+         * 分类
+         */
+        category?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/example/tickets';
+};
+
+export type PostExampleTicketsResponses = {
+    /**
+     * 新建的工单
+     */
+    200: TicketResult;
+};
+
+export type PostExampleTicketsResponse = PostExampleTicketsResponses[keyof PostExampleTicketsResponses];
+
+export type PutExampleTicketsData = {
+    body: {
+        /**
+         * 工单 ID
+         */
+        id: number;
+        /**
+         * 标题
+         */
+        title?: string;
+        /**
+         * 描述
+         */
+        description?: string;
+        /**
+         * 1 低 / 2 中 / 3 高 / 4 紧急
+         */
+        priority?: number;
+        /**
+         * 负责人
+         */
+        assignee?: string;
+        /**
+         * 分类
+         */
+        category?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/example/tickets';
+};
+
+export type PutExampleTicketsResponses = {
+    /**
+     * 更新后的工单
+     */
+    200: TicketResult;
+};
+
+export type PutExampleTicketsResponse = PutExampleTicketsResponses[keyof PutExampleTicketsResponses];
 
 export type PostLoginData = {
     body: {
@@ -1525,424 +1946,3 @@ export type GetSystemMenuTreeResponses = {
 };
 
 export type GetSystemMenuTreeResponse = GetSystemMenuTreeResponses[keyof GetSystemMenuTreeResponses];
-
-export type DeleteTicketByIdData = {
-    body?: never;
-    path: {
-        /**
-         * 工单 ID
-         */
-        id: number;
-    };
-    query?: never;
-    url: '/ticket/{id}';
-};
-
-export type DeleteTicketByIdResponses = {
-    /**
-     * 删除结果
-     */
-    200: {
-        /**
-         * 0 表示成功
-         */
-        code: number;
-        message?: string;
-        /**
-         * 成功时为空
-         */
-        result?: null;
-    };
-};
-
-export type DeleteTicketByIdResponse = DeleteTicketByIdResponses[keyof DeleteTicketByIdResponses];
-
-export type GetTicketByIdData = {
-    body?: never;
-    path: {
-        /**
-         * 工单 ID
-         */
-        id: number;
-    };
-    query?: never;
-    url: '/ticket/{id}';
-};
-
-export type GetTicketByIdResponses = {
-    /**
-     * 工单详情
-     */
-    200: TicketResult;
-};
-
-export type GetTicketByIdResponse = GetTicketByIdResponses[keyof GetTicketByIdResponses];
-
-export type PatchTicketByIdStatusData = {
-    body: {
-        /**
-         * 1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭
-         */
-        status: number;
-    };
-    path: {
-        /**
-         * 工单 ID
-         */
-        id: number;
-    };
-    query?: never;
-    url: '/ticket/{id}/status';
-};
-
-export type PatchTicketByIdStatusResponses = {
-    /**
-     * 更新后的工单
-     */
-    200: TicketResult;
-};
-
-export type PatchTicketByIdStatusResponse = PatchTicketByIdStatusResponses[keyof PatchTicketByIdStatusResponses];
-
-export type GetTicketData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * 页码，从 1 开始
-         */
-        page?: number;
-        /**
-         * 每页条数
-         */
-        page_size?: number;
-        /**
-         * 关键词（标题 / 描述 / 负责人 / ID 模糊匹配）
-         */
-        kw?: string;
-        /**
-         * 状态精确匹配：1 待处理 / 2 处理中 / 3 已完成 / 4 已关闭
-         */
-        status?: number;
-        /**
-         * 优先级精确匹配：1 低 / 2 中 / 3 高 / 4 紧急
-         */
-        priority?: number;
-        /**
-         * 分类精确匹配
-         */
-        category?: string;
-        /**
-         * 负责人模糊匹配
-         */
-        assignee?: string;
-        /**
-         * 工单 ID 精确匹配
-         */
-        id?: number;
-        /**
-         * 创建时间下限（秒级时间戳）
-         */
-        created_at_min?: number;
-        /**
-         * 创建时间上限（秒级时间戳）
-         */
-        created_at_max?: number;
-        /**
-         * 排序字段名
-         */
-        field?: 'id' | 'title' | 'status' | 'priority' | 'created_at' | 'updated_at';
-        /**
-         * 排序方向
-         */
-        order?: 'asc' | 'desc';
-    };
-    url: '/ticket';
-};
-
-export type GetTicketResponses = {
-    /**
-     * 工单分页结果
-     */
-    200: TicketListResult;
-};
-
-export type GetTicketResponse = GetTicketResponses[keyof GetTicketResponses];
-
-export type PostTicketData = {
-    body: {
-        /**
-         * 标题
-         */
-        title: string;
-        /**
-         * 描述
-         */
-        description?: string;
-        /**
-         * 1 低 / 2 中 / 3 高 / 4 紧急
-         */
-        priority?: number;
-        /**
-         * 负责人
-         */
-        assignee?: string;
-        /**
-         * 分类
-         */
-        category?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/ticket';
-};
-
-export type PostTicketResponses = {
-    /**
-     * 新建的工单
-     */
-    200: TicketResult;
-};
-
-export type PostTicketResponse = PostTicketResponses[keyof PostTicketResponses];
-
-export type PutTicketData = {
-    body: {
-        /**
-         * 工单 ID
-         */
-        id: number;
-        /**
-         * 标题
-         */
-        title?: string;
-        /**
-         * 描述
-         */
-        description?: string;
-        /**
-         * 1 低 / 2 中 / 3 高 / 4 紧急
-         */
-        priority?: number;
-        /**
-         * 负责人
-         */
-        assignee?: string;
-        /**
-         * 分类
-         */
-        category?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/ticket';
-};
-
-export type PutTicketResponses = {
-    /**
-     * 更新后的工单
-     */
-    200: TicketResult;
-};
-
-export type PutTicketResponse = PutTicketResponses[keyof PutTicketResponses];
-
-export type GetUserData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * 页码，从 1 开始
-         */
-        page?: number;
-        /**
-         * 每页条数
-         */
-        page_size?: number;
-        /**
-         * 关键词（昵称 / 邮箱 / ID 模糊匹配）
-         */
-        kw?: string;
-        /**
-         * 排序字段名
-         */
-        field?: 'id' | 'nickname' | 'email' | 'createtime' | 'logintime';
-        /**
-         * 排序方向
-         */
-        order?: 'asc' | 'desc';
-        /**
-         * 用户 ID 精确匹配
-         */
-        id?: number;
-        /**
-         * 昵称模糊匹配
-         */
-        nickname?: string;
-        /**
-         * 邮箱模糊匹配
-         */
-        email?: string;
-        /**
-         * 注册时间下限（秒级时间戳）
-         */
-        createtime_min?: number;
-        /**
-         * 注册时间上限（秒级时间戳）
-         */
-        createtime_max?: number;
-        /**
-         * 最后登录时间下限（秒级时间戳）
-         */
-        logintime_min?: number;
-        /**
-         * 最后登录时间上限（秒级时间戳）
-         */
-        logintime_max?: number;
-    };
-    url: '/user';
-};
-
-export type GetUserResponses = {
-    /**
-     * 用户分页结果
-     */
-    200: UserListResult;
-};
-
-export type GetUserResponse = GetUserResponses[keyof GetUserResponses];
-
-export type PostUserData = {
-    body: {
-        /**
-         * 用户昵称
-         */
-        nickname: string;
-        /**
-         * 用户邮箱
-         */
-        email?: string;
-        /**
-         * 头像 URL
-         */
-        avatar_url?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/user';
-};
-
-export type PostUserResponses = {
-    /**
-     * 新建的用户详情
-     */
-    200: UserResult;
-};
-
-export type PostUserResponse = PostUserResponses[keyof PostUserResponses];
-
-export type PutUserData = {
-    body: {
-        /**
-         * 用户 ID
-         */
-        id: number;
-        /**
-         * 用户昵称
-         */
-        nickname?: string;
-        /**
-         * 用户邮箱
-         */
-        email?: string;
-        /**
-         * 头像 URL
-         */
-        avatar_url?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/user';
-};
-
-export type PutUserResponses = {
-    /**
-     * 更新后的用户详情
-     */
-    200: UserResult;
-};
-
-export type PutUserResponse = PutUserResponses[keyof PutUserResponses];
-
-export type DeleteUserByIdData = {
-    body?: never;
-    path: {
-        /**
-         * 用户 ID
-         */
-        id: number;
-    };
-    query?: never;
-    url: '/user/{id}';
-};
-
-export type DeleteUserByIdResponses = {
-    /**
-     * 删除结果
-     */
-    200: {
-        /**
-         * 0 表示成功
-         */
-        code: number;
-        message?: string;
-        /**
-         * 成功时为空
-         */
-        result?: null;
-    };
-};
-
-export type DeleteUserByIdResponse = DeleteUserByIdResponses[keyof DeleteUserByIdResponses];
-
-export type GetUserByIdData = {
-    body?: never;
-    path: {
-        /**
-         * 用户 ID
-         */
-        id: number;
-    };
-    query?: never;
-    url: '/user/{id}';
-};
-
-export type GetUserByIdResponses = {
-    /**
-     * 用户详情
-     */
-    200: UserResult;
-};
-
-export type GetUserByIdResponse = GetUserByIdResponses[keyof GetUserByIdResponses];
-
-export type PostUserBatchDeleteData = {
-    body: {
-        /**
-         * 待删除的用户 ID 列表
-         */
-        ids: Array<number>;
-    };
-    path?: never;
-    query?: never;
-    url: '/user/batch-delete';
-};
-
-export type PostUserBatchDeleteResponses = {
-    /**
-     * 批量删除结果
-     */
-    200: BatchDeleteResult;
-};
-
-export type PostUserBatchDeleteResponse = PostUserBatchDeleteResponses[keyof PostUserBatchDeleteResponses];

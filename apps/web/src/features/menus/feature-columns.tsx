@@ -97,7 +97,7 @@ function RawEnumValue({ value, empty }: { value: unknown; empty: string }) {
 export function featureTypeBadge(value: unknown, t: TFunction, empty = '-'): ReactNode {
   const key = menuTypeKey(value)
   if (!key) return <RawEnumValue value={value} empty={empty} />
-  const variant = key === 'directory' ? 'blue' : key === 'menu' ? 'neutral' : 'purple'
+  const variant = key === 'directory' ? 'info' : key === 'menu' ? 'secondary' : 'primary'
   return <Badge variant={variant}>{t(`menuType.${key}`)}</Badge>
 }
 
@@ -106,7 +106,7 @@ export function featureStatusBadge(value: unknown, t: TFunction, empty = '-'): R
   const key = menuStatusKey(value)
   if (!key) return <RawEnumValue value={value} empty={empty} />
   return (
-    <Badge variant={key === 'enabled' ? 'success' : 'neutral'} appearance="dot">
+    <Badge variant={key === 'enabled' ? 'success' : 'secondary'} appearance="dot">
       {t(`status.${key}`)}
     </Badge>
   )
@@ -116,21 +116,21 @@ export function featureStatusBadge(value: unknown, t: TFunction, empty = '-'): R
 export function featureVisibleBadge(value: unknown, t: TFunction, empty = '-'): ReactNode {
   const key = menuVisibleKey(value)
   if (!key) return <RawEnumValue value={value} empty={empty} />
-  return <Badge variant={key === 'visible' ? 'outline' : 'orange'}>{t(`visible.${key}`)}</Badge>
+  return <Badge variant={key === 'visible' ? 'outline' : 'warning'}>{t(`visible.${key}`)}</Badge>
 }
 
 /** 是否外链徽章。 */
 export function featureIsFrameBadge(value: unknown, t: TFunction, empty = '-'): ReactNode {
   const key = menuIsFrameKey(value)
   if (!key) return <RawEnumValue value={value} empty={empty} />
-  return <Badge variant={key === 'yes' ? 'teal' : 'neutral'}>{t(`isFrame.${key}`)}</Badge>
+  return <Badge variant={key === 'yes' ? 'info' : 'secondary'}>{t(`isFrame.${key}`)}</Badge>
 }
 
 /** 路由缓存徽章。 */
 export function featureNoCacheBadge(value: unknown, t: TFunction, empty = '-'): ReactNode {
   const key = menuNoCacheKey(value)
   if (!key) return <RawEnumValue value={value} empty={empty} />
-  return <Badge variant={key === 'cache' ? 'green' : 'neutral'}>{t(`noCache.${key}`)}</Badge>
+  return <Badge variant={key === 'cache' ? 'success' : 'secondary'}>{t(`noCache.${key}`)}</Badge>
 }
 
 /**

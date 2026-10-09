@@ -243,6 +243,7 @@
     "tableExample": "表格示例",
     "tableExampleDetail": "表格示例详情",
     "complexTable": "复杂表格",
+    "treeTable": "树形表格",
     "tickets": "工单管理"
   },
   "notFound": {

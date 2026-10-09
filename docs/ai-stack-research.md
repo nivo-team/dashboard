@@ -5,7 +5,7 @@
 
 **本机环境限制（影响下文取证）**：本机 `api.openai.com` **完全不可达**（`curl` exit 28 / http_code 000）；`api.anthropic.com` 可达但边缘直接返回 403（出口 IP 为 HKG/SIN，疑地区或风控拦截）；`platform.openai.com`、`openai.com` 返回 403；`claude.com` 跳转 `app-unavailable-in-region`；`web_search` 工具端点返回 401 不可用。因此**厂商侧 CORS 只能标注未确认**，已改用「官方 SDK 源码 + 官方 README」作为替代一手证据。
 
-**评估前提（项目硬约束）**：React + Vite 8 + TS 6 纯客户端渲染 SPA；**无 SSR、无自有 Node 后端**；TanStack Router + TanStack Query 5 + zustand 5 + Tailwind v4（无 config）+ `@cloudflare/kumo` 2.14；RTL（阿拉伯语）与 7 语言必须支持；**不能依赖很新的浏览器特性**（WebMCP 已排除）；API Key 由使用者自填。
+**评估前提（项目硬约束）**：React + Vite 8 + TS 6 纯客户端渲染 SPA；**无 SSR、无自有 Node 后端**；TanStack Router + TanStack Query 5 + zustand 5 + Tailwind v4（无 config）+ `@cloudflare/kumo` 2.14；多语言与 RTL（阿拉伯语）必须支持；**不能依赖很新的浏览器特性**（WebMCP 已排除）；API Key 由使用者自填。
 
 **本仓依赖树实测**（读 `package.json` + `pnpm-lock.yaml` + `node_modules/.pnpm`，非记忆）：
 - `react` / `react-dom` 声明 `^19.2.0`，**lockfile 实际解析为 `19.3.0`**（`@types/react@19.3.0`）→ 这**满足** `@ai-sdk/react` 声明的 peer `^19.2.1`，之前担心的 peer 冲突**不成立**。

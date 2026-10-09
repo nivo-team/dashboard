@@ -21,11 +21,17 @@
 
 ## 二、硬约束（违反即为失败，会被 CI 或人工打回）
 
-1. **只写源语言 `zh-CN`，不要手写其它语言**：用户可见文案只改
-   `apps/web/src/messages/<ns>/zh-CN.json`。
-   其它 6 种语言由 `pnpm i18n` 流水线用 AI 补齐（见
-   `.agents/docs/i18n-translation-pipeline.md`），**你写它们只会浪费 token 且有覆盖风险**。
-   写完中文后跑 `pnpm i18n:types` 更新键类型。
+1. **文案只写默认语言，而且只写这一种**。
+   **默认语言是哪个，去读 `i18n.config.json` 的 `sourceLocale`** —— 不要记，
+   现读现用。用户可见文案只改 `apps/web/src/messages/<ns>/<sourceLocale>.json`。
+
+   **翻译是另一条独立流水线，与你无关**：其它语言由 `pnpm i18n` 按配置自动生成
+   （带缓存、只翻增量，见 `.agents/docs/i18n-translation-pipeline.md`）。
+   **不要手写其它语言** —— 会被流水线覆盖，且浪费 token。
+   **也不要在代码、注释或文档里写「支持 N 种语言」这类清单** —— 语言清单的真值只有
+   `i18n.config.json` 一处，抄到别处必然过期。
+
+   写完文案后跑 `pnpm i18n:types` 更新键类型。
    代码里用 `#/lib/use-typed-t` 的 `useT('ns')` 取 `t`，键名写错会在 typecheck 报错。
 2. **样式**：禁用 Tailwind 的 `dark:` 变体（主题由根节点 `data-mode` 驱动）；
    禁用 `tracking-*`；**严禁 `font-bold`**（标题用 `font-semibold`，强调用 `font-medium`）；
@@ -59,8 +65,8 @@ pnpm typecheck     # 必须无输出（tsc --noEmit）
 
 另外逐条核对：
 
-- [ ] 新增文案是否**只写了 `zh-CN`**（没有手写其它语言）？
-- [ ] 改了 `zh-CN.json` 后是否跑过 `pnpm i18n:types`？
+- [ ] 新增文案是否**只写了默认语言**（`i18n.config.json` 的 `sourceLocale`，没有手写其它语言）？
+- [ ] 改了源语言 `json` 后是否跑过 `pnpm i18n:types`？
 - [ ] 有没有出现 `dark:` / `font-bold` / `tracking-`？
 - [ ] 颜色是否只用 Kumo 语义令牌？
 - [ ] 有没有在渲染处硬编码平行名单？

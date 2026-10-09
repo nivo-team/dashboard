@@ -50,11 +50,14 @@
 #
 # 全部必填（缺一项，workflow 的「检查配置」步骤会点名报出来）：
 #
-#   Secret   DSH_GATEWAY_KEY        网关 API key
+#   Secret   DSH_GATEWAY_KEY        网关 API key —— **唯一的一把密钥**
 #   Variable DSH_GATEWAY_BASE_URL   端点
 #   Variable DSH_GATEWAY_MODEL      模型 id（非 catalog 路由必须给，否则没有模型可选）
 #   Variable DSH_GATEWAY_API        协议（非 catalog 路由必须给，没有 catalog 可继承）
 #   Variable DSH_GATEWAY_THINKING   推理方言
+#
+# **换 provider（含换成 OpenAI 兼容端点）只改上面四个 Variable**，密钥名与
+# Secret 数量都不变 —— 这就是不需要 ANTHROPIC_API_KEY / OPENAI_API_KEY 的原因。
 #
 # ── 以后想加回来、但现在刻意省略的东西 ────────────────────────────────
 #

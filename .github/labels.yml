@@ -35,7 +35,11 @@
 
 - name: 'ai:skip'
   color: '6E7781'
-  description: '显式跳过 AI 处理（即使带 ai:ready 也不触发），用于人工接手的 issue。'
+  description: '显式跳过 AI 处理（即使带着触发条件也不跑），用于人工接手的 issue。'
+
+- name: 'human-override'
+  color: 'FF7B00'
+  description: '【仅仓库成员可打】豁免「业务代码只由 AI 产出」门控 —— 紧急修复 / typo / 回滚时人工直接改。'
 
 # ---------- 阶段二：稳定后再启用（先留着，不激活） ----------
 
