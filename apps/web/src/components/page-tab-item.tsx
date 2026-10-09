@@ -81,6 +81,11 @@ const TAB_SHAPE_PAD = 1
  * 形状要靠它**补偿坐标**：绝对定位后代的包含块是祖先的 **padding box**，不是 border box ——
  * 而路径是照 border box（也就是标签看上去的那一圈）写的。不补偿就会整体偏 1px：
  * 形状往右挪 1px、右边还多探出 1px。
+ *
+ * ⚠️ 注意 chrome 标签是 `border-b-0`（**上边框 1px、下边框 0**）。所以下面定位形状时
+ * **不能用 `height` 反推**（`100%` 是 padding box 的高度，它已经含了「上 1px、下 0」这个差值），
+ * 必须上下的 `inset` 各写各的 —— 否则算出来的盒子比 viewBox 高一像素，形状被纵向拉伸，
+ * 底部就会冒过 header 那条线（用户报的「tabs 底部没对齐到 header 底边框」）。
  */
 const TAB_BORDER_WIDTH = 1
 
@@ -313,10 +318,13 @@ export function PageTabItem({
               留在视口内就不必依赖 `overflow: visible`）；底部与标签齐平 —— 底面本来就开口。
             */
             style={{
-              // `100%` / `inset` 都以 padding box 为准，所以要各补上边框宽度（见 TAB_BORDER_WIDTH）
+              /*
+                上下都用 `inset` 定位、**不写 `height`**：这样盒子正好是
+                「标签边框盒上下各外扩一个余量」—— viewBox 与盒子 1:1，形状不会被拉伸。
+                上边要多让出标签那条上边框（下边框是 0，见 TAB_BORDER_WIDTH）。
+              */
               insetBlockStart: -(TAB_SHAPE_PAD + TAB_BORDER_WIDTH),
-              // 上：余量 + 标签自己的边框；下：再留一个余量给倒角圆弧的下半
-              height: `calc(100% + ${TAB_SHAPE_PAD * 2 + TAB_BORDER_WIDTH * 2}px)`,
+              insetBlockEnd: -TAB_SHAPE_PAD,
               // 还没量到时先用 CSS 撑开（下一帧换成实测像素，两者数值一致）
               width:
                 shapeWidth === null

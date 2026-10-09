@@ -114,14 +114,21 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
   // `w-max`：行宽跟着标签走（固定区因此正好裹住标签；滚动区里它决定可滚动的宽度）。
   // 不用 `min-w-full` —— 百分比 min-width 在「宽度由内容决定」的父元素里是循环依赖，
   // 固定区会被撑成外层宽度，反而把滚动区挤出去。
-  const tabRowClass = cn('flex w-max items-end', variant === 'chrome' ? 'gap-0' : 'gap-1')
+  // `mb-px`（chrome）：把整行抬离外层底边 1px —— 标签底边因此落在窗口条下边线上，
+  // 而外层的 **padding box 仍然一直延伸到标签底边之下 1px**，倒角圆弧的下半才不会被裁掉。
+  // （不能用外层的 `pb-px` 来抬：`overflow` 的裁剪区就是 padding box，加了反而把裁剪区缩小。）
+  const tabRowClass = cn(
+    'flex w-max items-end',
+    variant === 'chrome' ? 'mb-px gap-0' : 'gap-1',
+  )
 
   /*
-    两个区的外层共用这一串（`pt-px pb-px -mb-0.5`）：形状比标签盒上下各多 1px
-    （`pt-px` 给顶部描边、`pb-px` 给底部倒角圆弧的下半），`-mb-0.5`（即 -2px）
-    把整个盒子往下推回原处 —— 标签的位置一动不动，只是盒子上下各多出 1px 来容纳形状。
+    两个区的外层共用这一串（`pt-px -mb-0.5`）：形状比标签盒上下各多 1px
+    （`pt-px` 让出顶部那 1px、行自己的 `mb-px` 让出底部那 1px），
+    `-mb-0.5`（即 -2px）把整个盒子推回原处 —— 标签的位置一动不动，
+    而**外层的盒子上下各多出 1px** 来容纳形状（滚动区的裁剪区因此也够大）。
   */
-  const zoneClass = variant === 'chrome' ? '-mb-0.5 pt-px pb-px' : undefined
+  const zoneClass = variant === 'chrome' ? '-mb-0.5 pt-px' : undefined
 
   const indexed = tabs.map((tab, index) => ({ tab, index }))
   const pinnedEntries = indexed.filter((entry) => entry.tab.pinned)
