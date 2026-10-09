@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 
 	"github.com/nivo-team/dashboard/apps/desktop/internal/bridge"
 	"github.com/nivo-team/dashboard/apps/desktop/internal/shell"
@@ -50,17 +51,17 @@ func main() {
 	// 自述：页面问「我现在在哪儿」时给的全部信息（也是 shell:ready 的载荷）
 	coreInfo := func() map[string]any {
 		return map[string]any{
-			"app":      "nivo-admin-desktop",
-			"version":  version,
-			"platform": runtime.GOOS,
-			"arch":     runtime.GOARCH,
-			"window":   "main",
-			"url":      startURL,
+			"app":            "nivo-admin-desktop",
+			"version":        version,
+			"platform":       runtime.GOOS,
+			"arch":           runtime.GOARCH,
+			"window":         "main",
+			"url":            startURL,
 			"origin":         cfg.Origin(),
 			"titleBarHeight": cfg.TitleBarHeight,
 			"marks":          cfg.Marks,
-			"methods":  registry.Methods(),
-			"dropped":  registry.Dropped(),
+			"methods":        registry.Methods(),
+			"dropped":        registry.Dropped(),
 		}
 	}
 	registerCoreMethods(registry, coreInfo)
@@ -95,12 +96,18 @@ func main() {
 		},
 	})
 
+	bgType := application.BackgroundTypeSolid
+	if cfg.Platform == "darwin" || cfg.Platform == "windows" {
+		bgType = application.BackgroundTypeTranslucent
+	}
+
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Name:   "main",
-		Title:  cfg.Title,
-		URL:    startURL,
-		Width:  cfg.Width,
-		Height: cfg.Height,
+		Name:           "main",
+		Title:          cfg.Title,
+		URL:            startURL,
+		Width:          cfg.Width,
+		Height:         cfg.Height,
+		BackgroundType: bgType,
 		/*
 			**显示系统标题栏 / 红绿灯**：
 			macOS 启用透明全尺寸内容窗口并挂载系统工具栏（UseToolbar + MacToolbarStyleUnifiedCompact），
@@ -110,6 +117,7 @@ func main() {
 		*/
 		Frameless: false,
 		Mac: application.MacWindow{
+			Backdrop: application.MacBackdropTranslucent,
 			TitleBar: application.MacTitleBar{
 				AppearsTransparent:   true,
 				Hide:                 false,
@@ -120,6 +128,9 @@ func main() {
 				ToolbarStyle:         application.MacToolbarStyleUnifiedCompact,
 			},
 			InvisibleTitleBarHeight: 0,
+		},
+		Windows: application.WindowsWindow{
+			BackdropType: application.Mica,
 		},
 		/*
 			最小尺寸：外壳在 768px 以下会切成移动端抽屉（汉堡按钮在顶栏里，而顶栏
@@ -151,8 +162,23 @@ func main() {
 
 	// 窗口自身的动作（frameless 之后没有系统按钮可点，双击窗口条也要能最大化）
 	registerWindowMethods(registry, window)
+	registerThemeMethods(registry, app, window)
 
 	// 从这里开始，registry 有地方投递消息了（之前 Emit 的事件会排队等着）
+	// 监听系统主题变化，实时推送给前端
+	app.Event.OnApplicationEvent(events.Common.ThemeChanged, func(event *application.ApplicationEvent) {
+		isDark := false
+		if event != nil && event.Context() != nil {
+			isDark = event.Context().IsDarkMode()
+		} else if app.Env != nil {
+			isDark = app.Env.IsDarkMode()
+		}
+		log.Printf("[desktop] 系统主题变化，通知前端：isDark=%v", isDark)
+		registry.Emit("theme:systemChanged", map[string]any{
+			"isDarkMode": isDark,
+		})
+	})
+
 	registry.Start(window.ExecJS)
 
 	log.Printf("[desktop] 加载 %s（version=%s debug=%v）", startURL, version, cfg.Debug)
@@ -211,6 +237,35 @@ echo —— 业务方法由使用者在 main 里自己 `registry.Handle("你的�
 
 命名约定：`<域>.<动作>`，例如 `core.info`、`window.minimise`、`file.pick`。
 */
+func registerThemeMethods(registry *bridge.Registry, app *application.App, window *application.WebviewWindow) {
+	registry.Handle("theme.getSystem", func(json.RawMessage) (any, error) {
+		isDark := false
+		if app.Env != nil {
+			isDark = app.Env.IsDarkMode()
+		}
+		return map[string]any{
+			"isDarkMode": isDark,
+		}, nil
+	})
+
+	registry.Handle("theme.set", func(payload json.RawMessage) (any, error) {
+		var req struct {
+			Mode     string `json:"mode"`
+			Resolved string `json:"resolved"`
+		}
+		if len(payload) > 0 {
+			_ = json.Unmarshal(payload, &req)
+		}
+		log.Printf("[desktop] 前端主题同步：mode=%s, resolved=%s", req.Mode, req.Resolved)
+		setNativeWindowTheme(window, req.Mode, req.Resolved)
+		return map[string]any{
+			"success":  true,
+			"mode":     req.Mode,
+			"resolved": req.Resolved,
+		}, nil
+	})
+}
+
 func registerCoreMethods(registry *bridge.Registry, info func() map[string]any) {
 	registry.Handle("core.info", func(json.RawMessage) (any, error) {
 		return info(), nil

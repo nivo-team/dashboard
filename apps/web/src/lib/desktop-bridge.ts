@@ -56,6 +56,8 @@ declare global {
   interface Window {
     /** 壳在导航前写进 URL、页面首屏脚本落地的桌面标记；浏览器里没有。 */
     __DESKTOP__?: boolean
+    /** 壳运行的操作系统平台（如 'darwin' / 'windows' / 'linux'）。 */
+    __DESKTOP_PLATFORM__?: string
     /** 桌面端标题栏/红绿灯注入高度（px，默认 54）。 */
     __DESKTOP_TITLE_BAR_H__?: number
     /** 壳带来的自定义标记。 */
@@ -147,6 +149,26 @@ export function isDesktop(): boolean {
 export function desktopTitleBarHeight(): number {
   if (typeof window === 'undefined') return 40
   return window.__DESKTOP_TITLE_BAR_H__ ?? 40
+}
+
+/** 获取当前桌面壳运行平台（如 'darwin' / 'windows' / 'linux'；浏览器环境返回空字符串）。 */
+export function desktopPlatform(): string {
+  if (typeof window === 'undefined') return ''
+  return (
+    window.__DESKTOP_PLATFORM__ ??
+    document.documentElement.dataset.desktopPlatform ??
+    ''
+  )
+}
+
+/** 是否运行在 macOS 或 Windows 桌面壳中（支持窗口毛玻璃模糊与透明标题栏）。 */
+export function isDesktopBlurredPlatform(): boolean {
+  if (!isDesktop()) return false
+  if (typeof window === 'undefined') return false
+  const p = desktopPlatform()
+  if (p === 'darwin' || p === 'windows') return true
+  const root = document.documentElement
+  return root.classList.contains('is_mac') || root.classList.contains('is_windows')
 }
 
 /**

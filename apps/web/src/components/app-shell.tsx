@@ -10,6 +10,7 @@ import { DetailPreviewProvider } from '#/components/detail-preview'
 import { HeaderActions } from '#/components/header-actions'
 import { PageTabStrip } from '#/components/page-tab-strip'
 import { ShellSidebarProvider } from '#/components/shell-sidebar-provider'
+import { cn } from '#/lib/cn'
 import { isDesktop } from '#/lib/desktop-bridge'
 import { usePageTabsEnabled } from '#/lib/page-tabs'
 import {
@@ -257,12 +258,18 @@ export function AppShell() {
               homeTo={`/${appId}/home`}
               // 工具区只挂一处：桌面壳里它在窗口条行末，退化出顶栏时（见 showHeader）留给顶栏
               actions={showHeader ? undefined : headerActions}
+              onOpenCommandPalette={() => setPaletteOpen(true)}
             />
           ) : null
         }
       >
         <AppSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />
-        <div className="flex min-w-0 flex-1 flex-col bg-kumo-canvas">
+        <div
+          className={cn(
+            'flex min-w-0 flex-1 flex-col bg-kumo-canvas',
+            desktopChrome && 'h-full min-h-0 overflow-hidden',
+          )}
+        >
           {showHeader ? (
             <AppHeader
               // 标签页开着就由它替掉面包屑（两者都在顶栏行首那一格，见 AppHeaderProps.leading）
@@ -285,7 +292,13 @@ export function AppShell() {
             主列用它（与改动前逐像素一致），分屏面板列用自己的一套（见 detail-preview.tsx）。
             `_main` 外壳的 <main> 没有分屏，保持原样不动。
           */}
-          <main data-shell-content className="flex min-w-0 flex-1 flex-col">
+          <main
+            data-shell-content
+            className={cn(
+              'flex min-w-0 flex-1 flex-col',
+              desktopChrome && 'min-h-0 overflow-y-auto',
+            )}
+          >
             {/*
               DetailPreviewProvider 同时是「详情预览」的状态源与**布局容器**：
               它把路由内容包成 flex 主列，分屏预览面板作为行尾侧的 1/3 列出现在同一行里

@@ -46,7 +46,7 @@ if (/^https?:\/\/(localhost|127\.0\.0\.1)/.test(url)) {
 
 const result = spawnSync(
   'go',
-  ['build', '-tags', 'release', '-ldflags', `-X ${LDVAR}=${url}`, '-o', 'dist/nivo-desktop', '.'],
+  ['build', '-tags', 'release,private_mac_apis', '-ldflags', `-X ${LDVAR}=${url}`, '-o', 'dist/nivo-desktop', '.'],
   { cwd: appDir, stdio: 'inherit' },
 )
 

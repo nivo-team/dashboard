@@ -1,5 +1,16 @@
 import { Sidebar, useSidebar } from '@cloudflare/kumo'
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+import { cn } from '#/lib/cn'
+import { isDesktop } from '#/lib/desktop-bridge'
 import {
   persistSidebarOpen,
   persistSidebarWidth,
@@ -11,6 +22,26 @@ import {
 } from '#/lib/store'
 import { useLocale } from '#/lib/use-locale'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
+
+export interface ShellSidebarControl {
+  /** 侧边栏当前是否处于展开状态（响应式） */
+  open: boolean
+  /** 切换侧边栏展开/收起 */
+  toggleSidebar: () => void
+}
+
+const ShellSidebarControlContext = createContext<ShellSidebarControl>({
+  open: true,
+  toggleSidebar: () => {},
+})
+
+/**
+ * 访问外壳侧边栏的开合状态与切换动作。
+ * 允许窗口标题栏（DesktopTitleBar）等处于 Sidebar.Provider 外部或内部的组件便捷控制侧边栏。
+ */
+export function useShellSidebarControl(): ShellSidebarControl {
+  return useContext(ShellSidebarControlContext)
+}
 
 /**
  * 两个外壳（`AppShell` / `MainLayout`）共用的 `Sidebar.Provider` 接线。
@@ -76,6 +107,45 @@ export function ShellSidebarProvider({
   const sidebarWidth = useShellUiStore((state) => state.sidebarWidth)
   const sidebarExpandMode = useShellUiStore((state) => state.sidebarExpandMode)
 
+  /**
+   * 桥接 Kumo 内部由 Sidebar.Provider 实例提供的 `toggleSidebar`。
+   * 窗口条（DesktopTitleBar）在 Provider 外部，通过该 ref 间接驱动内部切换。
+   */
+  const toggleSidebarRef = useRef<() => void>(() => {})
+
+  const toggleSidebar = useCallback(() => {
+    if (toggleSidebarRef.current) {
+      toggleSidebarRef.current()
+    } else {
+      persistSidebarOpen(!useShellUiStore.getState().sidebarOpen)
+    }
+  }, [])
+
+  // 桌面端全局快捷键：⌘B（macOS）/ Ctrl+B（Windows / Linux）切换侧边栏展开/收起
+  useEffect(() => {
+    if (!isDesktop()) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b' && !e.shiftKey && !e.altKey) {
+        const target = e.target as HTMLElement | null
+        if (target?.closest('input, textarea, select, [contenteditable="true"]')) {
+          return
+        }
+        e.preventDefault()
+        toggleSidebar()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [toggleSidebar])
+
+  const controlValue = useMemo(
+    () => ({
+      open: sidebarOpen,
+      toggleSidebar,
+    }),
+    [sidebarOpen, toggleSidebar],
+  )
+
   const handleOpenChange = useCallback(
     (open: boolean) => {
       // 移动端只更新内存态；persistSidebarOpen 内部还有一道视口判断兜底。
@@ -91,46 +161,67 @@ export function ShellSidebarProvider({
   )
 
   return (
-    /*
-      有窗口条时外层是一屏高的纵向容器（`--shell-chrome-h` 由 styles.css 按
-      `data-desktop-chrome` 定为窗口条高度，侧边栏与面板都按它算高度）；
-      浏览器里退化成 `display: contents`，不产生任何盒子。
-    */
-    <div
-      data-desktop-chrome={topBar ? '' : undefined}
-      /*
-        三目而不是 `cn('contents', topBar && 'flex …')`：本仓的 `cn` 只做拼接
-        （不是 tailwind-merge），两个 display 类同时在场就只剩源码顺序可赌。
-      */
-      className={topBar ? 'flex h-svh flex-col' : 'contents'}
-    >
-      {topBar}
-
-      <Sidebar.Provider
-        key={isRtl ? 'rtl' : 'ltr'}
-        side={isRtl ? 'right' : 'left'}
-        collapsible="icon"
-        // 桌面初始值；移动端受控后 defaultOpen 不参与（`open` 优先）
-        defaultOpen={sidebarOpen}
-        // 桌面 = undefined（非受控）；移动端 = 抽屉自身的开合
-        open={isMobile ? mobileOpen : undefined}
-        onOpenChange={handleOpenChange}
-        mobileBreakpoint={SHELL_MOBILE_BREAKPOINT}
-        // 保持 peekable 开启，使 Kumo context 闭包具备窥探能力；具体展开逻辑由下方的 SidebarPeekBridge 精准控制。
-        peekable
-        // 允许拖拽右侧边缘调整宽度（见各侧边栏内的 Sidebar.ResizeHandle）。
-        resizable
-        defaultWidth={sidebarWidth}
-        onWidthChange={persistSidebarWidth}
-        minWidth={SIDEBAR_MIN_WIDTH}
-        maxWidth={SIDEBAR_MAX_WIDTH}
-        // 有窗口条时这一行只占剩余高度（Kumo 默认给的 `min-h-svh` 由 cn 顶掉）
-        className={topBar ? 'min-h-0 flex-1' : undefined}
+    <ShellSidebarControlContext.Provider value={controlValue}>
+      {/*
+        有窗口条时外层是一屏高的纵向容器（`--shell-chrome-h` 由 styles.css 按
+        `data-desktop-chrome` 定为窗口条高度，侧边栏与面板都按它算高度）；
+        浏览器里退化成 `display: contents`，不产生任何盒子。
+      */}
+      <div
+        data-desktop-chrome={topBar ? '' : undefined}
+        /*
+          三目而不是 `cn('contents', topBar && 'flex …')`：本仓的 `cn` 只做拼接
+          （不是 tailwind-merge），两个 display 类同时在场就只剩源码顺序可赌。
+        */
+        className={topBar ? 'flex h-svh w-svw flex-col overflow-hidden' : 'contents'}
       >
-        <SidebarPeekBridge expandMode={sidebarExpandMode}>{children}</SidebarPeekBridge>
-      </Sidebar.Provider>
-    </div>
+        {topBar}
+
+        <Sidebar.Provider
+          key={isRtl ? 'rtl' : 'ltr'}
+          side={isRtl ? 'right' : 'left'}
+          collapsible="icon"
+          // 桌面初始值；移动端受控后 defaultOpen 不参与（`open` 优先）
+          defaultOpen={sidebarOpen}
+          // 桌面 = undefined（非受控）；移动端 = 抽屉自身的开合
+          open={isMobile ? mobileOpen : undefined}
+          onOpenChange={handleOpenChange}
+          mobileBreakpoint={SHELL_MOBILE_BREAKPOINT}
+          // 保持 peekable 开启，使 Kumo context 闭包具备窥探能力；具体展开逻辑由下方的 SidebarPeekBridge 精准控制。
+          peekable
+          // 允许拖拽右侧边缘调整宽度（见各侧边栏内的 Sidebar.ResizeHandle）。
+          resizable
+          defaultWidth={sidebarWidth}
+          onWidthChange={persistSidebarWidth}
+          minWidth={SIDEBAR_MIN_WIDTH}
+          maxWidth={SIDEBAR_MAX_WIDTH}
+          // 有窗口条时这一行只占剩余高度（Kumo 默认给的 `min-h-svh` 由 cn 顶掉）
+          className={topBar ? 'min-h-0 flex-1 overflow-hidden' : undefined}
+        >
+          <SidebarTriggerBridge toggleRef={toggleSidebarRef} />
+          <SidebarPeekBridge expandMode={sidebarExpandMode}>{children}</SidebarPeekBridge>
+        </Sidebar.Provider>
+      </div>
+    </ShellSidebarControlContext.Provider>
   )
+}
+
+/**
+ * 桥接组件：处于 Sidebar.Provider 内部，捕获其上下文中的 toggleSidebar 并暴露给外层。
+ */
+function SidebarTriggerBridge({
+  toggleRef,
+}: {
+  toggleRef: React.MutableRefObject<() => void>
+}) {
+  const { toggleSidebar } = useSidebar()
+  useEffect(() => {
+    toggleRef.current = toggleSidebar
+    return () => {
+      toggleRef.current = () => {}
+    }
+  }, [toggleSidebar, toggleRef])
+  return null
 }
 
 /**

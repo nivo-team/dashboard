@@ -150,7 +150,6 @@ export function collectGroupFeatureRequirements(group: NavGroup): PermissionRequ
  */
 export const NAV_GROUPS: NavGroup[] = [
   {
-    label: 'Overview',
     items: [
       {
         label: '仪表盘',

@@ -13,6 +13,7 @@ import {
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '#/lib/cn'
+import { isDesktop } from '#/lib/desktop-bridge'
 import type { PageTab } from '#/lib/page-tabs'
 
 /**
@@ -314,7 +315,9 @@ export function PageTabItem({
               : // 未激活标签自身保持透明，悬浮高亮由下方的悬浮胶囊层负责（底部不贴底）
                 'border-transparent'
             : active
-              ? 'bg-kumo-base [border-color:var(--shell-chrome-line)]'
+              ? (isDesktop()
+                  ? 'bg-kumo-canvas [border-color:var(--shell-chrome-line)]'
+                  : 'bg-kumo-base [border-color:var(--shell-chrome-line)]')
               : 'border-transparent hover:bg-kumo-tint',
           stackClass,
         )}

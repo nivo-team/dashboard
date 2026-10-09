@@ -14,7 +14,7 @@
     "mock:build": "pnpm -C apps/mock build",
     "ai": "pnpm -C apps/ai dev",
     "ai:deploy": "pnpm -C apps/ai deploy",
-    "desktop": "go -C apps/desktop run -tags devtools .",
+    "desktop": "go -C apps/desktop run -tags devtools,private_mac_apis .",
     "desktop:build": "node apps/desktop/scripts/build.mjs",
     "desktop:test": "go -C apps/desktop test ./...",
     "contract": "node packages/api-client/scripts/sync.mjs",

@@ -56,6 +56,7 @@ wails3 task test                                     # = pnpm desktop:test
 | Go → web 的事件推送 | `registry.Emit(name, data)` → 页面侧 `__bridge.on(name, handler)` |
 | 来源校验 | `shell.Config.OriginAllowed`（只认配置地址那一个来源） |
 | 系统原生标题栏与红绿灯 UI | `Frameless: false` + `MacTitleBar`（透明全尺寸标题栏融入系统红绿灯） |
+| 原生窗口毛玻璃模糊与穿透 | macOS `MacBackdropTranslucent` + Windows `Mica`，编译参数 `-tags private_mac_apis` 解锁 WKWebView 透明 |
 | 标题栏/红绿灯高度注入 | 启动时注入 `__desktop_title_bar_h=40`（默认 40px，落地为 `--shell-chrome-h`） |
 | 窗口拖拽与交互区保护 | 页面侧 `--wails-draggable: drag`，按钮等写 `no-drag` 退出 |
 | 窗口自身动作 | `window.minimise` / `window.toggleMaximise` / `window.close` |

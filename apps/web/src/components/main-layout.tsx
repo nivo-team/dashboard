@@ -73,6 +73,7 @@ function ShellNavButton({
  * （图标 + 文本 + ⌘K 提示 + ring 描边；折叠态自动收成图标并去掉描边与下边距）。
  */
 function SidebarSearchButton({ onOpen }: { onOpen: () => void }) {
+  if (isDesktop()) return null
   const { t } = useTranslation()
   const label = t('search.quickSearch', '快速搜索…')
 
@@ -137,6 +138,7 @@ function SettingsModuleHeader() {
  * 进入设置时它保持不变，变化的是它下面的模块行与菜单。
  */
 function SidebarBrandHeader() {
+  if (isDesktop()) return null
   const { isMobile } = useSidebar()
   const brand = useBrand()
   const LogoIcon = brand.logoIcon
@@ -206,9 +208,11 @@ function MainSidebar({ onOpenCommandPalette }: { onOpenCommandPalette: () => voi
 
       <Sidebar.ResizeHandle />
 
-      <Sidebar.Footer className="flex items-center group-data-[mobile=true]/sidebar:hidden">
-        <Sidebar.Trigger />
-      </Sidebar.Footer>
+      {!isDesktop() ? (
+        <Sidebar.Footer className="flex items-center group-data-[mobile=true]/sidebar:hidden">
+          <Sidebar.Trigger />
+        </Sidebar.Footer>
+      ) : null}
     </Sidebar>
   )
 }
@@ -262,9 +266,11 @@ function SettingsSidebar({ onOpenCommandPalette }: { onOpenCommandPalette: () =>
 
       <Sidebar.ResizeHandle />
 
-      <Sidebar.Footer className="flex items-center group-data-[mobile=true]/sidebar:hidden">
-        <Sidebar.Trigger />
-      </Sidebar.Footer>
+      {!isDesktop() ? (
+        <Sidebar.Footer className="flex items-center group-data-[mobile=true]/sidebar:hidden">
+          <Sidebar.Trigger />
+        </Sidebar.Footer>
+      ) : null}
     </Sidebar>
   )
 }
@@ -368,12 +374,18 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
               homeTo="/settings/profile"
               // 工具区只挂一处：桌面壳里它在窗口条行末，退化出顶栏时（见 showHeader）留给顶栏
               actions={showHeader ? undefined : headerActions}
+              onOpenCommandPalette={() => setPaletteOpen(true)}
             />
           ) : null
         }
       >
         <MainSidebarSwitch onOpenCommandPalette={() => setPaletteOpen(true)} />
-        <div className="flex min-w-0 flex-1 flex-col bg-kumo-canvas">
+        <div
+          className={cn(
+            'flex min-w-0 flex-1 flex-col bg-kumo-canvas',
+            desktopChrome && 'h-full min-h-0 overflow-hidden',
+          )}
+        >
           {showHeader ? (
             <MainHeader
               leading={headerLeading}
@@ -386,6 +398,7 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
               'flex-1 px-4 py-4 md:px-6 md:py-5 lg:px-8 lg:py-6',
               // 宽度：full 得到 `w-full`，boxed 再叠上 `mx-auto max-w-[1440px]`
               pageContentWidthClass(pageWidth),
+              desktopChrome && 'min-h-0 overflow-y-auto',
             )}
           >
             {children ?? <Outlet />}

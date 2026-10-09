@@ -70,6 +70,7 @@
           if (platform) {
             root.dataset.desktopPlatform = platform
             if (platform === 'darwin') root.classList.add('is_mac')
+            if (platform === 'windows') root.classList.add('is_windows')
           }
           root.style.setProperty('--shell-chrome-h', titleBarH + 'px')
           // 仅在 macOS 下设置 78px 红绿灯留白，其他系统为 0px

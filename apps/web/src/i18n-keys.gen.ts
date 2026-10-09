@@ -1,6 +1,6 @@
 /* eslint-disable */
 // 本文件由 scripts/i18n/gen-types.mjs 生成 —— 不要手改。
-// 源语言：zh-CN｜命名空间：10 个｜键：1139 个
+// 源语言：zh-CN｜命名空间：10 个｜键：1142 个
 // 重新生成：pnpm i18n:types
 
 /**
@@ -414,6 +414,9 @@ export interface I18nNamespaceKeys {
     | "selectApp.tableDesc"
     | "selectApp.title"
     | "selectApp.viewAll"
+    | "sidebar.collapse"
+    | "sidebar.expand"
+    | "sidebar.toggle"
     | "table.actions.addRecord"
     | "table.actions.export"
     | "table.actions.import"

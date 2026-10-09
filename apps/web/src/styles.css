@@ -122,6 +122,12 @@
   fill: var(--color-kumo-base);
 }
 
+/* 桌面端模式下：激活 Tab 背景色与主内容区画布（kumo-canvas）严格一致，无缝融入下方工作区 */
+[data-desktop-chrome] .page-tab-shape-fill,
+.is_desktop .page-tab-shape-fill {
+  fill: var(--color-kumo-canvas) !important;
+}
+
 .page-tab-shape-line {
   fill: none;
   stroke: var(--shell-chrome-line);
@@ -193,6 +199,56 @@
 }
 
 /*
+ * 桌面壳视口模式锁定与原生毛玻璃穿透：
+ * 1. 桌面端 html、body 与 #app 严格钉死在 100vw / 100vh 视口内，全局 overflow: hidden 杜绝任何外层滚动条；
+ * 2. 彻底去除 html、body 背景色，使宿主窗口的原生毛玻璃/模糊（macOS Vibrancy / Windows Mica）直接透出；
+ * 3. Header（窗口条）仅设置透明背景，不叠加人工 CSS 模糊滤镜，原汁原味透出窗口底色；
+ * 4. 侧边栏与主内容区在占据剩余窗口高度的容器内独立工作，长内容由 main 内部 overflow-y 滚动，侧边栏与顶栏永远不被卷动。
+ */
+html.is_desktop,
+html.is_desktop body,
+html.is_desktop #app {
+  width: 100vw !important;
+  height: 100vh !important;
+  width: 100svw !important;
+  height: 100svh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+[data-desktop-chrome] {
+  width: 100vw;
+  height: 100vh;
+  width: 100svw;
+  height: 100svh;
+  overflow: hidden;
+}
+
+[data-desktop-chrome] [data-desktop-title-bar] {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-desktop-chrome] [data-sidebar-wrapper] {
+  height: calc(100svh - var(--shell-chrome-h)) !important;
+  max-height: calc(100svh - var(--shell-chrome-h)) !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+[data-desktop-chrome] main[data-shell-content] {
+  overflow-y: auto !important;
+  min-height: 0 !important;
+  flex: 1 1 0% !important;
+}
+
+/*
  * 修正 Kumo Sidebar 的层级与桌面吸顶问题。
  *
  * 1. 桌面端（未处于移动抽屉模式时）让侧边栏 sticky 吸顶且一屏高，Footer 始终贴底；
@@ -239,6 +295,14 @@
   top: var(--shell-chrome-h);
   bottom: auto;
   height: calc(100svh - var(--shell-chrome-h));
+}
+
+/*
+ * 桌面壳模式下：隐藏侧边栏底部的收起按钮区域（Footer）。
+ * 桌面壳窗口条在 Tabs 左侧统一提供了侧边栏切换按钮，底部按钮隐藏以释放高度并避免控件重复。
+ */
+[data-desktop-chrome] [data-sidebar='footer'] {
+  display: none !important;
 }
 
 /*
