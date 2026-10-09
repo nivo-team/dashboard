@@ -248,27 +248,16 @@ export function PageTabItem({
   )
 
   useLayoutEffect(() => {
-    // 切换到激活态且属于滚动区（非固定标签）时，平滑滚动至完全可见（含外翻倒角与呼吸缓冲）
+    // 切换到激活态且属于滚动区（非固定标签）时，平滑滚动至视野居中舒适区域
     if (!active || pinned) return
     const node = tabRef.current
     if (!node) return
-    const nav = node.closest('nav')
-    if (!nav) return
 
-    // 基于绝对屏幕像素计算，彻底免疫 offsetParent 错位
-    const nodeRect = node.getBoundingClientRect()
-    const navRect = nav.getBoundingClientRect()
-
-    // 左右各保留 20px 安全余量（容纳 9px 外翻倒角与充足呼吸间距，绝不卡在边缘）
-    const safetyPad = 20
-    const leftDiff = nodeRect.left - (navRect.left + safetyPad)
-    const rightDiff = nodeRect.right - (navRect.right - safetyPad)
-
-    if (leftDiff < 0) {
-      nav.scrollBy({ left: leftDiff, behavior: 'smooth' })
-    } else if (rightDiff > 0) {
-      nav.scrollBy({ left: rightDiff, behavior: 'smooth' })
-    }
+    node.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center',
+    })
   }, [active, pinned])
 
   useLayoutEffect(() => {

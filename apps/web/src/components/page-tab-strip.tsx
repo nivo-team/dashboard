@@ -270,6 +270,8 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
                     active={tab.to === activeTab?.to}
                   />
                 ))}
+                {/* 滚动末尾安全垫块：解决 WebKit overflow-x 容器末尾 padding 丢失导致最后一个 Tab 被右边缘裁切的问题 */}
+                <span aria-hidden className="w-8 shrink-0 self-stretch pointer-events-none" />
               </div>
             </nav>
           </div>
