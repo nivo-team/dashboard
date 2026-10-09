@@ -55,7 +55,9 @@ export function DesktopTitleBar({ actions, homeTo }: DesktopTitleBarProps) {
       className={cn(
         // 吸顶：内容比一屏高、body 滚动时窗口条留在原地（与原来的 AppHeader 一致）
         'sticky top-0 z-40 flex h-[var(--shell-chrome-h)] shrink-0 items-center gap-1',
-        'border-b border-kumo-line bg-kumo-canvas px-2 select-none',
+        // 底边线用**实色** `--shell-chrome-line`：它是与标签边框 / 倒角圆弧共用的那一支，
+        // 半透明的 `border-kumo-line` 会因为各处底色不同而合成出不同的灰（见 styles.css）
+        'border-b [border-bottom-color:var(--shell-chrome-line)] bg-kumo-canvas px-2 select-none',
         // 空白处 = 拖拽区（窗口是 frameless 的，没有系统标题栏可拖）
         '[--wails-draggable:drag]',
       )}

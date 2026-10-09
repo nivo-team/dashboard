@@ -87,7 +87,7 @@
   inset-block: 32%;
   inset-inline-start: 0;
   width: 1px;
-  background-color: var(--color-kumo-line);
+  background-color: var(--shell-chrome-line);
 }
 
 /*
@@ -106,22 +106,17 @@
  * 反过来（圆心放在方框内侧那个下角）会得到相反的形状：贴着标签的地方被挖空、
  * 外层反而糊上一块，看着就是「倒角画反了」。
  *
- * ## 描边为什么是「满墨 ~1.05px」
+ * ## 描边为什么是「实色 + 满墨 ~1.05px」
  *
- * 描边色就是窗口条与标签共用的那个令牌 `--color-kumo-line`（浅色下是
- * `oklch(14.5% 0 0 / 0.1)`，也就是**带 10% 透明度的黑**；深色下是不透明的
- * `oklch(32% 0 0)`）。参考实现给的 0.6px 实心带在浅色下会与底色混掉约四成，
- * 于是圆弧看着比旁边那条 1px 边框淡 —— 这里把**实心带加宽到 1.05px**
- * （曲线上每个像素的覆盖率本就不可能满格，稍宽一点才追平直边框的视觉重量），
- * 两侧只留 0.1~0.15px 的抗锯齿过渡。
+ * 描边色用 `--shell-chrome-line`（定义在文件顶部）：它是窗口条下边线、标签边框与这段圆弧
+ * **共用**的实色，取值等于「原来的半透明 `--color-kumo-line` 叠在窗口条底色上」的结果 ——
+ * 于是三处永远一致，叠在一起也不会二次合成（半透明那条路线会让三处各自合成出略不同的灰）。
  *
- * 又因为它是半透明的，**渲染出来的颜色取决于底下是什么**：圆弧整段落在标签外侧，
- * 底下就是窗口条自己的 `bg-kumo-canvas` —— 与窗口条那条 `border-b` 的合成结果一致；
- * 而标签自己的侧边描边叠在 `bg-kumo-base` 上，两者会差约 1.6%（浅色下 #e2e2e2 vs #e6e6e6）。
- * 那是「标签底色与窗口条底色本来就不同」带来的，与倒角无关，不必去追。
+ * 宽度用**满墨 1.05px**（两侧只留 0.1~0.15px 抗锯齿）：参考实现给的 0.6px 实心带会与底色
+ * 混掉约四成，圆弧看着比旁边那条 1px 边框淡；曲线上每个像素的覆盖率本就不可能满格，
+ * 稍宽一点才追平直边框的视觉重量。底色仍是 `bg-kumo-base`（倒角属于标签本体）。
  *
  * 渐变中心是**物理**方向，RTL 下要单独反过来写一次。
- * 颜色两处跟随标签本体：描边 `border-kumo-line`、底色 `bg-kumo-base`。
  *
  * 参考：一份已落地的 Chrome 风格标签条实现
  * （multica-ai/multica 8e1bf6c，"merge active tab into content surface, Chrome-style"）。
@@ -141,8 +136,8 @@
   background: radial-gradient(
     circle 8px at 0 0,
     transparent 6.9px,
-    var(--color-kumo-line) 7.05px,
-    var(--color-kumo-line) 8.1px,
+    var(--shell-chrome-line) 7.05px,
+    var(--shell-chrome-line) 8.1px,
     var(--color-kumo-base) 8.2px
   );
 }
@@ -152,8 +147,8 @@
   background: radial-gradient(
     circle 8px at 100% 0,
     transparent 6.9px,
-    var(--color-kumo-line) 7.05px,
-    var(--color-kumo-line) 8.1px,
+    var(--shell-chrome-line) 7.05px,
+    var(--shell-chrome-line) 8.1px,
     var(--color-kumo-base) 8.2px
   );
 }
@@ -163,8 +158,8 @@
   background: radial-gradient(
     circle 8px at 100% 0,
     transparent 6.9px,
-    var(--color-kumo-line) 7.05px,
-    var(--color-kumo-line) 8.1px,
+    var(--shell-chrome-line) 7.05px,
+    var(--shell-chrome-line) 8.1px,
     var(--color-kumo-base) 8.2px
   );
 }
@@ -173,8 +168,8 @@
   background: radial-gradient(
     circle 8px at 0 0,
     transparent 6.9px,
-    var(--color-kumo-line) 7.05px,
-    var(--color-kumo-line) 8.1px,
+    var(--shell-chrome-line) 7.05px,
+    var(--shell-chrome-line) 8.1px,
     var(--color-kumo-base) 8.2px
   );
 }
@@ -202,6 +197,27 @@
 :root {
   --shell-chrome-h: 0px;
   --shell-content-top: 58px;
+
+  /*
+   * 窗口条那条下边线、标签自己的边框、以及标签倒角的圆弧 —— 三处共用的**实色**描边。
+   *
+   * 为什么不用现成的 `--color-kumo-line`：浅色下它是 `oklch(14.5% 0 0 / 0.1)`，
+   * 也就是**带 10% 透明度的黑**，渲染成什么样取决于底下压着什么颜色 ——
+   * 窗口条那条线底下是 `kumo-canvas`、标签侧边底下是 `kumo-base`、圆弧底下又是
+   * 标签底色与窗口条底色的交界，三者会各自合成出略不同的灰（浅色下 #e3e3e3 / #e6e6e6），
+   * 挨在一起看就是「描边颜色对不上」。实色后它们永远一致，叠在一起也不会二次合成。
+   *
+   * 取值就是「kumo-line 叠在窗口条底色上」的结果：
+   *   浅色 10% #0a0a0a over #fbfbfb ≈ #e3e3e3
+   *   深色 kumo-line 本身不透明（oklch(32% 0 0)），直接取它
+   * 所以窗口条与标签的观感与改动前逐像素一致，只是不再依赖合成。
+   * **Kumo 若改了这两个令牌，这里要跟着重算。**
+   */
+  --shell-chrome-line: #e3e3e3;
+}
+
+[data-mode='dark'] {
+  --shell-chrome-line: oklch(32% 0 0);
 }
 
 [data-desktop-chrome] {

@@ -152,7 +152,10 @@ export function PageTabItem({
           // 固定态是定宽小方块；普通标签给个上限，长标题才会截断而不是把标签撑宽
           pinned ? (chrome ? 'w-9' : 'w-8') : 'max-w-[200px]',
           chrome ? 'h-[34px] rounded-t-lg border border-b-0' : 'h-8 rounded-md border',
-          active ? 'border-kumo-line bg-kumo-base' : 'border-transparent hover:bg-kumo-tint',
+          // 描边与窗口条下边线、倒角圆弧同色（实色，见 styles.css 的 `--shell-chrome-line`）
+          active
+            ? 'bg-kumo-base [border-color:var(--shell-chrome-line)]'
+            : 'border-transparent hover:bg-kumo-tint',
           stackClass,
         )}
       >
