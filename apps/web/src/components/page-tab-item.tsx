@@ -126,14 +126,6 @@ function buildTabShape(tabWidth: number) {
   return { outline, viewBox: `0 0 ${width} ${bottom}`, width, height: bottom, flare }
 }
 
-export type PageTabVariant = 'chrome' | 'plain'
-
-/**
- * chrome 外观下标签的高度。**必须与 SVG 的 viewBox 高度一致**（两者一起决定形状），
- * 所以它只在这里定义一次：标签高度、SVG 高度、条上「+」那一行的高度都取它。
- */
-export const CHROME_TAB_HEIGHT = 34
-
 /**
  * 拖拽刚结束的那一下 click 要忽略。
  *
