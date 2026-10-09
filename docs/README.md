@@ -40,3 +40,11 @@
   - **落地状态**（文首有逐条对照表）：P0–P3⑪ 已在本仓库落地 —— 两阶段
     （`prepareStep` + `activeTools`）、工具双层描述与依赖展开、`intent`、页面上下文分层、
     分阶段 token 日志；仅剩「按真实数据继续压缩」与参数级 `inputSchema` 精简
+- [Wails v3 超薄桌面壳调研 (wails3-desktop-shell-research.md)](./wails3-desktop-shell-research.md)
+  - 主题：「永远加载远程 URL、不打包前端产物」到底能不能做，以及壳↔页面这条通道该走哪条路
+  - 方法：`v3.0.0-beta.28` tag 源码 + 官方文档（含 Markdown 源）+ **4 个本机真实跑起来的探针程序**
+  - 关键结论：`WebviewWindowOptions.JS` 三平台都在页面加载**之后**（Windows 的 URL 导航分支
+    **根本不执行**）→ 桌面标记只能走 URL 参数 + 站点首屏内联脚本；Wails **不会**把完整 runtime
+    注入远程页面（只注入最小内核），默认 HTTP 通道 `fetch(location.origin + "/wails/runtime")`
+    必然打到远程站点 → 桥改走 `application.Options.RawMessageHandler`
+    （含 `OriginInfo` 三平台字段差异、`ExecJS` 的 `wails:runtime:ready` 门控、线程模型更正）
