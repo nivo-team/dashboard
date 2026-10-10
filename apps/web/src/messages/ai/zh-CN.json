@@ -18,6 +18,8 @@
   "expandTooltip": "展开对话",
   "maximize": "最大化",
   "maximizeTooltip": "在全屏对话中打开",
+  "openNewWindow": "新窗口打开",
+  "openNewWindowTooltip": "在独立窗口中打开对话",
   "sphereCollapse": "收起",
   "sphereTitle": "聊天",
   "sphereConversations": "对话",

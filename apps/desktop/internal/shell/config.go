@@ -231,6 +231,44 @@ func (c Config) StartURL() (string, error) {
 }
 
 // Origin 返回配置地址的来源（scheme://host），用于校验消息确实来自我们自己的页面。
+// TargetURL 为指定路径与窗口名称生成携带完整桌面标记的目标地址。
+func (c Config) TargetURL(targetPath string, windowName string) (string, error) {
+	start, err := c.StartURL()
+	if err != nil {
+		return "", err
+	}
+	parsed, err := url.Parse(start)
+	if err != nil {
+		return "", err
+	}
+	if targetPath != "" {
+		targetParsed, err := url.Parse(targetPath)
+		if err == nil {
+			if targetParsed.IsAbs() {
+				parsed.Path = targetParsed.Path
+				parsed.Fragment = targetParsed.Fragment
+			} else {
+				parsed.Path = targetParsed.Path
+				parsed.Fragment = targetParsed.Fragment
+			}
+			if targetParsed.RawQuery != "" {
+				q := parsed.Query()
+				tq := targetParsed.Query()
+				for k, v := range tq {
+					q[k] = v
+				}
+				parsed.RawQuery = q.Encode()
+			}
+		}
+	}
+	if windowName != "" {
+		q := parsed.Query()
+		q.Set("__desktop_window", windowName)
+		parsed.RawQuery = q.Encode()
+	}
+	return parsed.String(), nil
+}
+
 func (c Config) Origin() string {
 	parsed, err := url.Parse(strings.TrimSpace(c.URL))
 	if err != nil || parsed.Host == "" {

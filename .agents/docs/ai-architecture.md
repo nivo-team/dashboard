@@ -36,13 +36,11 @@ L1  UI          features/ai/components/panel · conversation · composer · sess
                 features/ai/sphere/**（全屏 AI 对话页的本体：`ai-panel` 头行「最大化」的落点）
                   薄路由在 routes/$appId_.sphere/**（只有 createFileRoute + 布局）——
                   逃离 `$appId` 布局、没应用侧边栏；见 routing-architecture.md §2「逃离父布局」
-                  ├─ sphere-layout.tsx  布局：挂 `sphere-header`（头行常驻：会话 404 时也在，
-                  │     只是标题留空）+ 会话列表加载；整块面板的**进出场动画**也在这里
-                  │     （入场 scale 0.8→1 + 淡入，退场缩小淡出后才导航；
-                  │     `useMotionEnabled()` 为假时都不播，见 ui-and-styling.md「动效开关」）
-                  │     路由 index.tsx = $appId/sphere 新会话（挂载即 startNewSession）
-                  │     chat/$chatId.tsx = 指定会话（loader 校验，找不到 → sphere-not-found）
-                  ├─ sphere-header.tsx  头行：标题居中（按路由推导，找不到的会话 → 空）、
+                  ├─ sphere-layout.tsx  布局分发入口：按 isDesktop() 选变体，收口会话加载、桥接与命令面板
+                  ├─ desktop-sphere-layout.tsx  桌面壳布局：整屏铺满、全透明背景透出毛玻璃、无边框与弹出动效，挂载 desktop-sphere-title-bar
+                  ├─ desktop-sphere-title-bar.tsx  桌面端固定窗口条：左侧红绿灯后固定单个切换按钮（折叠收起不跳动）+ AI Bot 形象与标题
+                  ├─ web-sphere-layout.tsx  浏览器布局：画布外边距（p-2 bg-kumo-canvas）、圆角边框卡片与缩放动效
+                  ├─ sphere-header.tsx  头行（普通 Web 专用）：标题居中（按路由推导，找不到的会话 → 空）、
                   │     侧边栏展开/收起按钮
                   ├─ sphere-chat.tsx  两路由共用的 chat 本体（只有会话区 + 输入区；
                   │     会话区 manageHistory=false）

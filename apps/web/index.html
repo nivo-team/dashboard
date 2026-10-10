@@ -48,18 +48,21 @@
           var platform = ''
           var blurSupported = false
           var blurReason = ''
+          var windowName = 'main'
           if (fromUrl) {
             var rawH = parseInt(params.get('__desktop_title_bar_h'), 10)
             if (!isNaN(rawH) && rawH > 0) titleBarH = rawH
             platform = params.get('__desktop_platform') || ''
             blurSupported = params.get('__desktop_blur_supported') === '1'
             blurReason = params.get('__desktop_blur_reason') || ''
+            windowName = params.get('__desktop_window') || 'main'
             params.forEach(function (value, key) {
               if (
                 key === '__desktop_title_bar_h' ||
                 key === '__desktop_platform' ||
                 key === '__desktop_blur_supported' ||
-                key === '__desktop_blur_reason'
+                key === '__desktop_blur_reason' ||
+                key === '__desktop_window'
               )
                 return
               if (key.indexOf('__desktop_') === 0) marks[key.slice('__desktop_'.length)] = value
@@ -71,10 +74,12 @@
             if (remembered && typeof remembered.blurSupported === 'boolean')
               blurSupported = remembered.blurSupported
             if (remembered && remembered.blurReason) blurReason = remembered.blurReason
+            if (remembered && remembered.windowName) windowName = remembered.windowName
           }
 
           window.__DESKTOP__ = true
           window.__DESKTOP_PLATFORM__ = platform
+          window.__DESKTOP_WINDOW__ = windowName
           window.__DESKTOP_TITLE_BAR_H__ = titleBarH
           window.__DESKTOP_MARKS__ = marks
           window.__DESKTOP_BLUR_SUPPORTED__ = blurSupported
@@ -82,6 +87,7 @@
           var root = document.documentElement
           root.classList.add('is_desktop')
           root.dataset.isDesktop = 'true'
+          root.dataset.desktopWindow = windowName
           var blurEnabled = true
           try {
             var shellUiRaw = window.localStorage.getItem('admin.shell-ui')
@@ -123,6 +129,7 @@
                   platform: platform,
                   blurSupported: blurSupported,
                   blurReason: blurReason,
+                  windowName: windowName,
                 }),
               )
             } catch (error) {
@@ -135,6 +142,7 @@
 
           // 标记是壳自己加的，不该留在地址栏里（否则会被当成路由的 search 参数）
           params.delete('__desktop')
+          params.delete('__desktop_window')
           params.delete('__desktop_title_bar_h')
           params.delete('__desktop_platform')
           params.delete('__desktop_blur_supported')

@@ -5,6 +5,7 @@ import { AiPanel } from '#/features/ai/components/panel'
 import { AppHeader } from '#/components/app-header'
 import { AppSidebar } from '#/components/app-sidebar'
 import { CommandPaletteDialog } from '#/components/command-palette'
+import { isDesktop, isSphereWindow, openDesktopWindow } from '#/desktop/bridge'
 import { DesktopTitleBar } from '#/desktop/title-bar'
 import { DetailPreviewProvider } from '#/components/detail-preview'
 import { HeaderActions } from '#/components/header-actions'
@@ -166,6 +167,9 @@ export function AppShell() {
    *
    * 面板自身不参与跳转 —— 它只把点击交回外壳（见 `AiPanelProps.onMaximize`）。
    */
+  /**
+   * AI 面板头行「最大化」：原逻辑保留 —— 客户端单页路由跳转换成**全屏 AI 对话页**。
+   */
   const handleMaximizeAi = () => {
     rememberMaximizeOrigin(router.state.location.href)
     // 面板是被「带走」的，不是被关掉的：回来时据此跳过它重播的入场动画
@@ -179,6 +183,17 @@ export function AppShell() {
       return
     }
     void navigate({ to: '/$appId/sphere', params: { appId } })
+  }
+
+  /**
+   * 桌面端专属：「新窗口打开」—— 在独立桌面原生窗口中呈现 Sphere 全屏对话，
+   * 主窗口继续留在当前应用工作区内。
+   */
+  const handleOpenNewWindow = () => {
+    const targetPath = activeSessionId
+      ? `/${appId}/sphere/chat/${activeSessionId}`
+      : `/${appId}/sphere`
+    void openDesktopWindow({ path: targetPath, name: 'sphere', title: 'Sphere' })
   }
 
   /**
@@ -288,8 +303,10 @@ export function AppShell() {
             // 折叠态的真值在外壳（`handleToggleAskAi` 也要读它），面板只是受控显示
             collapsed={aiFloatCollapsed}
             onToggleCollapsed={() => setAiFloatCollapsed((collapsed) => !collapsed)}
-            // 头行「最大化」→ 全屏 AI 对话页
+            // 头行「最大化」→ 全屏 AI 对话页（原放大按钮逻辑保留）
             onMaximize={handleMaximizeAi}
+            // 桌面端专属：「新窗口打开」→ 独立原生桌面窗口
+            onOpenNewWindow={handleOpenNewWindow}
           />
         }
       >

@@ -97,3 +97,26 @@ func TestParseRejectsBadMark(t *testing.T) {
 		t.Fatal("不是 k=v 的标记应当拒绝")
 	}
 }
+
+func TestTargetURL(t *testing.T) {
+	cfg := Config{
+		URL: "http://localhost:3000/app",
+	}
+	got, err := cfg.TargetURL("/console/sphere", "sphere")
+	if err != nil {
+		t.Fatalf("TargetURL 报错: %v", err)
+	}
+	parsed, err := url.Parse(got)
+	if err != nil {
+		t.Fatalf("解析失败: %v", err)
+	}
+	if parsed.Path != "/console/sphere" {
+		t.Fatalf("期望 path 为 /console/sphere, 实际为 %s", parsed.Path)
+	}
+	if parsed.Query().Get("__desktop_window") != "sphere" {
+		t.Fatalf("期望 __desktop_window 为 sphere, 实际为 %s", parsed.Query().Get("__desktop_window"))
+	}
+	if parsed.Query().Get(FlagKey) != "1" {
+		t.Fatalf("期望 __desktop 为 1, 实际为 %s", parsed.Query().Get(FlagKey))
+	}
+}

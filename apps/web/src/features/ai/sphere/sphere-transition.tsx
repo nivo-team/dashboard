@@ -1,3 +1,4 @@
+import { isDesktop } from '#/desktop/bridge'
 import { useMotionEnabled } from '#/lib/use-motion'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
@@ -117,7 +118,7 @@ export function SphereTransitionProvider({
    */
   const requestCollapse = useCallback(() => {
     if (leavingRef.current) return
-    if (!motionEnabled) {
+    if (!motionEnabled || isDesktop()) {
       exitOnce()
       return
     }

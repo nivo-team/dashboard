@@ -41,6 +41,33 @@ static void updateWebViews(NSView* view) {
 	}
 }
 
+void setupWindowTransparency(void* ptr) {
+	dispatch_async(dispatch_get_main_queue(), ^{
+		NSWindow* window = nil;
+		if (ptr != NULL) {
+			id obj = (id)ptr;
+			if ([obj isKindOfClass:[NSWindow class]]) {
+				window = (NSWindow*)obj;
+			} else if ([obj respondsToSelector:@selector(window)]) {
+				window = [obj window];
+			}
+		}
+		if (window == nil) {
+			window = [NSApp keyWindow] ?: [NSApp mainWindow];
+		}
+		if (window == nil) return;
+
+		[window setOpaque:NO];
+		[window setBackgroundColor:[NSColor clearColor]];
+		if ([window contentView]) {
+			updateWebViews([window contentView]);
+			[[window contentView] setNeedsDisplay:YES];
+		}
+		[window invalidateShadow];
+		NSLog(@"[desktop] setupWindowTransparency 成功初始化透明窗口与 WebView: %p", window);
+	});
+}
+
 void setNativeAppearance(void* ptr, const char* mode) {
 	NSString* modeStr = [NSString stringWithUTF8String:mode];
 	dispatch_async(dispatch_get_main_queue(), ^{
@@ -105,7 +132,12 @@ import (
 )
 
 func setupNativeWindow(window *application.WebviewWindow) {
-	// macOS 原生毛玻璃与透明度已在 WebviewWindowOptions.Mac.Backdrop 配置接管
+	if window != nil {
+		ptr := window.NativeWindow()
+		if ptr != nil {
+			C.setupWindowTransparency(ptr)
+		}
+	}
 }
 
 func setNativeWindowTheme(window *application.WebviewWindow, mode string, resolved string) {

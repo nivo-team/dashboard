@@ -53,6 +53,12 @@ export type WindowMinimiseResult = {
   minimised: boolean
 }
 
+/** 在独立桌面窗口中打开指定路径或页面 */
+export type WindowOpenPayload = { path: string; name?: string; title?: string; width?: number; height?: number }
+
+/** 在独立桌面窗口中打开指定路径或页面 */
+export type WindowOpenResult = { success: boolean; name: string; created: boolean }
+
 /** 最大化 / 还原窗口（窗口条空白处双击） */
 export type WindowToggleMaximiseResult = {
   maximised: boolean
@@ -97,6 +103,8 @@ export interface BridgeMethodMap {
   'window.getBlurSupport': { payload: void; result: WindowGetBlurSupportResult }
   /** 最小化窗口 */
   'window.minimise': { payload: void; result: WindowMinimiseResult }
+  /** 在独立桌面窗口中打开指定路径或页面 */
+  'window.open': { payload: WindowOpenPayload; result: WindowOpenResult }
   /** 打开 devtools */
   'window.openDevTools': { payload: void; result: void }
   /** 最大化 / 还原窗口（窗口条空白处双击） */
@@ -121,6 +129,7 @@ export const BRIDGE_METHODS = [
   'window.close',
   'window.getBlurSupport',
   'window.minimise',
+  'window.open',
   'window.openDevTools',
   'window.toggleMaximise',
 ] as const

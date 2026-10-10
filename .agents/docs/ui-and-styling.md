@@ -48,7 +48,7 @@ Kumo 采用语义化颜色系统，通过根节点上的 `data-mode="light|dark"
 > 系统设置优先级更高 —— 用户开着开关，系统说减少动效也不播。
 >
 > 目前接入的是 **AI 面板**（Split 宽度进出场、Float 升起与折叠变形）与
-> **全屏对话页 `/$appId/sphere`**（面板进出场、收起过渡）。其余过渡（详情分屏、
+> **全屏对话页 `/$appId/sphere`**（普通 Web 环境下带面板进出场、四周内边距与圆角卡片；桌面壳模式下整屏铺满窗口、取消外层 padding 与背景、取消弹出动画与四周卡片边框）。其余过渡（详情分屏、
 > 侧边栏、设置页缩略图、光晕）暂时仍只跟随系统设置，走各自的 `motion-safe:` 或媒体查询；
 > 要扩到它们时把判定换成 `useMotionEnabled()` 即可，不要另写一套。
 
@@ -74,7 +74,7 @@ Kumo 采用语义化颜色系统，通过根节点上的 `data-mode="light|dark"
   | `--shell-content-inset` | `0px` | `0.25rem`（main / AI 面板嵌在 `px-1 pb-1` 容器里，纵向内缩 0.25rem） | `SHELL_PANEL_FRAME` / `CONTENT_PANEL_FRAME` 的高度 |
   | `--shell-traffic-light-w` | `0px` | `78px`（macOS 红绿灯安全宽度） | **窗口条**的物理 `padding-left`（`max(--shell-traffic-light-w, 0.5rem)`：macOS 让开红绿灯，其它平台保底 0.5rem，macOS 红绿灯物理固定在左侧，RTL 下内容可镜像但留白恒在左侧） |
   取值挂在**外壳的整屏容器**上（`[data-desktop-chrome]`，见 `#/components/shell/shell-sidebar-provider`），不是 `<html>`：桌面壳里也有没有窗口条的页面（登录、`/$appId/sphere`），它们的侧边栏 / 面板必须保持整屏高。**改窗口条高度只改这一个数**，面板跟着走。桌面壳里侧边栏是**全窗高左列**（`100svh`，不扣 `--shell-chrome-h`）且**背景透明**；窗口条是整宽浮层（`fixed`），物理左侧让开 `--shell-traffic-light-w`，标签条紧跟在控制组之后；main 与 AI 面板共用的容器再嵌一层 `p-1`（`gap-1`，`--shell-content-inset`），`<main>` 与展开的 AI 面板因此带卡片圆角（macOS 下为 `rounded-lg`，非 macOS 为 `rounded-md`）、看起来「嵌在程序里」。
-- **窗口条与顶栏 Header 拖拽（桌面壳）**：窗口开启系统原生 UI（macOS 下 `Frameless: false` + `FullSizeContent: true` + `AppearsTransparent: true` 融入系统红绿灯），左侧预留 `78px` 避免遮挡红绿灯。所有顶栏 Header（`DesktopTitleBar`、`AppHeader`、`MainHeader`、`SphereHeader`、`AuthHeader`）统一挂载 `--wails-draggable: drag` 允许拖拽窗口，交互件（按钮、链接、菜单）标记 `no-drag` 退出；空白处双击 = 最大化 / 还原（`handleDesktopHeaderDoubleClick`）。
+- **窗口条与顶栏 Header 拖拽（桌面壳）**：窗口开启系统原生 UI（macOS 下 `Frameless: false` + `FullSizeContent: true` + `AppearsTransparent: true` 融入系统红绿灯），左侧预留 `78px` 避免遮挡红绿灯。所有顶栏 Header（`DesktopTitleBar`、`AppHeader`、`MainHeader`、`SphereHeader`、`AuthHeader`）统一挂载 `--wails-draggable: drag` 允许拖拽窗口，交互件（按钮、链接、菜单）标记 `no-drag` 退出；空白处双击 = 最大化 / 还原（`handleDesktopHeaderDoubleClick`）。在 Sphere 桌面独立窗口中，参考主布局设计统一挂载 `DesktopSphereTitleBar`：高度为 `var(--shell-chrome-h, 40px)`，无下边框，左侧红绿灯后固定单个侧边栏切换按钮（折叠和收起均固定不跳动），按钮紧随 AI Bot 形象与标题；侧边栏自身保留右侧分界线，内容下移让出窗口条。
 - **标签条不是桌面壳专属**：同一个组件（`#/components/page-tab-strip` + `page-tab-item`）在浏览器里挂在**顶栏行首那一格**（替掉面包屑），由 设置 → 外观 → 「页面标签页」开关控制（`admin.shell-ui` 的 `pageTabsEnabled`，默认关；桌面壳里恒开）。两处**外观不同**：桌面壳传 `variant="chrome"`（Chrome 那种连成一片的标签：无间距、贴窗口条下沿、只圆上面两个角、激活态抬起来），浏览器用默认的 `variant="plain"`（独立小卡片）。标签条内部是**三个区**：**固定的标签区**（`shrink-0`，不滚动；**不设 `overflow`**）→ **滚动区**（`flex-1 min-w-0 overflow-x-auto`，**只允许横向滚**：`overflow-x: auto` 会把 `overflow-y` 也算成 auto，形状那半个像素的溢出就能凭空多出一段纵向可滚动区域，所以显式 `overflow-y-hidden`）→ **「+」**（跟着标签走，不钉行末）。两者外层的容器最大占据屏幕剩余内容：固定的 + 可滚动的标签少时紧凑包裹、「+」紧随其后，标签多时充分占满剩余宽度并在内部横滑，剩下的留白自然归属于窗口拖拽区；**两个区之间不留间距**（外层没有 `gap`，各自组内的间距由组内 `gap` 负责）。两个区**共用同一层「标签行」**（`tabRowClass`：`flex w-max items-end` + 各自的 `gap`；不用 `min-w-full` —— 百分比 min-width 在「宽度由内容决定」的父元素里是循环依赖）—— 行内布局只定义一次，两个区因此不可能走偏（之前两边各写一套，就出现过「固定的比底下的高 1px」）。行的 `mb-px` + 外层的 `pt-px -mb-[2px]`（chrome 外观下）：`mb-px` 把整行抬离外层底边 1px，标签底边**正好落在窗口条下边线上并压住它**，而外层的 **padding box 仍延伸到标签底边之下 1px**，给底部倒角圆弧留出余量；`pt-px` 让出顶部那 1px；`-mb-[2px]` 精确推回原处（纯像素度量，杜绝 `-mb-0.5` 因 rem 缩放产生的 0.1px 浮点抖动）⇒ 标签位置一动不动。
 ⚠️ 抬这 1px **不能用外层的 `pb-px`**：`overflow` 的裁剪区就是 **padding box**，加了反而把裁剪区缩小、正好裁掉倒角尾巴（滚动区因此曾比固定区少半条线）。
 ⚠️ 形状盒子的定位**不能用 `height` 反推**：`100%` 是 padding box 的高度，而 chrome 标签是 `border-b-0`（上 1px、下 0）—— 算出来会比 viewBox 高一像素，形状被纵向拉伸、底部冒过 header 那条线（用户报的「tabs 底部没对齐到 header 底边框」）；上下 `inset` 各写各的才稳。

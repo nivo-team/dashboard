@@ -43,8 +43,12 @@ export interface DesktopBridge {
   readonly isDesktop: boolean
   /** 页面 → 壳：按名字调用，等结果。 */
   call: <T = unknown>(name: string, payload?: unknown, options?: CallOptions) => Promise<T>
+  /** 类型安全地调用已在目录登记的壳方法。 */
+  invoke: typeof invoke
   /** 壳 → 页面：订阅事件，返回取消订阅函数。 */
   on: <T = unknown>(name: string, handler: (data: T) => void) => () => void
+  /** 类型安全地订阅已在目录登记的壳事件。 */
+  subscribe: typeof subscribe
   /** 壳 → 页面：退订。 */
   off: <T = unknown>(name: string, handler: (data: T) => void) => void
   /**
@@ -62,6 +66,8 @@ declare global {
   interface Window {
     /** 壳在导航前写进 URL、页面首屏脚本落地的桌面标记；浏览器里没有。 */
     __DESKTOP__?: boolean
+    /** 当前窗口名称（如 'main' / 'sphere'）。 */
+    __DESKTOP_WINDOW__?: string
     /** 壳运行的操作系统平台（如 'darwin' / 'windows' / 'linux'）。 */
     __DESKTOP_PLATFORM__?: string
     /** 桌面端标题栏/红绿灯注入高度（px，默认 54）。 */
@@ -152,7 +158,12 @@ let sequence = 0
  * 浏览器、SSR、无标记的旧站点都走这条。
  */
 export function isDesktop(): boolean {
-  return typeof window !== 'undefined' && window.__DESKTOP__ === true
+  if (typeof window === 'undefined') return false
+  return (
+    window.__DESKTOP__ === true ||
+    document.documentElement.dataset.isDesktop === 'true' ||
+    document.documentElement.classList.contains('is_desktop')
+  )
 }
 
 /** 桌面端标题栏/红绿灯高度（px），默认 40。 */
@@ -169,6 +180,46 @@ export function desktopPlatform(): string {
     document.documentElement.dataset.desktopPlatform ??
     ''
   )
+}
+
+/** 获取当前窗口在桌面壳中的名字（例如 'main' / 'sphere'）。 */
+export function desktopWindowName(): string {
+  if (typeof window === 'undefined') return 'main'
+  return (
+    window.__DESKTOP_WINDOW__ ??
+    document.documentElement.dataset.desktopWindow ??
+    'main'
+  )
+}
+
+/** 是否处于独立的 Sphere 桌面子窗口中。 */
+export function isSphereWindow(): boolean {
+  return isDesktop() && desktopWindowName() === 'sphere'
+}
+
+export interface OpenDesktopWindowOptions {
+  /** 要加载的应用相对路径或完整 URL（如 '/console/sphere'） */
+  path: string
+  /** 窗口唯一标识名称（默认 'sphere'） */
+  name?: string
+  /** 窗口标题（默认 'Sphere'） */
+  title?: string
+  /** 初始窗口宽度（px） */
+  width?: number
+  /** 初始窗口高度（px） */
+  height?: number
+}
+
+/** 在桌面端新独立窗口中打开指定路径或页面（例如 Sphere 全屏对话）。在非桌面端返回 false。 */
+export async function openDesktopWindow(options: OpenDesktopWindowOptions): Promise<boolean> {
+  if (!isDesktop()) return false
+  try {
+    const res = await invoke('window.open', options)
+    return Boolean(res?.success)
+  } catch (error) {
+    console.error('[desktop] openDesktopWindow 失败：', error)
+    return false
+  }
 }
 
 /** 判断当前是否在 macOS 桌面客户端环境下。 */
@@ -513,7 +564,9 @@ export const desktopBridge: DesktopBridge = {
     return isDesktop()
   },
   call,
+  invoke,
   on,
+  subscribe,
   off,
   last,
   marks: desktopMarks,

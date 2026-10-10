@@ -1,6 +1,7 @@
 import { Button, Tooltip } from '@cloudflare/kumo'
 import {
   ArrowLeftIcon,
+  ArrowSquareOutIcon,
   ArrowsOutSimpleIcon,
   CaretDownIcon,
   CaretUpIcon,
@@ -99,6 +100,8 @@ export interface AiPanelProps {
    * 同一套受控约定。传了才画那颗按钮。
    */
   onMaximize?: () => void
+  /** 在独立新窗口中打开对话（桌面端专属入口，位于放大按钮左侧） */
+  onOpenNewWindow?: () => void
   /**
    * 跳过**这一次**入场动画（外壳在「从最大化返回」时置真，见 `AppShell`）。
    *
@@ -156,6 +159,7 @@ export function AiPanel({
   collapsed = false,
   onToggleCollapsed,
   onMaximize,
+  onOpenNewWindow,
   skipEnterAnimation = false,
 }: AiPanelProps) {
   const { t } = useTranslation('ai')
@@ -500,6 +504,7 @@ export function AiPanel({
             // 移动端不挂折叠按钮（`isCollapsed` 恒为 false，两者的判断保持一致）
             onToggleCollapsed={isMobile ? undefined : onToggleCollapsed}
             onMaximize={onMaximize}
+            onOpenNewWindow={onOpenNewWindow}
           />
         </div>
         {/*
@@ -621,7 +626,11 @@ export function AiPanel({
           className="flex min-h-0 flex-1 flex-col"
           style={splitAnimating && !isMobile ? { width: panelWidth } : undefined}
         >
-          <AiPanelSurface onClose={onClose} onMaximize={onMaximize} />
+          <AiPanelSurface
+            onClose={onClose}
+            onMaximize={onMaximize}
+            onOpenNewWindow={onOpenNewWindow}
+          />
         </div>
       </aside>
     </>
@@ -646,6 +655,7 @@ function AiPanelSurface({
   collapsed = false,
   onToggleCollapsed,
   onMaximize,
+  onOpenNewWindow,
 }: {
   onClose: () => void
   /** 是否折成「只有头行」的窄条（Float 专属，Split 恒为 `false`） */
@@ -659,6 +669,8 @@ function AiPanelSurface({
   onToggleCollapsed?: () => void
   /** 「最大化」跳到全屏对话页（见 `AiPanelProps.onMaximize`）；不传则没有那颗按钮 */
   onMaximize?: () => void
+  /** 「新窗口打开」在独立桌面窗口中展示对话（仅在 Desktop 端出现，位于放大按钮左侧） */
+  onOpenNewWindow?: () => void
 }) {
   const { t } = useTranslation('ai')
   const activeSessionTitle = useActiveSessionTitle()
@@ -832,7 +844,7 @@ function AiPanelSurface({
           **折叠态只留「展开」与「关闭」**：一条窄条上塞四颗按钮既挤又吵，而新对话 /
           最大化本来就得先看见内容才有意义 —— 想用先展开。
         */}
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1 no-drag">
           {/*
             「新对话」快捷按钮：会话选择器浮层里本来也有一个，但那是「点开 → 再点一下」；
             开新对话是高频动作，头行留一颗直给。
@@ -840,11 +852,12 @@ function AiPanelSurface({
           {collapsed || view === 'permissions' ? null : (
             <Tooltip
               content={t('sessionNew', '新对话')}
-              className="cursor-pointer"
+              className="cursor-pointer no-drag"
               render={
                 <Button
                   variant="ghost"
                   shape="square"
+                  className="no-drag"
                   onClick={startNewSession}
                   aria-label={t('sessionNew', '新对话')}
                 />
@@ -854,14 +867,33 @@ function AiPanelSurface({
             </Tooltip>
           )}
 
-          {!collapsed && view === 'chat' && onMaximize ? (
+          {isDesktop() && !collapsed && view === 'chat' && onOpenNewWindow ? (
             <Tooltip
-              content={t('maximizeTooltip', '在全屏对话中打开')}
-              className="cursor-pointer"
+              content={t('openNewWindowTooltip', '在独立窗口中打开对话')}
+              className="cursor-pointer no-drag"
               render={
                 <Button
                   variant="ghost"
                   shape="square"
+                  className="no-drag"
+                  onClick={onOpenNewWindow}
+                  aria-label={t('openNewWindow', '新窗口打开')}
+                />
+              }
+            >
+              <ArrowSquareOutIcon size={16} />
+            </Tooltip>
+          ) : null}
+
+          {!collapsed && view === 'chat' && onMaximize ? (
+            <Tooltip
+              content={t('maximizeTooltip', '在全屏对话中打开')}
+              className="cursor-pointer no-drag"
+              render={
+                <Button
+                  variant="ghost"
+                  shape="square"
+                  className="no-drag"
                   onClick={onMaximize}
                   aria-label={t('maximize', '最大化')}
                 />
@@ -883,11 +915,12 @@ function AiPanelSurface({
                   : t('collapseTooltip', '收起对话，只留标题栏')
               }
               // Kumo 会给 trigger 补一个 `cursor-default`，按钮要的是手型
-              className="cursor-pointer"
+              className="cursor-pointer no-drag"
               render={
                 <Button
                   variant="ghost"
                   shape="square"
+                  className="no-drag"
                   onClick={onToggleCollapsed}
                   // 折叠按钮是开关：读屏要能听出「现在是展开还是收起」
                   aria-expanded={!collapsed}
@@ -905,11 +938,12 @@ function AiPanelSurface({
 
           <Tooltip
             content={t('close', '关闭面板')}
-            className="cursor-pointer"
+            className="cursor-pointer no-drag"
             render={
               <Button
                 variant="ghost"
                 shape="square"
+                className="no-drag"
                 onClick={onClose}
                 aria-label={t('close', '关闭面板')}
               />

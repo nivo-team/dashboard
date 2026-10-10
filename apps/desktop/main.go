@@ -33,6 +33,11 @@ import (
 // version 由构建时注入：-ldflags "-X main.version=1.2.3"（页面侧可用 core.info 读到）。
 var version = "dev"
 
+var (
+	currentThemeMode     = "system"
+	currentThemeResolved = "light"
+)
+
 func main() {
 	cfg, err := shell.Parse(os.Args[1:])
 	if err != nil {
@@ -173,7 +178,7 @@ func main() {
 	})
 
 	// 窗口自身的动作（frameless 之后没有系统按钮可点，双击窗口条也要能最大化）
-	registerWindowMethods(registry, window)
+	registerWindowMethods(registry, app, window, cfg, bgType)
 	registerThemeMethods(registry, app, window)
 
 	// 从这里开始，registry 有地方投递消息了（之前 Emit 的事件会排队等着）
@@ -191,7 +196,13 @@ func main() {
 		})
 	})
 
-	registry.Start(window.ExecJS)
+	registry.Start(func(js string) {
+		for _, win := range app.Window.GetAll() {
+			if w, ok := win.(*application.WebviewWindow); ok {
+				w.ExecJS(js)
+			}
+		}
+	})
 
 	log.Printf("[desktop] 加载 %s（version=%s debug=%v）", startURL, version, cfg.Debug)
 	if err := app.Run(); err != nil {
@@ -214,7 +225,100 @@ registerWindowMethods 注册窗口自身的动作（`window.*`）。
 命名仍守 `<域>.<动作>`；前两个统一返回窗口当前状态，调用方一次往返就能拿到新值。
 窗口方法内部都会 `InvokeSync` 到主线程，所以从 bridge 的协程里调是安全的。
 */
-func registerWindowMethods(registry *bridge.Registry, window *application.WebviewWindow) {
+func registerWindowMethods(registry *bridge.Registry, app *application.App, window *application.WebviewWindow, cfg shell.Config, bgType application.BackgroundType) {
+	registry.Handle(bridge.WindowOpen, func(payload json.RawMessage) (any, error) {
+		var req struct {
+			Path   string `json:"path"`
+			Name   string `json:"name"`
+			Title  string `json:"title"`
+			Width  int    `json:"width"`
+			Height int    `json:"height"`
+		}
+		if len(payload) > 0 {
+			_ = json.Unmarshal(payload, &req)
+		}
+		if req.Name == "" {
+			req.Name = "sphere"
+		}
+
+		log.Printf("[desktop] 收到 window.open: name=%s, path=%s", req.Name, req.Path)
+		// 若对应命名的独立窗口已存在，则激活置顶展示
+		if existing, ok := app.Window.GetByName(req.Name); ok {
+			if win, ok := existing.(*application.WebviewWindow); ok {
+				win.Show()
+				win.Focus()
+				if req.Path != "" {
+					targetURL, err := cfg.TargetURL(req.Path, req.Name)
+					if err == nil {
+						win.SetURL(targetURL)
+					}
+				}
+				return map[string]any{
+					"success": true,
+					"name":    req.Name,
+					"created": false,
+				}, nil
+			}
+		}
+
+		targetURL, err := cfg.TargetURL(req.Path, req.Name)
+		if err != nil {
+			return nil, err
+		}
+
+		width := req.Width
+		if width <= 0 {
+			width = 1080
+		}
+		height := req.Height
+		if height <= 0 {
+			height = 740
+		}
+		title := req.Title
+		if title == "" {
+			title = "Sphere"
+		}
+
+		newWin := app.Window.NewWithOptions(application.WebviewWindowOptions{
+			Name:           req.Name,
+			Title:          title,
+			URL:            targetURL,
+			Width:          width,
+			Height:         height,
+			MinWidth:       720,
+			MinHeight:      520,
+			BackgroundType: bgType,
+			Frameless:      false,
+			Mac: application.MacWindow{
+				Backdrop: application.MacBackdropTranslucent,
+				TitleBar: application.MacTitleBar{
+					AppearsTransparent:   true,
+					Hide:                 false,
+					HideTitle:            true,
+					FullSizeContent:      true,
+					UseToolbar:           true,
+					HideToolbarSeparator: true,
+					ToolbarStyle:         application.MacToolbarStyleUnifiedCompact,
+				},
+				InvisibleTitleBarHeight: 0,
+			},
+			Windows: application.WindowsWindow{
+				BackdropType: application.Mica,
+			},
+			DevToolsEnabled: cfg.Debug,
+		})
+
+		setupNativeWindow(newWin)
+		setNativeWindowTheme(newWin, currentThemeMode, currentThemeResolved)
+		newWin.Show()
+		newWin.Focus()
+
+		return map[string]any{
+			"success": true,
+			"name":    req.Name,
+			"created": true,
+		}, nil
+	})
 	registry.Handle(bridge.WindowMinimise, func(json.RawMessage) (any, error) {
 		window.Minimise()
 		return windowState(window), nil
@@ -290,7 +394,13 @@ func registerThemeMethods(registry *bridge.Registry, app *application.App, windo
 		}
 
 		log.Printf("[desktop] 前端主题同步：mode=%s, 页面 resolved=%s, 壳采用=%s", req.Mode, req.Resolved, resolved)
-		setNativeWindowTheme(window, req.Mode, resolved)
+		currentThemeMode = req.Mode
+		currentThemeResolved = resolved
+		for _, w := range app.Window.GetAll() {
+			if win, ok := w.(*application.WebviewWindow); ok {
+				setNativeWindowTheme(win, req.Mode, resolved)
+			}
+		}
 		return map[string]any{
 			"success":  true,
 			"mode":     req.Mode,

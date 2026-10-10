@@ -53,6 +53,7 @@ const (
 	WindowMinimise       = "window.minimise"
 	WindowToggleMaximise = "window.toggleMaximise"
 	WindowClose          = "window.close"
+	WindowOpen           = "window.open"
 	WindowOpenDevTools   = "window.openDevTools"
 	WindowGetBlurSupport = "window.getBlurSupport"
 )
@@ -140,6 +141,12 @@ var Methods = []Method{
 		Summary: "关闭窗口",
 		Payload: "void",
 		Result:  "void",
+	},
+	{
+		Name:    WindowOpen,
+		Summary: "在独立桌面窗口中打开指定路径或页面",
+		Payload: `{ path: string; name?: string; title?: string; width?: number; height?: number }`,
+		Result:  `{ success: boolean; name: string; created: boolean }`,
 	},
 	{
 		Name:    WindowOpenDevTools,

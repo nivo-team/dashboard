@@ -1,6 +1,6 @@
 /* eslint-disable */
 // 本文件由 scripts/i18n/gen-types.mjs 生成 —— 不要手改。
-// 源语言：zh-CN｜命名空间：10 个｜键：1147 个
+// 源语言：zh-CN｜命名空间：10 个｜键：1149 个
 // 重新生成：pnpm i18n:types
 
 /**
@@ -68,6 +68,8 @@ export interface I18nNamespaceKeys {
     | "notConfigured"
     | "notFoundDesc"
     | "notFoundTitle"
+    | "openNewWindow"
+    | "openNewWindowTooltip"
     | "permissionsBack"
     | "permissionsSave"
     | "permissionsTitle"

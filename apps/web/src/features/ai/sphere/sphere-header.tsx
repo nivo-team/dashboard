@@ -6,6 +6,7 @@ import { useActiveSessionTitle } from '#/features/ai/components/session-picker'
 import { useAiSessionStore } from '#/features/ai/core'
 import { cn } from '#/lib/cn'
 import { handleDesktopHeaderDoubleClick, isDesktop } from '#/desktop/bridge'
+import { useLocale } from '#/lib/use-locale'
 import { useSphereCollapse } from './use-sphere-collapse'
 
 /**
@@ -36,7 +37,9 @@ export function SphereHeader({ appId }: { appId: string }) {
    * `sphere-sidebar.tsx` 同一份判断 —— 两边用错一个就会同时冒出两个按钮。
    */
   const { open, openMobile, isMobile } = useSidebar()
-  const sidebarVisible = isMobile ? openMobile : open
+  const { isRtl } = useLocale()
+  const isDesktopShell = isDesktop()
+  const sidebarVisible = !isDesktopShell && isMobile ? openMobile : open
   const handleCollapse = useSphereCollapse(appId)
 
   // ['console', 'sphere', 'chat', '<id>'] —— 只有第 3 段是 chat 时才有会话 id
@@ -56,48 +59,58 @@ export function SphereHeader({ appId }: { appId: string }) {
     ? t('sidebarCollapse', '收起侧边栏')
     : t('sidebarExpand', '展开侧边栏')
 
+  // macOS 原生红绿灯始终在物理左侧：若侧边栏在物理左侧且已展开，留白由侧边栏头行承担；否则由此处承担
+  const needsTrafficLightPad = isDesktop() && (isRtl || !sidebarVisible)
+
   return (
-    // 与侧边栏头行、AppHeader 同高（58px）
+    // 高度与外壳顶栏/窗口条保持一致；桌面端去除底边边框（border-b-0），普通 Web 保留
     <header
       onDoubleClick={handleDesktopHeaderDoubleClick}
       className={cn(
-        'grid h-[58px] shrink-0 grid-cols-3 items-center gap-2 border-b border-kumo-line px-3 select-none drag',
-        isDesktop() && 'pl-[var(--shell-traffic-light-w,78px)]',
+        'relative flex shrink-0 items-center justify-between px-3 select-none drag',
+        isDesktop() ? 'h-[var(--shell-chrome-h,40px)] border-b-0' : 'h-[58px] border-b border-kumo-line',
+        needsTrafficLightPad && 'pl-[var(--shell-traffic-light-w,78px)]',
       )}
     >
-      <div className="flex min-w-0 items-center no-drag">
-        {/* 侧边栏展开时按钮在侧边栏头行里，这里只在它收起后补位（一次只显示一个） */}
+      <div className="flex shrink-0 items-center drag">
+        {/*
+          侧边栏展开时按钮在侧边栏头行里，这里只在它收起后补位。
+          注意：no-drag 仅精准赋予按钮本体，外层容器保持 drag，避免大面积拦截窗口拖拽。
+        */}
         {sidebarVisible ? null : (
           <Tooltip
             content={sidebarLabel}
-            className="cursor-pointer no-drag"
+            className="cursor-pointer"
             render={<Sidebar.Trigger aria-label={sidebarLabel} className="no-drag" />}
           />
         )}
       </div>
 
-      {/* 标题居中；不存在的那一段会话 → 空串（header 仍在，只是没有内容） */}
-      <span className="min-w-0 truncate text-center text-sm font-medium text-kumo-default">
+      {/* 标题绝对居中；pointer-events-none 让鼠标在标题处按下时可直接拖拽窗口 */}
+      <span className="pointer-events-none absolute inset-x-0 mx-auto max-w-[50%] truncate text-center text-sm font-medium text-kumo-default">
         {title}
       </span>
 
-      <div className="flex min-w-0 items-center justify-end no-drag">
-        <Tooltip
-          content={t('sphereCollapse', '收起')}
-          className="cursor-pointer no-drag"
-          render={
-            <Button
-              variant="ghost"
-              shape="square"
-              onClick={handleCollapse}
-              aria-label={t('sphereCollapse', '收起')}
-              className="no-drag"
-            />
-          }
-        >
-          {/* 四角向内的双箭头：中心对称，不随书写方向翻转，不加 `rtl-flip` */}
-          <ArrowsInSimpleIcon size={16} />
-        </Tooltip>
+      <div className="flex shrink-0 items-center justify-end drag">
+        {/* 桌面壳独立窗口自带系统原生窗口控制，去除多余的收起按钮；普通 Web 保留收起回退 */}
+        {!isDesktop() ? (
+          <Tooltip
+            content={t('sphereCollapse', '收起')}
+            className="cursor-pointer"
+            render={
+              <Button
+                variant="ghost"
+                shape="square"
+                onClick={handleCollapse}
+                aria-label={t('sphereCollapse', '收起')}
+                className="no-drag"
+              />
+            }
+          >
+            {/* 四角向内的双箭头：中心对称，不随书写方向翻转，不加 `rtl-flip` */}
+            <ArrowsInSimpleIcon size={16} />
+          </Tooltip>
+        ) : null}
       </div>
     </header>
   )

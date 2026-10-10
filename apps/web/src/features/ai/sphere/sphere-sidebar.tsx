@@ -8,6 +8,8 @@ import { AiSessionDeleteDialog } from '#/features/ai/components/session-delete-d
 import { useAiSessionStore } from '#/features/ai/core'
 import type { AiSessionSummary } from '#/features/ai/core'
 import { GROUP_FALLBACK, formatRelative, groupSessions } from '#/features/ai/core/session-groups'
+import { handleDesktopHeaderDoubleClick, isDesktop } from '#/desktop/bridge'
+import { useLocale } from '#/lib/use-locale'
 import { cn } from '#/lib/cn'
 import { SessionSearchDialog } from './session-search-dialog'
 
@@ -42,18 +44,18 @@ export function SphereSidebar({ appId }: { appId: string }) {
   const { t, i18n } = useTranslation('ai')
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const { isRtl } = useLocale()
   const sessions = useAiSessionStore((state) => state.sessions)
   const activeSessionId = useAiSessionStore((state) => state.activeSessionId)
   const startNewSession = useAiSessionStore((state) => state.startNewSession)
   const { open, openMobile, isMobile, setOpenMobile } = useSidebar()
+  const isDesktopShell = isDesktop()
 
   /**
-   * 侧边栏此刻是不是可见的。
-   *
-   * 桌面看 `open`；移动端侧边栏是覆盖式抽屉，看 `openMobile` —— 用错那个的话，
-   * 移动端会同时出现「抽屉头行的收起」和「chat 头行的展开」，或两个都不出现。
+   * 侧边栏此刻是不是可见的：
+   * 桌面壳环境彻底移除 mobile 适配（恒看 open，不受移动视口影响）；普通 Web 下移动端看 openMobile。
    */
-  const sidebarVisible = isMobile ? openMobile : open
+  const sidebarVisible = !isDesktopShell && isMobile ? openMobile : open
 
   const [searchOpen, setSearchOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<AiSessionSummary | null>(null)
@@ -66,9 +68,8 @@ export function SphereSidebar({ appId }: { appId: string }) {
   /** 已经在「新会话」路由上（尾斜杠两种写法都算） */
   const isNewSessionRoute = pathname.replace(/\/$/, '') === `/${appId}/sphere`
 
-  /** 移动端侧边栏是覆盖式抽屉：动作做完就收掉，否则会挡住刚打开的对话 */
   const handleNew = () => {
-    if (isMobile) setOpenMobile(false)
+    if (!isDesktopShell && isMobile) setOpenMobile(false)
     if (isNewSessionRoute) {
       // 路由不会重挂，index.tsx 的 effect 不会再跑 —— 这里直接清掉当前会话
       startNewSession()
@@ -78,17 +79,16 @@ export function SphereSidebar({ appId }: { appId: string }) {
   }
 
   const handleSwitch = (sessionId: string) => {
-    if (isMobile) setOpenMobile(false)
+    if (!isDesktopShell && isMobile) setOpenMobile(false)
     void navigate({
       to: '/$appId/sphere/chat/$chatId',
       params: { appId, chatId: sessionId },
     })
   }
 
-  /** 搜索弹窗是独立的一层：移动端先把抽屉收掉，否则关掉弹窗后会又看到遮罩 */
   const handleSearch = () => {
     setSearchOpen(true)
-    if (isMobile) setOpenMobile(false)
+    if (!isDesktopShell && isMobile) setOpenMobile(false)
   }
 
   return (
@@ -99,22 +99,24 @@ export function SphereSidebar({ appId }: { appId: string }) {
       */}
       <Sidebar contentClassName={cn(sidebarVisible && 'border-e border-kumo-line')}>
         {/*
-          头行：品牌 + 标题；**展开态的收起按钮在标题右侧**。
-          收起后整列滑走，这个按钮随之消失，改由 chat 头行那个接手（一次只显示一个）。
+          头行：桌面端由整宽固定的 DesktopSphereTitleBar 统一承载（始终固定在左上角，折叠收起不跳动）；
+          普通 Web 环境下在侧边栏内部保留原有的 Header。
         */}
-        <Sidebar.Header className="gap-2">
-          <AiBotAvatar size={24} className="shrink-0" />
-          <span className="min-w-0 flex-1 truncate text-sm font-medium text-kumo-default">
-            {t('sphereTitle', '聊天')}
-          </span>
-          {sidebarVisible ? (
-            <Tooltip
-              content={t('sidebarCollapse', '收起侧边栏')}
-              className="cursor-pointer"
-              render={<Sidebar.Trigger aria-label={t('sidebarCollapse', '收起侧边栏')} />}
-            />
-          ) : null}
-        </Sidebar.Header>
+        {!isDesktop() ? (
+          <Sidebar.Header className="flex h-[58px] shrink-0 items-center gap-2 border-b border-kumo-line px-3">
+            <AiBotAvatar size={24} className="shrink-0" />
+            <span className="min-w-0 flex-1 truncate text-sm font-medium text-kumo-default">
+              {t('sphereTitle', '聊天')}
+            </span>
+            {sidebarVisible ? (
+              <Tooltip
+                content={t('sidebarCollapse', '收起侧边栏')}
+                className="cursor-pointer"
+                render={<Sidebar.Trigger aria-label={t('sidebarCollapse', '收起侧边栏')} className="no-drag" />}
+              />
+            ) : null}
+          </Sidebar.Header>
+        ) : null}
 
         <Sidebar.Content>
           <Sidebar.Group>

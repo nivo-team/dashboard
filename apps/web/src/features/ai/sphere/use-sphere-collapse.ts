@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useContext } from 'react'
+import { invoke, isSphereWindow } from '#/desktop/bridge'
 import { readMaximizeOrigin } from '#/features/ai/core'
 import { SphereTransitionContext } from './sphere-transition'
 
@@ -13,6 +14,7 @@ import { SphereTransitionContext } from './sphere-transition'
  *
  * 目标来自 `#/features/ai/core/panel-session` 记下的 href（含查询串，列表页的筛选条件能一起还原）；
  * 没有记录时（例如直接输 URL 进 `/sphere`、或换了标签页）回落到应用首页。
+ * 在桌面端独立 Sphere 子窗口中直接调用窗口关闭。
  *
  * 抽成 hook 是因为**多个**地方要用同一套判断：chat 头行的收起按钮、以及将来别处可能加的
  * 出口。各写一份必然有一处忘记兜底。
@@ -21,6 +23,12 @@ export function useSphereCollapseNow(appId: string): () => void {
   const navigate = useNavigate()
 
   return useCallback(() => {
+    // 独立桌面子窗口直接关闭当前窗口
+    if (isSphereWindow()) {
+      void invoke('window.close')
+      return
+    }
+
     const origin = readMaximizeOrigin()
     if (origin) {
       // 用 `navigate({ href })`：TanStack 会把整串 href 解析成 pathname / search / hash

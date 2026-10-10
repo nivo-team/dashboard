@@ -61,7 +61,7 @@ wails3 task test                                     # = pnpm desktop:test
 | 原生窗口毛玻璃模糊与穿透 | macOS `MacBackdropTranslucent`、Windows `Mica`、Linux GTK4+WebKitGTK 全透明穿透（配合 Wayland/Hyprland/KWin 合成器模糊），编译参数 `-tags private_mac_apis` 解锁 macOS WKWebView 透明 |
 | 标题栏/红绿灯高度注入 | 启动时注入 `__desktop_title_bar_h=40`（默认 40px，落地为 `--shell-chrome-h`） |
 | 窗口拖拽与交互区保护 | 页面侧 `--wails-draggable: drag`，按钮等写 `no-drag` 退出 |
-| 窗口自身动作 | `window.minimise` / `window.toggleMaximise` / `window.close` |
+| 窗口自身动作与多窗口 | `window.minimise` / `window.toggleMaximise` / `window.close` / `window.open`（独立桌面窗口打开 Sphere 等功能） |
 
 页面侧的代码全在 [`apps/web/src/desktop/`](../web/src/desktop/README.md)：低层收发在
 `bridge.ts`、窗口条在 `title-bar.tsx`、桌面专属的模糊开关在 `blur-setting.tsx`。

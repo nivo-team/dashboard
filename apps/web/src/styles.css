@@ -320,6 +320,76 @@ html[data-desktop-blurred='true'] [data-desktop-chrome] [data-desktop-title-bar]
 }
 
 /*
+ * 桌面独立 Sphere 窗口：全高顶格侧边栏 + 全透明毛玻璃适配
+ *
+ * 1. 侧边栏从视口顶端 0px 一直延伸到 100svh 底端，内部内容不扣减窗口条高度（padding-top: 0，真正全高顶格）；
+ * 2. 覆盖 Kumo 默认的 has-data-[variant=inset]:bg-kumo-recessed，外层容器、侧边栏及 main 完全透明，彻底透出操作系统毛玻璃；
+ * 3. 侧边栏内部元素不画多余实体底色。
+ */
+[data-desktop-sphere] {
+  width: 100vw;
+  height: 100vh;
+  width: 100svw;
+  height: 100svh;
+  overflow: hidden;
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+[data-desktop-sphere] [data-sidebar-wrapper],
+[data-desktop-sphere] [data-sidebar-wrapper].has-data-\[variant\=inset\]\:bg-kumo-recessed,
+[data-desktop-sphere] [data-sidebar-wrapper][data-variant='inset'] {
+  background-color: transparent !important;
+  background: transparent !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
+}
+
+[data-desktop-sphere] [data-sidebar='sidebar']:not([data-mobile='true']) {
+  height: 100svh !important;
+  max-height: 100svh !important;
+  top: 0 !important;
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+[data-desktop-sphere] [data-sidebar='sidebar']:not([data-mobile='true']) > [data-sidebar='content-container'] {
+  top: 0 !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
+  padding-top: var(--shell-chrome-h, 40px) !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  border-right: 1px solid var(--color-kumo-line) !important;
+  border-top-width: 0 !important;
+  border-bottom-width: 0 !important;
+  border-left-width: 0 !important;
+}
+
+[dir='rtl'] [data-desktop-sphere] [data-sidebar='sidebar']:not([data-mobile='true']) > [data-sidebar='content-container'] {
+  border-left: 1px solid var(--color-kumo-line) !important;
+  border-right-width: 0 !important;
+}
+
+[data-desktop-sphere] [data-sidebar='sidebar'][data-state='collapsed'] > [data-sidebar='content-container'] {
+  border-right-width: 0 !important;
+  border-left-width: 0 !important;
+}
+
+[data-desktop-sphere] [data-sidebar='header'],
+[data-desktop-sphere] [data-sidebar='content'],
+[data-desktop-sphere] [data-sidebar='viewport'],
+[data-desktop-sphere] main {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+[data-desktop-sphere] [data-sidebar='header'],
+[data-desktop-sphere] header {
+  border-bottom-width: 0 !important;
+}
+
+/*
  * 桌面壳模式下：侧边栏折叠完全隐藏（collapsible="offcanvas"）。
  *
  * 1. 折叠态下侧边栏宽度收归 0，边框颜色转为透明，消除 1px 残留边线与闪烁；
