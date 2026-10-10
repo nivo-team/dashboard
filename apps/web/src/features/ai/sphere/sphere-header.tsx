@@ -62,7 +62,7 @@ export function SphereHeader({ appId }: { appId: string }) {
       onDoubleClick={handleDesktopHeaderDoubleClick}
       className={cn(
         'grid h-[58px] shrink-0 grid-cols-3 items-center gap-2 border-b border-kumo-line px-3 select-none drag',
-        isDesktop() && 'ps-[var(--shell-traffic-light-w,78px)]',
+        isDesktop() && 'pl-[var(--shell-traffic-light-w,78px)]',
       )}
     >
       <div className="flex min-w-0 items-center no-drag">

@@ -171,6 +171,14 @@ export function desktopPlatform(): string {
   )
 }
 
+/** 判断当前是否在 macOS 桌面客户端环境下。 */
+export function isDesktopMac(): boolean {
+  if (!isDesktop()) return false
+  const p = desktopPlatform()
+  if (p) return p === 'darwin'
+  return typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform)
+}
+
 /** 桌面端背景模糊支持信息。 */
 export interface BlurSupportInfo {
   supported: boolean

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { isDesktopMac } from '#/desktop/bridge'
 import { cn } from '#/lib/cn'
 
 /**
@@ -25,6 +26,9 @@ export function ShellContentColumn({
   desktop: boolean
   children: ReactNode
 }) {
+  const isMac = isDesktopMac()
+  const desktopRoundedClass = desktop ? (isMac ? 'rounded-lg' : 'rounded-md') : ''
+
   return (
     <div
       className={cn(
@@ -32,6 +36,7 @@ export function ShellContentColumn({
         // 浏览器里内容列自己铺底；桌面壳里底色挪到 <main> 上，圆角才看得出来
         !desktop && 'bg-kumo-canvas',
         desktop && 'h-full min-h-0 overflow-hidden',
+        desktopRoundedClass,
       )}
     >
       {header}
@@ -40,7 +45,7 @@ export function ShellContentColumn({
         data-shell-content
         className={cn(
           'min-w-0 flex-1',
-          desktop && 'min-h-0 overflow-y-auto rounded-md bg-kumo-canvas',
+          desktop && cn('min-h-0 overflow-y-auto bg-kumo-canvas', desktopRoundedClass),
           mainClassName,
         )}
       >

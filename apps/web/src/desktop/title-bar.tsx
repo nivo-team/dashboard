@@ -1,12 +1,10 @@
 import { Tooltip } from '@cloudflare/kumo'
-import { ArrowLeftIcon, ArrowRightIcon, MagnifyingGlassIcon } from '@phosphor-icons/react'
+import { ArrowLeftIcon, ArrowRightIcon } from '@phosphor-icons/react'
 import { useRouter, useRouterState } from '@tanstack/react-router'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PageTabStrip } from '#/components/page-tab-strip'
-import { RouterLink } from '#/components/router-link'
 import { useShellSidebarControl } from '#/components/shell/shell-sidebar-provider'
-import { useBrand } from '#/lib/brand'
 import { cn } from '#/lib/cn'
 import { handleDesktopHeaderDoubleClick, isDesktop, useDesktopBlurred } from './bridge'
 
@@ -20,87 +18,8 @@ export interface DesktopTitleBarProps {
   actions?: ReactNode
   /** 标签页全部关掉之后的落点（透传给 `PageTabStrip`）。 */
   homeTo: string
-  /** 点击搜索按钮打开全局命令面板 */
+  /** 透传给 PageTabStrip 的点击搜索新建标签等全局命令面板回调 */
   onOpenCommandPalette?: () => void
-}
-
-/**
- * 桌面壳窗口条左上角的系统品牌 Logo。
- * 位于红绿灯避让区右侧、侧边栏切换按钮左侧，提供稳固的视觉平衡与首页回退能力。
- */
-export function DesktopHeaderLogo({ homeTo }: { homeTo: string }) {
-  const brand = useBrand()
-  const LogoIcon = brand.logoIcon
-
-  return (
-    <Tooltip
-      content={brand.name}
-      render={
-        <RouterLink
-          to={homeTo}
-          variant="plain"
-          onDoubleClick={(e) => e.stopPropagation()}
-          aria-label={brand.name}
-          className={cn(
-            'no-drag relative flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors',
-            '[color:var(--color-kumo-subtle)]! text-kumo-subtle hover:[color:var(--color-kumo-default)]! hover:text-kumo-default',
-            'hover:bg-kumo-base/60 active:bg-kumo-base',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-line',
-          )}
-        >
-          <LogoIcon size={18} className="[color:inherit]! text-inherit shrink-0" />
-        </RouterLink>
-      }
-    />
-  )
-}
-
-/**
- * 桌面壳窗口条左上角的快速搜索按钮。
- * 位于品牌 Logo 与侧边栏切换按钮之间，点击呼出全局命令面板。
- * 纯中性色样式，携带 ⌘K / Ctrl+K 提示与防穿透保护。
- */
-export function DesktopHeaderSearch({ onOpen }: { onOpen?: () => void }) {
-  const { t } = useTranslation()
-  const label = t('search.quickSearch', '快速搜索…')
-  const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform)
-  const shortcutHint = isMac ? '⌘K' : 'Ctrl+K'
-
-  const handleClick = () => {
-    if (onOpen) {
-      onOpen()
-    } else {
-      window.dispatchEvent(
-        new KeyboardEvent('keydown', {
-          key: 'k',
-          metaKey: isMac,
-          ctrlKey: !isMac,
-          bubbles: true,
-        }),
-      )
-    }
-  }
-
-  return (
-    <Tooltip
-      content={`${label} (${shortcutHint})`}
-      render={
-        <button
-          type="button"
-          onClick={handleClick}
-          onDoubleClick={(e) => e.stopPropagation()}
-          aria-label={label}
-          className={cn(
-            'no-drag relative flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-kumo-subtle transition-colors',
-            'hover:bg-kumo-base/60 hover:text-kumo-default active:bg-kumo-base',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-line',
-          )}
-        >
-          <MagnifyingGlassIcon size={16} className="shrink-0" aria-hidden />
-        </button>
-      }
-    />
-  )
 }
 
 /**
@@ -367,12 +286,12 @@ export function DesktopSidebarHeader() {
  * 桌面窗口条 —— 桌面壳里取代顶栏的那一行，**整宽浮在全高侧边栏之上**（`fixed`）。
  *
  * 1. **窗口的标题栏与拖拽区**：`drag`；按钮与交互控件标 `no-drag`。
- * 2. **左上控制组**（品牌 Logo、快速搜索、收起的侧边栏开关 + 前进/后退）：
- *    **属于窗口条，只是靠在窗口最左侧** —— 于是它浮在透明侧边栏之上，侧边栏收起时控件也不动，
- *    不必切换组件。左侧留白取 `max(--shell-traffic-light-w, 0.5rem)`：macOS 让开红绿灯（78px），
- *    其它平台（Windows / Linux）保底 0.5rem，不贴着窗口边缘。
- * 3. **页面标签条**（`PageTabStrip`）：紧跟在左上控制组之后（不额外留侧边栏宽度的 padding）。
- * 4. **行末工具区**：外壳的 `HeaderActions`（包含 Ask AI / 支持 / 头像）。
+ * 2. **控制组**（侧边栏开关 + 前进/后退）：
+ *    属于窗口条，浮在透明侧边栏之上，侧边栏收起时控件也不动。
+ *    外层物理左侧留白取 `max(--shell-traffic-light-w, 0.5rem)`：macOS 让开红绿灯（78px），
+ *    其它平台（Windows / Linux）保底 0.5rem。RTL 模式下红绿灯避让留白依然严格固定在物理左侧。
+ * 3. **页面标签条**（`PageTabStrip`）：紧跟在控制组之后。
+ * 4. **行末工具区**：外壳的 `HeaderActions`（包含 Ask AI / 支持 / 头像，尺寸为 sm）。
  */
 export function DesktopTitleBar({
   actions,
@@ -394,26 +313,20 @@ export function DesktopTitleBar({
         'select-none',
         // 在开启毛玻璃模糊穿透时为透明，否则为纯色底
         isBlurred ? 'bg-transparent' : 'bg-kumo-tint',
-        'pe-2',
+        // macOS 红绿灯物理固定在窗口左上角：无论 LTR 还是 RTL，留白必须始终在物理左侧（pl），右侧始终为常规边距（pr）
+        'pl-[max(var(--shell-traffic-light-w,0px),0.5rem)]',
+        'pr-2',
         // 允许拖拽窗口
         'drag',
       )}
     >
       {/*
-        左上控制组：**属于窗口条、靠在最左侧**（浮在透明侧边栏之上）。
-        它不在会滑走的侧边栏里，所以侧边栏收起时控件保持不动 —— 不需要折叠时切换组件。
+        控制组（侧边栏开关 + 前进/后退）：
+        属于窗口条，浮在透明侧边栏之上。红绿灯留白由外层物理 pl 承担，控制组自身无需内边距。
       */}
-      <div
-        className="flex h-full shrink-0 items-center gap-1 ps-[max(var(--shell-traffic-light-w,0px),0.5rem)] pe-2 drag"
-      >
-        <DesktopHeaderLogo homeTo={homeTo} />
-        <DesktopHeaderSearch onOpen={onOpenCommandPalette} />
-
-        {/* 侧边栏收起与前进/后退：整合为一个控制组 */}
-        <div className="flex h-full items-center gap-0.5">
-          <DesktopSidebarTrigger />
-          <DesktopHistoryNav />
-        </div>
+      <div className="flex h-full shrink-0 items-center gap-0.5 drag">
+        <DesktopSidebarTrigger />
+        <DesktopHistoryNav />
       </div>
 
       {/* `chrome`：桌面壳窗口条里那一条是 Chrome 那种连成一片的标签 */}

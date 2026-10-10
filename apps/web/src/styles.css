@@ -172,8 +172,8 @@
   /* 窗口条高度：默认按 macOS 红绿灯紧凑高度 40px 适配，也可由桌面壳通过 --shell-chrome-h 动态注入覆盖 */
   --shell-chrome-h: 40px;
   --shell-content-top: 0px;
-  /* 内容区四周内缩：桌面壳里 main / AI 面板嵌在 `p-1`（0.25rem × 2）的容器里 */
-  --shell-content-inset: 0.5rem;
+  /* 内容区四周内缩：去除了顶部 padding 后，纵向仅保留底部的 0.25rem 内缩 */
+  --shell-content-inset: 0.25rem;
   /* 默认非 macOS（Windows / Linux / 普通浏览器）不留红绿灯避让留白 */
   --shell-traffic-light-w: 0px;
 }
@@ -361,6 +361,51 @@ html[data-desktop-blurred='true'] [data-desktop-chrome] [data-desktop-title-bar]
  */
 [data-sidebar='sidebar'][data-mobile='true'] [data-sidebar='resize-handle'] {
   display: none;
+}
+
+/*
+ * 桌面壳模式下：侧边栏调整宽度的手柄指示条改为 60px 高的居中圆角药丸胶囊样式。
+ *
+ * 背景：未悬停时完全隐去（opacity: 0），鼠标移入边缘时淡入呈现 60px 高、4px 宽、
+ * 透明度 0.5 的居中圆角胶囊手柄（rounded-full），保持界面视觉极其干净沉浸。
+ */
+[data-desktop-chrome] [data-sidebar='resize-handle']::after,
+html.is_desktop [data-sidebar='resize-handle']::after {
+  top: 50% !important;
+  bottom: auto !important;
+  height: 60px !important;
+  width: 4px !important;
+  border-radius: 9999px !important;
+  transform: translateY(-50%) !important;
+  background-color: var(--color-kumo-line) !important;
+  opacity: 0 !important;
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.2s ease !important;
+  right: -2px !important;
+  left: auto !important;
+}
+
+[dir='rtl'] [data-desktop-chrome] [data-sidebar='resize-handle']::after,
+[dir='rtl'] html.is_desktop [data-sidebar='resize-handle']::after {
+  left: -2px !important;
+  right: auto !important;
+}
+
+[data-desktop-chrome] [data-sidebar='resize-handle']:hover::after,
+html.is_desktop [data-sidebar='resize-handle']:hover::after,
+[data-desktop-chrome] [data-sidebar='resize-handle']:focus-visible::after,
+html.is_desktop [data-sidebar='resize-handle']:focus-visible::after {
+  opacity: 0.5 !important;
+  background-color: var(--color-kumo-hairline) !important;
+}
+
+[data-desktop-chrome] [data-sidebar='resize-handle']:active::after,
+html.is_desktop [data-sidebar='resize-handle']:active::after {
+  opacity: 0.8 !important;
+  background-color: var(--color-kumo-subtle) !important;
+  transform: translateY(-50%) scaleX(1.25) !important;
 }
 
 /*

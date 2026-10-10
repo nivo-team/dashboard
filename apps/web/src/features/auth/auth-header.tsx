@@ -41,7 +41,7 @@ export function AuthHeader({ className = '', rightContrastOnLg }: AuthHeaderProp
       className={cn(
         'fixed top-0 left-0 right-0 z-50 flex h-16 w-full items-center justify-between px-6 sm:px-10',
         isDesktop() ? 'select-none drag' : 'pointer-events-none',
-        isDesktop() && 'ps-[var(--shell-traffic-light-w,78px)]',
+        isDesktop() && 'pl-[var(--shell-traffic-light-w,78px)]',
         className,
       )}
     >

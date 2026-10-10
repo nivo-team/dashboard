@@ -23,6 +23,7 @@ import type { TimezoneKey } from '#/lib/timezone'
 export interface UserMenuProps {
   align?: 'start' | 'center' | 'end'
   onOpenCommandPalette?: () => void
+  size?: 'sm' | 'base'
 }
 
 interface ThemeOptionItem {
@@ -42,7 +43,7 @@ const THEME_OPTIONS: ThemeOptionItem[] = [
  * 规范用户菜单组件：
  * 顶部显示当前账号邮箱，包含「外观」、「语言」、「时区」的二级子菜单及「退出登录」。
  */
-export function UserMenu({ align = 'end' }: UserMenuProps) {
+export function UserMenu({ align = 'end', size }: UserMenuProps) {
   const { t } = useTranslation()
   const { user, logout } = useAuth()
   const { mode, setMode } = useColorMode()
@@ -65,10 +66,11 @@ export function UserMenu({ align = 'end' }: UserMenuProps) {
         <DropdownMenu.Trigger
           render={
             <Button
+              size={size}
               shape="square"
               variant="ghost"
               aria-label={t('userMenu.ariaLabel', '账号菜单')}
-              icon={<UserIcon size={18} weight="fill" />}
+              icon={<UserIcon size={size === 'sm' ? 16 : 18} weight="fill" />}
             />
           }
         />

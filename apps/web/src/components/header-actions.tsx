@@ -2,6 +2,7 @@ import { Button, Tooltip } from '@cloudflare/kumo'
 import { QuestionIcon, SparkleIcon } from '@phosphor-icons/react'
 import { useTranslation } from 'react-i18next'
 import { UserMenu } from '#/components/user-menu'
+import { isDesktop } from '#/desktop/bridge'
 
 export interface HeaderActionsProps {
   /**
@@ -28,6 +29,8 @@ export interface HeaderActionsProps {
   onSupport?: () => void
   /** 透传给 UserMenu（与 AppHeader 既有调用签名一致）。 */
   onOpenCommandPalette?: () => void
+  /** 按钮尺寸规范：桌面端窗口条默认收紧为 sm，普通浏览器顶栏为 base。 */
+  size?: 'sm' | 'base'
 }
 
 /**
@@ -35,7 +38,7 @@ export interface HeaderActionsProps {
  *
  * Kumo 没有内置的 AI 入口组件，因此这里就是「同一排 ghost 按钮 + 账号菜单」：
  * `Ask AI`（SparkleIcon，可选）在左、`Support`（QuestionIcon）居中、账号菜单收尾 ——
- * 按钮都用 Kumo 默认尺寸（h-9），与 `UserMenu` 的方形触发器等高对齐。
+ * 浏览器顶栏使用 Kumo 默认尺寸（h-9），桌面端窗口条使用更紧凑的 `sm`（h-6.5）。
  *
  * **`Ask AI` 是开关按钮**：它控制 `#/features/ai/components/panel` 那块面板的显隐，因此带上
  * `aria-expanded`（读屏听得出来），但**展开态不换皮** —— 保持 `text-kumo-subtle`
@@ -52,13 +55,15 @@ export function HeaderActions({
   askAiExpanded = false,
   onSupport,
   onOpenCommandPalette,
+  size = isDesktop() ? 'sm' : 'base',
 }: HeaderActionsProps) {
   const { t } = useTranslation()
   const askAiLabel = t('profileNav.askAi', 'Ask AI')
   const supportLabel = t('profileNav.support', '支持')
+  const iconSize = size === 'sm' ? 14 : 16
 
   return (
-    <div className="ms-auto flex shrink-0 items-center gap-2 no-drag">
+    <div className="ms-auto flex shrink-0 items-center gap-1.5 no-drag">
       {showAskAi ? (
         /*
           Tooltip 走 `render={<Button/>}`：Kumo 的 Tooltip 自己就是 trigger，
@@ -71,8 +76,9 @@ export function HeaderActions({
           className="cursor-pointer"
           render={
             <Button
+              size={size}
               variant="ghost"
-              icon={<SparkleIcon size={16} />}
+              icon={<SparkleIcon size={iconSize} />}
               className="text-kumo-subtle hover:text-kumo-default"
               aria-label={askAiLabel}
               aria-expanded={askAiExpanded}
@@ -85,8 +91,9 @@ export function HeaderActions({
       ) : null}
 
       <Button
+        size={size}
         variant="ghost"
-        icon={<QuestionIcon size={16} />}
+        icon={<QuestionIcon size={iconSize} />}
         className="text-kumo-subtle hover:text-kumo-default"
         aria-label={supportLabel}
         onClick={onSupport}
@@ -94,7 +101,7 @@ export function HeaderActions({
         <span>{supportLabel}</span>
       </Button>
 
-      <UserMenu onOpenCommandPalette={onOpenCommandPalette} />
+      <UserMenu size={size} onOpenCommandPalette={onOpenCommandPalette} />
     </div>
   )
 }

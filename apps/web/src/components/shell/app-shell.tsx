@@ -227,6 +227,16 @@ export function AppShell() {
     />
   )
 
+  const desktopHeaderActions = (
+    <HeaderActions
+      size="sm"
+      showAskAi={aiEnabled}
+      onAskAi={handleToggleAskAi}
+      askAiExpanded={aiPanelOpen}
+      onOpenCommandPalette={() => setPaletteOpen(true)}
+    />
+  )
+
   return (
     <>
       {/*
@@ -240,7 +250,7 @@ export function AppShell() {
             // 标签页全部关掉之后回应用首页（首页会随之重新开出一个标签）
             homeTo={`/${appId}/home`}
             onOpenCommandPalette={() => setPaletteOpen(true)}
-            actions={headerActions}
+            actions={desktopHeaderActions}
           />
         }
         header={

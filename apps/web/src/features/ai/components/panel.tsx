@@ -18,6 +18,7 @@ import { AiSessionPicker, useActiveSessionTitle } from '#/features/ai/components
 import { SHELL_PANEL_FRAME, SidePanelResizeHandle } from '#/components/side-panel'
 import { useAiSessionStore, type AiPermissionMode } from '#/features/ai/core'
 import type { AiCapabilityGrant } from '#/features/ai/core/capabilities'
+import { isDesktop, isDesktopMac } from '#/desktop/bridge'
 import { cn } from '#/lib/cn'
 import {
   AI_FLOAT_MAX_HEIGHT,
@@ -555,6 +556,10 @@ export function AiPanel({
   */
   if (!splitMounted) return null
 
+  const isDesktopShell = isDesktop()
+  const isMac = isDesktopMac()
+  const desktopRoundedClass = isDesktopShell ? (isMac ? 'rounded-lg' : 'rounded-md') : ''
+
   return (
     <>
       <SidePanelResizeHandle
@@ -588,9 +593,11 @@ export function AiPanel({
           'overflow-hidden',
           // 移动端：覆盖整个视口（面板自己的头行带关闭按钮，不必露出 AppHeader）
           'fixed inset-x-0 z-30',
-          // 桌面端：回到文档流，成为 Sidebar 同级的一列 —— 贴行尾、整屏高、只留一条分隔线。
-          // `z-20` 与 styles.css 给侧边栏的层级一致（两者同为外壳级，不该有高低之分）。
-          'md:sticky md:inset-x-auto md:z-20 md:shrink-0 md:max-w-[calc(100%_-_320px)] md:border-s',
+          // 桌面端：回到文档流，成为 Sidebar 同级的一列 —— 贴行尾、整屏高。
+          // 浏览器模式下保留 md:border-s；桌面壳模式下应用内嵌卡片圆角（macOS 为 rounded-lg，非 macOS 为 rounded-md）
+          'md:sticky md:inset-x-auto md:z-20 md:shrink-0 md:max-w-[calc(100%_-_320px)]',
+          !isDesktopShell && 'md:border-s',
+          desktopRoundedClass,
           /*
             展开 / 收起的宽度过渡。两处摘掉它的情形：
             - **拖拽宽度时**（`!resizing`）：否则每一帧宽度都落在 200ms 的过渡上，

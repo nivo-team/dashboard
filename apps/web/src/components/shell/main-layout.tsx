@@ -340,8 +340,10 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
       <PageTabStrip homeTo="/settings/profile" onOpenCommandPalette={() => setPaletteOpen(true)} />
     ) : undefined
 
-  /** 窗口条行末的工具区（`MainHeader` 内部那份同款；谁出现由 `ShellLayout` 的变体决定） */
-  const headerActions = <HeaderActions onOpenCommandPalette={() => setPaletteOpen(true)} />
+  /** 窗口条行末的工具区（桌面端窗口条尺寸统一为 sm） */
+  const desktopHeaderActions = (
+    <HeaderActions size="sm" onOpenCommandPalette={() => setPaletteOpen(true)} />
+  )
 
   /**
    * `<main>` 的额外类：本外壳没有分屏，padding 与页面宽度约束直接留在 main 上
@@ -379,7 +381,7 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
             // 标签页全部关掉之后回设置首屏（它是最接近「本外壳首页」的一页）
             homeTo="/settings/profile"
             onOpenCommandPalette={() => setPaletteOpen(true)}
-            actions={headerActions}
+            actions={desktopHeaderActions}
           />
         }
         header={

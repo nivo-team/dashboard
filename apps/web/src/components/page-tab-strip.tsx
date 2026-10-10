@@ -54,11 +54,11 @@ export interface PageTabStripProps {
  * ## 布局：三个区域，各管一件事
  *
  * ```
- * [ 滚动区：标签……（最宽占 80%）] [ + ] [ ← 留白（拖拽区）] [ 行末工具区 ]
+ * [ 标签区：固定 + 滚动……（最大占据屏幕剩余内容）] [ + ] [ ← 留白（拖拽区）] [ 行末工具区 ]
  * ```
  *
- * - **滚动区**是 `flex-1` + `max-w-[80%]`：标签多了在它内部横滑，**只占八成宽**，
- *   于是「+」与行末那排按钮之间自然留出间距（用户要求的就是这个间距）；
+ * - **标签区**最大占据屏幕剩余空间：标签少时根据内容收缩、「+」紧挨在标签后面；
+ *   标签多时充分占满屏幕剩余可用宽度横滑，不再被硬编码上限截断；
  * - **「+」跟着标签走，不钉在最右边**：它在滚动区之外、紧挨着滚动区的右边缘 ——
  *   标签少时它就在最后一个标签后面，标签多到溢出时它仍在（滚动）区外看得见；
  * - **拖拽区不受影响**：这三个容器都**不写** `--wails-draggable`（继承窗口条的 drag），
@@ -252,10 +252,10 @@ export function PageTabStrip({
         <SortableContext items={tabs.map((tab) => tab.to)} strategy={horizontalListSortingStrategy}>
           {/*
             两个区：**固定的标签不参与滚动**（单独一个容器，永远露在外面），
-            只有未固定的标签进滚动容器。`max-w-[80%]` 挂在两者外面 —— 这一整块
-            （固定的 + 可滚动的）最多占窗口条的八成，剩下那条留白是与行末工具区之间的间距。
+            只有未固定的标签进滚动容器。最大宽度占据屏幕剩余内容，
+            标签少时根据内容自适应紧凑、「+」紧随其后；标签多时充分占满剩余可用宽度并在内部滚动。
           */}
-          <div className="flex h-full min-w-0 max-w-[80%] shrink items-center gap-1 no-drag">
+          <div className="flex h-full min-w-0 shrink items-center gap-1 no-drag">
             {pinnedEntries.length > 0 ? (
               <div className="flex h-full shrink-0 items-center">
                 <div className={tabRowClass}>
