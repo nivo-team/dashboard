@@ -328,6 +328,17 @@ html[data-desktop-blurred='true'] [data-desktop-chrome] [data-desktop-title-bar]
 }
 
 /*
+ * 桌面端模式下：侧边栏整个容器禁止选中文本（select-none），
+ * 避免点击菜单、拖拽调整侧边栏宽度时意外选中文字，契合原生桌面应用的交互质感。
+ */
+[data-desktop-chrome] [data-sidebar='sidebar'],
+[data-desktop-sphere] [data-sidebar='sidebar'],
+html.is_desktop [data-sidebar='sidebar'] {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+/*
  * 桌面独立 Sphere 窗口：全高顶格侧边栏 + 全透明毛玻璃适配
  *
  * 1. 侧边栏从视口顶端 0px 一直延伸到 100svh 底端，内部内容不扣减窗口条高度（padding-top: 0，真正全高顶格）；
