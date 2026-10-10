@@ -211,14 +211,18 @@ export function DesktopTitleBar({
       )}
     >
       {/* 桌面端品牌 Logo、快速搜索与侧边栏控制组：收纳为独立单元，右侧边框与 Tabs 清晰区隔 */}
-      <div className="flex h-full shrink-0 items-center gap-1 border-e [border-inline-end-color:var(--shell-chrome-line)] ps-1.5 pe-2 no-drag">
+      <div className="flex h-full shrink-0 items-center gap-1 border-e [border-inline-end-color:var(--shell-chrome-line)] ps-1.5 pe-2 me-2 no-drag">
         <DesktopHeaderLogo homeTo={homeTo} />
         <DesktopHeaderSearch onOpen={onOpenCommandPalette} />
         <DesktopSidebarTrigger />
       </div>
 
       {/* `chrome`：桌面壳窗口条里那一条是 Chrome 那种连成一片的标签 */}
-      <PageTabStrip homeTo={homeTo} variant="chrome" />
+      <PageTabStrip
+        homeTo={homeTo}
+        variant="chrome"
+        onOpenCommandPalette={onOpenCommandPalette}
+      />
 
       {/* 行末工具区：退出拖拽区，防止拖动窗口，确保内部按钮交互正常 */}
       {actions ? (

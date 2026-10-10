@@ -91,14 +91,10 @@ export function AppShell() {
    * 窗口条（`DesktopTitleBar`）取代顶栏 —— 于是标签条在最左、原本的顶栏行末工具区在最右，
    * 顶栏那一行不再渲染（`AppHeader` 与窗口条是同一份 chrome 的两种形态，不是两行）。
    * 窗口条由 `ShellSidebarProvider` 排到侧边栏与内容列那一行**之上**，横跨整个窗口。
-   *
-   * 唯一的例外是窗口被拖到比 `md` 还窄：那时侧边栏会变成抽屉，而抽屉的汉堡按钮在顶栏里
-   * （窗口条在 `Sidebar.Provider` 之外，拿不到它的 context，放不了 `Sidebar.Trigger`）——
-   * 所以这种「桌面壳 + 移动视口」的组合下把顶栏也渲染回来，工具区则只留在顶栏一份，
-   * 避免同一排按钮出现两次。桌面壳的窗口最小宽度（900）正常情况下走不到这里。
+   * 桌面端窗口条已集成品牌 Logo、快速搜索与侧边栏控制组，窗口缩小时始终保持桌面布局，不渲染冗余顶栏。
    */
   const desktopChrome = isDesktop()
-  const showHeader = !desktopChrome || isMobileViewport
+  const showHeader = !desktopChrome
   /**
    * 页面标签页是否生效：桌面壳里恒开（窗口条要它），浏览器里看 设置 → 外观 的开关。
    *
@@ -275,7 +271,10 @@ export function AppShell() {
               // 标签页开着就由它替掉面包屑（两者都在顶栏行首那一格，见 AppHeaderProps.leading）
               leading={
                 pageTabsEnabled && !desktopChrome ? (
-                  <PageTabStrip homeTo={`/${appId}/home`} />
+                  <PageTabStrip
+                    homeTo={`/${appId}/home`}
+                    onOpenCommandPalette={() => setPaletteOpen(true)}
+                  />
                 ) : undefined
               }
               onOpenCommandPalette={() => setPaletteOpen(true)}

@@ -133,12 +133,11 @@ func main() {
 			BackdropType: application.Mica,
 		},
 		/*
-			最小尺寸：外壳在 768px 以下会切成移动端抽屉（汉堡按钮在顶栏里，而顶栏
-			在桌面壳里被窗口条取代）。900 让窗口根本进不到那个区间，
-			顺带也保证内容区（表格、AI 分屏列）还有可用宽度。
+			最小尺寸限制：最小宽度 800px，最小高度 600px，
+			保证桌面壳在任何平台上的最小可用空间与内容区（表格、AI 分屏列）显示正常。
 		*/
-		MinWidth:               900,
-		MinHeight:              600,
+		MinWidth:               cfg.MinWidth,
+		MinHeight:              cfg.MinHeight,
 		DevToolsEnabled:        cfg.Debug,
 		OpenInspectorOnStartup: cfg.Debug,
 		KeyBindings: map[string]func(window application.Window){

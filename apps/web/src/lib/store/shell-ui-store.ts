@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
+import { isDesktop } from '#/lib/desktop-bridge'
 
 import { enableCrossTabSync } from './cross-tab-sync'
 
@@ -282,10 +283,12 @@ export const useShellUiStore = create<ShellUiState>()(
 /**
  * 当前是否桌面视口（与 Provider 的 `mobileBreakpoint` 一致）。
  *
- * 回调里的双保险：即便将来 Kumo 改成移动端也回调，这里也不会把抽屉状态写进存档。
+ * 桌面壳（isDesktop）恒为 true，保证小窗口缩放下依然持久化外壳状态；
+ * 浏览器视口则由媒体查询根据 SHELL_MOBILE_BREAKPOINT 判定。
  */
 export function isDesktopViewport(): boolean {
   if (typeof window === 'undefined') return false
+  if (isDesktop()) return true
   return window.matchMedia(`(min-width: ${SHELL_MOBILE_BREAKPOINT}px)`).matches
 }
 

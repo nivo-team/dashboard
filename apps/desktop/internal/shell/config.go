@@ -57,6 +57,8 @@ type Config struct {
 	Title string
 	// Width / Height 是初始窗口尺寸。
 	Width, Height int
+	// MinWidth / MinHeight 是最小窗口尺寸限制（默认 800x600）。
+	MinWidth, MinHeight int
 	// TitleBarHeight 是 macOS 标题栏/红绿灯高度（px），默认 40。
 	TitleBarHeight int
 	// Platform 是当前运行的操作系统平台（如 darwin / windows / linux）。
@@ -136,6 +138,8 @@ func Parse(args []string) (Config, error) {
 		Title:          firstNonEmpty(os.Getenv(EnvTitle), "Nivo Admin"),
 		Width:          1280,
 		Height:         800,
+		MinWidth:       800,
+		MinHeight:      600,
 		TitleBarHeight: parseEnvInt(os.Getenv(EnvTitleBarHeight), DefaultTitleBarHeight),
 		Platform:       runtime.GOOS,
 		Debug:          !ReleaseBuild || os.Getenv("DESKTOP_DEBUG") == "1",
@@ -147,6 +151,8 @@ func Parse(args []string) (Config, error) {
 	fs.StringVar(&cfg.Title, "title", cfg.Title, "窗口标题")
 	fs.IntVar(&cfg.Width, "width", cfg.Width, "初始窗口宽度")
 	fs.IntVar(&cfg.Height, "height", cfg.Height, "初始窗口高度")
+	fs.IntVar(&cfg.MinWidth, "min-width", cfg.MinWidth, "最小窗口宽度")
+	fs.IntVar(&cfg.MinHeight, "min-height", cfg.MinHeight, "最小窗口高度")
 	fs.IntVar(&cfg.TitleBarHeight, "titlebar-height", cfg.TitleBarHeight, "窗口标题栏/红绿灯高度（px）")
 	fs.BoolVar(&cfg.Debug, "debug", cfg.Debug, "打开 devtools（非发布构建默认开启）")
 	fs.Var(marksFlag(cfg.Marks), "mark", "随 URL 传给页面的标记，可重复：-mark channel=beta")

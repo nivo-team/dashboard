@@ -24,7 +24,6 @@ import { pageContentWidthClass } from '#/lib/page-width'
 import { usePageTabsEnabled } from '#/lib/page-tabs'
 import { usePermissionContext } from '#/lib/permissions'
 import { usePreferencesStore } from '#/lib/store'
-import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
 
 /** 归一化尾斜杠：`/settings` 与 `/settings/` 是同一个 index 路由，不能因此丢掉高亮。 */
 function normalizePath(pathname: string): string {
@@ -329,12 +328,10 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
    * 桌面壳：窗口条取代 `MainHeader`（与 `AppShell` 同一套换形，理由见那边的注释）。
    *
    * 本外壳没有面包屑，所以窗口条上「左边标签、右边工具区」正好就是原来顶栏的全部内容。
-   * 唯一例外同样是「桌面壳 + 移动视口」：抽屉的汉堡按钮只能待在顶栏里，
-   * 那种情况下把顶栏渲染回来，工具区也只留顶栏一份。
+   * 桌面壳下始终由 DesktopTitleBar 承载全部顶层控制，窗口缩小时不渲染冗余顶栏。
    */
   const desktopChrome = isDesktop()
-  const isMobileViewport = useIsMobileViewport()
-  const showHeader = !desktopChrome || isMobileViewport
+  const showHeader = !desktopChrome
   /** 页面标签页是否生效（桌面壳恒开、浏览器看设置）；见 `usePageTabsEnabled` 与 AppShell 的注释 */
   const pageTabsEnabled = usePageTabsEnabled()
 
@@ -343,7 +340,12 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
    * 桌面壳里窗口条自己渲染一份，所以这里限定 `!desktopChrome`，两边不同时出现。
    */
   const headerLeading =
-    pageTabsEnabled && !desktopChrome ? <PageTabStrip homeTo="/settings/profile" /> : undefined
+    pageTabsEnabled && !desktopChrome ? (
+      <PageTabStrip
+        homeTo="/settings/profile"
+        onOpenCommandPalette={() => setPaletteOpen(true)}
+      />
+    ) : undefined
 
   /** 窗口条行末的工具区（`MainHeader` 内部那份同款；两者不会同时在屏幕上，见 `showHeader`） */
   const headerActions = <HeaderActions onOpenCommandPalette={() => setPaletteOpen(true)} />

@@ -8,11 +8,10 @@ import {
 } from '@dnd-kit/core'
 import { restrictToHorizontalAxis, restrictToParentElement } from '@dnd-kit/modifiers'
 import { horizontalListSortingStrategy, SortableContext } from '@dnd-kit/sortable'
-import { Button, DropdownMenu } from '@cloudflare/kumo'
+import { Button, Tooltip } from '@cloudflare/kumo'
 import { PlusIcon } from '@phosphor-icons/react'
-import type { Icon } from '@phosphor-icons/react'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   CHROME_TAB_HEIGHT,
@@ -21,17 +20,8 @@ import {
   type PageTabVariant,
   type TabActions,
 } from '#/components/page-tab-item'
-import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
 import { cn } from '#/lib/cn'
-import {
-  ALL_NAV_TARGETS,
-  ALL_SHELL_NAV_TARGETS,
-  filterNavTargets,
-  filterShellNavItems,
-  NAV_DIRECTORY_PATHS,
-} from '#/lib/navigation'
 import { resolvePageTab, usePageTabsStore } from '#/lib/page-tabs'
-import { usePermissionContext } from '#/lib/permissions'
 import { useLocale } from '#/lib/use-locale'
 
 export interface PageTabStripProps {
@@ -48,6 +38,8 @@ export interface PageTabStripProps {
    * - `plain`：浏览器顶栏的小卡片（默认）。
    */
   variant?: PageTabVariant
+  /** 点击「+」按钮时打开通用命令面板 */
+  onOpenCommandPalette?: () => void
 }
 
 /**
@@ -78,9 +70,32 @@ export interface PageTabStripProps {
  * **不跨越固定 / 未固定那条界线**（见 `#/lib/page-tabs` 的 `moveTab`）。
  * 键盘拖拽刻意没开（它的激活键是空格 / 回车，与标签本身的激活键冲突）。
  */
-export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
+export function PageTabStrip({
+  homeTo,
+  variant = 'plain',
+  onOpenCommandPalette,
+}: PageTabStripProps) {
   const { t } = useTranslation()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
+
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform)
+  const shortcutHint = isMac ? '⌘K' : 'Ctrl+K'
+  const newTabLabel = t('pageTabs.new', '打开新页面')
+
+  const handleOpenPalette = () => {
+    if (onOpenCommandPalette) {
+      onOpenCommandPalette()
+      return
+    }
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'k',
+        metaKey: isMac,
+        ctrlKey: !isMac,
+        bubbles: true,
+      }),
+    )
+  }
 
   const tabs = usePageTabsStore((state) => state.tabs)
   const openTab = usePageTabsStore((state) => state.openTab)
@@ -356,7 +371,23 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
         // 高度取 CHROME_TAB_HEIGHT：与标签、SVG 的 viewBox 同一个数
         style={variant === 'chrome' ? { height: CHROME_TAB_HEIGHT } : undefined}
       >
-        <NewTabMenu />
+        <Tooltip
+          content={`${newTabLabel} (${shortcutHint})`}
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              shape="square"
+              size="sm"
+              onClick={handleOpenPalette}
+              onDoubleClick={(e) => e.stopPropagation()}
+              // 自己退出拖拽区（窗口条上这一颗要能点）；不参与滚动，所以永远看得见
+              className="shrink-0 text-kumo-subtle hover:text-kumo-default no-drag outline-none focus:outline-none focus-visible:outline-none"
+              icon={<PlusIcon size={16} />}
+              aria-label={newTabLabel}
+            />
+          }
+        />
       </div>
     </div>
   )
@@ -415,106 +446,4 @@ function useTabActions(homeTo: string, activeTo: string | null): TabActions {
       togglePinned: (to) => snapshot().togglePinned(to),
     }
   }, [activeTo, homeTo, isRtl, navigate])
-}
-
-interface NewTabEntry {
-  id: string
-  label: string
-  to: string
-  icon: Icon
-}
-
-/**
- * 「+」：把还没有打开的页面挑一个出来开成新标签。
- *
- * 名单直接复用命令面板那两份导航数据（`ALL_NAV_TARGETS` / `ALL_SHELL_NAV_TARGETS`）
- * 与同一套权限过滤管道 —— **加页面只改 `navigation.ts`**，这里不会漏。
- * 只有两处收窄：**目录项不进菜单**（`NAV_DIRECTORY_PATHS`：示例 / 系统这些带 children
- * 的容器，点进去还是那几个子页面，列出来只是让人多点一层），以及按权限过滤。
- *
- * 点击只是普通跳转：标签由 `PageTabStrip` 的路由同步逻辑开出来，这里不自己建标签，
- * 否则「点了一次菜单」和「直接粘 URL 进来」会走出两套不同的标签状态。
- */
-function NewTabMenu() {
-  const { t } = useTranslation()
-  const navigate = useNavigate()
-  const { currentApp } = useAuth()
-  const appId = currentApp?.id || DEFAULT_APP_ID
-  const permissionContext = usePermissionContext()
-
-  const groups = useMemo(() => {
-    /** 文案键优先、缺失时直接用源语言兜底（与命令面板同一条约定） */
-    const label = (labelKey: string | undefined, fallback: string) =>
-      labelKey ? t(labelKey, fallback) : fallback
-
-    // 业务页面的 `to` 相对 appId，要拼前缀；二级项带上父级名（`示例 · 表格示例`）才认得出位置
-    const pages = filterNavTargets(ALL_NAV_TARGETS, {
-      context: permissionContext,
-      filter: (item) => !NAV_DIRECTORY_PATHS.has(item.to),
-    }).map((item): NewTabEntry => {
-      const self = label(item.labelKey, item.label)
-      const parent = item.parentLabelKey
-        ? label(item.parentLabelKey, item.parentLabel ?? item.parentLabelKey)
-        : undefined
-      return {
-        id: `page:${item.to}`,
-        label: parent ? `${parent} · ${self}` : self,
-        to: `/${appId}${item.to}`,
-        icon: item.icon,
-      }
-    })
-
-    // 外壳页面的 `to` 已是绝对路径，不能再拼 appId
-    const shell = filterShellNavItems(ALL_SHELL_NAV_TARGETS, { context: permissionContext }).map(
-      (item): NewTabEntry => ({
-        id: `shell:${item.to}`,
-        label: label(item.labelKey, item.label),
-        to: item.to,
-        icon: item.icon,
-      }),
-    )
-
-    return [
-      { id: 'pages', label: t('pageTabs.groups.pages', '页面'), items: pages },
-      { id: 'shell', label: t('pageTabs.groups.shellPages', '设置与账号'), items: shell },
-    ]
-  }, [appId, permissionContext, t])
-
-  return (
-    <DropdownMenu>
-      <DropdownMenu.Trigger
-        render={
-          <Button
-            variant="ghost"
-            shape="square"
-            size="sm"
-            // 自己退出拖拽区（窗口条上这一颗要能点）；不参与滚动，所以永远看得见
-            className="shrink-0 text-kumo-subtle hover:text-kumo-default no-drag outline-none focus:outline-none focus-visible:outline-none"
-            icon={<PlusIcon size={16} />}
-            aria-label={t('pageTabs.new', '打开新页面')}
-          />
-        }
-      />
-      <DropdownMenu.Content className="max-h-[70svh] w-56 overflow-y-auto" align="start">
-        {groups.map((group) => (
-          <Fragment key={group.id}>
-            <div className="px-3 py-1.5 text-xs text-kumo-subtle">{group.label}</div>
-            {group.items.map((item) => {
-              const ItemIcon = item.icon
-              return (
-                <DropdownMenu.Item
-                  key={item.id}
-                  className="gap-2"
-                  onClick={() => void navigate({ to: item.to as never })}
-                >
-                  <ItemIcon size={16} className="shrink-0 text-kumo-subtle" aria-hidden />
-                  <span className="truncate text-xs text-kumo-default">{item.label}</span>
-                </DropdownMenu.Item>
-              )
-            })}
-          </Fragment>
-        ))}
-      </DropdownMenu.Content>
-    </DropdownMenu>
-  )
 }

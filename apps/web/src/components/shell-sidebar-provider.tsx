@@ -95,7 +95,8 @@ export function ShellSidebarProvider({
   topBar?: ReactNode
 }) {
   const { isRtl } = useLocale()
-  const isMobile = useIsMobileViewport()
+  const isDesktopShell = isDesktop()
+  const isMobile = !isDesktopShell && useIsMobileViewport()
   /** 移动端抽屉的开合：只在内存里（抽屉是「看一眼就走」的浮层，不跨会话保留）。 */
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -180,15 +181,17 @@ export function ShellSidebarProvider({
         <Sidebar.Provider
           key={isRtl ? 'rtl' : 'ltr'}
           side={isRtl ? 'right' : 'left'}
-          collapsible="icon"
+          // 桌面壳下折叠完全隐藏（整列滑走 offcanvas）；浏览器环境下保持收拢为图标轨道（icon）
+          collapsible={isDesktopShell ? 'offcanvas' : 'icon'}
           // 桌面初始值；移动端受控后 defaultOpen 不参与（`open` 优先）
           defaultOpen={sidebarOpen}
           // 桌面 = undefined（非受控）；移动端 = 抽屉自身的开合
           open={isMobile ? mobileOpen : undefined}
           onOpenChange={handleOpenChange}
-          mobileBreakpoint={SHELL_MOBILE_BREAKPOINT}
-          // 保持 peekable 开启，使 Kumo context 闭包具备窥探能力；具体展开逻辑由下方的 SidebarPeekBridge 精准控制。
-          peekable
+          contained={isDesktopShell}
+          mobileBreakpoint={isDesktopShell ? 0 : SHELL_MOBILE_BREAKPOINT}
+          // 桌面壳下折叠完全隐藏（不开启窥探）；浏览器环境下保持根据偏好窥探
+          peekable={!isDesktopShell}
           // 允许拖拽右侧边缘调整宽度（见各侧边栏内的 Sidebar.ResizeHandle）。
           resizable
           defaultWidth={sidebarWidth}
@@ -247,7 +250,7 @@ function SidebarPeekBridge({
   }, [open, isMobile])
 
   useEffect(() => {
-    if (isMobile) return
+    if (isMobile || isDesktop()) return
     const wrapper = wrapperRef.current
     if (!wrapper) return
 

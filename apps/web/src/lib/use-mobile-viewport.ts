@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { isDesktop } from './desktop-bridge'
 import { SHELL_MOBILE_BREAKPOINT } from './store/shell-ui-store'
 
 /**
@@ -24,9 +25,10 @@ function subscribe(onStoreChange: () => void): () => void {
   return () => mediaQuery.removeEventListener('change', onStoreChange)
 }
 
-/** 没有 window（非浏览器环境）时按桌面处理：预览能力可用，不静默降级成跳页。 */
+/** 没有 window（非浏览器环境）或在桌面壳中时按桌面处理：桌面壳下始终保持桌面形态。 */
 function getSnapshot(): boolean {
   if (typeof window === 'undefined') return false
+  if (isDesktop()) return false
   return !window.matchMedia(DESKTOP_QUERY).matches
 }
 

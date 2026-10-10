@@ -84,7 +84,7 @@ func TestParseDefaultsAndFlags(t *testing.T) {
 	if cfg.URL != "http://localhost:5173" || !cfg.Debug || cfg.Marks["channel"] != "beta" {
 		t.Fatalf("参数没解析对：%+v", cfg)
 	}
-	if cfg.Width == 0 || cfg.Height == 0 || cfg.Title == "" {
+	if cfg.Width == 0 || cfg.Height == 0 || cfg.MinWidth != 800 || cfg.MinHeight != 600 || cfg.Title == "" {
 		t.Fatalf("默认值应当补上：%+v", cfg)
 	}
 }

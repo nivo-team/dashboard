@@ -352,7 +352,7 @@ html.is_desktop #app {
  * 于是「不是 expanded」⟺「一定是 fixed」，不会误伤展开态与悬浮展开。
  */
 [data-desktop-chrome]
-  [data-sidebar='sidebar']:not([data-mobile='true']):not([data-state='expanded'])
+  [data-sidebar='sidebar']:not([data-mobile='true']):not([data-collapsible='offcanvas']):not([data-state='expanded'])
   > [data-sidebar='content-container'] {
   top: var(--shell-chrome-h);
   bottom: auto;
@@ -364,6 +364,36 @@ html.is_desktop #app {
  * 桌面壳窗口条在 Tabs 左侧统一提供了侧边栏切换按钮，底部按钮隐藏以释放高度并避免控件重复。
  */
 [data-desktop-chrome] [data-sidebar='footer'] {
+  display: none !important;
+}
+
+/*
+ * 桌面壳模式下：侧边栏折叠完全隐藏（collapsible="offcanvas"）。
+ *
+ * 1. 折叠态下侧边栏宽度收归 0，边框颜色转为透明，消除 1px 残留边线与闪烁；
+ * 2. 隐藏拖拽手柄（resize-handle），防止在 0 宽边缘处误触发调整大小手势；
+ * 3. 阻断折叠容器的鼠标与焦点事件，防止屏幕边缘残留可点击/可交互区域。
+ */
+[data-sidebar='sidebar'][data-collapsible='offcanvas'][data-state='collapsed'] {
+  border-width: 0 !important;
+}
+
+[data-sidebar='sidebar'][data-collapsible='offcanvas'][data-state='collapsed']
+  > [data-sidebar='content-container'],
+[dir='rtl']
+  [data-sidebar='sidebar'][data-collapsible='offcanvas'][data-state='collapsed']
+  > [data-sidebar='content-container'] {
+  border-color: transparent !important;
+  border-left-color: transparent !important;
+  border-right-color: transparent !important;
+  pointer-events: none !important;
+  transition:
+    width var(--sidebar-animation-duration) var(--sidebar-easing),
+    border-color 0s linear var(--sidebar-animation-duration) !important;
+}
+
+[data-sidebar='sidebar'][data-collapsible='offcanvas'][data-state='collapsed']
+  [data-sidebar='resize-handle'] {
   display: none !important;
 }
 
