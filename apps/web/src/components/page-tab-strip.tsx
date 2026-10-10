@@ -297,38 +297,51 @@ export function PageTabStrip({ homeTo, variant = 'plain' }: PageTabStripProps) {
               </div>
             ) : null}
 
-            <nav
-              ref={navRef}
-              aria-label={t('pageTabs.label', '页面标签页')}
-              // 给 `styles.css` 当锚点：Chrome 那条底部倒角只挂在 chrome 外观上
-              data-page-tab-variant={variant}
+            {/*
+              非固定标签滚动容器的外层包裹：
+              在 chrome 外观下通过 `-mx-2.5` 抵消 `<nav>` 的 `px-2.5` 内部安全边距，
+              从视觉上消除左右多余留白，让标签与固定区及窗口条底边线严丝合缝对齐，
+              同时 `<nav>` 内部依然保留 10px padding box 容纳激活标签的底部外翻倒角（9px）。
+            */}
+            <div
               className={cn(
-                // 只允许横向滚：`overflow-x: auto` 会把 `overflow-y` 也算成 auto，
-                // 于是形状那半个像素的溢出就会凭空多出一段纵向可滚动区域 —— 显式禁掉
-                'flex min-w-0 flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none]',
-                // `items-*` 走三目：本仓的 `cn` 只拼接、不合并，两个对齐类同时在场就只剩源码顺序可赌
-                variant === 'chrome'
-                  ? // 左右各留 10px：给激活标签那对**底部倒角**留出画的地方（它长在标签外侧，
-                    // 半径 10 就往外探 9px）；上下那 1px 与固定区共用同一串类
-                    cn('px-2.5', zoneClass)
-                  : 'px-1',
+                'flex min-w-0 flex-1',
+                variant === 'chrome' ? '-mx-2.5 items-end' : 'items-center',
               )}
             >
-              <div className={tabRowClass}>
-                {unpinnedEntries.map(({ tab, index }) => (
-                  <PageTabItem
-                    key={tab.to}
-                    tab={tab}
-                    index={index}
-                    tabs={tabs}
-                    variant={variant}
-                    actions={actions}
-                    dragPinned={dragPinned}
-                    active={tab.to === activeTab?.to}
-                  />
-                ))}
-              </div>
-            </nav>
+              <nav
+                ref={navRef}
+                aria-label={t('pageTabs.label', '页面标签页')}
+                // 给 `styles.css` 当锚点：Chrome 那条底部倒角只挂在 chrome 外观上
+                data-page-tab-variant={variant}
+                className={cn(
+                  // 只允许横向滚：`overflow-x: auto` 会把 `overflow-y` 也算成 auto，
+                  // 于是形状那半个像素的溢出就会凭空多出一段纵向可滚动区域 —— 显式禁掉
+                  'flex min-w-0 flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] outline-none focus:outline-none',
+                  // `items-*` 走三目：本仓的 `cn` 只拼接、不合并，两个对齐类同时在场就只剩源码顺序可赌
+                  variant === 'chrome'
+                    ? // 左右各留 10px：给激活标签那对**底部倒角**留出画的地方（它长在标签外侧，
+                      // 半径 10 就往外探 9px）；上下那 1px 与固定区共用同一串类
+                      cn('px-2.5', zoneClass)
+                    : 'px-1',
+                )}
+              >
+                <div className={tabRowClass}>
+                  {unpinnedEntries.map(({ tab, index }) => (
+                    <PageTabItem
+                      key={tab.to}
+                      tab={tab}
+                      index={index}
+                      tabs={tabs}
+                      variant={variant}
+                      actions={actions}
+                      dragPinned={dragPinned}
+                      active={tab.to === activeTab?.to}
+                    />
+                  ))}
+                </div>
+              </nav>
+            </div>
           </div>
         </SortableContext>
       </DndContext>
@@ -476,7 +489,7 @@ function NewTabMenu() {
             shape="square"
             size="sm"
             // 自己退出拖拽区（窗口条上这一颗要能点）；不参与滚动，所以永远看得见
-            className="shrink-0 text-kumo-subtle hover:text-kumo-default no-drag"
+            className="shrink-0 text-kumo-subtle hover:text-kumo-default no-drag outline-none focus:outline-none focus-visible:outline-none"
             icon={<PlusIcon size={16} />}
             aria-label={t('pageTabs.new', '打开新页面')}
           />

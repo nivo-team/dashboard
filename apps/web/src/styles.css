@@ -137,6 +137,48 @@
 }
 
 /*
+ * 3. 消除所有标签（PageTab）及内部交互元素的 focus outline，并保持 focus 与 hover 一致的背景高亮
+ */
+[data-page-tab],
+[data-page-tab] button,
+[data-page-tab] [role='button'] {
+  outline: none;
+}
+
+[data-page-tab]:focus,
+[data-page-tab]:focus-visible,
+[data-page-tab] button:focus,
+[data-page-tab] button:focus-visible,
+[data-page-tab] [role='button']:focus,
+[data-page-tab] [role='button']:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 未激活 Tab 在 hover、focus 与 focus-within 交互时均呈现背景高亮胶囊层 */
+[data-page-tab][data-active='false']:hover .page-tab-hover-layer,
+[data-page-tab][data-active='false']:focus .page-tab-hover-layer,
+[data-page-tab][data-active='false']:focus-visible .page-tab-hover-layer,
+[data-page-tab][data-active='false']:focus-within .page-tab-hover-layer {
+  background-color: var(--page-tab-hover-bg);
+}
+
+[data-page-tab][data-active='false']:active .page-tab-hover-layer {
+  background-color: var(--page-tab-active-bg);
+}
+
+/* Tab 关闭按钮在 hover 与 focus 时呈现背景高亮；浅色模式下同为 5% 黑色，与 Tab 底色自然叠加形成层次对比 */
+[data-page-tab] [data-tab-close]:hover,
+[data-page-tab] [data-tab-close]:focus,
+[data-page-tab] [data-tab-close]:focus-visible {
+  background-color: var(--page-tab-close-hover-bg);
+}
+
+[data-page-tab] [data-tab-close]:active {
+  background-color: var(--page-tab-close-active-bg);
+}
+
+/*
  * 外壳的整屏几何 —— 两个数，桌面壳的窗口条要挤掉多少高度全从这里算。
  *
  *   --shell-chrome-h       视口顶端多出来的那一条 chrome 的高度（窗口条）。
@@ -177,10 +219,30 @@
    * **Kumo 若改了这两个令牌，这里要跟着重算。**
    */
   --shell-chrome-line: #e3e3e3;
+
+  /*
+   * 桌面端未激活标签（PageTab）悬浮与聚焦时的背景高亮色。
+   * 浅色模式采用 5% 透明度纯黑胶囊层，高对比且通透优雅；
+   * 深色模式保持原有高亮色，不叠加深色蒙层。
+   */
+  --page-tab-hover-bg: rgb(0 0 0 / 0.05);
+  --page-tab-active-bg: rgb(0 0 0 / 0.08);
+
+  /*
+   * 标签关闭按钮（✕）悬浮与聚焦背景色：
+   * 浅色模式同为 5% 透明度纯黑，悬浮在 Tab 上时两层 5% 叠加（≈10% 黑），自然形成清晰的对比层次；
+   * 深色模式保持 Kumo 的 tint / fill 变量。
+   */
+  --page-tab-close-hover-bg: rgb(0 0 0 / 0.05);
+  --page-tab-close-active-bg: rgb(0 0 0 / 0.08);
 }
 
 [data-mode='dark'] {
   --shell-chrome-line: oklch(32% 0 0);
+  --page-tab-hover-bg: color-mix(in srgb, var(--color-kumo-base) 60%, transparent);
+  --page-tab-active-bg: color-mix(in srgb, var(--color-kumo-base) 85%, transparent);
+  --page-tab-close-hover-bg: var(--color-kumo-tint);
+  --page-tab-close-active-bg: var(--color-kumo-fill);
 }
 
 [data-desktop-chrome] {

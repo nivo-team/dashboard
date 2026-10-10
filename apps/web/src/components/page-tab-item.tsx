@@ -296,7 +296,7 @@ export function PageTabItem({
             靠祖先恰好带 z-index 是碰运气（激活标签当前有 z-10，但那是叠放次序的事），
             这里显式建一个上下文，形状的层级就不再依赖别的类。
           */
-          'group/tab relative isolate flex min-w-0 shrink-0 items-center',
+          'group/tab relative isolate flex min-w-0 shrink-0 items-center outline-none focus:outline-none',
           // 固定态是定宽小方块；普通标签给个上限，长标题才会截断而不是把标签撑宽
           pinned ? (chrome ? 'w-9' : 'w-8') : 'max-w-[200px]',
           // chrome 的高度由 CHROME_TAB_HEIGHT 定（要跟 SVG 的 viewBox 对上），plain 用 Tailwind 的 h-8
@@ -318,7 +318,7 @@ export function PageTabItem({
               ? (isDesktop()
                   ? 'bg-kumo-canvas [border-color:var(--shell-chrome-line)]'
                   : 'bg-kumo-base [border-color:var(--shell-chrome-line)]')
-              : 'border-transparent hover:bg-kumo-tint',
+              : 'border-transparent hover:bg-kumo-tint focus-within:bg-kumo-tint',
           stackClass,
         )}
         style={{
@@ -330,13 +330,13 @@ export function PageTabItem({
         }}
       >
         {/*
-          未激活标签的悬浮高亮层：四周内缩并带圆角，底部不贴底（留出 4px 安全距离，
+          未激活标签的悬浮/聚焦高亮层：四周内缩并带圆角，底部不贴底（留出 4px 安全距离，
           绝不遮挡 Header 的 border-bottom），同时保持外层盒子 34px 与内容居中绝对不动。
         */}
         {chrome && !active ? (
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-x-0.5 top-[3px] bottom-[4px] -z-10 rounded-md transition-colors group-hover/tab:bg-kumo-base/60"
+            className="page-tab-hover-layer pointer-events-none absolute inset-x-0.5 top-[3px] bottom-[4px] -z-10 rounded-md transition-colors"
           />
         ) : null}
 
@@ -403,7 +403,7 @@ export function PageTabItem({
                 setMenuOpen(true)
               }}
               className={cn(
-                'flex h-full min-w-0 flex-1 cursor-pointer items-center',
+                'flex h-full min-w-0 flex-1 cursor-pointer items-center outline-none focus:outline-none focus-visible:outline-none',
                 pinned ? 'justify-center' : 'gap-1.5 ps-2.5 text-start',
               )}
             >
@@ -413,9 +413,11 @@ export function PageTabItem({
                   aria-hidden
                   className={cn(
                     'shrink-0',
-                    active ? 'text-kumo-default' : 'text-kumo-subtle',
-                    // 固定态：悬浮时让位给 ✕（Chrome 就是这么做的），平时只显示图标
-                    pinned && 'group-hover/tab:hidden',
+                    active
+                      ? 'text-kumo-default'
+                      : 'text-kumo-subtle group-hover/tab:text-kumo-default group-focus-within/tab:text-kumo-default',
+                    // 固定态：悬浮或聚焦时让位给 ✕（Chrome 就是这么做的），平时只显示图标
+                    pinned && 'group-hover/tab:hidden group-focus-within/tab:hidden',
                   )}
                 />
               ) : null}
@@ -424,7 +426,9 @@ export function PageTabItem({
                 <span
                   className={cn(
                     'truncate text-sm',
-                    active ? 'font-medium text-kumo-default' : 'text-kumo-subtle',
+                    active
+                      ? 'font-medium text-kumo-default'
+                      : 'text-kumo-subtle group-hover/tab:text-kumo-default group-focus-within/tab:text-kumo-default',
                   )}
                 >
                   {label}
@@ -436,10 +440,11 @@ export function PageTabItem({
 
         <button
           type="button"
+          data-tab-close
           aria-label={t('pageTabs.close', { defaultValue: '关闭 {{label}}', label })}
           onClick={() => actions.close(tab.to)}
           className={cn(
-            'size-5 shrink-0 cursor-pointer items-center justify-center rounded text-kumo-subtle hover:bg-kumo-tint hover:text-kumo-default',
+            'size-5 shrink-0 cursor-pointer items-center justify-center rounded text-kumo-subtle transition-colors hover:text-kumo-default focus:text-kumo-default focus-visible:text-kumo-default outline-none focus:outline-none focus-visible:outline-none',
             /*
               固定态：`✕` **绝对定位叠在图标上**（悬浮时图标让位）—— 36px 的小方块里
               放不下「图标 + 关闭」两个元素，并排会把图标挤扁。
@@ -448,8 +453,8 @@ export function PageTabItem({
               （实测过：✕ 明显偏右）。`inset-0` 是对称的，RTL 下同样居中。
             */
             pinned
-              ? 'absolute inset-0 m-auto hidden group-hover/tab:flex'
-              : cn('flex', chrome ? 'me-1' : 'me-0.5'),
+              ? 'absolute inset-0 m-auto hidden group-hover/tab:flex group-focus-within/tab:flex'
+              : cn('flex ms-0.5', chrome ? 'me-1' : 'me-0.5'),
           )}
         >
           <XIcon size={12} aria-hidden />
