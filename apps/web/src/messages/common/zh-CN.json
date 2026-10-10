@@ -379,5 +379,9 @@
     "toggle": "切换侧边栏",
     "collapse": "收起侧边栏",
     "expand": "展开侧边栏"
+  },
+  "navigation": {
+    "back": "后退",
+    "forward": "前进"
   }
 }
