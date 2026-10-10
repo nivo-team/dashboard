@@ -4,7 +4,7 @@ import { Outlet, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CommandPaletteDialog } from '#/components/command-palette'
-import { DesktopTitleBar } from '#/components/desktop-title-bar'
+import { DesktopSidebarHeader, DesktopTitleBar } from '#/components/desktop-title-bar'
 import { HeaderActions } from '#/components/header-actions'
 import { ShortcutKbd } from '#/components/kbd'
 import { NotFound } from '#/components/not-found'
@@ -72,7 +72,6 @@ function ShellNavButton({
  * （图标 + 文本 + ⌘K 提示 + ring 描边；折叠态自动收成图标并去掉描边与下边距）。
  */
 function SidebarSearchButton({ onOpen }: { onOpen: () => void }) {
-  if (isDesktop()) return null
   const { t } = useTranslation()
   const label = t('search.quickSearch', '快速搜索…')
 
@@ -137,7 +136,6 @@ function SettingsModuleHeader() {
  * 进入设置时它保持不变，变化的是它下面的模块行与菜单。
  */
 function SidebarBrandHeader() {
-  if (isDesktop()) return null
   const { isMobile } = useSidebar()
   const brand = useBrand()
   const LogoIcon = brand.logoIcon
@@ -186,6 +184,7 @@ function MainSidebar({ onOpenCommandPalette }: { onOpenCommandPalette: () => voi
 
   return (
     <Sidebar>
+      {isDesktop() ? <DesktopSidebarHeader /> : null}
       <SidebarBrandHeader />
 
       <Sidebar.Content>
@@ -243,6 +242,7 @@ function SettingsSidebar({ onOpenCommandPalette }: { onOpenCommandPalette: () =>
 
   return (
     <Sidebar>
+      {isDesktop() ? <DesktopSidebarHeader /> : null}
       <SidebarBrandHeader />
       <SettingsModuleHeader />
 
@@ -367,20 +367,9 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
       {/*
         与 AppShell 共用同一个 `ShellSidebarProvider`：侧边栏 UI 偏好（展开态 / 宽度）
         以及「桌面非受控、移动端受控」的移动端抽屉接法都只有一份真值。
+        桌面全高架构下，侧边栏作为左列贯穿全屏高度，窗口条位于工作区右列顶部。
       */}
-      <ShellSidebarProvider
-        topBar={
-          desktopChrome ? (
-            <DesktopTitleBar
-              // 标签页全部关掉之后回设置首屏（它是最接近「本外壳首页」的一页）
-              homeTo="/settings/profile"
-              // 工具区只挂一处：桌面壳里它在窗口条行末，退化出顶栏时（见 showHeader）留给顶栏
-              actions={showHeader ? undefined : headerActions}
-              onOpenCommandPalette={() => setPaletteOpen(true)}
-            />
-          ) : null
-        }
-      >
+      <ShellSidebarProvider>
         <MainSidebarSwitch onOpenCommandPalette={() => setPaletteOpen(true)} />
         <div
           className={cn(
@@ -388,6 +377,15 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
             desktopChrome && 'h-full min-h-0 overflow-hidden',
           )}
         >
+          {desktopChrome ? (
+            <DesktopTitleBar
+              // 标签页全部关掉之后回设置首屏（它是最接近「本外壳首页」的一页）
+              homeTo="/settings/profile"
+              // 工具区只挂一处：桌面壳里它在窗口条行末，退化出顶栏时（见 showHeader）留给顶栏
+              actions={showHeader ? undefined : headerActions}
+              onOpenCommandPalette={() => setPaletteOpen(true)}
+            />
+          ) : null}
           {showHeader ? (
             <MainHeader
               leading={headerLeading}

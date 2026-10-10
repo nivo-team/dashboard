@@ -88,10 +88,10 @@ export function AppShell() {
   /**
    * 桌面壳：外壳换形。
    *
-   * 窗口条（`DesktopTitleBar`）取代顶栏 —— 于是标签条在最左、原本的顶栏行末工具区在最右，
-   * 顶栏那一行不再渲染（`AppHeader` 与窗口条是同一份 chrome 的两种形态，不是两行）。
-   * 窗口条由 `ShellSidebarProvider` 排到侧边栏与内容列那一行**之上**，横跨整个窗口。
-   * 桌面端窗口条已集成品牌 Logo、快速搜索与侧边栏控制组，窗口缩小时始终保持桌面布局，不渲染冗余顶栏。
+   * 窗口条（`DesktopTitleBar`）取代顶栏 —— 位于工作区列顶部，标签条贴紧侧边栏分割线展开，
+   * 工具区位于行末；顶栏那一行不再渲染（`AppHeader` 与窗口条是同一份 chrome 的两种形态，不是两行）。
+   * 桌面端侧边栏全高贯通（`DesktopSidebarHeader` 承载红绿灯、侧边栏开关与前进/后退导航），
+   * 窗口缩小时始终保持桌面布局，不渲染冗余顶栏。
    */
   const desktopChrome = isDesktop()
   const showHeader = !desktopChrome
@@ -244,21 +244,9 @@ export function AppShell() {
       {/*
         侧边栏 Provider 的接线（含移动端抽屉开合）在 `ShellSidebarProvider` 里统一处理，
         两个外壳共用一份，避免「桌面非受控 / 移动端受控」这套接法各写一遍而漂移。
-        `topBar` 只在桌面壳里给：窗口条要横跨整个窗口，必须排在下面那一行之上。
+        桌面全高架构下，侧边栏作为左列贯穿全屏高度，窗口条位于工作区右列顶部。
       */}
-      <ShellSidebarProvider
-        topBar={
-          desktopChrome ? (
-            <DesktopTitleBar
-              // 标签页全部关掉之后回应用首页（首页会随之重新开出一个标签）
-              homeTo={`/${appId}/home`}
-              // 工具区只挂一处：桌面壳里它在窗口条行末，退化出顶栏时（见 showHeader）留给顶栏
-              actions={showHeader ? undefined : headerActions}
-              onOpenCommandPalette={() => setPaletteOpen(true)}
-            />
-          ) : null
-        }
-      >
+      <ShellSidebarProvider>
         <AppSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />
         <div
           className={cn(
@@ -266,6 +254,15 @@ export function AppShell() {
             desktopChrome && 'h-full min-h-0 overflow-hidden',
           )}
         >
+          {desktopChrome ? (
+            <DesktopTitleBar
+              // 标签页全部关掉之后回应用首页（首页会随之重新开出一个标签）
+              homeTo={`/${appId}/home`}
+              // 工具区只挂一处：桌面壳里它在窗口条行末，退化出顶栏时（见 showHeader）留给顶栏
+              actions={showHeader ? undefined : headerActions}
+              onOpenCommandPalette={() => setPaletteOpen(true)}
+            />
+          ) : null}
           {showHeader ? (
             <AppHeader
               // 标签页开着就由它替掉面包屑（两者都在顶栏行首那一格，见 AppHeaderProps.leading）

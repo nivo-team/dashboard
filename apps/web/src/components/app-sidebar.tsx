@@ -4,6 +4,7 @@ import { useRouterState } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AppSwitcher } from '#/components/app-switcher'
+import { DesktopSidebarHeader } from '#/components/desktop-title-bar'
 import { ShortcutKbd } from '#/components/kbd'
 import { DEFAULT_APP_ID, isMultiAppEnabled, useAuth } from '#/lib/auth'
 import { isDesktop } from '#/lib/desktop-bridge'
@@ -241,40 +242,37 @@ export function AppSidebar({
 
   return (
     <Sidebar>
-      {/* 桌面端品牌已收纳至 Header 左上角，单应用模式下侧边栏品牌 Header 隐藏 */}
-      {!(isDesktop() && !isMultiAppEnabled()) ? (
-        <Sidebar.Header className="flex items-center justify-between gap-1.5 px-2">
-          <div className="min-w-0 flex-1">
-            <AppSwitcher />
-          </div>
-          {isMobile ? <Sidebar.Close /> : null}
-        </Sidebar.Header>
-      ) : null}
+      {/* 桌面端全高侧边栏 Header：红绿灯避让、侧边栏开关与前进/后退导航 */}
+      {isDesktop() ? <DesktopSidebarHeader /> : null}
+
+      <Sidebar.Header className="flex items-center justify-between gap-1.5 px-2">
+        <div className="min-w-0 flex-1">
+          <AppSwitcher />
+        </div>
+        {isMobile ? <Sidebar.Close /> : null}
+      </Sidebar.Header>
 
       {isLoading ? (
         <Sidebar.Loading />
       ) : (
         <Sidebar.Content>
-          {/* 快速搜索独立分组：桌面端已收纳至 Header，非桌面端展示 */}
-          {!isDesktop() ? (
-            <Sidebar.Group>
-              <Sidebar.Menu>
-                <Sidebar.MenuButton
-                  icon={MagnifyingGlassIcon}
-                  tooltip={searchLabel}
-                  onClick={handleSearchClick}
-                  className="mb-3 ring ring-kumo-line transition-[margin] duration-(--sidebar-animation-duration) group-data-[state=collapsed]/sidebar:mb-0 group-data-[state=collapsed]/sidebar:ring-transparent"
-                >
-                  <span>{searchLabel}</span>
-                  {/* 快捷键：无边框包裹，降低功能键透明度（Mac显示⌘K，其他显示Ctrl K） */}
-                  <ShortcutKbd
-                    shortcutKey="K"
-                    className="group-data-[state=collapsed]/sidebar:hidden"
-                  />
-                </Sidebar.MenuButton>
-              </Sidebar.Menu>
-            </Sidebar.Group>
-          ) : null}
+          <Sidebar.Group>
+            <Sidebar.Menu>
+              <Sidebar.MenuButton
+                icon={MagnifyingGlassIcon}
+                tooltip={searchLabel}
+                onClick={handleSearchClick}
+                className="mb-3 ring ring-kumo-line transition-[margin] duration-(--sidebar-animation-duration) group-data-[state=collapsed]/sidebar:mb-0 group-data-[state=collapsed]/sidebar:ring-transparent"
+              >
+                <span>{searchLabel}</span>
+                {/* 快捷键：无边框包裹，降低功能键透明度（Mac显示⌘K，其他显示Ctrl K） */}
+                <ShortcutKbd
+                  shortcutKey="K"
+                  className="group-data-[state=collapsed]/sidebar:hidden"
+                />
+              </Sidebar.MenuButton>
+            </Sidebar.Menu>
+          </Sidebar.Group>
 
           {displayGroups.map((group, index) => (
             <Sidebar.Group key={group.labelKey ?? group.label ?? `group-${index}`}>

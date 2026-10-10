@@ -291,15 +291,16 @@ html.is_desktop #app {
   overflow: hidden;
 }
 
-[data-desktop-chrome] [data-desktop-title-bar] {
+[data-desktop-chrome] [data-desktop-title-bar],
+[data-desktop-chrome] [data-desktop-sidebar-header] {
   background-color: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
 [data-desktop-chrome] [data-sidebar-wrapper] {
-  height: calc(100svh - var(--shell-chrome-h)) !important;
-  max-height: calc(100svh - var(--shell-chrome-h)) !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
   min-height: 0 !important;
   overflow: hidden !important;
 }
@@ -328,35 +329,20 @@ html.is_desktop #app {
 }
 
 /*
- * 桌面壳里侧边栏在窗口条**下面**那一行：一屏高要减掉窗口条，否则这一列会从窗口底部
- * 溢出 44px（Footer、拖拽手柄全被裁掉）。规则限定在带窗口条的外壳里 ——
- * 全屏对话页的侧边栏（`contained`）没有窗口条，必须保持整屏高。
+ * 桌面壳模式下：侧边栏全高贯通至视口顶部（100svh），与工作区列并列排列。
+ * 顶部集成 DesktopSidebarHeader，从最顶端延伸至最底端。
  */
 [data-desktop-chrome] [data-sidebar='sidebar']:not([data-mobile='true']) {
-  height: calc(100svh - var(--shell-chrome-h));
-  max-height: calc(100svh - var(--shell-chrome-h));
+  height: 100svh !important;
+  max-height: 100svh !important;
+  top: 0 !important;
 }
 
-/*
- * …而「收起态」的那一列（Kumo 从文档流里摘出来的 `fixed` 层）还会整个跑到窗口条底下
- * ——用户看到的就是「收起侧边栏被新顶栏盖住」。
- *
- * 成因：收起 / 悬浮窥探时 Kumo 把 `[data-sidebar='content-container']` 改成
- * `fixed + inset-y-0 + h-full`，于是它按**视口**定位：上沿顶到窗口最顶端（被窗口条盖住，
- * 品牌行与图标列看不见），下沿探出视口 44px（Footer 与拖拽手柄被裁掉）。
- * 修法就是把它的上下沿按窗口条挪回来（高度与上面那条规则同源）。
- *
- * 为什么敢只按 `data-state` 判：Kumo 只在**非展开**时才给它 `fixed` ——
- * `startPeek` 里写着 `if (peekable && !open && !isMobile)`，而 `state` 的三个值
- * （`collapsed` / `peeking` / `expanded`）里只有 `expanded` 对应 `open === true`。
- * 于是「不是 expanded」⟺「一定是 fixed」，不会误伤展开态与悬浮展开。
- */
 [data-desktop-chrome]
-  [data-sidebar='sidebar']:not([data-mobile='true']):not([data-collapsible='offcanvas']):not([data-state='expanded'])
+  [data-sidebar='sidebar']:not([data-mobile='true'])
   > [data-sidebar='content-container'] {
-  top: var(--shell-chrome-h);
-  bottom: auto;
-  height: calc(100svh - var(--shell-chrome-h));
+  top: 0 !important;
+  height: 100svh !important;
 }
 
 /*
