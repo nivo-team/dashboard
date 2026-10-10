@@ -8,13 +8,12 @@ import {
 } from '@dnd-kit/core'
 import { restrictToHorizontalAxis, restrictToParentElement } from '@dnd-kit/modifiers'
 import { horizontalListSortingStrategy, SortableContext } from '@dnd-kit/sortable'
-import { Button, Tooltip } from '@cloudflare/kumo'
+import { Tooltip } from '@cloudflare/kumo'
 import { PlusIcon } from '@phosphor-icons/react'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  CHROME_TAB_HEIGHT,
   markDragEnd,
   PageTabItem,
   type PageTabVariant,
@@ -40,6 +39,8 @@ export interface PageTabStripProps {
   variant?: PageTabVariant
   /** 点击「+」按钮时打开通用命令面板 */
   onOpenCommandPalette?: () => void
+  /** 外部容器样式类名 */
+  className?: string
 }
 
 /**
@@ -74,6 +75,7 @@ export function PageTabStrip({
   homeTo,
   variant = 'plain',
   onOpenCommandPalette,
+  className,
 }: PageTabStripProps) {
   const { t } = useTranslation()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
@@ -134,18 +136,7 @@ export function PageTabStrip({
   // `mb-px`（chrome）：把整行抬离外层底边 1px —— 标签底边因此落在窗口条下边线上，
   // 而外层的 **padding box 仍然一直延伸到标签底边之下 1px**，倒角圆弧的下半才不会被裁掉。
   // （不能用外层的 `pb-px` 来抬：`overflow` 的裁剪区就是 padding box，加了反而把裁剪区缩小。）
-  const tabRowClass = cn(
-    'flex w-max items-end',
-    variant === 'chrome' ? 'mb-px gap-0' : 'gap-1',
-  )
-
-  /*
-    两个区的外层共用这一串（`pt-px -mb-[2px]`）：形状比标签盒上下各多 1px
-    （`pt-px` 让出顶部那 1px、行自己的 `mb-px` 让出底部那 1px），
-    `-mb-[2px]` 把整个盒子精确推回原处 —— 纯像素度量杜绝 rem 缩放带来的浮点亚像素抖动，
-    而**外层的盒子上下各多出 1px** 来容纳形状（滚动区的裁剪区因此也够大）。
-  */
-  const zoneClass = variant === 'chrome' ? '-mb-[2px] pt-px' : undefined
+  const tabRowClass = 'flex h-full w-max items-center gap-1'
 
   const indexed = tabs.map((tab, index) => ({ tab, index }))
   const pinnedEntries = indexed.filter((entry) => entry.tab.pinned)
@@ -192,7 +183,7 @@ export function PageTabStrip({
       // 1. 物理可见性检测：判断激活标签是否已经完全处于可视区内部（留 10px 包含外翻倒角）
       const nodeRect = activeNode.getBoundingClientRect()
       const navRect = nav.getBoundingClientRect()
-      const pad = 10
+      const pad = 4
       const isLeftVisible = nodeRect.left >= navRect.left + pad
       const isRightVisible = nodeRect.right <= navRect.right - pad
 
@@ -228,13 +219,8 @@ export function PageTabStrip({
   return (
     <div
       className={cn(
-        'flex min-w-0 flex-1 gap-1 self-stretch',
-        /*
-          chrome 外观里标签贴着窗口条下沿，于是「+」也要跟着贴到下沿、
-          并把自己在**标签那一行的高度（34px）**里居中 —— 否则它会以整条窗口条居中，
-          看起来比标签的图标 / 文字高一截（用户看到的就是这个）。
-        */
-        variant === 'chrome' ? 'items-end' : 'items-center',
+        'flex min-w-0 flex-1 items-center gap-1 self-stretch',
+        className,
       )}
     >
       <DndContext
@@ -269,42 +255,19 @@ export function PageTabStrip({
             只有未固定的标签进滚动容器。`max-w-[80%]` 挂在两者外面 —— 这一整块
             （固定的 + 可滚动的）最多占窗口条的八成，剩下那条留白是与行末工具区之间的间距。
           */}
-          <div
-            className={cn(
-              'flex min-w-0 max-w-[80%] shrink no-drag',
-              // 与两个区的对齐一致：chrome 下底对齐，plain 下居中
-              variant === 'chrome' ? 'items-end' : 'items-center',
-            )}
-          >
+          <div className="flex h-full min-w-0 max-w-[80%] shrink items-center gap-1 no-drag">
             {pinnedEntries.length > 0 ? (
-              /*
-                固定区：**不滚动、纵向也不滚**（`overflow-hidden` 两个轴一起禁掉）。
-                与右边滚动区之间**不留间距**（外层没有 `gap`）—— 固定标签与第一个
-                未固定标签的间距由各自的 gap 负责，两区贴合才不会在中间多出一道缝。
-              */
-              <div
-                className={cn(
-                  /*
-                    **不设 `overflow`**（默认 visible）：形状比标签盒大一整圈 ——
-                    顶部要 1px（描边上下各探出 0.5px）、左右各 9px（外翻倒角）。
-                    之前这里写 `overflow-hidden`，结果固定标签的顶部描边整条被裁掉、
-                    两侧倒角也被切平（实测：顶部直边那一行完全没有墨迹）。
-                    固定区本来就不滚动，不需要裁剪；`pt-px` + `-mb-px` 与滚动区完全一致。
-                  */
-                  'flex shrink-0',
-                  zoneClass,
-                )}
-              >
+              <div className="flex h-full shrink-0 items-center">
                 <div className={tabRowClass}>
                   {pinnedEntries.map(({ tab, index }) => (
-                  <PageTabItem
-                    key={tab.to}
-                    tab={tab}
-                    index={index}
-                    tabs={tabs}
-                    variant={variant}
-                    actions={actions}
-                    dragPinned={dragPinned}
+                    <PageTabItem
+                      key={tab.to}
+                      tab={tab}
+                      index={index}
+                      tabs={tabs}
+                      variant={variant}
+                      actions={actions}
+                      dragPinned={dragPinned}
                       active={tab.to === activeTab?.to}
                     />
                   ))}
@@ -312,34 +275,12 @@ export function PageTabStrip({
               </div>
             ) : null}
 
-            {/*
-              非固定标签滚动容器的外层包裹：
-              在 chrome 外观下通过 `-mx-2.5` 抵消 `<nav>` 的 `px-2.5` 内部安全边距，
-              从视觉上消除左右多余留白，让标签与固定区及窗口条底边线严丝合缝对齐，
-              同时 `<nav>` 内部依然保留 10px padding box 容纳激活标签的底部外翻倒角（9px）。
-            */}
-            <div
-              className={cn(
-                'flex min-w-0 flex-1',
-                variant === 'chrome' ? '-mx-2.5 items-end' : 'items-center',
-              )}
-            >
+            <div className="flex h-full min-w-0 flex-1 items-center">
               <nav
                 ref={navRef}
                 aria-label={t('pageTabs.label', '页面标签页')}
-                // 给 `styles.css` 当锚点：Chrome 那条底部倒角只挂在 chrome 外观上
                 data-page-tab-variant={variant}
-                className={cn(
-                  // 只允许横向滚：`overflow-x: auto` 会把 `overflow-y` 也算成 auto，
-                  // 于是形状那半个像素的溢出就会凭空多出一段纵向可滚动区域 —— 显式禁掉
-                  'flex min-w-0 flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] outline-none focus:outline-none',
-                  // `items-*` 走三目：本仓的 `cn` 只拼接、不合并，两个对齐类同时在场就只剩源码顺序可赌
-                  variant === 'chrome'
-                    ? // 左右各留 10px：给激活标签那对**底部倒角**留出画的地方（它长在标签外侧，
-                      // 半径 10 就往外探 9px）；上下那 1px 与固定区共用同一串类
-                      cn('px-2.5', zoneClass)
-                    : 'px-1',
-                )}
+                className="flex h-full min-w-0 flex-1 items-center overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] outline-none focus:outline-none"
               >
                 <div className={tabRowClass}>
                   {unpinnedEntries.map(({ tab, index }) => (
@@ -362,30 +303,24 @@ export function PageTabStrip({
       </DndContext>
 
       {/* 「+」在滚动区之外、紧挨着它 —— 跟着标签走，不钉在行末 */}
-      <div
-        className={cn(
-          'flex shrink-0 items-center',
-          // 与标签那一行**完全同一格**：同高（用标签高度那个常量）、同样往下探 1px
-          variant === 'chrome' && '-mb-px',
-        )}
-        // 高度取 CHROME_TAB_HEIGHT：与标签、SVG 的 viewBox 同一个数
-        style={variant === 'chrome' ? { height: CHROME_TAB_HEIGHT } : undefined}
-      >
+      <div className="flex h-full shrink-0 items-center">
         <Tooltip
           content={`${newTabLabel} (${shortcutHint})`}
           render={
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              shape="square"
-              size="sm"
               onClick={handleOpenPalette}
               onDoubleClick={(e) => e.stopPropagation()}
-              // 自己退出拖拽区（窗口条上这一颗要能点）；不参与滚动，所以永远看得见
-              className="shrink-0 text-kumo-subtle hover:text-kumo-default no-drag outline-none focus:outline-none focus-visible:outline-none"
-              icon={<PlusIcon size={16} />}
               aria-label={newTabLabel}
-            />
+              className={cn(
+                'no-drag relative flex shrink-0 cursor-pointer items-center justify-center rounded-md text-kumo-subtle transition-colors',
+                variant === 'chrome' ? 'size-7' : 'size-8',
+                'hover:bg-kumo-base/60 hover:text-kumo-default active:bg-kumo-base',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-line',
+              )}
+            >
+              <PlusIcon size={16} aria-hidden />
+            </button>
           }
         />
       </div>

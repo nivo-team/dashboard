@@ -363,6 +363,7 @@ export function DesktopTitleBar({
       <PageTabStrip
         homeTo={homeTo}
         variant="chrome"
+        className={open ? 'ms-2' : undefined}
         onOpenCommandPalette={onOpenCommandPalette}
       />
 

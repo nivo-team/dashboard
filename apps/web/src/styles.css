@@ -70,74 +70,7 @@
 }
 
 /*
- * ── Chrome 那条标签条的两个细节（只挂在 chrome 外观上）──────────────────────────
- *
- * 钩子由 `#/components/page-tab-strip`（`data-page-tab-variant`）与
- * `#/components/page-tab-item`（`data-page-tab` / `data-active`）提供。
- * 放这里而不是 Tailwind 类里，是因为两条都要写「前一个兄弟也满足条件」或径向渐变 ——
- * 变体表达不出来，硬塞进类名也读不懂。
- *
- * 1. **细分隔线**：相邻两个「未激活」标签之间一条竖线（Chrome 标签条最好认的特征之一）。
- *    逻辑属性书写，RTL 下自动贴到另一侧。
- */
-
-[data-page-tab-variant='chrome'] [data-page-tab][data-active='false'] + [data-page-tab][data-active='false']::before {
-  content: '';
-  position: absolute;
-  inset-block: 32%;
-  inset-inline-start: 0;
-  width: 1px;
-  background-color: var(--shell-chrome-line);
-}
-
-/*
- * 2. **激活标签的形状（含底部外翻倒角）** 由 `#/components/page-tab-item` 画一条 SVG 路径：
- *    一份 `fill`（闭合，末尾 `Z`）+ 一份同路径的 `stroke`（**不闭合**）。描边要单独一份，
- *    是因为底面不能有线 —— 底边要留给下方工作区：标签底色压住底部那条分割线，
- *    与工作区连成一体，正是「喇叭口压住底线」的效果。
- *
- *    为什么不用「圆角 + 角上一个径向渐变伪元素」那套（本文件曾经的做法）：
- *    渐变描边在 125% / 150% 这类非整数设备缩放下，圆弧每个像素的覆盖率会在 0.5px 之间抖，
- *    于是露白、发虚、与直边接不上。SVG 路径是**几何上连续**的一条线，
- *    配 `vector-effect: non-scaling-stroke` 后缩放多少都是实心 1px。
- *
- *    形状向标签盒左右各探出一个倒角宽度（`CHROME_TAB_FLARE`），水平铺开由组件写在
- *    内联样式里，这里只管怎么画；`preserveAspectRatio="none"` 让形状随标签宽横向拉伸。
- */
-.page-tab-shape {
-  position: absolute;
-  /*
-    `z-index: -1`：绝对定位元素默认画在普通流内容**之上** —— 不加这一条，这块形状的填充
-    会把图标与文字整片盖住（曾实测：内容完全看不见）。
-    负值只在**自己的堆叠上下文**里才只压内容、不压到窗口条背景之下，所以标签根上还配了
-    `isolate`（见 `#/components/page-tab-item`）。
-  */
-  z-index: -1;
-  pointer-events: none;
-  /* 不依赖 `overflow: visible`：形状四周留了余量，描边本来就落在视口内 */
-  overflow: hidden;
-}
-
-.page-tab-shape-fill {
-  fill: var(--color-kumo-base);
-}
-
-/* 桌面端模式下：激活 Tab 背景色与主内容区画布（kumo-canvas）严格一致，无缝融入下方工作区 */
-[data-desktop-chrome] .page-tab-shape-fill,
-.is_desktop .page-tab-shape-fill {
-  fill: var(--color-kumo-canvas) !important;
-}
-
-.page-tab-shape-line {
-  fill: none;
-  stroke: var(--shell-chrome-line);
-  stroke-width: 1px;
-  /* 描边在**视口坐标系**里计算：横向拉伸不会把它压扁或拉粗（1px 永远是 1px） */
-  vector-effect: non-scaling-stroke;
-}
-
-/*
- * 3. 消除所有标签（PageTab）及内部交互元素的 focus outline，并保持 focus 与 hover 一致的背景高亮
+ * 消除所有标签（PageTab）及内部交互元素的 focus outline
  */
 [data-page-tab],
 [data-page-tab] button,
@@ -153,18 +86,6 @@
 [data-page-tab] [role='button']:focus-visible {
   outline: none !important;
   box-shadow: none !important;
-}
-
-/* 未激活 Tab 在 hover、focus 与 focus-within 交互时均呈现背景高亮胶囊层 */
-[data-page-tab][data-active='false']:hover .page-tab-hover-layer,
-[data-page-tab][data-active='false']:focus .page-tab-hover-layer,
-[data-page-tab][data-active='false']:focus-visible .page-tab-hover-layer,
-[data-page-tab][data-active='false']:focus-within .page-tab-hover-layer {
-  background-color: var(--page-tab-hover-bg);
-}
-
-[data-page-tab][data-active='false']:active .page-tab-hover-layer {
-  background-color: var(--page-tab-active-bg);
 }
 
 /* Tab 关闭按钮在 hover 与 focus 时呈现背景高亮；浅色模式下同为 5% 黑色，与 Tab 底色自然叠加形成层次对比 */
