@@ -45,6 +45,8 @@ const (
 	FlagKey               = "__desktop"
 	FlagPlatformKey       = "__desktop_platform"
 	FlagTitleBarHeightKey = "__desktop_title_bar_h"
+	FlagBlurSupportedKey  = "__desktop_blur_supported"
+	FlagBlurReasonKey     = "__desktop_blur_reason"
 	MarkPrefix            = "__desktop_"
 	DefaultTitleBarHeight = 40
 )
@@ -63,7 +65,11 @@ type Config struct {
 	TitleBarHeight int
 	// Platform 是当前运行的操作系统平台（如 darwin / windows / linux）。
 	Platform string
-	// Debug 打开 devtools 与检查器。
+	// BlurSupported 表示当前平台是否支持窗口背景模糊与毛玻璃穿透。
+	BlurSupported bool
+	// BlurReason 解释为什么支持或不支持模糊。
+	BlurReason string
+	// Debug 允许**手动**打开 devtools（F12 / ⌘⌥I，不自动弹出），并打开 bridge 进出站日志。
 	Debug bool
 	// Marks 是随 URL 一起交给页面的自定义标记（`-mark k=v`），
 	// 页面侧在 window.__DESKTOP_MARKS__ 里读到 —— 留给以后扩展。
@@ -145,6 +151,9 @@ func Parse(args []string) (Config, error) {
 		Debug:          !ReleaseBuild || os.Getenv("DESKTOP_DEBUG") == "1",
 		Marks:          map[string]string{},
 	}
+	blurSupport := DetectBlurSupport()
+	cfg.BlurSupported = blurSupport.Supported
+	cfg.BlurReason = blurSupport.Reason
 
 	fs := flag.NewFlagSet("desktop", flag.ContinueOnError)
 	fs.StringVar(&cfg.URL, "url", cfg.URL, "要加载的前端地址（http/https）")
@@ -154,7 +163,7 @@ func Parse(args []string) (Config, error) {
 	fs.IntVar(&cfg.MinWidth, "min-width", cfg.MinWidth, "最小窗口宽度")
 	fs.IntVar(&cfg.MinHeight, "min-height", cfg.MinHeight, "最小窗口高度")
 	fs.IntVar(&cfg.TitleBarHeight, "titlebar-height", cfg.TitleBarHeight, "窗口标题栏/红绿灯高度（px）")
-	fs.BoolVar(&cfg.Debug, "debug", cfg.Debug, "打开 devtools（非发布构建默认开启）")
+	fs.BoolVar(&cfg.Debug, "debug", cfg.Debug, "允许手动打开 devtools（不自动弹出）并打印 bridge 日志")
 	fs.Var(marksFlag(cfg.Marks), "mark", "随 URL 传给页面的标记，可重复：-mark channel=beta")
 	fs.Var((*listFlag)(&cfg.AllowedOrigins), "allow-origin",
 		"额外放行、允许调用 bridge 的来源，可重复：-allow-origin https://www.example.com")
@@ -203,6 +212,14 @@ func (c Config) StartURL() (string, error) {
 		platform = runtime.GOOS
 	}
 	query.Set(FlagPlatformKey, platform)
+	if c.BlurSupported {
+		query.Set(FlagBlurSupportedKey, "1")
+	} else {
+		query.Set(FlagBlurSupportedKey, "0")
+	}
+	if c.BlurReason != "" {
+		query.Set(FlagBlurReasonKey, c.BlurReason)
+	}
 	if c.TitleBarHeight > 0 {
 		query.Set(FlagTitleBarHeightKey, strconv.Itoa(c.TitleBarHeight))
 	}

@@ -1,6 +1,6 @@
 /* eslint-disable */
 // 本文件由 scripts/i18n/gen-types.mjs 生成 —— 不要手改。
-// 源语言：zh-CN｜命名空间：10 个｜键：1144 个
+// 源语言：zh-CN｜命名空间：10 个｜键：1147 个
 // 重新生成：pnpm i18n:types
 
 /**
@@ -363,6 +363,9 @@ export interface I18nNamespaceKeys {
     | "profile.settings.colors.warmGray"
     | "profile.settings.colors.zinc"
     | "profile.settings.currentApp"
+    | "profile.settings.desktopBlur"
+    | "profile.settings.desktopBlurHint"
+    | "profile.settings.desktopBlurUnsupportedHint"
     | "profile.settings.detailOpenMode"
     | "profile.settings.detailOpenModeHint"
     | "profile.settings.detailOpenModes.page"

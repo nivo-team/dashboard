@@ -31,6 +31,8 @@ pnpm mock             # Mock API (http://localhost:3001)，前端默认连它
 pnpm ai               # AI 中间层 Worker（wrangler dev，http://localhost:3002）
 pnpm desktop          # 桌面壳（Wails v3 + Go，默认加载 http://localhost:3000）
 pnpm desktop:test     # 桌面壳的 Go 测试（协议层护栏）
+pnpm desktop:bindings # 由 Go 方法目录生成页面侧 bridge 类型（apps/web/src/desktop/generated/）
+pnpm desktop:bindings:check  # 校验生成物是否为最新（CI / 提交前）
 pnpm desktop:build    # 桌面壳出发布产物（地址来自构建环境 DESKTOP_URL，见 apps/desktop/README.md）
 pnpm build            # 前端生产构建（走 vp build，输出 apps/web/dist）
 pnpm preview          # 预览前端构建产物
@@ -84,7 +86,7 @@ pnpm i18n:types       # 重新生成 i18n 键类型（改了 zh-CN.json 后跑�
 | **改任何 AI 代码** | 先看模块地图 [src/features/ai/README.md](./apps/web/src/features/ai/README.md)（**AI 核心全在这一个目录**：core / components / markdown / sphere / page）· [ai-architecture.md](./.agents/docs/ai-architecture.md)（架构 / 数据流 / 扩展点 / 踩过的坑）· [ai-integration.md](./.agents/docs/ai-integration.md)（设计蓝图） |
 | **加/改 AI 工具、AI 权限粒度、批量任务编排** | [ai-architecture.md](./.agents/docs/ai-architecture.md) §3.1（能力矩阵）· §7.1（Todo 编排）· 清单 [ai-module-inventory.md](./.agents/docs/ai-module-inventory.md) §6 |
 | **改 AI 开发流水线 / issue 模板 / CI 门控** | [docs/ai-dev-pipeline.md](./docs/ai-dev-pipeline.md)（触发层 + 执行层 + 门控层，含标签状态机与铁律对应表） |
-| **改桌面壳 / 加原生能力（菜单 / 托盘 / 文件对话框）/ 改 bridge 协议** | [apps/desktop/README.md](./apps/desktop/README.md)（Wails v3 超薄壳：URL 桌面标记、Raw Messages 通道、`__bridge` 的 call/on）· 页面侧接口 `#/lib/desktop-bridge` |
+| **改桌面壳 / 加原生能力（菜单 / 托盘 / 文件对话框）/ 改 bridge 协议** | [apps/desktop/README.md](./apps/desktop/README.md)（Wails v3 超薄壳：URL 桌面标记、Raw Messages 通道、方法目录 → 页面侧类型由 Go 生成）· 页面侧接口 `#/desktop/bridge`（生成物在 `apps/web/src/desktop/generated/`） |
 | **配仓库的 Secrets / Variables / 分支保护** | [docs/repo-configuration.md](./docs/repo-configuration.md)（每条流水线要配什么、触发白名单、person token、占位符为何不能当空值） |
 | **了解「谁才能写代码」/ 触发 AI 的规则** | [docs/ai-dev-pipeline.md](./docs/ai-dev-pipeline.md) §4（只有 @ 白名单账号才触发）· §8.1（代码作者门控 + 逃生舱） |
 | 想知道「当初为什么这么选」 | [docs/](./docs/README.md)（调研与设计记录，相对稳定） |

@@ -17,6 +17,8 @@
     "desktop": "go -C apps/desktop run -tags devtools,private_mac_apis .",
     "desktop:build": "node apps/desktop/scripts/build.mjs",
     "desktop:test": "go -C apps/desktop test ./...",
+    "desktop:bindings": "go -C apps/desktop run ./cmd/genbindings",
+    "desktop:bindings:check": "go -C apps/desktop run ./cmd/genbindings -check",
     "contract": "node packages/api-client/scripts/sync.mjs",
     "api": "pnpm contract && pnpm -C packages/api-client api",
     "guardrails": "node scripts/ai/check-guardrails.mjs",

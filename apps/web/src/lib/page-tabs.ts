@@ -2,7 +2,7 @@ import type { Icon } from '@phosphor-icons/react'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { isDesktop } from './desktop-bridge'
+import { isDesktop } from '#/desktop/bridge'
 import { ALL_NAV_TARGETS, ALL_SHELL_NAV_TARGETS } from './navigation'
 import { useShellUiStore } from './store/shell-ui-store'
 
@@ -30,7 +30,7 @@ import { useShellUiStore } from './store/shell-ui-store'
  *    这里连 router 都不认识；调用方（`#/components/page-tab-strip` 的 `useTabActions`）
  *    在动作之后读一次新状态再决定跳哪儿。
  *
- * 消费方是 `#/components/page-tab-strip`：桌面壳里挂在窗口条上（`#/components/desktop-title-bar`），
+ * 消费方是 `#/components/page-tab-strip`：桌面壳里挂在窗口条上（`#/desktop/title-bar`），
  * 浏览器里由设置项 `pageTabsEnabled` 决定要不要挂在顶栏行首（见 `#/lib/store/shell-ui-store`）。
  */
 

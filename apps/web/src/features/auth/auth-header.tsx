@@ -4,7 +4,7 @@ import { RouterLink } from '#/components/router-link'
 import { ThemeSwitcher } from '#/components/theme-switcher'
 import { useBrand } from '#/lib/brand'
 import { cn } from '#/lib/cn'
-import { handleDesktopHeaderDoubleClick, isDesktop } from '#/lib/desktop-bridge'
+import { handleDesktopHeaderDoubleClick, isDesktop } from '#/desktop/bridge'
 
 export interface AuthHeaderProps {
   /** 额外的外层样式类 */

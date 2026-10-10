@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { isDesktop } from '#/lib/desktop-bridge'
+import { isDesktop } from '#/desktop/bridge'
 
 import { enableCrossTabSync } from './cross-tab-sync'
 
@@ -108,6 +108,13 @@ export const DEFAULT_MOTION_ENABLED = true
 export const DEFAULT_PAGE_TABS_ENABLED = false
 
 /**
+ * 桌面端窗口毛玻璃背景开关，默认**开**。
+ *
+ * 仅在桌面壳环境下生效；关掉后顶栏窗口条回退为纯色实底（bg-kumo-base），不穿透桌面壁纸。
+ */
+export const DEFAULT_DESKTOP_BLUR_ENABLED = true
+
+/**
  * 侧边栏折叠时的快速展开方式：
  * - `logo`：**仅悬浮在 Logo 展开**（默认）—— 鼠标悬浮在侧边栏顶部的 Logo / 品牌区域时触发临时展开；悬浮其他菜单项时不展开；
  * - `full`：**悬浮展开** —— 鼠标悬浮在侧边栏任意区域均触发临时展开；
@@ -142,6 +149,8 @@ interface ShellUiState {
   motionEnabled: boolean
   /** 页面标签页开关（默认关；桌面壳里恒开，见 `DEFAULT_PAGE_TABS_ENABLED`） */
   pageTabsEnabled: boolean
+  /** 桌面端窗口毛玻璃背景开关（默认开；关掉后顶栏窗口条回退为实底） */
+  desktopBlurEnabled: boolean
   setSidebarOpen: (open: boolean) => void
   setSidebarWidth: (width: number) => void
   setSidebarExpandMode: (mode: SidebarExpandMode) => void
@@ -149,6 +158,7 @@ interface ShellUiState {
   setAiPanelWidth: (width: number) => void
   setMotionEnabled: (enabled: boolean) => void
   setPageTabsEnabled: (enabled: boolean) => void
+  setDesktopBlurEnabled: (enabled: boolean) => void
   /**
    * 浮窗的两个方向一起写。
    *
@@ -169,6 +179,7 @@ type PersistedShellUi = Pick<
   | 'aiFloatHeight'
   | 'motionEnabled'
   | 'pageTabsEnabled'
+  | 'desktopBlurEnabled'
 >
 
 export function clampSidebarWidth(width: number): number {
@@ -203,6 +214,7 @@ export const useShellUiStore = create<ShellUiState>()(
       aiFloatHeight: AI_FLOAT_DEFAULT_HEIGHT,
       motionEnabled: DEFAULT_MOTION_ENABLED,
       pageTabsEnabled: DEFAULT_PAGE_TABS_ENABLED,
+      desktopBlurEnabled: DEFAULT_DESKTOP_BLUR_ENABLED,
       setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
       setSidebarWidth: (sidebarWidth) => set({ sidebarWidth: clampSidebarWidth(sidebarWidth) }),
       setSidebarExpandMode: (sidebarExpandMode) => set({ sidebarExpandMode }),
@@ -216,6 +228,7 @@ export const useShellUiStore = create<ShellUiState>()(
         }),
       setMotionEnabled: (motionEnabled) => set({ motionEnabled }),
       setPageTabsEnabled: (pageTabsEnabled) => set({ pageTabsEnabled }),
+      setDesktopBlurEnabled: (desktopBlurEnabled) => set({ desktopBlurEnabled }),
     }),
     {
       name: 'admin.shell-ui',
@@ -230,6 +243,7 @@ export const useShellUiStore = create<ShellUiState>()(
         aiFloatHeight: state.aiFloatHeight,
         motionEnabled: state.motionEnabled,
         pageTabsEnabled: state.pageTabsEnabled,
+        desktopBlurEnabled: state.desktopBlurEnabled,
       }),
       /**
        * 旧存档没有 `detailPanelWidth` / `aiPanelWidth`（后续新增）—— 缺失或非法一律回落
@@ -274,6 +288,10 @@ export const useShellUiStore = create<ShellUiState>()(
             typeof saved.pageTabsEnabled === 'boolean'
               ? saved.pageTabsEnabled
               : current.pageTabsEnabled,
+          desktopBlurEnabled:
+            typeof saved.desktopBlurEnabled === 'boolean'
+              ? saved.desktopBlurEnabled
+              : current.desktopBlurEnabled,
         }
       },
     },

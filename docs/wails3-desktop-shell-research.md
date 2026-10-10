@@ -374,7 +374,7 @@ func (w *WebviewWindow) ExecJS(js string) {
 - 探针 2（页面首屏手发 `postMessage("wails:runtime:ready")`）：立刻触发 `events.Common.WindowRuntimeReady`，
   随后的 `ExecJS` **成功到达**（`[RAW-MESSAGE] probe:execjs-ran|wails=object|jsOpt=object|interactive`）。
 
-> ✅ 本仓库 `apps/web/src/lib/desktop-bridge.ts` 已经手发这条（`RUNTIME_READY`，并注释了「少这一条全都卡住」），
+> ✅ 本仓库 `apps/web/src/desktop/bridge.ts` 已经手发这条（`RUNTIME_READY`，并注释了「少这一条全都卡住」），
 > 与实测一致。**任何以后替换页面侧实现的人都不能删这一行。**
 
 ### 4.4 Go→JS 事件能进远程页面，但依赖页面提供 `dispatchWailsEvent`
@@ -624,7 +624,7 @@ Linux 上 `webview_window_linux_dev.go` 要 `!production`、`webview_window_linu
 ## 七、已知坑清单（按踩到概率排序）
 
 1. **`ExecJS` 静默排队**（最高危）：页面不发 `wails:runtime:ready`，壳侧所有 `ExecJS` / 事件注入永远不到。
-   §4.3 有实测对照。→ 本壳在 `desktop-bridge.ts` 里手发；**别删**。
+   §4.3 有实测对照。→ 本壳在 `desktop/bridge.ts` 里手发；**别删**。
 2. **默认 runtime 通道在远程页面上是死的**：`fetch(location.origin + "/wails/runtime")` 打到远程站点；
    实测 200 + 站点 HTML。且 `wails://` 不能被 http(s) 页面 fetch（`TypeError: Load failed`）。
 3. **`options.JS` 不是 document-start**，Windows 上 URL 导航**根本不执行**（§3.1）。想要「加载前注入」只能走 URL。

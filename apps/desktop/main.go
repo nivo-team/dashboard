@@ -59,6 +59,8 @@ func main() {
 			"url":            startURL,
 			"origin":         cfg.Origin(),
 			"titleBarHeight": cfg.TitleBarHeight,
+			"blurSupported":  cfg.BlurSupported,
+			"blurReason":     cfg.BlurReason,
 			"marks":          cfg.Marks,
 			"methods":        registry.Methods(),
 			"dropped":        registry.Dropped(),
@@ -71,6 +73,9 @@ func main() {
 		Description: "Nivo Admin 桌面壳：加载远程前端，前端发版即更新",
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
+		},
+		Linux: application.LinuxOptions{
+			ProgramName: "nivo-desktop",
 		},
 		/*
 			页面上**不以 `wails:` 开头**的消息全部落到这里 —— 整条 bridge 的入口。
@@ -97,7 +102,7 @@ func main() {
 	})
 
 	bgType := application.BackgroundTypeSolid
-	if cfg.Platform == "darwin" || cfg.Platform == "windows" {
+	if cfg.Platform == "darwin" || cfg.Platform == "windows" || cfg.Platform == "linux" {
 		bgType = application.BackgroundTypeTranslucent
 	}
 
@@ -136,10 +141,13 @@ func main() {
 			最小尺寸限制：最小宽度 800px，最小高度 600px，
 			保证桌面壳在任何平台上的最小可用空间与内容区（表格、AI 分屏列）显示正常。
 		*/
-		MinWidth:               cfg.MinWidth,
-		MinHeight:              cfg.MinHeight,
-		DevToolsEnabled:        cfg.Debug,
-		OpenInspectorOnStartup: cfg.Debug,
+		MinWidth:  cfg.MinWidth,
+		MinHeight: cfg.MinHeight,
+		/*
+			DevToolsEnabled 只是「允许打开」：`-debug` 下 F12 / ⌘⌥I 可以**手动**调起。
+			刻意不设 OpenInspectorOnStartup —— devtools 不再自动弹出，免得每次启动都盖住窗口。
+		*/
+		DevToolsEnabled: cfg.Debug,
 		KeyBindings: map[string]func(window application.Window){
 			"F12": func(w application.Window) {
 				if win, ok := w.(*application.WebviewWindow); ok {
@@ -157,6 +165,11 @@ func main() {
 				}
 			},
 		},
+	})
+
+	setupNativeWindow(window)
+	app.Event.OnApplicationEvent(events.Common.ApplicationStarted, func(*application.ApplicationEvent) {
+		setupNativeWindow(window)
 	})
 
 	// 窗口自身的动作（frameless 之后没有系统按钮可点，双击窗口条也要能最大化）
@@ -202,24 +215,32 @@ registerWindowMethods 注册窗口自身的动作（`window.*`）。
 窗口方法内部都会 `InvokeSync` 到主线程，所以从 bridge 的协程里调是安全的。
 */
 func registerWindowMethods(registry *bridge.Registry, window *application.WebviewWindow) {
-	registry.Handle("window.minimise", func(json.RawMessage) (any, error) {
+	registry.Handle(bridge.WindowMinimise, func(json.RawMessage) (any, error) {
 		window.Minimise()
 		return windowState(window), nil
 	})
 
-	registry.Handle("window.toggleMaximise", func(json.RawMessage) (any, error) {
+	registry.Handle(bridge.WindowToggleMaximise, func(json.RawMessage) (any, error) {
 		window.ToggleMaximise()
 		return windowState(window), nil
 	})
 
-	registry.Handle("window.close", func(json.RawMessage) (any, error) {
+	registry.Handle(bridge.WindowClose, func(json.RawMessage) (any, error) {
 		window.Close()
 		return nil, nil
 	})
 
-	registry.Handle("window.openDevTools", func(json.RawMessage) (any, error) {
+	registry.Handle(bridge.WindowOpenDevTools, func(json.RawMessage) (any, error) {
 		window.OpenDevTools()
 		return nil, nil
+	})
+
+	registry.Handle(bridge.WindowGetBlurSupport, func(json.RawMessage) (any, error) {
+		res := shell.DetectBlurSupport()
+		return map[string]any{
+			"supported": res.Supported,
+			"reason":    res.Reason,
+		}, nil
 	})
 }
 
@@ -237,17 +258,13 @@ echo —— 业务方法由使用者在 main 里自己 `registry.Handle("你的�
 命名约定：`<域>.<动作>`，例如 `core.info`、`window.minimise`、`file.pick`。
 */
 func registerThemeMethods(registry *bridge.Registry, app *application.App, window *application.WebviewWindow) {
-	registry.Handle("theme.getSystem", func(json.RawMessage) (any, error) {
-		isDark := false
-		if app.Env != nil {
-			isDark = app.Env.IsDarkMode()
-		}
+	registry.Handle(bridge.ThemeGetSystem, func(json.RawMessage) (any, error) {
 		return map[string]any{
-			"isDarkMode": isDark,
+			"isDarkMode": shellSystemIsDark(app),
 		}, nil
 	})
 
-	registry.Handle("theme.set", func(payload json.RawMessage) (any, error) {
+	registry.Handle(bridge.ThemeSet, func(payload json.RawMessage) (any, error) {
 		var req struct {
 			Mode     string `json:"mode"`
 			Resolved string `json:"resolved"`
@@ -255,22 +272,55 @@ func registerThemeMethods(registry *bridge.Registry, app *application.App, windo
 		if len(payload) > 0 {
 			_ = json.Unmarshal(payload, &req)
 		}
-		log.Printf("[desktop] 前端主题同步：mode=%s, resolved=%s", req.Mode, req.Resolved)
-		setNativeWindowTheme(window, req.Mode, req.Resolved)
+
+		/*
+			`system` 的**真值在壳侧**，不信页面传来的 resolved。
+
+			原因：Linux（WebKitGTK）的 `prefers-color-scheme` 跟着 **GTK 主题**走，而壳为了
+			「强制深 / 浅」改的正是 GTK 主题 —— 于是页面拿到的永远是「上一次强制的结果」，
+			切回「跟随系统」就会卡在上一次的深浅。壳用 XDG 桌面门户读到的才是当前系统偏好。
+		*/
+		resolved := req.Resolved
+		if req.Mode == "system" {
+			if shellSystemIsDark(app) {
+				resolved = "dark"
+			} else {
+				resolved = "light"
+			}
+		}
+
+		log.Printf("[desktop] 前端主题同步：mode=%s, 页面 resolved=%s, 壳采用=%s", req.Mode, req.Resolved, resolved)
+		setNativeWindowTheme(window, req.Mode, resolved)
 		return map[string]any{
 			"success":  true,
 			"mode":     req.Mode,
-			"resolved": req.Resolved,
+			"resolved": resolved,
 		}, nil
 	})
 }
 
+/*
+shellSystemIsDark 读宿主当前是不是深色，**调度到主线程**再读。
+
+Wails 的 `Env.IsDarkMode()` 在 macOS 上落到 AppKit 的 `effectiveAppearance`（主线程 API），
+而 bridge 的方法各自跑在独立协程里（见 bridge 包的线程约定）—— 直接读是未定义行为，
+所以统一用 `InvokeSyncWithResult` 回主线程。Linux 上它走 XDG 桌面门户（DBus），本身与线程无关。
+*/
+func shellSystemIsDark(app *application.App) bool {
+	return application.InvokeSyncWithResult(func() bool {
+		if app.Env == nil {
+			return false
+		}
+		return app.Env.IsDarkMode()
+	})
+}
+
 func registerCoreMethods(registry *bridge.Registry, info func() map[string]any) {
-	registry.Handle("core.info", func(json.RawMessage) (any, error) {
+	registry.Handle(bridge.CoreInfo, func(json.RawMessage) (any, error) {
 		return info(), nil
 	})
 
-	registry.Handle("core.ping", func(json.RawMessage) (any, error) {
+	registry.Handle(bridge.CorePing, func(json.RawMessage) (any, error) {
 		return map[string]any{"pong": true, "at": time.Now().Format(time.RFC3339)}, nil
 	})
 
@@ -279,7 +329,7 @@ func registerCoreMethods(registry *bridge.Registry, info func() map[string]any) 
 
 			const { echo } = await window.__bridge.call('demo.echo', { hello: 'world' })
 	*/
-	registry.Handle("demo.echo", func(payload json.RawMessage) (any, error) {
+	registry.Handle(bridge.DemoEcho, func(payload json.RawMessage) (any, error) {
 		if len(payload) == 0 {
 			return map[string]any{"echo": nil}, nil
 		}

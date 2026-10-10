@@ -47,7 +47,7 @@ export interface PageTabStripProps {
  * 页面标签条：**左边是可拖拽排序的标签（可滚动），右边紧跟着「+」**。
  *
  * 两处宿主，本体同一份（`#/lib/page-tabs` 是唯一数据源）：
- * - **桌面壳**：`#/components/desktop-title-bar` 的窗口条行首（恒开，`variant="chrome"`）；
+ * - **桌面壳**：`#/desktop/title-bar` 的窗口条行首（恒开，`variant="chrome"`）；
  * - **浏览器**：顶栏行首那一格，替掉面包屑 —— 由 设置 → 外观 的「页面标签页」开关决定
  *   （默认关，见 `#/lib/store/shell-ui-store` 的 `pageTabsEnabled`）。
  *

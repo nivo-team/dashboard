@@ -127,7 +127,7 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
 
 ### 桌面壳里的外壳形态（窗口条 + 页面标签条）
 在桌面壳里（`isDesktop()`，标记来自 URL，见 [apps/desktop/README.md](../../apps/desktop/README.md)）
-两个外壳都换一种形态：**窗口条**（`#/components/desktop-title-bar`）取代顶栏，
+两个外壳都换一种形态：**窗口条**（`#/desktop/title-bar`）取代顶栏，
 横跨整个窗口排在侧边栏与内容列那一行**之上** —— 左侧是**页面标签条**
 （`#/components/page-tab-strip`：已打开的页面 + 「+」页面菜单），右侧是原本顶栏的行末工具区
 （`HeaderActions`）。于是外壳从「侧边栏 + 内容列」变成「窗口条 + 那一行」：

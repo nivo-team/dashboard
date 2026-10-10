@@ -104,6 +104,10 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
+func setupNativeWindow(window *application.WebviewWindow) {
+	// macOS 原生毛玻璃与透明度已在 WebviewWindowOptions.Mac.Backdrop 配置接管
+}
+
 func setNativeWindowTheme(window *application.WebviewWindow, mode string, resolved string) {
 	effective := resolved
 	if mode == "system" {

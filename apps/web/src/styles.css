@@ -198,10 +198,27 @@ html.is_desktop #app {
   max-width: 100vw !important;
   max-height: 100vh !important;
   overflow: hidden !important;
-  background: transparent !important;
-  background-color: transparent !important;
   margin: 0 !important;
   padding: 0 !important;
+}
+
+/* 仅在 desktop + 开启并支持毛玻璃模糊穿透时，html 与 #app 设为透明，body 叠加 50% 语义背景底色 */
+html.is_desktop[data-desktop-blurred='true'],
+html.is_desktop[data-desktop-blurred='true'] #app {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+html.is_desktop[data-desktop-blurred='true'] body {
+  background: color-mix(in srgb, var(--color-kumo-base) 50%, transparent) !important;
+  background-color: color-mix(in srgb, var(--color-kumo-base) 50%, transparent) !important;
+}
+
+/* 桌面端未开启模糊穿透时（关闭或不支持），保持实体底色（bg-kumo-base） */
+html.is_desktop:not([data-desktop-blurred='true']),
+html.is_desktop:not([data-desktop-blurred='true']) body,
+html.is_desktop:not([data-desktop-blurred='true']) #app {
+  background-color: var(--color-kumo-base) !important;
 }
 
 [data-desktop-chrome] {
@@ -212,16 +229,16 @@ html.is_desktop #app {
   overflow: hidden;
 }
 
-[data-desktop-chrome] [data-desktop-title-bar],
-[data-desktop-chrome] [data-desktop-sidebar-header] {
+/* 仅在开启模糊穿透时，顶栏强制透明透底 */
+html[data-desktop-blurred='true'] [data-desktop-chrome] [data-desktop-title-bar] {
   background-color: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
 [data-desktop-chrome] [data-sidebar-wrapper] {
-  height: 100svh !important;
-  max-height: 100svh !important;
+  height: calc(100svh - var(--shell-chrome-h)) !important;
+  max-height: calc(100svh - var(--shell-chrome-h)) !important;
   min-height: 0 !important;
   overflow: hidden !important;
 }
@@ -250,12 +267,11 @@ html.is_desktop #app {
 }
 
 /*
- * 桌面壳模式下：侧边栏全高贯通至视口顶部（100svh），与工作区列并列排列。
- * 顶部集成 DesktopSidebarHeader，从最顶端延伸至最底端。
+ * 桌面壳模式下：侧边栏在顶栏窗口条下方，高度扣除窗口条高度（--shell-chrome-h）。
  */
 [data-desktop-chrome] [data-sidebar='sidebar']:not([data-mobile='true']) {
-  height: 100svh !important;
-  max-height: 100svh !important;
+  height: calc(100svh - var(--shell-chrome-h)) !important;
+  max-height: calc(100svh - var(--shell-chrome-h)) !important;
   top: 0 !important;
 }
 
@@ -263,7 +279,7 @@ html.is_desktop #app {
   [data-sidebar='sidebar']:not([data-mobile='true'])
   > [data-sidebar='content-container'] {
   top: 0 !important;
-  height: 100svh !important;
+  height: calc(100svh - var(--shell-chrome-h)) !important;
 }
 
 /*

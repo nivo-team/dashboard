@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '#/lib/cn'
-import { isDesktop } from '#/lib/desktop-bridge'
+import { isDesktop } from '#/desktop/bridge'
 import {
   persistSidebarOpen,
   persistSidebarWidth,
@@ -83,8 +83,11 @@ export function useShellSidebarControl(): ShellSidebarControl {
  */
 export function ShellSidebarProvider({
   children,
+  topBar,
 }: {
   children: ReactNode
+  /** 桌面壳的窗口条（`#/desktop/title-bar`）；浏览器里不传 */
+  topBar?: ReactNode
 }) {
   const { isRtl } = useLocale()
   const isDesktopShell = isDesktop()
@@ -156,15 +159,16 @@ export function ShellSidebarProvider({
   return (
     <ShellSidebarControlContext.Provider value={controlValue}>
       {/*
-        桌面壳下外层是整屏高宽容器（`h-svh w-svw`，`--shell-chrome-h` 由 styles.css 按
-        `data-desktop-chrome` 设为 40px，窗口条与侧边栏 Header 水平对齐）；
-        侧边栏全高贯通至窗口顶部，工作区在右侧横向排列；
+        有窗口条时外层是一屏高的纵向容器（`--shell-chrome-h` 由 styles.css 按
+        `data-desktop-chrome` 定为窗口条高度，侧边栏与面板都按它算高度）；
         浏览器里退化成 `display: contents`，不产生任何盒子。
       */}
       <div
-        data-desktop-chrome={isDesktopShell ? '' : undefined}
-        className={isDesktopShell ? 'flex h-svh w-svw overflow-hidden' : 'contents'}
+        data-desktop-chrome={topBar ? '' : undefined}
+        className={topBar ? 'flex h-svh w-svw flex-col overflow-hidden' : 'contents'}
       >
+        {topBar}
+
         <Sidebar.Provider
           key={isRtl ? 'rtl' : 'ltr'}
           side={isRtl ? 'right' : 'left'}
@@ -185,7 +189,7 @@ export function ShellSidebarProvider({
           onWidthChange={persistSidebarWidth}
           minWidth={isDesktopShell ? 220 : SIDEBAR_MIN_WIDTH}
           maxWidth={SIDEBAR_MAX_WIDTH}
-          className={isDesktopShell ? 'h-svh w-svw overflow-hidden' : undefined}
+          className={topBar ? 'min-h-0 flex-1 overflow-hidden' : undefined}
         >
           <SidebarTriggerBridge toggleRef={toggleSidebarRef} />
           <SidebarPeekBridge expandMode={sidebarExpandMode}>{children}</SidebarPeekBridge>

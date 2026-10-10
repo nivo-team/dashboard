@@ -62,7 +62,14 @@ func New() *Registry {
 }
 
 // Handle 注册一个方法。同名后注册的覆盖先注册的（扩展时改行为不必删旧的）。
+//
+// 名字**应当**取自 `catalog.go` 的常量：只有登记在目录里的方法，页面侧才会生成对应的
+// TS 类型（`apps/web/src/desktop/generated/bridge.gen.ts`）。这里对未登记的名字打一条
+// 日志提醒 —— 不 panic：壳要能用，但漂移不该无声无息。
 func (r *Registry) Handle(name string, handler Handler) {
+	if _, ok := methodSet[name]; !ok {
+		log.Printf("[bridge] 方法 %q 不在 internal/bridge/catalog.go 的方法目录里；页面侧不会生成它的 TS 类型", name)
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.handlers[name] = handler

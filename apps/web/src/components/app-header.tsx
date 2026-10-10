@@ -2,7 +2,7 @@ import { Breadcrumbs, Sidebar } from '@cloudflare/kumo'
 import { Fragment } from 'react'
 import type { ReactNode } from 'react'
 import { HeaderActions } from '#/components/header-actions'
-import { handleDesktopHeaderDoubleClick } from '#/lib/desktop-bridge'
+import { handleDesktopHeaderDoubleClick } from '#/desktop/bridge'
 import { usePreferencesStore } from '#/lib/store'
 import { useBreadcrumbs } from '#/lib/use-breadcrumbs'
 

@@ -4,10 +4,9 @@ import { useRouterState } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AppSwitcher } from '#/components/app-switcher'
-import { DesktopSidebarHeader } from '#/components/desktop-title-bar'
 import { ShortcutKbd } from '#/components/kbd'
 import { DEFAULT_APP_ID, isMultiAppEnabled, useAuth } from '#/lib/auth'
-import { isDesktop } from '#/lib/desktop-bridge'
+import { isDesktop } from '#/desktop/bridge'
 import {
   filterNavGroups,
   NAV_GROUPS,
@@ -242,9 +241,6 @@ export function AppSidebar({
 
   return (
     <Sidebar>
-      {/* 桌面端全高侧边栏 Header：红绿灯避让、侧边栏开关与前进/后退导航 */}
-      {isDesktop() ? <DesktopSidebarHeader /> : null}
-
       <Sidebar.Header className="flex items-center justify-between gap-1.5 px-2">
         <div className="min-w-0 flex-1">
           <AppSwitcher />

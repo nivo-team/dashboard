@@ -6,11 +6,13 @@ JS↔Go 消息通道（bridge）。
 ```bash
 pnpm desktop          # 开发：go -C apps/desktop run .（默认加载 http://localhost:3000）
 pnpm desktop:test     # 协议层护栏测试（纯 Go，不需要窗口）
+pnpm desktop:bindings # 由 Go 方法目录生成页面侧 bridge 类型（→ apps/web/src/desktop/generated/）
+pnpm desktop:bindings:check  # 只校验生成物是否为最新（CI / 提交前）
 
 # 发布：地址**只**从构建环境来，仓库里不留线上地址
 DESKTOP_URL=https://admin.example.com pnpm desktop:build   # → apps/desktop/dist/nivo-desktop
 
-# 临时指个别的地址 / 打开 devtools
+# 临时指个别的地址 / 允许打开 devtools
 go -C apps/desktop run . -url http://localhost:5173 -debug
 ```
 
@@ -56,13 +58,16 @@ wails3 task test                                     # = pnpm desktop:test
 | Go → web 的事件推送 | `registry.Emit(name, data)` → 页面侧 `__bridge.on(name, handler)` |
 | 来源校验 | `shell.Config.OriginAllowed`（只认配置地址那一个来源） |
 | 系统原生标题栏与红绿灯 UI | `Frameless: false` + `MacTitleBar`（透明全尺寸标题栏融入系统红绿灯） |
-| 原生窗口毛玻璃模糊与穿透 | macOS `MacBackdropTranslucent` + Windows `Mica`，编译参数 `-tags private_mac_apis` 解锁 WKWebView 透明 |
+| 原生窗口毛玻璃模糊与穿透 | macOS `MacBackdropTranslucent`、Windows `Mica`、Linux GTK4+WebKitGTK 全透明穿透（配合 Wayland/Hyprland/KWin 合成器模糊），编译参数 `-tags private_mac_apis` 解锁 macOS WKWebView 透明 |
 | 标题栏/红绿灯高度注入 | 启动时注入 `__desktop_title_bar_h=40`（默认 40px，落地为 `--shell-chrome-h`） |
 | 窗口拖拽与交互区保护 | 页面侧 `--wails-draggable: drag`，按钮等写 `no-drag` 退出 |
 | 窗口自身动作 | `window.minimise` / `window.toggleMaximise` / `window.close` |
 
-页面侧的唯一接口在 [`apps/web/src/lib/desktop-bridge.ts`](../web/src/lib/desktop-bridge.ts)，
-线上协议的真值在 [`internal/bridge/wire.go`](./internal/bridge/wire.go)。
+页面侧的代码全在 [`apps/web/src/desktop/`](../web/src/desktop/README.md)：低层收发在
+`bridge.ts`、窗口条在 `title-bar.tsx`、桌面专属的模糊开关在 `blur-setting.tsx`。
+方法名与载荷类型**不在页面手工维护** —— 它们由 [`internal/bridge/catalog.go`](./internal/bridge/catalog.go)
+生成到 `apps/web/src/desktop/generated/bridge.gen.ts`（`pnpm desktop:bindings`）。
+线上协议的真值是 [`internal/bridge/wire.go`](./internal/bridge/wire.go)。
 
 ## 窗口标题栏、红绿灯与拖拽
 
@@ -78,20 +83,41 @@ macOS 平台启用透明全尺寸内容视图（`FullSizeContent: true` + `Appea
 
 ## 怎么加一个方法
 
-Go 侧三行（`main.go` 里 `registerCoreMethods` / `registerWindowMethods` 旁边）：
+方法名与页面侧类型都由 [`internal/bridge/catalog.go`](./internal/bridge/catalog.go) 的目录决定 ——
+**真值只有那一处**：改完目录，跑一次 `pnpm desktop:bindings` 生成页面侧的 TS。
+名字不在目录里的方法，`registry.Handle` 会打日志提醒（页面侧不会为它生成类型）。
+
+Go 侧两步：
+
+1. `internal/bridge/catalog.go`：加常量 + 往 `Methods` 里加一条（说明 / 载荷 / 结果类型，无载荷写 `"void"`）：
 
 ```go
-registry.Handle("file.pick", func(json.RawMessage) (any, error) {
+const FilePick = "file.pick"
+
+var Methods = []Method{
+	// …
+	{Name: FilePick, Summary: "选一个文件", Payload: "void", Result: `{ path: string }`},
+}
+```
+
+2. `main.go`：用常量注册 handler，返回值与目录里的 `Result` 对齐：
+
+```go
+registry.Handle(bridge.FilePick, func(json.RawMessage) (any, error) {
 	return app.Dialog.OpenFile().PromptForSingleSelection()
 })
 ```
 
-前端：
+然后重新生成页面侧类型，并在业务代码里用类型安全的 `invoke()`：
+
+```bash
+pnpm desktop:bindings
+```
 
 ```ts
-import { call } from '#/lib/desktop-bridge'
+import { invoke } from '#/desktop/bridge'
 
-const path = await call('file.pick')
+const { path } = await invoke('file.pick')   // 名字与结果类型都来自生成物
 ```
 
 约定：**方法名 `<域>.<动作>`**（`core.info` / `file.pick` / `window.minimise`）。
@@ -99,14 +125,16 @@ const path = await call('file.pick')
 
 ## 怎么推一个事件
 
+事件同样登记在 `catalog.go` 的 `Events` 里（页面侧才有 `subscribe` 的载荷类型）：
+
 ```go
-registry.Emit("session:expired", map[string]any{"reason": "timeout"})
+registry.Emit(bridge.EventThemeSystemChanged, map[string]any{"isDarkMode": true})
 ```
 
 ```ts
-import { on } from '#/lib/desktop-bridge'
+import { subscribe } from '#/desktop/bridge'
 
-const off = on('session:expired', (data) => { /* … */ })
+const off = subscribe('theme:systemChanged', (data) => { /* data.isDarkMode … */ })
 ```
 
 事件是**即时**的、不重放：页面就绪之前推的会排队（上限 256 条，满了丢最旧的），
@@ -163,7 +191,7 @@ window._wails.invoke(msg)                                   // 上面两个的�
 页面还要先发一条**裸字符串** `wails:runtime:ready`。壳的 `WebviewWindow.ExecJS`
 在收到它之前只会把 JS 排进 `pendingJS`（`webview_window.go` 的 `runtimeLoaded`），
 而那条消息平时是 `@wailsio/runtime` 在加载时发的 —— 我们刻意不引那个包，
-所以由 `#/lib/desktop-bridge` 自己发（常量 `RUNTIME_READY`）。
+所以由 `#/desktop/bridge` 自己发（常量 `RUNTIME_READY`）。
 
 **少了它，壳推回去的每条消息都会永远卡在壳的队列里**（页面侧看起来就是「调用成功但永远收不到回应」）。
 顺序也不能反：先 `wails:runtime:ready`，再 bridge 自己的 `__ready`。
@@ -217,7 +245,7 @@ window.__DESKTOP_MARKS__ === { channel: 'beta' }   // 来自 -mark k=v
 | `-url` / `DESKTOP_URL` | 要加载的地址（http/https）。开发构建默认 `http://localhost:3000`；**发布构建必须给**（构建时 `DESKTOP_URL` 注入，运行时同名变量仍优先） |
 | `-title` / `DESKTOP_TITLE` | 窗口标题 |
 | `-width` / `-height` | 初始尺寸（默认 1280×800） |
-| `-debug` | 打开 devtools |
+| `-debug` | 允许**手动**打开 devtools（F12 / ⌘⌥I，**不自动弹出**）并打印 bridge 进出站日志 |
 | `-mark k=v` | 随 URL 交给页面的自定义标记，可重复 |
 | `-allow-origin <来源>` | 额外放行、允许调用 bridge 的来源，可重复 —— 站点有 http→https / 换域名 / SSO 跳转时用 |
 
@@ -243,6 +271,8 @@ go -C apps/desktop build -tags release -o dist/nivo-desktop \
 main.go                          组装：配置 → app → RawMessageHandler → 窗口（frameless）→ 窗口方法
 internal/bridge/registry.go      方法表 + 出站投递（协议逻辑都在这里）
 internal/bridge/wire.go          线上协议（三种消息）
+internal/bridge/catalog.go       方法 / 事件目录（名字 + 页面侧 TS 类型的唯一真值）
+cmd/genbindings/main.go          读目录 → 生成 apps/web/src/desktop/generated/bridge.gen.ts
 internal/shell/config.go         启动参数、URL 标记、来源校验
 internal/shell/default_dev.go    开发构建的默认地址（!release）
 internal/shell/default_release.go 发布构建：地址由 DESKTOP_URL 注入（release）

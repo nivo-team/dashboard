@@ -21,7 +21,8 @@ import { SettingChoicePreview, usePreviewAnimation } from '#/components/settings
 import { SettingsCard, SettingRow } from '#/components/settings-card'
 import { DEFAULT_APP_ID, isMultiAppEnabled, useAuth } from '#/lib/auth'
 import { cn } from '#/lib/cn'
-import { isDesktop } from '#/lib/desktop-bridge'
+import { DesktopBlurSetting } from '#/desktop/blur-setting'
+import { isDesktop } from '#/desktop/bridge'
 import {
   ACCENT_COLOR_OPTIONS,
   DEFAULT_COLOR_VALUE,
@@ -706,6 +707,9 @@ export function AppearanceSettingsPage() {
             aria-label={t('profile.settings.pageTabs', '页面标签页')}
           />
         </SettingRow>
+
+        {/* 桌面壳专属：窗口背景模糊（浏览器里整行不渲染，见 #/desktop/blur-setting） */}
+        <DesktopBlurSetting />
       </SettingsCard>
 
       {/* 应用外观：一栏一个主题，左 label 右内容（调色盘那栏右侧就是预览） */}

@@ -103,6 +103,9 @@
       "pageTabs": "页面标签页",
       "pageTabsHint": "在顶栏用标签页切换已打开的页面（会替掉面包屑）",
       "pageTabsHintDesktop": "桌面壳里始终开启：窗口条上就是标签条，关掉只会剩一条空栏",
+      "desktopBlur": "窗口背景模糊",
+      "desktopBlurHint": "开启桌面窗口毛玻璃背景与透明标题栏穿透；关闭后恢复纯色底色",
+      "desktopBlurUnsupportedHint": "当前桌面环境不支持背景模糊：{{reason}}",
       "pageWidths": {
         "full": "全宽",
         "follow": "跟随外观",

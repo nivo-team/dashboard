@@ -6,19 +6,25 @@
  * 页面侧只需要 webview 自带的一个发送原语 + 一个全局接收函数。
  * 在浏览器里这段代码只做几次布尔判断，不产生任何网络请求。
  *
- * 三件事：
+ * 分两层：
+ * - **传输层** `call()` / `on()` / `off()` / `last()`：只知道「发一条按名字的消息」，
+ *   不认具体方法名；
+ * - **类型层** `invoke()` / `subscribe()`：方法名与载荷类型来自 Go 侧目录生成的
+ *   `./generated/bridge.gen`（`pnpm desktop:bindings`）。**业务代码用这两个**，
+ *   不要手写方法名字符串。
  *
- * | 能力 | 方向 | 用法 |
- * |---|---|---|
- * | `isDesktop()` | — | 当前是不是跑在桌面壳里 |
- * | `call()` | 页面 → 壳 | 按名字调用一个方法，等结果（Promise） |
- * | `on()` | 壳 → 页面 | 订阅壳推来的事件 |
- *
- * 线上协议的真值在 `apps/desktop/internal/bridge/wire.go`
- * （`{id, call, payload}` / `{id, ok, data}` / `{event, data}`）—— 一侧改了另一侧必须跟着改。
+ * 线上协议的真值在 `apps/desktop/internal/bridge/wire.go`，方法 / 事件目录的真值在
+ * `apps/desktop/internal/bridge/catalog.go` —— 一侧改了另一侧必须跟着改。
  */
 
 import type { MouseEvent as ReactMouseEvent } from 'react'
+import { useShellUiStore } from '#/lib/store/shell-ui-store'
+import type {
+  BridgeEventMap,
+  BridgeEventName,
+  BridgeMethodMap,
+  BridgeMethodName,
+} from './generated/bridge.gen'
 
 /** `call()` 的可选项。 */
 export interface CallOptions {
@@ -60,6 +66,10 @@ declare global {
     __DESKTOP_PLATFORM__?: string
     /** 桌面端标题栏/红绿灯注入高度（px，默认 54）。 */
     __DESKTOP_TITLE_BAR_H__?: number
+    /** 当前宿主平台是否支持窗口背景模糊与毛玻璃穿透。 */
+    __DESKTOP_BLUR_SUPPORTED__?: boolean
+    /** 为什么支持或不支持背景模糊的详细原因。 */
+    __DESKTOP_BLUR_REASON__?: string
     /** 壳带来的自定义标记。 */
     __DESKTOP_MARKS__?: Record<string, string>
     /** 壳投递消息进页面的入口（由本模块安装）。 */
@@ -161,14 +171,106 @@ export function desktopPlatform(): string {
   )
 }
 
-/** 是否运行在 macOS 或 Windows 桌面壳中（支持窗口毛玻璃模糊与透明标题栏）。 */
+/** 桌面端背景模糊支持信息。 */
+export interface BlurSupportInfo {
+  supported: boolean
+  reason: string
+}
+
+/**
+ * 判断当前桌面宿主平台是否支持窗口背景模糊与毛玻璃穿透。
+ * 1. 优先读取桌面壳启动时探测注入的真值（window.__DESKTOP_BLUR_SUPPORTED__）；
+ * 2. 兜底回退判断：macOS / Windows 总是支持，Linux 默认支持穿透，浏览器不支持。
+ */
+export function getDesktopBlurSupport(): BlurSupportInfo {
+  if (!isDesktop() || typeof window === 'undefined') {
+    return {
+      supported: false,
+      reason: '仅在桌面客户端中支持窗口背景模糊',
+    }
+  }
+
+  if (typeof window.__DESKTOP_BLUR_SUPPORTED__ === 'boolean') {
+    return {
+      supported: window.__DESKTOP_BLUR_SUPPORTED__,
+      reason:
+        window.__DESKTOP_BLUR_REASON__ ||
+        (window.__DESKTOP_BLUR_SUPPORTED__
+          ? '当前宿主环境支持窗口背景模糊'
+          : '当前操作系统桌面环境未检测到支持背景模糊的合成器'),
+    }
+  }
+
+  const p = desktopPlatform()
+  if (p === 'darwin') {
+    return {
+      supported: true,
+      reason: 'macOS 原生支持毛玻璃材质 (Vibrancy)',
+    }
+  }
+  if (p === 'windows') {
+    return {
+      supported: true,
+      reason: 'Windows 原生支持 Mica / Acrylic 材质',
+    }
+  }
+  if (p === 'linux') {
+    return {
+      supported: true,
+      reason: 'Linux 桌面环境支持背景模糊穿透',
+    }
+  }
+
+  return {
+    supported: false,
+    reason: '当前操作系统平台不支持原生窗口毛玻璃背景',
+  }
+}
+
+/** 判断当前桌面壳是否支持窗口背景模糊。 */
+export function isDesktopBlurSupported(): boolean {
+  return getDesktopBlurSupport().supported
+}
+
+/**
+ * 是否激活窗口背景透明/模糊（静态判定）：
+ * 需同时满足：桌面壳环境 + 平台支持 + 用户在偏好设置中未关闭。
+ */
 export function isDesktopBlurredPlatform(): boolean {
   if (!isDesktop()) return false
   if (typeof window === 'undefined') return false
-  const p = desktopPlatform()
-  if (p === 'darwin' || p === 'windows') return true
-  const root = document.documentElement
-  return root.classList.contains('is_mac') || root.classList.contains('is_windows')
+  if (!isDesktopBlurSupported()) return false
+  return useShellUiStore.getState().desktopBlurEnabled
+}
+
+/**
+ * React 响应式 hook：实时判断当前是否激活顶栏窗口条的透明毛玻璃穿透模式。
+ * 会随设置中「窗口背景模糊」开关的拨动即时更新。
+ */
+export function useDesktopBlurred(): boolean {
+  const desktopBlurEnabled = useShellUiStore((state) => state.desktopBlurEnabled)
+  if (!isDesktop()) return false
+  if (typeof window === 'undefined') return false
+  return isDesktopBlurSupported() && desktopBlurEnabled
+}
+
+/** 同步当前桌面模糊穿透属性到根节点（html[data-desktop-blurred]），驱动 CSS 样式生效。 */
+function applyDesktopBlurredState(): void {
+  if (typeof document === 'undefined') return
+  const isBlurred =
+    isDesktop() && isDesktopBlurSupported() && useShellUiStore.getState().desktopBlurEnabled
+  document.documentElement.dataset.desktopBlurred = isBlurred ? 'true' : 'false'
+}
+
+// 模块初始化即同步一次，并监听外壳偏好中的 desktopBlurEnabled 变化
+if (typeof window !== 'undefined') {
+  applyDesktopBlurredState()
+
+  useShellUiStore.subscribe((state, prevState) => {
+    if (state.desktopBlurEnabled !== prevState.desktopBlurEnabled) {
+      applyDesktopBlurredState()
+    }
+  })
 }
 
 /**
@@ -184,7 +286,7 @@ export function handleDesktopHeaderDoubleClick(
   if (target.closest('button, a, input, select, textarea, [role="button"], [role="menu"], [role="menuitem"]')) {
     return
   }
-  void call('window.toggleMaximise').catch(() => {
+  void invoke('window.toggleMaximise').catch(() => {
     /* 壳未实现该方法时静默忽略 */
   })
 }
@@ -200,8 +302,10 @@ export function desktopMarks(): Readonly<Record<string, string>> {
 /**
  * 按名字调用壳里的一个方法。
  *
- * 名字由壳侧注册（`registry.Handle("core.info", …)`），约定 `<域>.<动作>`。
+ * 名字由壳侧注册（`registry.Handle(bridge.CoreInfo, …)`），约定 `<域>.<动作>`。
  * 未注册、参数不符、方法内部报错，都会以**带说明的 Error** 拒绝 —— 不会静默。
+ *
+ * 这是**传输层**：不认识具体方法，返回 `unknown`。业务代码请用 `invoke()`。
  */
 export function call<T = unknown>(
   name: string,
@@ -252,6 +356,23 @@ export function call<T = unknown>(
   )
 }
 
+/**
+ * 类型安全地调用一个壳方法：名字、载荷与结果类型都来自 Go 侧生成的目录
+ * （`./generated/bridge.gen`，由 `pnpm desktop:bindings` 产出）。
+ *
+ * 载荷为 `void` 的方法（如 `window.toggleMaximise`）不必传第二个参数；
+ * 有载荷的方法则必须传 —— 类型由生成物决定，写错名字直接编译不过。
+ */
+export function invoke<K extends BridgeMethodName>(
+  name: K,
+  ...args: BridgeMethodMap[K]['payload'] extends void
+    ? [payload?: undefined, options?: CallOptions]
+    : [payload: BridgeMethodMap[K]['payload'], options?: CallOptions]
+): Promise<BridgeMethodMap[K]['result']> {
+  const [payload, options] = args as unknown as [unknown, CallOptions?]
+  return call<BridgeMethodMap[K]['result']>(name, payload, options)
+}
+
 /* ── 壳 → 页面 ──────────────────────────────────────────────────────────── */
 
 /**
@@ -268,6 +389,17 @@ export function on<T = unknown>(name: string, handler: (data: T) => void): () =>
   }
   set.add(handler as (data: unknown) => void)
   return () => off(name, handler)
+}
+
+/**
+ * 类型安全地订阅一个壳事件：事件名与载荷类型来自 Go 侧生成的目录。
+ * 返回取消订阅函数（同 `on`）。
+ */
+export function subscribe<K extends BridgeEventName>(
+  name: K,
+  handler: (data: BridgeEventMap[K]) => void,
+): () => void {
+  return on<BridgeEventMap[K]>(name, handler)
 }
 
 /** 取消订阅。 */

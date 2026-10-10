@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { isDesktop } from './desktop-bridge'
+import { isDesktop } from '#/desktop/bridge'
 import { SHELL_MOBILE_BREAKPOINT } from './store/shell-ui-store'
 
 /**

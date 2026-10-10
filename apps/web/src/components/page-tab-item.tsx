@@ -13,7 +13,7 @@ import {
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '#/lib/cn'
-import { isDesktop } from '#/lib/desktop-bridge'
+import { isDesktop } from '#/desktop/bridge'
 import type { PageTab } from '#/lib/page-tabs'
 
 /**

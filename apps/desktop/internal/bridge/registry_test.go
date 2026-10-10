@@ -9,7 +9,7 @@ import (
 
 /*
 协议层的护栏测试。这里锁的是**跨语言契约**（页面侧
-`apps/web/src/lib/desktop-bridge.ts` 按同样的形状解析），
+`apps/web/src/desktop/bridge.ts` 按同样的形状解析），
 所以断言写得比业务代码更死一点 —— 改协议就得改这里，改不动就说明改错了。
 */
 

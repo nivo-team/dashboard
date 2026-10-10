@@ -5,13 +5,13 @@ import { AiPanel } from '#/features/ai/components/panel'
 import { AppHeader } from '#/components/app-header'
 import { AppSidebar } from '#/components/app-sidebar'
 import { CommandPaletteDialog } from '#/components/command-palette'
-import { DesktopTitleBar } from '#/components/desktop-title-bar'
+import { DesktopTitleBar } from '#/desktop/title-bar'
 import { DetailPreviewProvider } from '#/components/detail-preview'
 import { HeaderActions } from '#/components/header-actions'
 import { PageTabStrip } from '#/components/page-tab-strip'
 import { ShellSidebarProvider } from '#/components/shell-sidebar-provider'
 import { cn } from '#/lib/cn'
-import { isDesktop } from '#/lib/desktop-bridge'
+import { isDesktop } from '#/desktop/bridge'
 import { usePageTabsEnabled } from '#/lib/page-tabs'
 import {
   clearAiPanelMaximized,
@@ -88,10 +88,9 @@ export function AppShell() {
   /**
    * 桌面壳：外壳换形。
    *
-   * 窗口条（`DesktopTitleBar`）取代顶栏 —— 位于工作区列顶部，标签条贴紧侧边栏分割线展开，
-   * 工具区位于行末；顶栏那一行不再渲染（`AppHeader` 与窗口条是同一份 chrome 的两种形态，不是两行）。
-   * 桌面端侧边栏全高贯通（`DesktopSidebarHeader` 承载红绿灯、侧边栏开关与前进/后退导航），
-   * 窗口缩小时始终保持桌面布局，不渲染冗余顶栏。
+   * 窗口条（`DesktopTitleBar`）取代顶栏 —— 顶部整行横跨整个视口（标签、控制组与工具区），
+   * 顶栏那一行不再渲染（`AppHeader` 与窗口条是同一份 chrome 的两种形态，不是两行）。
+   * 窗口条排在侧边栏、Main 与 AI Panel 等所有内部列之上，内部列全都在窗口条之下的容器内。
    */
   const desktopChrome = isDesktop()
   const showHeader = !desktopChrome
@@ -244,17 +243,11 @@ export function AppShell() {
       {/*
         侧边栏 Provider 的接线（含移动端抽屉开合）在 `ShellSidebarProvider` 里统一处理，
         两个外壳共用一份，避免「桌面非受控 / 移动端受控」这套接法各写一遍而漂移。
-        桌面全高架构下，侧边栏作为左列贯穿全屏高度，窗口条位于工作区右列顶部。
+        `topBar` 在桌面壳里提供：窗口条整行横跨视口顶部，Main 与 AI Panel 等均在内部容器中并列。
       */}
-      <ShellSidebarProvider>
-        <AppSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />
-        <div
-          className={cn(
-            'flex min-w-0 flex-1 flex-col bg-kumo-canvas',
-            desktopChrome && 'h-full min-h-0 overflow-hidden',
-          )}
-        >
-          {desktopChrome ? (
+      <ShellSidebarProvider
+        topBar={
+          desktopChrome ? (
             <DesktopTitleBar
               // 标签页全部关掉之后回应用首页（首页会随之重新开出一个标签）
               homeTo={`/${appId}/home`}
@@ -262,7 +255,16 @@ export function AppShell() {
               actions={showHeader ? undefined : headerActions}
               onOpenCommandPalette={() => setPaletteOpen(true)}
             />
-          ) : null}
+          ) : null
+        }
+      >
+        <AppSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />
+        <div
+          className={cn(
+            'flex min-w-0 flex-1 flex-col bg-kumo-canvas',
+            desktopChrome && 'h-full min-h-0 overflow-hidden',
+          )}
+        >
           {showHeader ? (
             <AppHeader
               // 标签页开着就由它替掉面包屑（两者都在顶栏行首那一格，见 AppHeaderProps.leading）

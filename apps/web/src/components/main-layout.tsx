@@ -4,7 +4,7 @@ import { Outlet, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CommandPaletteDialog } from '#/components/command-palette'
-import { DesktopSidebarHeader, DesktopTitleBar } from '#/components/desktop-title-bar'
+import { DesktopTitleBar } from '#/desktop/title-bar'
 import { HeaderActions } from '#/components/header-actions'
 import { ShortcutKbd } from '#/components/kbd'
 import { NotFound } from '#/components/not-found'
@@ -12,7 +12,7 @@ import { PageTabStrip } from '#/components/page-tab-strip'
 import { ShellSidebarProvider } from '#/components/shell-sidebar-provider'
 import { useBrand } from '#/lib/brand'
 import { cn } from '#/lib/cn'
-import { isDesktop, handleDesktopHeaderDoubleClick } from '#/lib/desktop-bridge'
+import { isDesktop, handleDesktopHeaderDoubleClick } from '#/desktop/bridge'
 import { DEFAULT_APP_ID, isMultiAppEnabled, useAuth } from '#/lib/auth'
 import {
   filterShellNavItems,
@@ -184,7 +184,6 @@ function MainSidebar({ onOpenCommandPalette }: { onOpenCommandPalette: () => voi
 
   return (
     <Sidebar>
-      {isDesktop() ? <DesktopSidebarHeader /> : null}
       <SidebarBrandHeader />
 
       <Sidebar.Content>
@@ -242,7 +241,6 @@ function SettingsSidebar({ onOpenCommandPalette }: { onOpenCommandPalette: () =>
 
   return (
     <Sidebar>
-      {isDesktop() ? <DesktopSidebarHeader /> : null}
       <SidebarBrandHeader />
       <SettingsModuleHeader />
 
@@ -367,17 +365,11 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
       {/*
         与 AppShell 共用同一个 `ShellSidebarProvider`：侧边栏 UI 偏好（展开态 / 宽度）
         以及「桌面非受控、移动端受控」的移动端抽屉接法都只有一份真值。
-        桌面全高架构下，侧边栏作为左列贯穿全屏高度，窗口条位于工作区右列顶部。
+        `topBar` 在桌面壳里提供：窗口条整行横跨视口顶部，Main 与侧边栏等均在内部容器中并列。
       */}
-      <ShellSidebarProvider>
-        <MainSidebarSwitch onOpenCommandPalette={() => setPaletteOpen(true)} />
-        <div
-          className={cn(
-            'flex min-w-0 flex-1 flex-col bg-kumo-canvas',
-            desktopChrome && 'h-full min-h-0 overflow-hidden',
-          )}
-        >
-          {desktopChrome ? (
+      <ShellSidebarProvider
+        topBar={
+          desktopChrome ? (
             <DesktopTitleBar
               // 标签页全部关掉之后回设置首屏（它是最接近「本外壳首页」的一页）
               homeTo="/settings/profile"
@@ -385,10 +377,20 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
               actions={showHeader ? undefined : headerActions}
               onOpenCommandPalette={() => setPaletteOpen(true)}
             />
-          ) : null}
+          ) : null
+        }
+      >
+        <MainSidebarSwitch onOpenCommandPalette={() => setPaletteOpen(true)} />
+        <div
+          className={cn(
+            'flex min-w-0 flex-1 flex-col bg-kumo-canvas',
+            desktopChrome && 'h-full min-h-0 overflow-hidden',
+          )}
+        >
           {showHeader ? (
             <MainHeader
               leading={headerLeading}
+              actions={headerActions}
               onOpenCommandPalette={() => setPaletteOpen(true)}
             />
           ) : null}

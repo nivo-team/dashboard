@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { call, isDesktop, on } from '#/lib/desktop-bridge'
+import { invoke, isDesktop, subscribe } from '#/desktop/bridge'
 import { usePreferencesStore, type ColorMode } from './store/preferences-store'
 
 /**
@@ -12,8 +12,19 @@ import { usePreferencesStore, type ColorMode } from './store/preferences-store'
  */
 export type { ColorMode }
 
+/**
+ * 桌面壳读到的系统主题（`true` = 暗；`null` = 还没拿到）。
+ *
+ * **桌面端为什么不直接用 `prefers-color-scheme`**：Linux（WebKitGTK）上它跟着 **GTK 主题**
+ * 走，而壳为了「强制深 / 浅」改的正是 GTK 主题 —— 于是它只反映我们上一次强制的结果，
+ * 不再等于真正的系统偏好。表现就是：先选深 / 浅、再切回「跟随系统」时卡在上一次的深浅。
+ * 真值由壳经 XDG 桌面门户（portal）读取，页面只消费 `theme.getSystem` / `theme:systemChanged`。
+ */
+let desktopSystemDark: boolean | null = null
+
 function systemPrefersDark(): boolean {
   if (typeof window === 'undefined') return false
+  if (isDesktop() && desktopSystemDark !== null) return desktopSystemDark
   return window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
@@ -32,7 +43,7 @@ function applyMode(mode: ColorMode) {
 /** 在桌面端通知宿主壳主题已变更 */
 function notifyDesktopShell(mode: ColorMode) {
   if (!isDesktop()) return
-  void call('theme.set', {
+  void invoke('theme.set', {
     mode,
     resolved: resolveMode(mode),
   }).catch(() => {})
@@ -46,6 +57,31 @@ function notifySystemThemeChange() {
   }
 }
 
+/** 采用壳读到的系统主题：更新缓存、按需重渲染，并把真值同步回壳。 */
+function adoptDesktopSystemTheme(isDarkMode: boolean) {
+  desktopSystemDark = isDarkMode
+  if (usePreferencesStore.getState().colorMode === 'system') {
+    applyMode('system')
+  }
+  notifySystemThemeChange()
+  // 此刻 resolveMode('system') 才是真值：重新告诉壳，让原生窗口设成一致的形态
+  notifyDesktopShell(usePreferencesStore.getState().colorMode)
+}
+
+/**
+ * 主动向壳要一次当前系统主题。
+ *
+ * `theme:systemChanged` 是即时事件、不重放：启动时它可能已经发过，切到「跟随系统」时
+ * 也可能刚好错过，所以除了订阅还要主动拉。
+ */
+function refreshDesktopSystemTheme() {
+  void invoke('theme.getSystem')
+    .then(({ isDarkMode }) => adoptDesktopSystemTheme(isDarkMode))
+    .catch(() => {
+      /* 拿不到就退回 prefers-color-scheme（见 systemPrefersDark） */
+    })
+}
+
 // 首次加载即应用一次，并跟随偏好 store 与系统主题变化。
 if (typeof window !== 'undefined') {
   applyMode(usePreferencesStore.getState().colorMode)
@@ -55,9 +91,15 @@ if (typeof window !== 'undefined') {
     if (state.colorMode !== prevState.colorMode) {
       applyMode(state.colorMode)
       notifyDesktopShell(state.colorMode)
+      // 切到「跟随系统」时重新拉一次：期间可能刚好错过系统主题事件
+      if (state.colorMode === 'system' && isDesktop()) {
+        refreshDesktopSystemTheme()
+      }
     }
   })
 
+  // 浏览器：媒体查询是可靠的系统主题来源。
+  // 桌面壳里它跟着 GTK 主题走（见 desktopSystemDark），仅作拿不到壳值时的兜底。
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
     if (usePreferencesStore.getState().colorMode === 'system') {
       applyMode('system')
@@ -65,14 +107,10 @@ if (typeof window !== 'undefined') {
     }
   })
 
-  // 桌面壳模式：订阅来自宿主的原生系统主题变化事件
+  // 桌面壳：系统主题由壳提供 —— 启动主动拉一次，再订阅后续变化
   if (isDesktop()) {
-    on<{ isDarkMode: boolean }>('theme:systemChanged', () => {
-      if (usePreferencesStore.getState().colorMode === 'system') {
-        applyMode('system')
-        notifySystemThemeChange()
-      }
-    })
+    refreshDesktopSystemTheme()
+    subscribe('theme:systemChanged', ({ isDarkMode }) => adoptDesktopSystemTheme(isDarkMode))
   }
 }
 
