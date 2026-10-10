@@ -74,21 +74,14 @@ export function useShellSidebarControl(): ShellSidebarControl {
  * 桌面保持**非受控**（`open` 传 `undefined`）：展开态与宽度由 Provider 自己管，
  * 变化经 `onOpenChange` / `onWidthChange` 写回 store，刷新后保持。
  *
- * ## 桌面壳全高双列架构
+ * ## 桌面壳：全高侧边栏 + 工作区
  *
- * 桌面壳下侧边栏全高贯穿窗口顶部与底部（`100svh`），而工作区窗口条（`DesktopTitleBar`）
- * 仅位于右侧工作区列顶部（不再横跨整行），彻底避免侧边栏宽度调整时边框切割右侧标签栏。
- * 桌面壳下外层使用 `flex h-svh w-svw overflow-hidden`，在浏览器环境下则退化为 `display: contents`
- * —— 不产生任何盒子，保留原有纯 Web 响应式布局。
+ * 桌面壳下外层是 `flex h-svh w-svw overflow-hidden` 的**一行**：侧边栏作为左列占满整窗高
+ * （`100svh`，见 styles.css），右侧是工作区（窗口条 + 内容列 / 面板）。窗口条因此只在工作区
+ * 顶部，不横跨侧边栏。浏览器环境下外层退化为 `display: contents` —— 不产生任何盒子，
+ * 保留原有纯 Web 响应式布局。
  */
-export function ShellSidebarProvider({
-  children,
-  topBar,
-}: {
-  children: ReactNode
-  /** 桌面壳的窗口条（`#/desktop/title-bar`）；浏览器里不传 */
-  topBar?: ReactNode
-}) {
+export function ShellSidebarProvider({ children }: { children: ReactNode }) {
   const { isRtl } = useLocale()
   const isDesktopShell = isDesktop()
   const isMobile = !isDesktopShell && useIsMobileViewport()
@@ -159,16 +152,14 @@ export function ShellSidebarProvider({
   return (
     <ShellSidebarControlContext.Provider value={controlValue}>
       {/*
-        有窗口条时外层是一屏高的纵向容器（`--shell-chrome-h` 由 styles.css 按
-        `data-desktop-chrome` 定为窗口条高度，侧边栏与面板都按它算高度）；
+        桌面壳下外层是整屏的**一行**（`--shell-chrome-h` 由 styles.css 按 `data-desktop-chrome`
+        定义为窗口条高度，面板框架按它算高度）；侧边栏占满整窗高。
         浏览器里退化成 `display: contents`，不产生任何盒子。
       */}
       <div
-        data-desktop-chrome={topBar ? '' : undefined}
-        className={topBar ? 'flex h-svh w-svw flex-col overflow-hidden' : 'contents'}
+        data-desktop-chrome={isDesktopShell ? '' : undefined}
+        className={isDesktopShell ? 'flex h-svh w-svw overflow-hidden' : 'contents'}
       >
-        {topBar}
-
         <Sidebar.Provider
           key={isRtl ? 'rtl' : 'ltr'}
           side={isRtl ? 'right' : 'left'}
@@ -189,7 +180,7 @@ export function ShellSidebarProvider({
           onWidthChange={persistSidebarWidth}
           minWidth={isDesktopShell ? 220 : SIDEBAR_MIN_WIDTH}
           maxWidth={SIDEBAR_MAX_WIDTH}
-          className={topBar ? 'min-h-0 flex-1 overflow-hidden' : undefined}
+          className={isDesktopShell ? 'min-h-0 flex-1 overflow-hidden' : undefined}
         >
           <SidebarTriggerBridge toggleRef={toggleSidebarRef} />
           <SidebarPeekBridge expandMode={sidebarExpandMode}>{children}</SidebarPeekBridge>

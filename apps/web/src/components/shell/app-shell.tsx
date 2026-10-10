@@ -9,9 +9,6 @@ import { DesktopTitleBar } from '#/desktop/title-bar'
 import { DetailPreviewProvider } from '#/components/detail-preview'
 import { HeaderActions } from '#/components/header-actions'
 import { PageTabStrip } from '#/components/page-tab-strip'
-import { ShellSidebarProvider } from '#/components/shell-sidebar-provider'
-import { cn } from '#/lib/cn'
-import { isDesktop } from '#/desktop/bridge'
 import { usePageTabsEnabled } from '#/lib/page-tabs'
 import {
   clearAiPanelMaximized,
@@ -26,6 +23,7 @@ import {
 import { useUserPermissions } from '#/lib/permissions'
 import { usePreferencesStore } from '#/lib/store'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
+import { ShellLayout } from './shell-layout'
 
 /**
  * 管理后台外壳：左侧导航 + 顶栏 + 内容区。
@@ -86,19 +84,10 @@ export function AppShell() {
   const isMobileViewport = useIsMobileViewport()
 
   /**
-   * 桌面壳：外壳换形。
-   *
-   * 窗口条（`DesktopTitleBar`）取代顶栏 —— 顶部整行横跨整个视口（标签、控制组与工具区），
-   * 顶栏那一行不再渲染（`AppHeader` 与窗口条是同一份 chrome 的两种形态，不是两行）。
-   * 窗口条排在侧边栏、Main 与 AI Panel 等所有内部列之上，内部列全都在窗口条之下的容器内。
-   */
-  const desktopChrome = isDesktop()
-  const showHeader = !desktopChrome
-  /**
    * 页面标签页是否生效：桌面壳里恒开（窗口条要它），浏览器里看 设置 → 外观 的开关。
    *
-   * 浏览器里它挂在**顶栏行首那一格**（替掉面包屑）；桌面壳里由窗口条自己渲染 ——
-   * 所以这里只在「有顶栏、且不是桌面壳」时把它交给 `AppHeader`，两边不会同时出现。
+   * 这里只把它交给 `AppHeader`（顶栏行首那一格，替掉面包屑）。桌面壳里顶栏由窗口条取代、
+   * 根本不会被 `ShellLayout` 渲染，窗口条自己渲染标签条 —— 两边不会同时出现。
    */
   const pageTabsEnabled = usePageTabsEnabled()
 
@@ -226,8 +215,8 @@ export function AppShell() {
    * 窗口条行末的工具区（`Ask AI` / `支持` / 账号菜单）。
    *
    * `AppHeader` 内部本来就会渲染一份同样的工具区；桌面壳里整行顶栏被窗口条取代，
-   * 所以这里再构造一份交给窗口条。两者**不会同时在屏幕上** —— 谁出现由上面的
-   * `showHeader` 决定，因此也不存在两套 props 各自漂移的问题。
+   * 所以这里把同一份再交给窗口条。两者**不会同时在屏幕上** —— 谁出现由 `ShellLayout`
+   * 选中的变体决定（浏览器渲染 `header`、桌面渲染 `topBar`），props 因此不会各自漂移。
    */
   const headerActions = (
     <HeaderActions
@@ -241,91 +230,69 @@ export function AppShell() {
   return (
     <>
       {/*
-        侧边栏 Provider 的接线（含移动端抽屉开合）在 `ShellSidebarProvider` 里统一处理，
-        两个外壳共用一份，避免「桌面非受控 / 移动端受控」这套接法各写一遍而漂移。
-        `topBar` 在桌面壳里提供：窗口条整行横跨视口顶部，Main 与 AI Panel 等均在内部容器中并列。
+        `ShellLayout` 只管摆位置（侧边栏 │ 内容列 │ AI 面板；桌面壳再套一层窗口条），
+        形态差异在它的两个变体里（浏览器 / `#/desktop`）。这里只准备插槽。
       */}
-      <ShellSidebarProvider
+      <ShellLayout
+        sidebar={<AppSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />}
         topBar={
-          desktopChrome ? (
-            <DesktopTitleBar
-              // 标签页全部关掉之后回应用首页（首页会随之重新开出一个标签）
-              homeTo={`/${appId}/home`}
-              // 工具区只挂一处：桌面壳里它在窗口条行末，退化出顶栏时（见 showHeader）留给顶栏
-              actions={showHeader ? undefined : headerActions}
-              onOpenCommandPalette={() => setPaletteOpen(true)}
-            />
-          ) : null
+          <DesktopTitleBar
+            // 标签页全部关掉之后回应用首页（首页会随之重新开出一个标签）
+            homeTo={`/${appId}/home`}
+            onOpenCommandPalette={() => setPaletteOpen(true)}
+            actions={headerActions}
+          />
+        }
+        header={
+          <AppHeader
+            // 标签页开着就由它替掉面包屑（两者都在顶栏行首那一格，见 AppHeaderProps.leading）
+            leading={
+              pageTabsEnabled ? (
+                <PageTabStrip
+                  homeTo={`/${appId}/home`}
+                  onOpenCommandPalette={() => setPaletteOpen(true)}
+                />
+              ) : undefined
+            }
+            onOpenCommandPalette={() => setPaletteOpen(true)}
+            // 见 `handleToggleAskAi`：折叠态下这一下是展开，展开态下才是关闭
+            onToggleAskAi={handleToggleAskAi}
+            isAskAiOpen={aiPanelOpen}
+          />
+        }
+        /*
+          <main> 只是纯容器（不带 padding / max-w）：详情分屏要贴住视口边缘，
+          padding 由 DetailPreviewProvider 分别发给主列与分屏列（见 detail-preview.tsx）。
+        */
+        mainClassName="flex flex-col"
+        ai={
+          /*
+            AI 面板排在这一行的内容列之后 —— 与侧边栏同为外壳级整屏高列（一左一右），
+            而不是内容区里的分屏。路由切换只替换 <Outlet />，面板不受影响。
+          */
+          <AiPanel
+            open={aiPanelOpen}
+            onClose={() => setAiPanelOpen(false)}
+            // 从最大化返回：面板一直开着，跳过它这一次的入场（见 `skipPanelEnter`）
+            skipEnterAnimation={skipPanelEnter}
+            // 折叠态的真值在外壳（`handleToggleAskAi` 也要读它），面板只是受控显示
+            collapsed={aiFloatCollapsed}
+            onToggleCollapsed={() => setAiFloatCollapsed((collapsed) => !collapsed)}
+            // 头行「最大化」→ 全屏 AI 对话页
+            onMaximize={handleMaximizeAi}
+          />
         }
       >
-        <AppSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />
-        <div
-          className={cn(
-            'flex min-w-0 flex-1 flex-col bg-kumo-canvas',
-            desktopChrome && 'h-full min-h-0 overflow-hidden',
-          )}
-        >
-          {showHeader ? (
-            <AppHeader
-              // 标签页开着就由它替掉面包屑（两者都在顶栏行首那一格，见 AppHeaderProps.leading）
-              leading={
-                pageTabsEnabled && !desktopChrome ? (
-                  <PageTabStrip
-                    homeTo={`/${appId}/home`}
-                    onOpenCommandPalette={() => setPaletteOpen(true)}
-                  />
-                ) : undefined
-              }
-              onOpenCommandPalette={() => setPaletteOpen(true)}
-              // 见 `handleToggleAskAi`：折叠态下这一下是展开，展开态下才是关闭
-              onToggleAskAi={handleToggleAskAi}
-              isAskAiOpen={aiPanelOpen}
-            />
-          ) : null}
-          {/*
-            注意：这里的 <main> **不再自带 padding 与 max-w**，它只是内容区的纯容器。
-            原因：详情预览的分屏面板要贴住视口边缘（右侧 / 底部）并占满可用高度，
-            如果 padding 还留在 main 上，面板会连同 padding 一起被推进来、永远贴不到边。
-            现在由 DetailPreviewProvider 内部把这份 padding 分别发给两列 ——
-            主列用它（与改动前逐像素一致），分屏面板列用自己的一套（见 detail-preview.tsx）。
-            `_main` 外壳的 <main> 没有分屏，保持原样不动。
-          */}
-          <main
-            data-shell-content
-            className={cn(
-              'flex min-w-0 flex-1 flex-col',
-              desktopChrome && 'min-h-0 overflow-y-auto',
-            )}
-          >
-            {/*
-              DetailPreviewProvider 同时是「详情预览」的状态源与**布局容器**：
-              它把路由内容包成 flex 主列，分屏预览面板作为行尾侧的 1/3 列出现在同一行里
-              （挤压式分屏），抽屉形态则走 Kumo Dialog 的 portal。
-              放在 main 内、Outlet 外层：预览随页面切换自动收掉，也不需要每个列表页各自搭一遍。
-            */}
-            <DetailPreviewProvider>
-              <Outlet />
-            </DetailPreviewProvider>
-          </main>
-        </div>
-
         {/*
-          AI 面板：放在**内容列之后**、`Sidebar.Provider` 之内 —— 于是它与侧边栏同为
-          外壳级的整屏高列（一左一右），而不是内容区里的分屏。路由切换只替换上面的
-          `<Outlet />`，面板不受影响；页面也无从感知它的存在。
+          DetailPreviewProvider 同时是「详情预览」的状态源与**布局容器**：
+          它把路由内容包成 flex 主列，分屏预览面板作为行尾侧的 1/3 列出现在同一行里
+          （挤压式分屏），抽屉形态则走 Kumo Dialog 的 portal。
+          放在 main 内、Outlet 外层：预览随页面切换自动收掉，也不需要每个列表页各自搭一遍。
         */}
-        <AiPanel
-          open={aiPanelOpen}
-          onClose={() => setAiPanelOpen(false)}
-          // 从最大化返回：面板一直开着，跳过它这一次的入场（见 `skipPanelEnter`）
-          skipEnterAnimation={skipPanelEnter}
-          // 折叠态的真值在外壳（`handleToggleAskAi` 也要读它），面板只是受控显示
-          collapsed={aiFloatCollapsed}
-          onToggleCollapsed={() => setAiFloatCollapsed((collapsed) => !collapsed)}
-          // 头行「最大化」→ 全屏 AI 对话页
-          onMaximize={handleMaximizeAi}
-        />
-      </ShellSidebarProvider>
+        <DetailPreviewProvider>
+          <Outlet />
+        </DetailPreviewProvider>
+      </ShellLayout>
 
       {/*
         AI 进行中的页面级反馈：视口四周的流动光带（`fixed` 浮层，不参与布局）。

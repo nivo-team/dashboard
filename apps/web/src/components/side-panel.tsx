@@ -22,18 +22,19 @@ import type { UsePanelResizeResult } from '#/lib/use-panel-resize'
  * 只需要改那里一处。
  */
 
-/** 内容区分屏面板：贴住内容列顶部，高度取视口剩余部分（扣掉窗口条）。 */
+/** 内容区分屏面板：贴住内容列顶部，高度取视口剩余部分（扣掉窗口条与内容区内缩）。 */
 export const CONTENT_PANEL_FRAME =
-  'top-[var(--shell-content-top)] h-[calc(100svh_-_var(--shell-content-top)_-_var(--shell-chrome-h))]'
+  'top-[var(--shell-content-top)] h-[calc(100svh_-_var(--shell-content-top)_-_var(--shell-chrome-h)_-_var(--shell-content-inset,0px))]'
 
 /**
  * 外壳级面板：与 `Sidebar` 完全同一套几何（`src/styles.css` 给侧边栏的
- * `sticky / top: 0 / height: 100svh / z-index: 20`，桌面壳里再扣掉窗口条），
+ * `sticky / top: 0 / height: 100svh / z-index: 20`，桌面壳里再扣掉窗口条与内容区内缩），
  * 所以它在视觉上与侧边栏一个等级 —— 行首齐平、整列高、滚动时不动。
  *
  * `top-0` 是「这一列的顶部」而不是「视口顶部」：桌面壳里这一列本身就在窗口条下面。
  */
-export const SHELL_PANEL_FRAME = 'top-0 h-[calc(100svh_-_var(--shell-chrome-h))]'
+export const SHELL_PANEL_FRAME =
+  'top-0 h-[calc(100svh_-_var(--shell-chrome-h)_-_var(--shell-content-inset,0px))]'
 
 export interface SidePanelResizeHandleProps {
   /** 可访问名称（如「调整面板宽度」） */

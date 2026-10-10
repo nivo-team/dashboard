@@ -11,9 +11,15 @@
 ```
 bridge.ts                  前端与壳之间唯一的接口（传输层 call/on + 类型层 invoke/subscribe）
 generated/bridge.gen.ts    ← Go 生成，别手改（`pnpm desktop:bindings`）
+shell-layout.tsx           桌面形态的外壳布局：全高透明侧边栏 + 工作区；窗口条是整宽 fixed 浮层
 title-bar.tsx              桌面壳的窗口条（取代顶栏；品牌 / 搜索 / 侧边栏开关 / 历史导航 / 标签条）
 blur-setting.tsx           设置 → 外观 的「窗口背景模糊」开关（浏览器里整行不渲染）
 ```
+
+外壳布局由 `#/components/shell` 的 `ShellLayout` 按 `isDesktop()` 分派：浏览器形态在
+`#/components/shell/browser-shell-layout`，桌面形态就是这里的 `shell-layout.tsx`。
+两个具体外壳（`AppShell` / `MainLayout`）只准备插槽（`sidebar` / `header` / `main` / `ai` /
+`topBar`），布局组件本身不认识业务。
 
 ## 两层：传输 vs 类型
 

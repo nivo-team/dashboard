@@ -5,7 +5,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PageTabStrip } from '#/components/page-tab-strip'
 import { RouterLink } from '#/components/router-link'
-import { useShellSidebarControl } from '#/components/shell-sidebar-provider'
+import { useShellSidebarControl } from '#/components/shell/shell-sidebar-provider'
 import { useBrand } from '#/lib/brand'
 import { cn } from '#/lib/cn'
 import { handleDesktopHeaderDoubleClick, isDesktop, useDesktopBlurred } from './bridge'
@@ -364,13 +364,14 @@ export function DesktopSidebarHeader() {
 }
 
 /**
- * 桌面窗口条 —— 桌面壳里取代顶栏的那一行，顶部整行占据。
+ * 桌面窗口条 —— 桌面壳里取代顶栏的那一行，**整宽浮在全高侧边栏之上**（`fixed`）。
  *
- * 1. **窗口的标题栏与拖拽区**：
- *    拖拽靠 `--wails-draggable: drag`，按钮与交互控件标 `no-drag`。
- *    左侧预留 `ps-[var(--shell-traffic-light-w,78px)]` 避让系统原生红绿灯按钮。
- * 2. **左侧控制区**：品牌 Logo、快速搜索（⌘K）、侧边栏切换按钮与前进/后退导航。
- * 3. **页面标签条**（`PageTabStrip`）：Chrome 风格的多标签页。
+ * 1. **窗口的标题栏与拖拽区**：`drag`；按钮与交互控件标 `no-drag`。
+ * 2. **左上控制组**（品牌 Logo、快速搜索、收起的侧边栏开关 + 前进/后退）：
+ *    **属于窗口条，只是靠在窗口最左侧** —— 于是它浮在透明侧边栏之上，侧边栏收起时控件也不动，
+ *    不必切换组件。左侧留白取 `max(--shell-traffic-light-w, 0.5rem)`：macOS 让开红绿灯（78px），
+ *    其它平台（Windows / Linux）保底 0.5rem，不贴着窗口边缘。
+ * 3. **页面标签条**（`PageTabStrip`）：紧跟在左上控制组之后（不额外留侧边栏宽度的 padding）。
  * 4. **行末工具区**：外壳的 `HeaderActions`（包含 Ask AI / 支持 / 头像）。
  */
 export function DesktopTitleBar({
@@ -387,24 +388,32 @@ export function DesktopTitleBar({
       data-desktop-title-bar
       onDoubleClick={handleDesktopHeaderDoubleClick}
       className={cn(
-        // 吸顶：桌面壳视口最顶部整行贯穿
-        'sticky top-0 z-40 flex h-[var(--shell-chrome-h)] w-full shrink-0 items-center gap-1',
-        // 底边线
-        'border-b [border-bottom-color:var(--shell-chrome-line)] select-none',
+        // 整宽浮层：盖在全高侧边栏的最顶端
+        'fixed inset-x-0 top-0 z-40 flex h-[var(--shell-chrome-h)] items-center gap-1',
+        // 桌面壳里不要底边线（内容已经内缩成圆角卡片，分隔交给留白）
+        'select-none',
         // 在开启毛玻璃模糊穿透时为透明，否则为纯色底
         isBlurred ? 'bg-transparent' : 'bg-kumo-tint',
-        // 左侧预留红绿灯安全边距，右侧保持间距
-        'ps-[var(--shell-traffic-light-w,78px)] pe-2',
+        'pe-2',
         // 允许拖拽窗口
         'drag',
       )}
     >
-      {/* 桌面端品牌 Logo、快速搜索与侧边栏控制组：收纳为独立单元，右侧边框与 Tabs 清晰区隔 */}
-      <div className="flex h-full shrink-0 items-center gap-1 border-e [border-inline-end-color:var(--shell-chrome-line)] ps-1.5 pe-2 me-2 no-drag">
+      {/*
+        左上控制组：**属于窗口条、靠在最左侧**（浮在透明侧边栏之上）。
+        它不在会滑走的侧边栏里，所以侧边栏收起时控件保持不动 —— 不需要折叠时切换组件。
+      */}
+      <div
+        className="flex h-full shrink-0 items-center gap-1 ps-[max(var(--shell-traffic-light-w,0px),0.5rem)] pe-2 drag"
+      >
         <DesktopHeaderLogo homeTo={homeTo} />
         <DesktopHeaderSearch onOpen={onOpenCommandPalette} />
-        <DesktopSidebarTrigger />
-        <DesktopHistoryNav />
+
+        {/* 侧边栏收起与前进/后退：整合为一个控制组 */}
+        <div className="flex h-full items-center gap-0.5">
+          <DesktopSidebarTrigger />
+          <DesktopHistoryNav />
+        </div>
       </div>
 
       {/* `chrome`：桌面壳窗口条里那一条是 Chrome 那种连成一片的标签 */}

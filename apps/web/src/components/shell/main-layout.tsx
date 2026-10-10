@@ -9,7 +9,6 @@ import { HeaderActions } from '#/components/header-actions'
 import { ShortcutKbd } from '#/components/kbd'
 import { NotFound } from '#/components/not-found'
 import { PageTabStrip } from '#/components/page-tab-strip'
-import { ShellSidebarProvider } from '#/components/shell-sidebar-provider'
 import { useBrand } from '#/lib/brand'
 import { cn } from '#/lib/cn'
 import { isDesktop, handleDesktopHeaderDoubleClick } from '#/desktop/bridge'
@@ -24,6 +23,7 @@ import { pageContentWidthClass } from '#/lib/page-width'
 import { usePageTabsEnabled } from '#/lib/page-tabs'
 import { usePermissionContext } from '#/lib/permissions'
 import { usePreferencesStore } from '#/lib/store'
+import { ShellLayout } from './shell-layout'
 
 /** 归一化尾斜杠：`/settings` 与 `/settings/` 是同一个 index 路由，不能因此丢掉高亮。 */
 function normalizePath(pathname: string): string {
@@ -115,7 +115,13 @@ function SettingsModuleHeader() {
   }
 
   return (
-    <div className="flex shrink-0 items-center gap-1 border-b border-kumo-line px-2 py-1.5">
+    <div
+      className={cn(
+        'flex shrink-0 items-center gap-1 px-2 py-1.5',
+        // 桌面壳里侧边栏整体不要分隔线（与 app 名称头行一致，见 styles.css）
+        !isDesktop() && 'border-b border-kumo-line',
+      )}
+    >
       <Button
         shape="square"
         variant="ghost"
@@ -322,31 +328,30 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
    */
   const pageWidth = usePreferencesStore((state) => state.pageWidth)
 
-  /**
-   * 桌面壳：窗口条取代 `MainHeader`（与 `AppShell` 同一套换形，理由见那边的注释）。
-   *
-   * 本外壳没有面包屑，所以窗口条上「左边标签、右边工具区」正好就是原来顶栏的全部内容。
-   * 桌面壳下始终由 DesktopTitleBar 承载全部顶层控制，窗口缩小时不渲染冗余顶栏。
-   */
-  const desktopChrome = isDesktop()
-  const showHeader = !desktopChrome
   /** 页面标签页是否生效（桌面壳恒开、浏览器看设置）；见 `usePageTabsEnabled` 与 AppShell 的注释 */
   const pageTabsEnabled = usePageTabsEnabled()
 
   /**
    * 顶栏行首那一格：本外壳没有面包屑，标签页开着就放标签条（否则整格空着）。
-   * 桌面壳里窗口条自己渲染一份，所以这里限定 `!desktopChrome`，两边不同时出现。
+   * 桌面壳里顶栏根本不会被 `ShellLayout` 渲染，窗口条自己渲染标签条，两边不同时出现。
    */
   const headerLeading =
-    pageTabsEnabled && !desktopChrome ? (
-      <PageTabStrip
-        homeTo="/settings/profile"
-        onOpenCommandPalette={() => setPaletteOpen(true)}
-      />
+    pageTabsEnabled ? (
+      <PageTabStrip homeTo="/settings/profile" onOpenCommandPalette={() => setPaletteOpen(true)} />
     ) : undefined
 
-  /** 窗口条行末的工具区（`MainHeader` 内部那份同款；两者不会同时在屏幕上，见 `showHeader`） */
+  /** 窗口条行末的工具区（`MainHeader` 内部那份同款；谁出现由 `ShellLayout` 的变体决定） */
   const headerActions = <HeaderActions onOpenCommandPalette={() => setPaletteOpen(true)} />
+
+  /**
+   * `<main>` 的额外类：本外壳没有分屏，padding 与页面宽度约束直接留在 main 上
+   * （业务壳那边则由 `DetailPreviewProvider` 分别发给主列与分屏列）。
+   */
+  const mainClassName = cn(
+    'px-4 py-4 md:px-6 md:py-5 lg:px-8 lg:py-6',
+    // 宽度：full 得到 `w-full`，boxed 再叠上 `mx-auto max-w-[1440px]`
+    pageContentWidthClass(pageWidth),
+  )
 
   // ⌘K / Ctrl+K 打开命令面板（与 AppShell 保持一致的交互）
   useEffect(() => {
@@ -363,50 +368,27 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
   return (
     <>
       {/*
-        与 AppShell 共用同一个 `ShellSidebarProvider`：侧边栏 UI 偏好（展开态 / 宽度）
-        以及「桌面非受控、移动端受控」的移动端抽屉接法都只有一份真值。
-        `topBar` 在桌面壳里提供：窗口条整行横跨视口顶部，Main 与侧边栏等均在内部容器中并列。
+        与 AppShell 共用同一个 `ShellLayout`：侧边栏 UI 偏好（展开态 / 宽度）以及
+        「桌面非受控、移动端受控」的移动端抽屉接法都只有一份真值；这里只准备插槽。
+        本外壳没有 AI 面板，所以不传 `ai`（那一列不渲染）。
       */}
-      <ShellSidebarProvider
+      <ShellLayout
+        sidebar={<MainSidebarSwitch onOpenCommandPalette={() => setPaletteOpen(true)} />}
         topBar={
-          desktopChrome ? (
-            <DesktopTitleBar
-              // 标签页全部关掉之后回设置首屏（它是最接近「本外壳首页」的一页）
-              homeTo="/settings/profile"
-              // 工具区只挂一处：桌面壳里它在窗口条行末，退化出顶栏时（见 showHeader）留给顶栏
-              actions={showHeader ? undefined : headerActions}
-              onOpenCommandPalette={() => setPaletteOpen(true)}
-            />
-          ) : null
+          <DesktopTitleBar
+            // 标签页全部关掉之后回设置首屏（它是最接近「本外壳首页」的一页）
+            homeTo="/settings/profile"
+            onOpenCommandPalette={() => setPaletteOpen(true)}
+            actions={headerActions}
+          />
         }
+        header={
+          <MainHeader leading={headerLeading} onOpenCommandPalette={() => setPaletteOpen(true)} />
+        }
+        mainClassName={mainClassName}
       >
-        <MainSidebarSwitch onOpenCommandPalette={() => setPaletteOpen(true)} />
-        <div
-          className={cn(
-            'flex min-w-0 flex-1 flex-col bg-kumo-canvas',
-            desktopChrome && 'h-full min-h-0 overflow-hidden',
-          )}
-        >
-          {showHeader ? (
-            <MainHeader
-              leading={headerLeading}
-              actions={headerActions}
-              onOpenCommandPalette={() => setPaletteOpen(true)}
-            />
-          ) : null}
-          <main
-            data-shell-content
-            className={cn(
-              'flex-1 px-4 py-4 md:px-6 md:py-5 lg:px-8 lg:py-6',
-              // 宽度：full 得到 `w-full`，boxed 再叠上 `mx-auto max-w-[1440px]`
-              pageContentWidthClass(pageWidth),
-              desktopChrome && 'min-h-0 overflow-y-auto',
-            )}
-          >
-            {children ?? <Outlet />}
-          </main>
-        </div>
-      </ShellSidebarProvider>
+        {children ?? <Outlet />}
+      </ShellLayout>
 
       <CommandPaletteDialog open={paletteOpen} onOpenChange={setPaletteOpen} />
     </>

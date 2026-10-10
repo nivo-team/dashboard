@@ -137,7 +137,7 @@ function CollapsibleNavItem({
  * 结构遵循 Kumo Sidebar 的约定：
  * - 菜单完全由配置对象（`NavGroup[]`）驱动，支持灵活配置和多重管道过滤；
  * - 集成权限过滤与自定义过滤谓词，无权访问或过滤剔除的分组/菜单项自动收敛隐藏；
- * - `Provider`（在 app-shell.tsx 中）负责状态，`Sidebar` 是容器本身；
+ * - `Provider`（外壳布局里，见 #/components/shell）负责状态，`Sidebar` 是容器本身；
  * - `Content` 是可滚动区，`Header` / `Footer` 固定在其上下方；
  * - `MenuButton` / `MenuSubButton` 会自动包一层 `<li>`，
  *   只有需要包住 `Collapsible` 时才显式使用 `MenuItem`；

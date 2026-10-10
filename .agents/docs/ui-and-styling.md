@@ -66,13 +66,14 @@ Kumo 采用语义化颜色系统，通过根节点上的 `data-mode="light|dark"
     z-index: 20;
   }
   ```
-- **外壳的整屏几何 = 两个 CSS 变量**（`apps/web/src/styles.css` 顶部）：
+- **外壳的整屏几何 = 几个 CSS 变量**（`apps/web/src/styles.css` 顶部）：
   | 变量 | 浏览器 | 桌面壳（带窗口条的外壳） | 谁在读 |
   | :--- | :--- | :--- | :--- |
-  | `--shell-chrome-h` | `0px` | `40px`（默认按 macOS 红绿灯紧凑高度 40px，支持壳动态注入） | 窗口条高度、侧边栏高度、`SHELL_PANEL_FRAME`、`CONTENT_PANEL_FRAME` |
+  | `--shell-chrome-h` | `0px` | `40px`（默认按 macOS 红绿灯紧凑高度 40px，支持壳动态注入） | 窗口条高度、`SHELL_PANEL_FRAME`、`CONTENT_PANEL_FRAME` |
   | `--shell-content-top` | `58px`（顶栏高度） | `0px`（内容列贴到那一行顶部） | `CONTENT_PANEL_FRAME`（详情分屏列的起点） |
-  | `--shell-traffic-light-w` | `0px` | `78px`（macOS 红绿灯安全宽度） | 窗口条左侧避让 padding（`ps-[var(--shell-traffic-light-w)]`） |
-  取值挂在**外壳的整屏容器**上（`[data-desktop-chrome]`，见 `#/components/shell-sidebar-provider`），不是 `<html>`：桌面壳里也有没有窗口条的页面（登录、`/$appId/sphere`），它们的侧边栏 / 面板必须保持整屏高。**改窗口条高度只改这一个数**，面板与侧边栏跟着走。
+  | `--shell-content-inset` | `0px` | `0.5rem`（main / AI 面板嵌在 `p-1` 里，两侧共 0.5rem） | `SHELL_PANEL_FRAME` / `CONTENT_PANEL_FRAME` 的高度 |
+  | `--shell-traffic-light-w` | `0px` | `78px`（macOS 红绿灯安全宽度） | **窗口条左上控制组**的逻辑 `padding-inline-start`（`max(--shell-traffic-light-w, 0.5rem)`：macOS 让开红绿灯，其它平台保底 0.5rem，RTL 自动镜像） |
+  取值挂在**外壳的整屏容器**上（`[data-desktop-chrome]`，见 `#/components/shell/shell-sidebar-provider`），不是 `<html>`：桌面壳里也有没有窗口条的页面（登录、`/$appId/sphere`），它们的侧边栏 / 面板必须保持整屏高。**改窗口条高度只改这一个数**，面板跟着走。桌面壳里侧边栏是**全窗高左列**（`100svh`，不扣 `--shell-chrome-h`）且**背景透明**；窗口条是整宽浮层（`fixed`），它的左上控制组让开 `--shell-traffic-light-w`，标签条紧跟在控制组之后；main 与 AI 面板共用的容器再嵌一层 `p-1`（`--shell-content-inset`），`<main>` 因此带 `rounded-md`、看起来「嵌在程序里」。
 - **窗口条与顶栏 Header 拖拽（桌面壳）**：窗口开启系统原生 UI（macOS 下 `Frameless: false` + `FullSizeContent: true` + `AppearsTransparent: true` 融入系统红绿灯），左侧预留 `78px` 避免遮挡红绿灯。所有顶栏 Header（`DesktopTitleBar`、`AppHeader`、`MainHeader`、`SphereHeader`、`AuthHeader`）统一挂载 `--wails-draggable: drag` 允许拖拽窗口，交互件（按钮、链接、菜单）标记 `no-drag` 退出；空白处双击 = 最大化 / 还原（`handleDesktopHeaderDoubleClick`）。
 - **标签条不是桌面壳专属**：同一个组件（`#/components/page-tab-strip` + `page-tab-item`）在浏览器里挂在**顶栏行首那一格**（替掉面包屑），由 设置 → 外观 → 「页面标签页」开关控制（`admin.shell-ui` 的 `pageTabsEnabled`，默认关；桌面壳里恒开）。两处**外观不同**：桌面壳传 `variant="chrome"`（Chrome 那种连成一片的标签：无间距、贴窗口条下沿、只圆上面两个角、激活态抬起来），浏览器用默认的 `variant="plain"`（独立小卡片）。标签条内部是**三个区**：**固定的标签区**（`shrink-0`，不滚动；**不设 `overflow`**）→ **滚动区**（`flex-1 min-w-0 overflow-x-auto`，**只允许横向滚**：`overflow-x: auto` 会把 `overflow-y` 也算成 auto，形状那半个像素的溢出就能凭空多出一段纵向可滚动区域，所以显式 `overflow-y-hidden`）→ **「+」**（跟着标签走，不钉行末）。两者外面还有一个 `max-w-[80%]` 的容器：固定的 + 可滚动的最多占窗口条八成宽，剩下那条留白是与行末工具区之间的间距；**两个区之间不留间距**（外层没有 `gap`，各自组内的间距由组内 `gap` 负责）。两个区**共用同一层「标签行」**（`tabRowClass`：`flex w-max items-end` + 各自的 `gap`；不用 `min-w-full` —— 百分比 min-width 在「宽度由内容决定」的父元素里是循环依赖）—— 行内布局只定义一次，两个区因此不可能走偏（之前两边各写一套，就出现过「固定的比底下的高 1px」）。行的 `mb-px` + 外层的 `pt-px -mb-[2px]`（chrome 外观下）：`mb-px` 把整行抬离外层底边 1px，标签底边**正好落在窗口条下边线上并压住它**，而外层的 **padding box 仍延伸到标签底边之下 1px**，给底部倒角圆弧留出余量；`pt-px` 让出顶部那 1px；`-mb-[2px]` 精确推回原处（纯像素度量，杜绝 `-mb-0.5` 因 rem 缩放产生的 0.1px 浮点抖动）⇒ 标签位置一动不动。
 ⚠️ 抬这 1px **不能用外层的 `pb-px`**：`overflow` 的裁剪区就是 **padding box**，加了反而把裁剪区缩小、正好裁掉倒角尾巴（滚动区因此曾比固定区少半条线）。
@@ -87,7 +88,7 @@ Kumo 采用语义化颜色系统，通过根节点上的 `data-mode="light|dark"
 - **收起态侧边栏要落回窗口条下面那一行**：Kumo 在收起 / 悬浮窥探时把 `[data-sidebar='content-container']` 改成 `fixed + inset-y-0 + h-full`，以**视口**为基准 —— 桌面壳里上沿会顶到窗口最顶端（被窗口条盖住）、下沿探出视口 44px（Footer 被裁）。修法是按 `data-state` 把它的上下沿挪回窗口条下面（`styles.css` 里那条 `:not([data-state='expanded']) > [data-sidebar='content-container']`）。**为什么只看 `data-state` 就够**：Kumo 只在非展开时才给它 `fixed`（`startPeek` 里写着 `if (peekable && !open && !isMobile)`），三个状态里只有 `expanded` 对应 `open === true`。
 - **客户端链接桥接**：在 `apps/web/src/routes/__root.tsx` 中使用了 `<LinkProvider component={AppLink}>`，使得所有 Kumo 内置的 `<a href>` 均无缝转为 TanStack Router 的单页路由跳转。
 - **移动端抽屉里隐藏宽度拖拽手柄**：`Sidebar.ResizeHandle` 只按视口断点隐藏（`hidden … sm:block`），手机横屏 / 小平板会露出来，而抽屉宽度是固定的、拖它没意义（拖过 `minWidth` 还会让 Kumo `setOpen(false)` 把抽屉关掉）。`styles.css` 用 `[data-sidebar='sidebar'][data-mobile='true'] [data-sidebar='resize-handle'] { display: none }` 收掉。
-- **移动端二级菜单展开不出来 = Provider 少接了 `open`**：Kumo 的 `Sidebar.CollapsibleContent` 用 `isOpen = isCollapsibleOpen && state !== 'collapsed'` 判断可见性，而 `state` **只由桌面 `open` 推导**——桌面折叠过侧边栏后，手机抽屉里每个分组都「箭头转了、内容不出来」（还带 `inert`，子项点不进去）。修法在 `#/components/shell-sidebar-provider`（移动端受控、`open` 跟随抽屉），完整原因见 [store.md](./store.md) §5.4。
+- **移动端二级菜单展开不出来 = Provider 少接了 `open`**：Kumo 的 `Sidebar.CollapsibleContent` 用 `isOpen = isCollapsibleOpen && state !== 'collapsed'` 判断可见性，而 `state` **只由桌面 `open` 推导**——桌面折叠过侧边栏后，手机抽屉里每个分组都「箭头转了、内容不出来」（还带 `inert`，子项点不进去）。修法在 `#/components/shell/shell-sidebar-provider`（移动端受控、`open` 跟随抽屉），完整原因见 [store.md](./store.md) §5.4。
 
 ---
 

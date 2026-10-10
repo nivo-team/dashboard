@@ -12,7 +12,7 @@ import { useAuth } from '#/lib/auth'
  * 设置 → 个人资料（src/features/settings/profile.tsx -> "/settings/profile"）
  *
  * 与根路径 `/`（应用空间选择）共用 `_main` 通用外壳；
- * 进入 `/settings/**` 后侧边栏会切换为设置专属导航（见 components/main-layout.tsx）。
+ * 进入 `/settings/**` 后侧边栏会切换为设置专属导航（见 #/components/shell/main-layout.tsx）。
  *
  * 数据来自 `GET /profile`（当前登录用户的个人资料与区域权限，**只读**：后端没有更新接口）——
  * 接口路径与前端路由无关，仍复用同一支接口。

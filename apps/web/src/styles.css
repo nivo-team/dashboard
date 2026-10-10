@@ -102,26 +102,28 @@
 /*
  * 外壳的整屏几何 —— 两个数，桌面壳的窗口条要挤掉多少高度全从这里算。
  *
- *   --shell-chrome-h       视口顶端多出来的那一条 chrome 的高度（窗口条）。
+ *   --shell-chrome-h       窗口条的高度（窗口条自己也用 `h-[var(--shell-chrome-h)]`）。
  *                          0px = 没有窗口条（浏览器，以及登录页 / 全屏对话页这些
- *                          没有窗口条的外壳）。窗口条自己也用这个值当高度
- *                          （`h-[var(--shell-chrome-h)]`），所以改高度只改这一处。
+ *                          没有窗口条的外壳）。桌面壳里侧边栏是整窗高左列（`100svh`），
+ *                          **不**扣这个值；扣它的是下面两个面板框架。
  *   --shell-content-top    「内容列的顶」到视口顶端的偏移。浏览器里内容列上面是顶栏
- *                          （58px = AppHeader 的 `h-[58px]`）；桌面壳里顶栏被窗口条取代、
- *                          而窗口条在外壳那一行**之外**，内容列就贴到了这一行的顶部 → 0px。
+ *                          （58px = AppHeader 的 `h-[58px]`）；桌面壳里顶栏被窗口条取代，
+ *                          内容列贴到工作区顶部 → 0px。
  *
- * 谁在读它们：`--shell-chrome-h` 被下面这条侧边栏规则、`#/components/side-panel` 的两个
+ * 谁在读它们：`--shell-chrome-h` 被 `#/components/side-panel` 的两个
  * 面板框架（AI 分屏列、详情分屏列）使用；`--shell-content-top` 只被详情分屏列使用。
  * 之所以走 CSS 变量而不是 JS 常量：这些面板是 `fixed` / `sticky` 定位、还有走 portal 的，
  * 用 CSS 变量才能让「整屏高度」跟着窗口条自动收敛，不需要把视口高度灌进 React。
  *
- * `data-desktop-chrome` 挂在**外壳的整屏容器**上（见 `#/components/shell-sidebar-provider`），
+ * `data-desktop-chrome` 挂在**外壳的整屏容器**上（见 `#/components/shell/shell-sidebar-provider`），
  * 而不是 <html>：桌面壳里也有没有窗口条的页面（登录、全屏对话），
  * 那些页面的侧边栏 / 面板必须保持一屏高。
  */
 :root {
   --shell-chrome-h: 0px;
   --shell-content-top: 58px;
+  /* 内容区（main / AI 面板）四周内缩的总量：桌面壳里是下面那层 `p-1` 的两侧之和 */
+  --shell-content-inset: 0px;
   --shell-traffic-light-w: 0px;
 
   /*
@@ -170,6 +172,8 @@
   /* 窗口条高度：默认按 macOS 红绿灯紧凑高度 40px 适配，也可由桌面壳通过 --shell-chrome-h 动态注入覆盖 */
   --shell-chrome-h: 40px;
   --shell-content-top: 0px;
+  /* 内容区四周内缩：桌面壳里 main / AI 面板嵌在 `p-1`（0.25rem × 2）的容器里 */
+  --shell-content-inset: 0.5rem;
   /* 默认非 macOS（Windows / Linux / 普通浏览器）不留红绿灯避让留白 */
   --shell-traffic-light-w: 0px;
 }
@@ -237,8 +241,8 @@ html[data-desktop-blurred='true'] [data-desktop-chrome] [data-desktop-title-bar]
 }
 
 [data-desktop-chrome] [data-sidebar-wrapper] {
-  height: calc(100svh - var(--shell-chrome-h)) !important;
-  max-height: calc(100svh - var(--shell-chrome-h)) !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
   min-height: 0 !important;
   overflow: hidden !important;
 }
@@ -267,19 +271,44 @@ html[data-desktop-blurred='true'] [data-desktop-chrome] [data-desktop-title-bar]
 }
 
 /*
- * 桌面壳模式下：侧边栏在顶栏窗口条下方，高度扣除窗口条高度（--shell-chrome-h）。
+ * 桌面壳模式下：侧边栏是**全窗高的左列**（从窗口顶端到底），窗口条是盖在最顶端的整宽浮层，
+ * 不占侧边栏的高度。
  */
 [data-desktop-chrome] [data-sidebar='sidebar']:not([data-mobile='true']) {
-  height: calc(100svh - var(--shell-chrome-h)) !important;
-  max-height: calc(100svh - var(--shell-chrome-h)) !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
   top: 0 !important;
+}
+
+/*
+ * 侧边栏**背景透明**（窗口毛玻璃 / 壁纸透出来）：窗口条左上控制组浮在它顶端，
+ * 所以内容整体下移一个窗口条高度，避开那一条浮层。
+ */
+[data-desktop-chrome] [data-sidebar='sidebar']:not([data-mobile='true']),
+[data-desktop-chrome]
+  [data-sidebar='sidebar']:not([data-mobile='true'])
+  > [data-sidebar='content-container'] {
+  background-color: transparent !important;
 }
 
 [data-desktop-chrome]
   [data-sidebar='sidebar']:not([data-mobile='true'])
   > [data-sidebar='content-container'] {
   top: 0 !important;
-  height: calc(100svh - var(--shell-chrome-h)) !important;
+  height: 100svh !important;
+  padding-top: var(--shell-chrome-h);
+}
+
+/*
+ * 桌面壳：侧边栏（与内容列之间的竖线）和头行（app 名称下面那条横线）的边框全部去掉 ——
+ * 内容已经是内缩的圆角卡片，分隔交给留白与卡片边界。
+ * 只在桌面壳生效：移动端抽屉（移动端 `data-mobile='true'`）仍保留边框。
+ * 注意 Kumo 在 `aside[data-sidebar='sidebar']` 与它的 `content-container` 上都画了竖线。
+ */
+[data-desktop-chrome] [data-sidebar='sidebar'],
+[data-desktop-chrome] [data-sidebar='sidebar'] > [data-sidebar='content-container'],
+[data-desktop-chrome] [data-sidebar='sidebar'] [data-sidebar='header'] {
+  border-width: 0 !important;
 }
 
 /*
@@ -742,7 +771,7 @@ main[data-shell-content]:has([data-notfound]) {
 
 /*
  * `$appId` 外壳（AppShell）的 padding 已经**下移到主列**（`[data-detail-preview-main]`，
- * 见 components/app-shell.tsx 与 components/detail-preview），这样分屏面板才能贴边满高。
+ * 见 #/components/shell/app-shell.tsx 与 components/detail-preview），这样分屏面板才能贴边满高。
  * 于是 404 要多铺平两层：
  * - 布局行改回 `stretch`：它平时是 `items-start`（分屏面板要 sticky，不能被拉伸），
  *   但 404 需要主列拿到确定高度，线框根节点的 grow 才有空间可撑；

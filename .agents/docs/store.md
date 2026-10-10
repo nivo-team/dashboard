@@ -137,7 +137,7 @@ useTableUiStore.getState().resetTable('example/user')
 判定与接入见 [ui-and-styling.md](./ui-and-styling.md) 的「动效开关」一节与 `#/lib/use-motion`。
 
 接线方式**桌面非受控 + 移动端受控**，代码只有一份：
-`#/components/shell-sidebar-provider` 的 `ShellSidebarProvider`（两个外壳都套它，
+`#/components/shell/shell-sidebar-provider` 的 `ShellSidebarProvider`（两个外壳都套它，
 不要再各自写一遍 Provider 参数）。
 
 ```tsx
@@ -236,7 +236,7 @@ const state = isPeeking ? 'peeking' : open ? 'expanded' : 'collapsed'
   想「把当前偏好固化成所有应用的新基线」，直接写 `admin.preferences:global` 那个键即可
   （例如将来做「设为默认」功能时）。
 - **侧边栏的 Provider 接法不要在两个外壳里各写一遍**：桌面非受控、移动端受控（`open` 跟随抽屉）
-  这套接法有个必须解释清楚的坑（原因见 5.4），统一用 `#/components/shell-sidebar-provider` 的
+  这套接法有个必须解释清楚的坑（原因见 5.4），统一用 `#/components/shell/shell-sidebar-provider` 的
   `ShellSidebarProvider`；**移动端的 `open` 一定要在 `onOpenChange` 里回写**，否则抽屉按不动。
 - **移动端状态不落盘**：`persistSidebarOpen` / `persistSidebarWidth` 写入前都做了
   `isDesktopViewport()` 判断。新增外壳类状态时沿用这个约定，不要把抽屉开合写进存档。

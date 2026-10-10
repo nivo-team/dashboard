@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { AppShell } from '#/components/app-shell'
-import { MainNotFound } from '#/components/main-layout'
+import { AppShell } from '#/components/shell/app-shell'
+import { MainNotFound } from '#/components/shell/main-layout'
 import { RouteError } from '#/components/route-states'
 import { guardAppRoute } from '#/lib/app-route-guard'
 

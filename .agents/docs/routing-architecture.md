@@ -125,20 +125,38 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
 - 侧边栏折叠状态、拖拽宽度、内部滚动位置**完全保留**；
 - 页面仅在 `<Outlet />` 区域替换组件，避免整页闪烁与重复渲染。
 
-### 桌面壳里的外壳形态（窗口条 + 页面标签条）
-在桌面壳里（`isDesktop()`，标记来自 URL，见 [apps/desktop/README.md](../../apps/desktop/README.md)）
-两个外壳都换一种形态：**窗口条**（`#/desktop/title-bar`）取代顶栏，
-横跨整个窗口排在侧边栏与内容列那一行**之上** —— 左侧是**页面标签条**
-（`#/components/page-tab-strip`：已打开的页面 + 「+」页面菜单），右侧是原本顶栏的行末工具区
-（`HeaderActions`）。于是外壳从「侧边栏 + 内容列」变成「窗口条 + 那一行」：
+### 外壳的组成：一个布局 + 三个插槽
 
-- **窗口条由谁排**：`#/components/shell-sidebar-provider` 的 `topBar` —— Kumo 的
-  `Sidebar.Provider` 自己就是这个 flex 行，窗口条只能在它外面，所以那一层在有窗口条时是
-  `flex h-svh flex-col`、没有时是 `display: contents`（多出来的 div 不产生盒子，
-  浏览器里的布局与改动前一致）；
+两个外壳（业务 `AppShell` / 通用 `MainLayout`）只负责**准备插槽**，摆位置交给
+`#/components/shell` 的 `ShellLayout`（插槽契约 `ShellLayoutProps`：`sidebar` / `header` /
+`main` / `ai` / `topBar`）：
+
+- 浏览器 → `#/components/shell/browser-shell-layout`：一行 flex，顶栏在内容列里；
+- 桌面壳 → `#/desktop/shell-layout`：窗口条整行在上，顶栏不渲染（窗口条取代它）。
+
+布局组件**不认识 router / store / 权限 / AI 状态** —— 侧边栏内容、顶栏、`<main>` 内部与
+AI 面板全部由外壳传进来；形态差异只存在于两个变体里。共享的 `ShellSidebarProvider`
+（Provider 接线 + 移动端抽屉）与内容列骨架也在这个目录，桌面形态的窗口条只存在于 `#/desktop`。
+
+### 桌面壳里的外壳形态（全高侧边栏 + 整宽窗口条浮层）
+在桌面壳里（`isDesktop()`，标记来自 URL，见 [apps/desktop/README.md](../../apps/desktop/README.md)）
+两个外壳都换一种形态：侧边栏是**整窗高的左列**（`100svh`、**背景透明**），右侧是**工作区**；
+**窗口条**（`#/desktop/title-bar`）是盖在最顶端的**整宽浮层**（取代顶栏）：
+
+- **左上控制组**（品牌 Logo / 快速搜索 / 收起侧边栏开关 + 前进后退）**属于窗口条、靠在窗口最左侧**，
+  浮在透明侧边栏之上 —— 侧边栏收起时控件不动，因此**不需要折叠时切换组件**；
+- **页面标签条**（`#/components/page-tab-strip`：已打开的页面 + 「+」页面菜单）紧跟在控制组之后；
+- **行末工具区**：原本顶栏的 `HeaderActions`；
+- **红绿灯避让**：窗口控制器占的位置由 `--shell-traffic-light-w` 表示，左上控制组用逻辑
+  `padding-inline-start` 让开（macOS 78px；RTL 下自动落到另一侧）。
+
+于是布局由「窗口条在上」变成「整宽窗口条浮层 ─ 全高透明侧边栏 │ 工作区」：
+
+- **窗口条由谁排**：`#/desktop/shell-layout` 的 `DesktopShellLayout` —— 它把
+  `ShellLayoutProps.topBar` 渲染成 `fixed` 浮层（不占文档流），并给工作区留出
+  `pt-[--shell-chrome-h]`；`ShellSidebarProvider` 只负责排「全高侧边栏 │ 工作区」这一行；
 - **顶栏不再渲染**（`AppHeader` / `MainHeader`）：窗口条与它是同一份 chrome 的两种形态，
-  不是两行。唯一例外是「桌面壳 + 移动视口」（窗口被拖到 768px 以下）：抽屉的汉堡按钮只能
-  待在顶栏里，那时把顶栏渲染回来，工具区也只留一份；
+  不是两行（桌面壳里 `ShellLayout` 只渲染窗口条，顶栏插槽根本不挂）；
 - **标签条是通用件，不只桌面壳有**：`#/components/page-tab-strip` 挂在哪儿由外壳决定 ——
   桌面壳里是窗口条行首（恒开），浏览器里是**顶栏行首那一格**（`AppHeaderProps.leading`，
   替掉面包屑），由 设置 → 外观 的「页面标签页」开关控制（`admin.shell-ui` 的
@@ -159,12 +177,12 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
   **固定**的标签排在最前、只显示图标，且不参与「关闭左侧 / 右侧」与跨区拖拽；
   排序与固定的规则都在 store 里（`moveTab` / `togglePinned` / `closeSide`），
   组件只负责把动作接上去 —— **这条边界别打破**：数据层不认识 router，界面层不认识排序规则；
-- **高度**：窗口条 44px，侧边栏与两个面板列都按 `--shell-chrome-h` 扣掉它；
-  收起态侧边栏那一列（Kumo 用 `fixed` 实现）也按同一个变量挪回窗口条下面那一行 ——
+- **高度**：窗口条高度 = `--shell-chrome-h`（默认 40px）；侧边栏是全窗高左列（`100svh`），
+  窗口条只占工作区；两个面板列（AI 分屏、详情分屏）按 `--shell-chrome-h` 扣掉窗口条 ——
   见 [ui-and-styling.md](./ui-and-styling.md) §4。
 
 侧边栏的 `Sidebar.Provider` 接线（含**桌面非受控、移动端受控**这套移动端抽屉接法）
-统一在 `#/components/shell-sidebar-provider` 的 `ShellSidebarProvider`，两个外壳共用一份 ——
+统一在 `#/components/shell/shell-sidebar-provider` 的 `ShellSidebarProvider`，两个外壳共用一份 ——
 原因与踩过的坑见 [store.md](./store.md) §5.4。
 
 ### 局部异步与状态隔离
@@ -290,7 +308,7 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
   - `MAIN_NAV_ITEMS`：`_main` 通用外壳导航（应用选择 `/`、个人资料 `/settings/profile`），由 `MainSidebar` 渲染；
   - `SETTINGS_NAV_ITEMS`：设置模块的二级导航（个人资料 `/settings/profile`、外观 `/settings/appearance`（图标 `SwatchesIcon`、文案 `profileNav.appearance`）、AI `/settings/AI`（图标 `SparkleIcon`、文案 `profileNav.ai`，**路径保留大写缩写**）），由 `SettingsSidebar` 渲染。**「外观」与「主题」是两个 key**：前者是模块入口（`profileNav.appearance`），后者是主题选择器的分组标题（`theme.label`），不要合并。
   - 后两份是 `ShellNavItem`，`to` 是**绝对路径**（不拼 appId），并带 `matchPaths` 表达「历史别名也算选中」（如 `/select-app` 之于 `/`）。**不要把外壳项塞进 `NAV_GROUPS`** —— 会污染 `AppHeader` 的业务面包屑匹配，且 `_main` 外壳根本没有 appId 前缀。`ALL_SHELL_NAV_TARGETS` 是两份外壳导航合并去重后的命令面板数据源。
-- **三处侧边栏与命令面板都必须是「配置对象 → map 渲染」**，不允许把菜单项硬编码在 JSX 里（`MainSidebar` 曾如此）：加 / 改导航项只动 `navigation.ts`，业务侧边栏、外壳侧边栏、⌘K 面板三个入口自动同步。外壳侧边栏统一走 `components/main-layout.tsx` 的 `ShellNavButton`。
+- **三处侧边栏与命令面板都必须是「配置对象 → map 渲染」**，不允许把菜单项硬编码在 JSX 里（`MainSidebar` 曾如此）：加 / 改导航项只动 `navigation.ts`，业务侧边栏、外壳侧边栏、⌘K 面板三个入口自动同步。外壳侧边栏统一走 `#/components/shell/main-layout.tsx` 的 `ShellNavButton`。
 - **导航项没有描述字段**：侧边栏与命令面板列表**只显示标题**（曾经给命令面板当副标题的 `description` 已删除，不要加回来）；检索能力靠 `keywords`（中英双语，保证两种输入都能命中）。
 - 导航文案通过 `labelKey` / `children[].labelKey` 指向 `common` 命名空间下的 i18n 键，不要在组件里硬编码路径→文案的映射；新增导航项时**只写 `zh-CN` 的 `nav.*` 文案**，其它语言由翻译流水线补齐。
 - 业务首页路径统一配置为 `/home`，拼接当前激活应用标识生成 `/$appId/home`；它的**文案是「仪表盘」**（`nav.home`），别只改一处就以为改完了 —— 导航项、命令面板、顶栏面包屑三处共用这个 key。检索关键词同时保留 `home` / `首页` 与 `dashboard` / `仪表盘`（老用户还在按老名字找它）。

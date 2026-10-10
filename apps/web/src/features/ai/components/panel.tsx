@@ -117,7 +117,7 @@ export interface AiPanelProps {
  * - **Split View**（`split`）：外壳级的一整列，与 `Sidebar` **同级**（`SHELL_PANEL_FRAME`
  *   就是 styles.css 给侧边栏的那套 `sticky top-0`，高度按 `--shell-chrome-h` 扣掉窗口条）
  *   —— 从这一列的顶部齐平开始、整列高，夹在侧边栏与内容区之间，挤压内容而不覆盖它。
- *   它挂载在 `Sidebar.Provider` 内容列**之后的兄弟节点**上（见 components/app-shell.tsx），
+ *   它挂载在 `Sidebar.Provider` 内容列**之后的兄弟节点**上（见 #/components/shell/app-shell.tsx 的 `ai` 插槽），
  *   内部头行固定 `h-[58px]` 与 `AppHeader` 同高，浏览器里两条底边线连成一条
  *   （桌面壳里顶栏被 44px 的窗口条取代，这条对齐关系不存在，头行高度暂时保持 58px）。
  *   **进场 / 退场是「宽度 0 ↔ panelWidth」的过渡**：面板贴行尾，宽度一变就把内容列推开

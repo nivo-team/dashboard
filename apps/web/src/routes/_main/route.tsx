@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { MainLayout } from '#/components/main-layout'
+import { MainLayout } from '#/components/shell/main-layout'
 import { NotFound } from '#/components/not-found'
 import { getAuthSnapshot } from '#/lib/auth'
 

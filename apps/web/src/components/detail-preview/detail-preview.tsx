@@ -278,7 +278,7 @@ export function DetailPreviewProvider({ children }: { children: ReactNode }) {
         面板宽度由 `admin.shell-ui.detailPanelWidth` 决定（默认 480 ≈ 1/3，可拖到 260–720），
         主内容吃掉剩余空间，因此面板变宽 = 主内容变窄（真正的「分屏」）。
 
-        **padding 在这里分别发给两列**（外层 main 已经不带 padding，见 app-shell.tsx）：
+        **padding 在这里分别发给两列**（外层 main 已经不带 padding，见 #/components/shell/app-shell.tsx）：
         主列沿用从 main 搬过来的那一套，面板列自己不带外 padding ——
         它内部由 header / 内容区各自设置，面板才能贴住视口右缘与底部、满高成列。
       */}
