@@ -31,10 +31,10 @@ export function DesktopShellLayout({
       {/* 工作区：顶部留出窗口条的高度（窗口条是 fixed 浮层，不占文档流） */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col pt-[var(--shell-chrome-h)]">
         {/*
-          main 与 AI 面板共用的容器：去除顶部的 padding（px-1 pb-1），
-          卡片顶部贴合窗口条下沿，两侧与底部保留内缩，卡片之间保留 gap-1。
+          main 与 AI 面板共用的容器：去除顶部的 padding（px-2 pb-2），
+          卡片顶部贴合窗口条下沿，两侧与底部保留内缩，卡片之间保留 gap-1（为容器 padding 的一半）。
         */}
-        <div className="flex min-h-0 min-w-0 flex-1 gap-1 px-1 pb-1">
+        <div className="flex min-h-0 min-w-0 flex-1 gap-1 px-2 pb-2">
           <ShellContentColumn mainClassName={mainClassName} desktop>
             {children}
           </ShellContentColumn>

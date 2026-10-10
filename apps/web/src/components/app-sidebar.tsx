@@ -241,12 +241,14 @@ export function AppSidebar({
 
   return (
     <Sidebar>
-      <Sidebar.Header className="flex items-center justify-between gap-1.5 px-2">
-        <div className="min-w-0 flex-1">
-          <AppSwitcher />
-        </div>
-        {isMobile ? <Sidebar.Close /> : null}
-      </Sidebar.Header>
+      {!isDesktop() ? (
+        <Sidebar.Header className="flex items-center justify-between gap-1.5 px-2">
+          <div className="min-w-0 flex-1">
+            <AppSwitcher />
+          </div>
+          {isMobile ? <Sidebar.Close /> : null}
+        </Sidebar.Header>
+      ) : null}
 
       {isLoading ? (
         <Sidebar.Loading />

@@ -172,8 +172,8 @@
   /* 窗口条高度：默认按 macOS 红绿灯紧凑高度 40px 适配，也可由桌面壳通过 --shell-chrome-h 动态注入覆盖 */
   --shell-chrome-h: 40px;
   --shell-content-top: 0px;
-  /* 内容区四周内缩：去除了顶部 padding 后，纵向仅保留底部的 0.25rem 内缩 */
-  --shell-content-inset: 0.25rem;
+  /* 内容区四周内缩：去除了顶部 padding 后，纵向仅保留底部的 0.5rem（pb-2）内缩 */
+  --shell-content-inset: 0.5rem;
   /* 默认非 macOS（Windows / Linux / 普通浏览器）不留红绿灯避让留白 */
   --shell-traffic-light-w: 0px;
 }
@@ -297,6 +297,14 @@ html[data-desktop-blurred='true'] [data-desktop-chrome] [data-desktop-title-bar]
   top: 0 !important;
   height: 100svh !important;
   padding-top: var(--shell-chrome-h);
+}
+
+/*
+ * 桌面壳模式下：侧边栏滚动视口（viewport）保留 1px padding-top，
+ * 避免快速搜索框的 1px ring 外描边被容器 overflow 裁切，同时与右侧工作区卡片上沿保持精准对齐。
+ */
+[data-desktop-chrome] [data-sidebar='sidebar'] [data-sidebar='viewport'] {
+  padding-top: 1px !important;
 }
 
 /*
