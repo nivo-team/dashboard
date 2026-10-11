@@ -278,6 +278,8 @@ func registerWindowMethods(registry *bridge.Registry, app *application.App, wind
 		if title == "" {
 			if req.Name == "sphere" {
 				title = "Sphere"
+			} else if req.Name == "settings" {
+				title = "设置"
 			} else {
 				title = cfg.Title
 			}

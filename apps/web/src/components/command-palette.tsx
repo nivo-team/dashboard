@@ -4,6 +4,7 @@ import { ArrowRightIcon, DesktopIcon, MoonIcon, SunIcon } from '@phosphor-icons/
 import { useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { isDesktop, openSettingsWindow } from '#/desktop/bridge'
 import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
 import {
   ALL_NAV_TARGETS,
@@ -106,7 +107,13 @@ export function CommandPaletteDialog({ open, onOpenChange }: CommandPaletteDialo
         label,
         icon: item.icon,
         keywords: (item.keywords ?? []).join(' '),
-        run: () => navigate({ to: item.to as never }),
+        run: () => {
+          if (isDesktop() && (item.to === '/settings' || item.to.startsWith('/settings/'))) {
+            void openSettingsWindow(item.to)
+            return
+          }
+          navigate({ to: item.to as never })
+        },
       }
     })
 

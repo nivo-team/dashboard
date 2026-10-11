@@ -12,6 +12,7 @@ import {
 } from '@phosphor-icons/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import { isDesktop, openSettingsWindow } from '#/desktop/bridge'
 import { useAuth } from '#/lib/auth'
 import { useColorMode } from '#/lib/use-color-mode'
 import type { ColorMode } from '#/lib/use-color-mode'
@@ -82,9 +83,15 @@ export function UserMenu({ align = 'end', size }: UserMenuProps) {
             </p>
           </div>
 
-          {/* 个人资料入口：顶层页面 /settings/profile，与根路径共用 _main 外壳（侧边栏 + 顶栏） */}
+          {/* 个人资料入口：桌面端在新窗口打开，Web 端原地跳转 */}
           <DropdownMenu.Item
-            onClick={() => navigate({ to: '/settings/profile' as any })}
+            onClick={() => {
+              if (isDesktop()) {
+                void openSettingsWindow('/settings/profile')
+              } else {
+                void navigate({ to: '/settings/profile' as any })
+              }
+            }}
             className="gap-2"
           >
             <UserIcon size={16} className="text-kumo-subtle" />

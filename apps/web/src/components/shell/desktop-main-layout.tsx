@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { CommandPaletteDialog } from '#/components/command-palette'
 import { DesktopTitleBar } from '#/desktop/title-bar'
 import { DesktopShellLayout } from '#/desktop/shell-layout'
+import { isDesktop, openSettingsWindow } from '#/desktop/bridge'
 import { HeaderActions } from '#/components/header-actions'
 import { cn } from '#/lib/cn'
 import { DEFAULT_APP_ID, isMultiAppEnabled, useAuth } from '#/lib/auth'
@@ -71,6 +72,10 @@ function DesktopMainSidebar({ onOpenCommandPalette }: { onOpenCommandPalette: ()
   )
 
   const handleNav = (to: string) => {
+    if (isDesktop() && (to === '/settings' || to.startsWith('/settings/'))) {
+      void openSettingsWindow(to)
+      return
+    }
     void navigate({ to: to as any })
   }
 

@@ -197,6 +197,22 @@ export function isSphereWindow(): boolean {
   return isDesktop() && desktopWindowName() === 'sphere'
 }
 
+/** 是否处于独立的 Settings 桌面子窗口中。 */
+export function isSettingsWindow(): boolean {
+  return isDesktop() && desktopWindowName() === 'settings'
+}
+
+/** 在桌面端新独立窗口中打开设置（Settings）。在非桌面端返回 false。 */
+export async function openSettingsWindow(path = '/settings/profile'): Promise<boolean> {
+  return openDesktopWindow({
+    name: 'settings',
+    path,
+    title: '设置',
+    width: 1080,
+    height: 720,
+  })
+}
+
 /** 是否处于独立极简（超简洁布局：无侧边栏、无标签条）桌面子窗口中。 */
 export function isStandaloneWindow(): boolean {
   if (!isDesktop()) return false
