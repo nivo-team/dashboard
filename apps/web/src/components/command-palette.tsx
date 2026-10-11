@@ -9,6 +9,7 @@ import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
 import {
   ALL_NAV_TARGETS,
   ALL_SHELL_NAV_TARGETS,
+  NAV_DIRECTORY_PATHS,
   filterNavTargets,
   filterShellNavItems,
 } from '#/lib/navigation'
@@ -76,11 +77,13 @@ export function CommandPaletteDialog({ open, onOpenChange }: CommandPaletteDialo
     const matches = (item: PaletteItem) =>
       q.length === 0 || `${item.label} ${item.keywords}`.toLowerCase().includes(q)
 
-    // 业务页面：`to` 相对 appId，需要拼前缀；二级项展示为「父级 · 子级」；过滤无权限的目标项
+    // 业务页面：`to` 相对 appId，需要拼前缀；二级项展示为「父级 · 子级」；过滤无权限的目标项与纯目录项
     const pageItems: PaletteItem[] = filterNavTargets(ALL_NAV_TARGETS, {
       context: permissionContext,
-    }).map((item) => {
-      const selfLabel = item.labelKey ? t(item.labelKey, item.label) : item.label
+    })
+      .filter((item) => !NAV_DIRECTORY_PATHS.has(item.to))
+      .map((item) => {
+        const selfLabel = item.labelKey ? t(item.labelKey, item.label) : item.label
       const parentLabel = item.parentLabelKey
         ? t(item.parentLabelKey, {
             defaultValue: item.parentLabel ?? item.parentLabelKey,
