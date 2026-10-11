@@ -164,7 +164,7 @@ export function AiPanel({
 }: AiPanelProps) {
   const { t } = useTranslation('ai')
   const { isRtl } = useLocale()
-  const isMobile = useIsMobileViewport()
+  const isMobile = !isDesktop() && useIsMobileViewport()
   const mode = usePreferencesStore((state) => state.aiPanelMode)
 
   const storedPanelWidth = useShellUiStore((state) => state.aiPanelWidth)
@@ -464,28 +464,11 @@ export function AiPanel({
         className={cn(
           'fixed z-30 flex flex-col overflow-hidden bg-kumo-base',
           /*
-            移动端：**整屏**（`inset-0`），不做"贴底卡片"。
-
-            手机屏幕本来就小，卡片式再砍掉一截高度、左右还各留 12px，
-            真正能看内容的地方所剩无几。全屏之后与 Split View 在移动端的行为也统一了
-            —— 桌面端那两个形态的差别（挤压内容 vs 浮在内容上）在手机上本来就读不出来，
-            留在那儿的只有"更小的可用面积"。
-
-            圆角 / 边框 / 阴影同理下放到 `md:`：整屏面板的边缘就是屏幕边缘。
+            移动端：仅在非桌面端视口下整屏覆盖（`inset-0`）。
+            桌面端无论视口多窄，始终按 PC 原生右下角小窗呈现，绝不覆盖全屏。
           */
-          'inset-0',
-          /*
-            桌面端：**行尾侧下角**的小窗 —— LTR 右下、RTL 左下（`start` / `end` 是逻辑属性，
-            方向自己就会翻）。尺寸由 motion 给，这里只管贴哪一角。
-
-            ⚠️ `md:top-auto` **不能省**：`inset-0` 写进去的 `top: 0` 不会被 `md:bottom-4`
-            顶掉 —— top / bottom / height 同时指定时浏览器忽略的是 bottom，
-            于是浮窗会贴到**视口顶端**（而且照样带 560px 高，看起来像"从左上角弹出来"）。
-            现在高度由 motion 显式写内联值，这个问题自然不存在了，但这几行仍不能删：
-            它们决定贴哪一角。
-          */
-          'md:top-auto md:start-auto md:end-4 md:bottom-4',
-          'md:rounded-xl md:border md:border-kumo-line md:shadow-lg',
+          !isDesktopShell && 'inset-0 md:top-auto md:start-auto md:end-4 md:bottom-4 md:rounded-xl md:border md:border-kumo-line md:shadow-lg',
+          isDesktopShell && 'top-auto start-auto end-4 bottom-4 rounded-xl border border-kumo-line shadow-lg',
         )}
       >
         {/*
@@ -596,11 +579,10 @@ export function AiPanel({
               会把宽度动画卡在半路 —— 非 visible 的溢出把它归零，宽度才真能收到 0。
           */
           'overflow-hidden',
-          // 移动端：覆盖整个视口（面板自己的头行带关闭按钮，不必露出 AppHeader）
-          'fixed inset-x-0 z-30',
-          // 桌面端：回到文档流，成为 Sidebar 同级的一列 —— 贴行尾、整屏高。
-          // 浏览器模式下保留 md:border-s；桌面壳模式下应用内嵌卡片圆角（macOS 为 rounded-lg，非 macOS 为 rounded-md）
-          'md:sticky md:inset-x-auto md:z-20 md:shrink-0 md:max-w-[calc(100%_-_320px)]',
+          // 移动端（非桌面壳）：覆盖整个视口（面板自己的头行带关闭按钮，不必露出 AppHeader）
+          !isDesktopShell && 'fixed inset-x-0 z-30 md:sticky md:inset-x-auto md:z-20 md:shrink-0 md:max-w-[calc(100%_-_320px)]',
+          // 桌面端：始终回到文档流，成为与内容区并排的一列，绝不覆盖全屏
+          isDesktopShell && 'sticky inset-x-auto z-20 shrink-0 max-w-[calc(100%_-_240px)]',
           !isDesktopShell && 'md:border-s',
           desktopRoundedClass,
           /*
@@ -613,7 +595,9 @@ export function AiPanel({
           */
           !resizing &&
             motionEnabled &&
-            'md:motion-safe:transition-[width] md:motion-safe:duration-200 md:motion-safe:ease-out',
+            (isDesktopShell
+              ? 'motion-safe:transition-[width] motion-safe:duration-200 motion-safe:ease-out'
+              : 'md:motion-safe:transition-[width] md:motion-safe:duration-200 md:motion-safe:ease-out'),
           SHELL_PANEL_FRAME,
         )}
       >

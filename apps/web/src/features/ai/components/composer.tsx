@@ -44,6 +44,7 @@ import {
   type TaskItemData,
 } from '#/features/ai/components/task-card'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
+import { isDesktop } from '#/desktop/bridge'
 
 export interface AiComposerProps {
   className?: string
@@ -240,7 +241,7 @@ export function AiComposer({
   const { t } = useTranslation('ai')
   const [value, setValue] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
-  const isMobile = useIsMobileViewport()
+  const isMobile = !isDesktop() && useIsMobileViewport()
 
   /**
    * 两块浮层的**定位基准**：整块输入区。

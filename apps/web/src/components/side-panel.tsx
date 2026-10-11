@@ -1,4 +1,5 @@
 import { cn } from '#/lib/cn'
+import { isDesktop } from '#/desktop/bridge'
 import type { UsePanelResizeResult } from '#/lib/use-panel-resize'
 
 /**
@@ -82,7 +83,8 @@ export function SidePanelResizeHandle({
       tabIndex={0}
       aria-label={label}
       className={cn(
-        'group sticky z-10 -ms-1 -me-1 hidden w-2 shrink-0 cursor-col-resize focus:outline-none md:block',
+        'group sticky z-10 -ms-1 -me-1 w-2 shrink-0 cursor-col-resize focus:outline-none',
+        isDesktop() ? 'block' : 'hidden md:block',
         frame,
         className,
       )}
