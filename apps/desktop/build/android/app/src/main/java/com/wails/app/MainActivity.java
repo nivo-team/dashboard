@@ -22,6 +22,7 @@ import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.util.Base64;
 import android.util.Log;
+import android.view.View;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -85,6 +86,16 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 沉浸式透明状态栏：使网页内容完整延展至状态栏底部，安全区交由 CSS env(safe-area-inset-top) 精准接管
+        getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            getWindow().setDecorFitsSystemWindows(false);
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            );
+        }
+
         // Initialize the native Go library
         bridge = new WailsBridge(this);
         bridge.initialize();
@@ -94,6 +105,19 @@ public class MainActivity extends AppCompatActivity {
 
         // Load the application
         loadApplication();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (intent != null && intent.hasExtra("url")) {
+            String newUrl = intent.getStringExtra("url");
+            if (newUrl != null && !newUrl.trim().isEmpty() && webView != null) {
+                if (DEBUG) Log.d(TAG, "Navigating to new URL via Intent: " + newUrl);
+                webView.loadUrl(newUrl.trim());
+            }
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")

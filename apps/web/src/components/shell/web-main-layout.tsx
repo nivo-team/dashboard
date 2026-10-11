@@ -68,7 +68,12 @@ function WebSidebarBrandHeader() {
   const LogoIcon = brand.logoIcon
 
   return (
-    <Sidebar.Header className="flex items-center justify-between gap-1.5 px-2">
+    <Sidebar.Header
+      className={cn(
+        'flex items-center justify-between gap-1.5 px-2',
+        isMobile && 'pt-[env(safe-area-inset-top,0px)]',
+      )}
+    >
       <div className="min-w-0 flex-1">
         <div className="flex w-full min-w-0 items-center gap-2 rounded-lg p-1.5 text-start">
           <span className="flex size-7 shrink-0 items-center justify-center rounded-md text-kumo-default">
@@ -202,7 +207,7 @@ function WebMainHeader({
   leading?: React.ReactNode
 }) {
   return (
-    <header className="sticky top-0 z-10 flex h-[58px] shrink-0 items-center justify-between border-b border-kumo-line bg-kumo-canvas px-3 select-none md:px-4">
+    <header className="sticky top-0 z-10 flex h-[calc(58px+env(safe-area-inset-top,0px))] shrink-0 items-center justify-between border-b border-kumo-line bg-kumo-canvas px-3 pt-[env(safe-area-inset-top,0px)] select-none md:px-4">
       {/* 移动端汉堡按钮 */}
       <Sidebar.Trigger className="md:hidden" />
 

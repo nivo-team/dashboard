@@ -39,7 +39,7 @@ export function AuthHeader({ className = '', rightContrastOnLg }: AuthHeaderProp
     <header
       onDoubleClick={handleDesktopHeaderDoubleClick}
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 flex h-16 w-full items-center justify-between px-6 sm:px-10',
+        'fixed top-0 left-0 right-0 z-50 flex h-[calc(4rem+env(safe-area-inset-top,0px))] w-full items-center justify-between px-6 pt-[env(safe-area-inset-top,0px)] sm:px-10',
         isDesktop() ? 'select-none drag' : 'pointer-events-none',
         isDesktop() && 'pl-[var(--shell-traffic-light-w,78px)]',
         className,

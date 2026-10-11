@@ -68,7 +68,9 @@ export function SphereHeader({ appId }: { appId: string }) {
       onDoubleClick={handleDesktopHeaderDoubleClick}
       className={cn(
         'relative flex shrink-0 items-center justify-between px-3 select-none drag',
-        isDesktop() ? 'h-[var(--shell-chrome-h,40px)] border-b-0' : 'h-[58px] border-b border-kumo-line',
+        isDesktop()
+          ? 'h-[var(--shell-chrome-h,40px)] border-b-0'
+          : 'h-[calc(58px+env(safe-area-inset-top,0px))] border-b border-kumo-line pt-[env(safe-area-inset-top,0px)]',
         needsTrafficLightPad && 'pl-[var(--shell-traffic-light-w,78px)]',
       )}
     >

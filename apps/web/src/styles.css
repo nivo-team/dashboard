@@ -121,7 +121,7 @@
  */
 :root {
   --shell-chrome-h: 0px;
-  --shell-content-top: 58px;
+  --shell-content-top: calc(58px + env(safe-area-inset-top, 0px));
   /* 内容区（main / AI 面板）四周内缩的总量：桌面壳里是下面那层 `p-1` 的两侧之和 */
   --shell-content-inset: 0px;
   --shell-traffic-light-w: 0px;

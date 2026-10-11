@@ -35,7 +35,7 @@ export function AppHeader({
   return (
     <header
       onDoubleClick={handleDesktopHeaderDoubleClick}
-      className="sticky top-0 z-10 flex h-[58px] shrink-0 items-center gap-2 border-b border-kumo-line bg-kumo-canvas px-3 select-none md:px-4 drag"
+      className="sticky top-0 z-10 flex h-[calc(58px+env(safe-area-inset-top,0px))] shrink-0 items-center gap-2 border-b border-kumo-line bg-kumo-canvas px-3 pt-[env(safe-area-inset-top,0px)] select-none md:px-4 drag"
     >
       {/* 移动端打开侧边栏按钮；大屏幕下隐藏 */}
       <Sidebar.Trigger className="md:hidden no-drag" />

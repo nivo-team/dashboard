@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { AppSwitcher } from '#/components/app-switcher'
 import { ShortcutKbd } from '#/components/kbd'
 import { DEFAULT_APP_ID, isMultiAppEnabled, useAuth } from '#/lib/auth'
+import { cn } from '#/lib/cn'
 import { isDesktop } from '#/desktop/bridge'
 import {
   filterNavGroups,
@@ -242,7 +243,12 @@ export function AppSidebar({
   return (
     <Sidebar>
       {!isDesktop() ? (
-        <Sidebar.Header className="flex items-center justify-between gap-1.5 px-2">
+        <Sidebar.Header
+          className={cn(
+            'flex items-center justify-between gap-1.5 px-2',
+            isMobile && 'pt-[env(safe-area-inset-top,0px)]',
+          )}
+        >
           <div className="min-w-0 flex-1">
             <AppSwitcher />
           </div>
