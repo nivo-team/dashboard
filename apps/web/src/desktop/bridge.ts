@@ -68,8 +68,12 @@ declare global {
     __DESKTOP__?: boolean
     /** 当前窗口名称（如 'main' / 'sphere'）。 */
     __DESKTOP_WINDOW__?: string
-    /** 壳运行的操作系统平台（如 'darwin' / 'windows' / 'linux'）。 */
+    /** 壳运行的操作系统平台（如 'darwin' / 'windows' / 'linux' / 'android'）。 */
     __DESKTOP_PLATFORM__?: string
+    /** 宿主平台统一名称（如 'android' / 'darwin' / 'windows' / 'linux'）。 */
+    __PLATFORM__?: string
+    /** 是否为移动端设备/移动壳（如 Android）。 */
+    __IS_MOBILE__?: boolean
     /** 桌面端标题栏/红绿灯注入高度（px，默认 54）。 */
     __DESKTOP_TITLE_BAR_H__?: number
     /** 当前宿主平台是否支持窗口背景模糊与毛玻璃穿透。 */
@@ -157,8 +161,14 @@ let sequence = 0
  * （`apps/web/index.html`）在**任何应用代码之前**把它落地。默认 false ——
  * 浏览器、SSR、无标记的旧站点都走这条。
  */
+/**
+ * 判断当前是否处于桌面环境（PC 桌面端，如 macOS / Windows / Linux 窗口壳）。
+ *
+ * 关键区分：Android 等移动设备壳即便使用 Wails 启动，也不属于桌面端（走移动端全屏响应式布局与安全区）。
+ */
 export function isDesktop(): boolean {
   if (typeof window === 'undefined') return false
+  if (isMobileDevice() || isAndroid()) return false
   return (
     window.__DESKTOP__ === true ||
     document.documentElement.dataset.isDesktop === 'true' ||
@@ -166,17 +176,40 @@ export function isDesktop(): boolean {
   )
 }
 
-/** 桌面端标题栏/红绿灯高度（px），默认 40。 */
+/**
+ * 判断当前运行环境是否为移动设备（如 Android 手机应用、触屏设备等）。
+ */
+export function isMobileDevice(): boolean {
+  if (typeof window === 'undefined') return false
+  if (window.__IS_MOBILE__ === true || document.documentElement.dataset.isMobile === 'true') {
+    return true
+  }
+  const p = desktopPlatform()
+  if (p === 'android' || p === 'ios') return true
+  return false
+}
+
+/**
+ * 判断当前宿主平台是否为 Android。
+ */
+export function isAndroid(): boolean {
+  return desktopPlatform() === 'android'
+}
+
+/** 桌面端标题栏/红绿灯高度（px），默认 40。移动端恒为 0。 */
 export function desktopTitleBarHeight(): number {
   if (typeof window === 'undefined') return 40
+  if (isMobileDevice() || isAndroid()) return 0
   return window.__DESKTOP_TITLE_BAR_H__ ?? 40
 }
 
-/** 获取当前桌面壳运行平台（如 'darwin' / 'windows' / 'linux'；浏览器环境返回空字符串）。 */
+/** 获取当前宿主平台名称（如 'darwin' / 'windows' / 'linux' / 'android'；纯浏览器环境返回空字符串）。 */
 export function desktopPlatform(): string {
   if (typeof window === 'undefined') return ''
   return (
+    window.__PLATFORM__ ??
     window.__DESKTOP_PLATFORM__ ??
+    document.documentElement.dataset.platform ??
     document.documentElement.dataset.desktopPlatform ??
     ''
   )

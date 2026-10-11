@@ -103,7 +103,14 @@ export function SphereSidebar({ appId }: { appId: string }) {
           普通 Web 环境下在侧边栏内部保留原有的 Header。
         */}
         {!isDesktop() ? (
-          <Sidebar.Header className="flex h-[58px] shrink-0 items-center gap-2 border-b border-kumo-line px-3">
+          <Sidebar.Header
+            className={cn(
+              'flex shrink-0 items-center gap-2 border-b border-kumo-line px-3 group-data-[mobile=true]/sidebar:border-b-0',
+              isMobile
+                ? 'border-b-0 h-[calc(58px+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)]'
+                : 'h-[58px]',
+            )}
+          >
             <AiBotAvatar size={24} className="shrink-0" />
             <span className="min-w-0 flex-1 truncate text-sm font-medium text-kumo-default">
               {t('sphereTitle', '聊天')}

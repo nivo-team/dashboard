@@ -114,8 +114,9 @@ public class MainActivity extends AppCompatActivity {
         if (intent != null && intent.hasExtra("url")) {
             String newUrl = intent.getStringExtra("url");
             if (newUrl != null && !newUrl.trim().isEmpty() && webView != null) {
-                if (DEBUG) Log.d(TAG, "Navigating to new URL via Intent: " + newUrl);
-                webView.loadUrl(newUrl.trim());
+                String targetUrl = decorateUrl(newUrl.trim());
+                if (DEBUG) Log.d(TAG, "Navigating to new URL via Intent: " + targetUrl);
+                webView.loadUrl(targetUrl);
             }
         }
     }
@@ -223,6 +224,18 @@ public class MainActivity extends AppCompatActivity {
         webView.addJavascriptInterface(new WailsJSBridge(bridge, webView), "wails");
     }
 
+    private String decorateUrl(String url) {
+        if (url == null || url.trim().isEmpty()) return url;
+        String trimmed = url.trim();
+        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+            String delimiter = trimmed.contains("?") ? "&" : "?";
+            if (!trimmed.contains("__platform=")) {
+                trimmed += delimiter + "__platform=android&__mobile=1&__desktop=0&__desktop_platform=android";
+            }
+        }
+        return trimmed;
+    }
+
     private void loadApplication() {
         String url = null;
         if (getIntent() != null && getIntent().hasExtra("url")) {
@@ -242,8 +255,9 @@ public class MainActivity extends AppCompatActivity {
         if (url == null || url.trim().isEmpty()) {
             url = WAILS_SCHEME + "://" + WAILS_HOST + "/";
         }
-        if (DEBUG) Log.d(TAG, "Loading URL: " + url);
-        webView.loadUrl(url);
+        String finalUrl = decorateUrl(url);
+        if (DEBUG) Log.d(TAG, "Loading URL: " + finalUrl);
+        webView.loadUrl(finalUrl);
     }
 
     /**

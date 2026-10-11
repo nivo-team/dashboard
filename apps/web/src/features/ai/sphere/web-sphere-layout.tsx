@@ -37,7 +37,7 @@ function WebSphereLayoutBody({ appId }: { appId: string }) {
   const { leaving, notifyLeaveComplete } = useSphereTransition()
 
   return (
-    <div className="h-svh bg-kumo-canvas p-2">
+    <div className="h-svh bg-kumo-canvas p-0 md:p-2">
       <motion.div
         className="h-full min-h-0"
         initial={motionEnabled ? { opacity: 0, scale: 0.8 } : false}
@@ -61,7 +61,7 @@ function WebSphereLayoutBody({ appId }: { appId: string }) {
           defaultWidth={272}
           minWidth={220}
           maxWidth={420}
-          className="h-full min-h-0 gap-0 overflow-hidden rounded-xl border border-kumo-line"
+          className="h-full min-h-0 gap-0 overflow-hidden rounded-none border-0 md:rounded-xl md:border md:border-kumo-line"
         >
           <SphereSidebar appId={appId} />
           <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-kumo-base">

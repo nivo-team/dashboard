@@ -773,7 +773,8 @@ function AiPanelSurface({
       */}
       <header
         className={cn(
-          'relative z-10 flex h-[58px] shrink-0 items-center justify-between gap-2 bg-kumo-base px-2',
+          'relative z-10 flex shrink-0 items-center justify-between gap-2 bg-kumo-base px-2',
+          'h-[calc(58px+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)]',
           collapsed ? 'border-b-0' : 'border-b border-kumo-line',
         )}
       >
@@ -959,7 +960,7 @@ function AiPanelSurface({
             */}
             <AiConversationScroller className="z-10" />
 
-            <div className="relative z-10 shrink-0 p-3">
+            <div className="relative z-10 shrink-0 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
               {/*
                 「配置权限」入口只在**面板**给：全屏对话页的输入框不传这个回调 ——
                 那一页没有可替换的面板内容，改权限仍走设置页。

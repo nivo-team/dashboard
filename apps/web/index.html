@@ -31,7 +31,11 @@
           var STORE_KEY = 'admin.desktop'
 
           var params = new URLSearchParams(window.location.search)
-          var fromUrl = params.get('__desktop') === '1'
+          var fromUrl =
+            params.get('__desktop') === '1' ||
+            params.has('__platform') ||
+            params.has('__mobile') ||
+            params.has('__desktop_platform')
 
           var remembered = null
           try {
@@ -46,13 +50,19 @@
           var marks = {}
           var titleBarH = 40
           var platform = ''
+          var isMobile = false
           var blurSupported = false
           var blurReason = ''
           var windowName = 'main'
           if (fromUrl) {
             var rawH = parseInt(params.get('__desktop_title_bar_h'), 10)
             if (!isNaN(rawH) && rawH > 0) titleBarH = rawH
-            platform = params.get('__desktop_platform') || ''
+            platform = params.get('__platform') || params.get('__desktop_platform') || ''
+            isMobile =
+              params.get('__mobile') === '1' ||
+              params.get('__is_mobile') === '1' ||
+              platform === 'android' ||
+              platform === 'ios'
             blurSupported = params.get('__desktop_blur_supported') === '1'
             blurReason = params.get('__desktop_blur_reason') || ''
             windowName = params.get('__desktop_window') || 'main'
@@ -62,7 +72,10 @@
                 key === '__desktop_platform' ||
                 key === '__desktop_blur_supported' ||
                 key === '__desktop_blur_reason' ||
-                key === '__desktop_window'
+                key === '__desktop_window' ||
+                key === '__platform' ||
+                key === '__mobile' ||
+                key === '__is_mobile'
               )
                 return
               if (key.indexOf('__desktop_') === 0) marks[key.slice('__desktop_'.length)] = value
@@ -71,23 +84,39 @@
             marks = (remembered && remembered.marks) || {}
             if (remembered && remembered.titleBarH) titleBarH = remembered.titleBarH
             if (remembered && remembered.platform) platform = remembered.platform
+            if (remembered && typeof remembered.isMobile === 'boolean')
+              isMobile = remembered.isMobile
             if (remembered && typeof remembered.blurSupported === 'boolean')
               blurSupported = remembered.blurSupported
             if (remembered && remembered.blurReason) blurReason = remembered.blurReason
             if (remembered && remembered.windowName) windowName = remembered.windowName
           }
 
-          window.__DESKTOP__ = true
+          var isDesktop = !isMobile && platform !== 'android' && platform !== 'ios'
+          window.__DESKTOP__ = isDesktop
+          window.__IS_MOBILE__ = isMobile
+          window.__PLATFORM__ = platform || (isDesktop ? 'desktop' : 'web')
           window.__DESKTOP_PLATFORM__ = platform
           window.__DESKTOP_WINDOW__ = windowName
-          window.__DESKTOP_TITLE_BAR_H__ = titleBarH
+          window.__DESKTOP_TITLE_BAR_H__ = isDesktop ? titleBarH : 0
           window.__DESKTOP_MARKS__ = marks
           window.__DESKTOP_BLUR_SUPPORTED__ = blurSupported
           window.__DESKTOP_BLUR_REASON__ = blurReason
+
           var root = document.documentElement
-          root.classList.add('is_desktop')
-          root.dataset.isDesktop = 'true'
+          root.dataset.isDesktop = isDesktop ? 'true' : 'false'
+          root.dataset.isMobile = isMobile ? 'true' : 'false'
+          if (platform) root.dataset.platform = platform
           root.dataset.desktopWindow = windowName
+
+          if (isDesktop) {
+            root.classList.add('is_desktop')
+            root.classList.remove('is_mobile')
+          } else if (isMobile) {
+            root.classList.remove('is_desktop')
+            root.classList.add('is_mobile')
+            if (platform) root.classList.add('platform_' + platform)
+          }
           var blurEnabled = true
           try {
             var shellUiRaw = window.localStorage.getItem('admin.shell-ui')
@@ -127,6 +156,7 @@
                   marks: marks,
                   titleBarH: titleBarH,
                   platform: platform,
+                  isMobile: isMobile,
                   blurSupported: blurSupported,
                   blurReason: blurReason,
                   windowName: windowName,

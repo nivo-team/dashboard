@@ -206,10 +206,18 @@ func (c Config) StartURL() (string, error) {
 	}
 
 	query := parsed.Query()
-	query.Set(FlagKey, "1")
 	platform := c.Platform
 	if platform == "" {
 		platform = runtime.GOOS
+	}
+	if platform == "android" || platform == "ios" {
+		query.Set(FlagKey, "0")
+		query.Set("__mobile", "1")
+		query.Set("__platform", platform)
+	} else {
+		query.Set(FlagKey, "1")
+		query.Set("__mobile", "0")
+		query.Set("__platform", platform)
 	}
 	query.Set(FlagPlatformKey, platform)
 	if c.BlurSupported {

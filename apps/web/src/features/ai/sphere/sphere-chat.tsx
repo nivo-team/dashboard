@@ -58,9 +58,9 @@ export function SphereChat() {
       {/*
         上沿不画分隔线（见文件头注释）。
         输入区是「被显示的一部分」，所以跟着同一档宽度走：外层 `p-3` 铺满负责下边距，
-        内层用同一份宽度类与上方内容对齐。
+        并在移动端适配底部全面屏手势安全区，内层用同一份宽度类与上方内容对齐。
       */}
-      <div className="shrink-0 p-3">
+      <div className="shrink-0 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
         <div className={widthClass}>
           {/*
             显式声明容器是**全屏**：它决定跳转落成"建议卡"而不是"确认卡"，也决定

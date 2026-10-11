@@ -245,8 +245,8 @@ export function AppSidebar({
       {!isDesktop() ? (
         <Sidebar.Header
           className={cn(
-            'flex items-center justify-between gap-1.5 px-2',
-            isMobile && 'pt-[env(safe-area-inset-top,0px)]',
+            'flex items-center justify-between gap-1.5 px-2 group-data-[mobile=true]/sidebar:border-b-0',
+            isMobile && 'border-b-0 h-[calc(58px+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)]',
           )}
         >
           <div className="min-w-0 flex-1">
