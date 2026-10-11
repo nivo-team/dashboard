@@ -213,11 +213,11 @@ export async function openSettingsWindow(path = '/settings/profile'): Promise<bo
   })
 }
 
-/** 是否处于独立极简（超简洁布局：无侧边栏、无标签条）桌面子窗口中。 */
+/** 是否处于独立页面工作区窗口（无左侧主侧栏、带 Tabs）中。 */
 export function isStandaloneWindow(): boolean {
   if (!isDesktop()) return false
   const name = desktopWindowName()
-  if (name.startsWith('standalone')) return true
+  if (name.startsWith('standalone') || name.startsWith('page_')) return true
   if (typeof window !== 'undefined') {
     const params = new URLSearchParams(window.location.search)
     if (params.get('__layout') === 'standalone' || params.get('__standalone') === '1') {
@@ -248,6 +248,22 @@ export async function openDesktopWindow(options: OpenDesktopWindowOptions): Prom
     return Boolean(res?.success)
   } catch (error) {
     console.error('[desktop] openDesktopWindow 失败：', error)
+    return false
+  }
+}
+
+/** 关闭当前（或指定名称的）桌面独立窗口 */
+export async function closeDesktopWindow(name?: string): Promise<boolean> {
+  if (!isDesktop()) {
+    if (typeof window !== 'undefined') window.close()
+    return true
+  }
+  const targetName = name || desktopWindowName()
+  try {
+    await invoke('window.close', { name: targetName } as any)
+    return true
+  } catch {
+    if (typeof window !== 'undefined') window.close()
     return false
   }
 }

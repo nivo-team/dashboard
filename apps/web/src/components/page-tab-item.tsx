@@ -14,9 +14,19 @@ import {
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '#/lib/cn'
-import { isDesktop, openDesktopWindow } from '#/desktop/bridge'
-import { setTabTransferData } from '#/desktop/tab-transfer'
-import type { PageTab } from '#/lib/page-tabs'
+import { isDesktop, openDesktopWindow, desktopWindowName } from '#/desktop/bridge'
+import {
+  getTabTransferData,
+  broadcastTabTransferred,
+  isDragReleasedOutsideWindow,
+  wasTabRecentlyTransferred,
+  startTabDragSession,
+  markDragHandled,
+  endTabDragSession,
+  isTabExchangeAllowedWindow,
+  TAB_TRANSFER_MIME,
+} from '#/desktop/tab-transfer'
+import { usePageTabsStore, resolvePageTab, type PageTab } from '#/lib/page-tabs'
 
 /**
  * 标签条上的**单个标签**：点击切换、中键 / ✕ 关闭、右键菜单、拖拽排序；固定的只显示图标。
@@ -39,6 +49,8 @@ export interface TabActions {
   closeSide: (to: string, physical: 'left' | 'right') => void
   closeAll: () => void
   togglePinned: (to: string) => void
+  /** 标签排序移动 */
+  moveTab?: (from: string, to: string) => void
 }
 
 export type PageTabVariant = 'chrome' | 'plain'
@@ -98,13 +110,15 @@ export function PageTabItem({
   const [menuOpen, setMenuOpen] = useState(false)
 
   const pinned = !!tab.pinned
+  const isDesktopShell = isDesktop()
+  const [isDragOverThisTab, setIsDragOverThisTab] = useState(false)
 
   /** 拖的是另一组的标签：自己这一组完全不参与（不可拖、不可落、不位移） */
   const foreignGroup = dragPinned !== null && dragPinned !== pinned
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: tab.to,
-    disabled: { draggable: foreignGroup, droppable: foreignGroup },
+    disabled: isDesktopShell || { draggable: foreignGroup, droppable: foreignGroup },
   })
 
   const stackClass = isDragging ? 'z-20 opacity-80' : active ? 'z-10' : undefined
@@ -118,10 +132,9 @@ export function PageTabItem({
 
   const handleOpenInNew = () => {
     if (isDesktop()) {
-      const targetUrl = tab.to.includes('?')
-        ? `${tab.to}&__layout=standalone`
-        : `${tab.to}?__layout=standalone`
-      const windowName = `standalone_${tab.to.replace(/[^a-zA-Z0-9_]/g, '_')}`
+      const cleanTo = tab.to.split('?')[0].split('#')[0]
+      const targetUrl = `${cleanTo}?__layout=standalone`
+      const windowName = `page_${Date.now()}`
       void openDesktopWindow({
         path: targetUrl,
         name: windowName,
@@ -136,6 +149,111 @@ export function PageTabItem({
         window.open(tab.to, '_blank')
       }
     }
+  }
+
+  // 原生拖拽事件：同时支持同窗口排序与跨窗口流转
+  const handleNativeDragStart = (event: React.DragEvent) => {
+    if (!isDesktopShell) return
+    startTabDragSession(event.dataTransfer, tab)
+    markDragEnd()
+  }
+
+  const handleNativeDragOver = (event: React.DragEvent) => {
+    if (!isDesktopShell) return
+    if (event.dataTransfer.types.includes(TAB_TRANSFER_MIME)) {
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+      if (!isDragOverThisTab) {
+        setIsDragOverThisTab(true)
+      }
+    }
+  }
+
+  const handleNativeDragLeave = (event: React.DragEvent) => {
+    if (!isDesktopShell) return
+    if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+      setIsDragOverThisTab(false)
+    }
+  }
+
+  const handleNativeDrop = (event: React.DragEvent) => {
+    if (!isDesktopShell) return
+    setIsDragOverThisTab(false)
+    const data = getTabTransferData(event.dataTransfer)
+    if (!data) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    markDragHandled()
+    const currentWindow = desktopWindowName()
+
+    // 窗口类型安全校验：只有主窗口 (main) 与页面辅助窗口 (page_*) 允许进行 Tabs 交换
+    if (!isTabExchangeAllowedWindow(currentWindow) || !isTabExchangeAllowedWindow(data.sourceWindow)) {
+      return
+    }
+
+    if (data.sourceWindow === currentWindow) {
+      // 同一个窗口内：直接将拖拽源移动到当前标签位置
+      if (data.to !== tab.to) {
+        actions.moveTab?.(data.to, tab.to)
+      }
+    } else {
+      // 跨窗口拖入：归一化路径并从导航清单重建完整 PageTab，确保精准包含 icon
+      const cleanTo = data.to.split('?')[0].split('#')[0]
+      const resolved = resolvePageTab(cleanTo)
+      const incomingTab: PageTab = {
+        ...(resolved ?? { to: cleanTo, label: data.label }),
+        label: resolved?.label ?? data.label,
+        labelKey: resolved?.labelKey ?? data.labelKey,
+        pinned: data.pinned,
+      }
+      usePageTabsStore.getState().openTab(incomingTab)
+      usePageTabsStore.getState().moveTab(cleanTo, tab.to)
+      actions.activate(cleanTo)
+
+      // 广播通知源窗口交接完成
+      broadcastTabTransferred(data)
+    }
+  }
+
+  // 原生拖拽结束：如果直接拖出当前窗口并在桌面释放，触发「撕下标签页成新窗口」
+  const handleNativeDragEnd = (event: React.DragEvent) => {
+    if (!isDesktopShell) return
+    setIsDragOverThisTab(false)
+    const dragSession = endTabDragSession()
+
+    // 1. 若已被同窗口 drop 或其他窗口接收，拖拽已妥善安置，绝不触发新开窗口
+    if (dragSession?.isHandled || wasTabRecentlyTransferred(tab.to)) {
+      return
+    }
+
+    // 2. 检测释放坐标是否已拖出当前窗口边界
+    if (!isDragReleasedOutsideWindow(event)) {
+      return
+    }
+
+    // 3. 若当前窗口已是独立子窗口且仅有这一个 Tab，无需重复拆出
+    const currentWindow = desktopWindowName()
+    const currentTabs = usePageTabsStore.getState().tabs
+    if (currentWindow !== 'main' && currentTabs.length <= 1) {
+      return
+    }
+
+    // 4. 触发「拖出窗口 = 独立新窗口打开」
+    const cleanTo = tab.to.split('?')[0].split('#')[0]
+    const targetUrl = `${cleanTo}?__layout=standalone`
+    const windowName = `page_${Date.now()}`
+
+    void openDesktopWindow({
+      path: targetUrl,
+      name: windowName,
+      title: label || 'Nivo Admin',
+      width: 1120,
+      height: 760,
+    })
+
+    // 从原窗口中移除该 Tab
+    actions.close(tab.to)
   }
 
   return (
@@ -184,12 +302,12 @@ export function PageTabItem({
                 actions.activate(tab.to)
               }
             }}
-            draggable={isDesktop()}
-            onDragStart={(event) => {
-              if (isDesktop()) {
-                setTabTransferData(event.dataTransfer, tab)
-              }
-            }}
+            draggable={isDesktopShell}
+            onDragStart={handleNativeDragStart}
+            onDragOver={handleNativeDragOver}
+            onDragLeave={handleNativeDragLeave}
+            onDrop={handleNativeDrop}
+            onDragEnd={handleNativeDragEnd}
             className={cn(
               'group/tab relative flex h-full shrink-0 cursor-pointer select-none items-center outline-none no-drag',
               stackClass,
@@ -206,6 +324,7 @@ export function PageTabItem({
             <div
               className={cn(
                 'relative flex min-w-0 shrink-0 items-center rounded-md border transition-colors',
+                isDragOverThisTab && 'ring-2 ring-kumo-brand ring-offset-1',
                 pinned
                   ? chrome
                     ? 'size-7 justify-center p-0'
@@ -251,9 +370,12 @@ export function PageTabItem({
               <button
                 type="button"
                 data-tab-close
+                draggable={false}
                 aria-label={t('pageTabs.close', { defaultValue: '关闭 {{label}}', label })}
                 onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => {
+                  e.preventDefault()
                   e.stopPropagation()
                   actions.close(tab.to)
                 }}

@@ -97,7 +97,9 @@ function longestPrefixMatch<T extends { to: string }>(
  * 此时给它开一个叫「console」的标签只是闪一下的垃圾。
  */
 export function resolvePageTab(pathname: string): PageTab | null {
-  const segments = pathname.split('/').filter(Boolean)
+  // 严格剥离任何 query 参数与 hash 锚点，确保 Tab 标识始终为归一化的干净路径
+  const cleanPath = pathname.split('?')[0].split('#')[0]
+  const segments = cleanPath.split('/').filter(Boolean)
   if (segments.length < 2) return null
 
   const appId = segments[0]
@@ -112,7 +114,7 @@ export function resolvePageTab(pathname: string): PageTab | null {
     真撞上就取路径更长的那个 —— 与「更具体优先」同一条规则。
   */
   const businessHit = longestPrefixMatch(ALL_NAV_TARGETS, subPath)
-  const shellHit = longestPrefixMatch(ALL_SHELL_NAV_TARGETS, pathname)
+  const shellHit = longestPrefixMatch(ALL_SHELL_NAV_TARGETS, cleanPath)
   const businessTo = businessHit ? `/${appId}${businessHit.to}` : ''
 
   if (businessHit && businessTo.length >= (shellHit?.to.length ?? 0)) {
@@ -134,7 +136,7 @@ export function resolvePageTab(pathname: string): PageTab | null {
   }
 
   // 没登记进导航的路径（外壳内的 404、将来只带动态段的新页面）：拿最后一段当标题
-  return { to: pathname, label: segments[segments.length - 1] }
+  return { to: cleanPath, label: segments[segments.length - 1] }
 }
 
 interface PageTabsState {
@@ -194,21 +196,27 @@ interface PersistedPageTab {
   pinned?: boolean
 }
 
+function cleanTabPath(path: string): string {
+  return path.split('?')[0].split('#')[0]
+}
+
 export const usePageTabsStore = create<PageTabsState>()(
   persist(
     (set) => ({
       tabs: [],
       openTab: (tab) =>
         set((state) => {
-          const index = state.tabs.findIndex((item) => item.to === tab.to)
-          if (index === -1) return { tabs: normalizeTabs([...state.tabs, tab]) }
+          const targetTo = cleanTabPath(tab.to)
+          const normalizedTab = { ...tab, to: targetTo }
+          const index = state.tabs.findIndex((item) => cleanTabPath(item.to) === targetTo)
+          if (index === -1) return { tabs: normalizeTabs([...state.tabs, normalizedTab]) }
           /*
             已存在：只在「解析结果变了」时替换（例如同一个标签先由兜底文案建出来、
             随后导航清单里有了正式名称）。内容一样就返回原 state，避免无谓的重渲染。
             **固定态以存档为准**：`resolvePageTab` 不产生 `pinned`，直接覆盖会把固定态抹掉。
           */
           const existing = state.tabs[index]
-          const next: PageTab = { ...tab, pinned: existing.pinned }
+          const next: PageTab = { ...normalizedTab, pinned: existing.pinned }
           const same =
             existing.label === next.label &&
             existing.labelKey === next.labelKey &&
@@ -218,12 +226,21 @@ export const usePageTabsStore = create<PageTabsState>()(
           tabs[index] = next
           return { tabs }
         }),
-      removeTab: (to) => set((state) => ({ tabs: state.tabs.filter((item) => item.to !== to) })),
-      closeOthers: (to) => set((state) => ({ tabs: state.tabs.filter((item) => item.to === to) })),
+      removeTab: (to) =>
+        set((state) => {
+          const target = cleanTabPath(to)
+          return { tabs: state.tabs.filter((item) => cleanTabPath(item.to) !== target) }
+        }),
+      closeOthers: (to) =>
+        set((state) => {
+          const target = cleanTabPath(to)
+          return { tabs: state.tabs.filter((item) => cleanTabPath(item.to) === target) }
+        }),
       closeAll: () => set({ tabs: [] }),
       closeSide: (to, side) =>
         set((state) => {
-          const index = state.tabs.findIndex((item) => item.to === to)
+          const target = cleanTabPath(to)
+          const index = state.tabs.findIndex((item) => cleanTabPath(item.to) === target)
           if (index === -1) return state
           return {
             // 固定的留着：它们本来就在两端，不该被「关闭左侧 / 右侧」顺手带走
@@ -233,15 +250,22 @@ export const usePageTabsStore = create<PageTabsState>()(
           }
         }),
       togglePinned: (to) =>
-        set((state) => ({
-          tabs: normalizeTabs(
-            state.tabs.map((item) => (item.to === to ? { ...item, pinned: !item.pinned } : item)),
-          ),
-        })),
+        set((state) => {
+          const target = cleanTabPath(to)
+          return {
+            tabs: normalizeTabs(
+              state.tabs.map((item) =>
+                cleanTabPath(item.to) === target ? { ...item, pinned: !item.pinned } : item,
+              ),
+            ),
+          }
+        }),
       moveTab: (from, to) =>
         set((state) => {
-          const oldIndex = state.tabs.findIndex((item) => item.to === from)
-          const newIndex = state.tabs.findIndex((item) => item.to === to)
+          const fromTarget = cleanTabPath(from)
+          const toTarget = cleanTabPath(to)
+          const oldIndex = state.tabs.findIndex((item) => cleanTabPath(item.to) === fromTarget)
+          const newIndex = state.tabs.findIndex((item) => cleanTabPath(item.to) === toTarget)
           if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return state
           const tab = state.tabs[oldIndex]
           const target = clampToGroup(newIndex, !!tab.pinned, state.tabs)

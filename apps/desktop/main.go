@@ -21,6 +21,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -240,9 +241,13 @@ func registerWindowMethods(registry *bridge.Registry, app *application.App, wind
 		if req.Name == "" {
 			req.Name = "sphere"
 		}
+		// 规范化命名：独立页面窗口统一映射为 page_*
+		if strings.HasPrefix(req.Name, "standalone_") {
+			req.Name = "page_" + strings.TrimPrefix(req.Name, "standalone_")
+		}
 
 		log.Printf("[desktop] 收到 window.open: name=%s, path=%s", req.Name, req.Path)
-		// 若对应命名的独立窗口已存在，则激活置顶展示
+		// 若对应命名的独立窗口已存在（如 sphere / settings 单例），则激活置顶展示
 		if existing, ok := app.Window.GetByName(req.Name); ok {
 			if win, ok := existing.(*application.WebviewWindow); ok {
 				win.Show()
@@ -335,7 +340,28 @@ func registerWindowMethods(registry *bridge.Registry, app *application.App, wind
 		return windowState(window), nil
 	})
 
-	registry.Handle(bridge.WindowClose, func(json.RawMessage) (any, error) {
+	registry.Handle(bridge.WindowClose, func(payload json.RawMessage) (any, error) {
+		var req struct {
+			Name string `json:"name"`
+		}
+		if len(payload) > 0 {
+			_ = json.Unmarshal(payload, &req)
+		}
+		if req.Name != "" {
+			if target, ok := app.Window.GetByName(req.Name); ok {
+				if win, ok := target.(*application.WebviewWindow); ok {
+					// 立即在屏幕上隐藏窗口，提供零延迟关闭体验
+					win.Hide()
+					// 延迟安全销毁：确保 macOS AppKit 的原生拖拽/输入会话（NSDraggingSession）
+					// 已经完全结束释放，避免跨窗口拖拽合并时触发 use-after-free 原生段错误
+					go func() {
+						time.Sleep(300 * time.Millisecond)
+						win.Close()
+					}()
+					return nil, nil
+				}
+			}
+		}
 		window.Close()
 		return nil, nil
 	})

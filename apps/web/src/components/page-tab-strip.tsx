@@ -27,8 +27,10 @@ import {
   getTabTransferData,
   broadcastTabTransferred,
   subscribeTabTransferred,
+  markDragHandled,
+  isTabExchangeAllowedWindow,
 } from '#/desktop/tab-transfer'
-import { desktopWindowName, isDesktop } from '#/desktop/bridge'
+import { desktopWindowName, isDesktop, closeDesktopWindow } from '#/desktop/bridge'
 
 export interface PageTabStripProps {
   /**
@@ -130,7 +132,18 @@ export function PageTabStrip({
     const currentWindow = desktopWindowName()
     const unsubscribe = subscribeTabTransferred((payload) => {
       if (payload.sourceWindow === currentWindow) {
+        const currentTabs = usePageTabsStore.getState().tabs
+        const remaining = currentTabs.filter((t) => t.to !== payload.to)
+
         actions.close(payload.to)
+
+        // 若当前为独立子窗口且所有 Tab 均已转移到其他窗口（仅剩 1 个并被移走），延迟 150ms 确保原生拖拽会话释放后安全关闭
+        if (currentWindow !== 'main' && remaining.length === 0) {
+          setTimeout(() => {
+            void closeDesktopWindow(currentWindow)
+          }, 150)
+          return
+        }
       }
     })
     return unsubscribe
@@ -161,21 +174,35 @@ export function PageTabStrip({
     if (!data) return
 
     e.preventDefault()
+    markDragHandled()
     const currentWindow = desktopWindowName()
+
+    // 窗口白名单校验：只有 main 与 page_* 页面窗口允许互相交换 Tabs
+    if (!isTabExchangeAllowedWindow(currentWindow) || !isTabExchangeAllowedWindow(data.sourceWindow)) {
+      return
+    }
 
     // 只有当 Tab 来自其它窗口时，才触发跨窗口接收合并
     if (data.sourceWindow !== currentWindow) {
+      const cleanTo = data.to.split('?')[0].split('#')[0]
+      const resolved = resolvePageTab(cleanTo)
       const incomingTab: PageTab = {
-        to: data.to,
-        label: data.label,
-        labelKey: data.labelKey,
+        ...(resolved ?? { to: cleanTo, label: data.label }),
+        label: resolved?.label ?? data.label,
+        labelKey: resolved?.labelKey ?? data.labelKey,
         pinned: data.pinned,
       }
       openTab(incomingTab)
-      actions.activate(data.to)
+      actions.activate(cleanTo)
 
       // 广播通知源窗口交接完成
       broadcastTabTransferred(data)
+    } else {
+      // 同一窗口内拖到尾部空白区：移动到末尾未固定位置
+      const lastUnpinned = unpinnedEntries[unpinnedEntries.length - 1]
+      if (lastUnpinned && lastUnpinned.tab.to !== data.to) {
+        actions.moveTab?.(data.to, lastUnpinned.tab.to)
+      }
     }
   }
 
@@ -425,6 +452,13 @@ function useTabActions(homeTo: string, activeTo: string | null): TabActions {
         const rest = before.filter((tab) => tab.to !== to)
         const neighbor = rest[index] ?? rest[index - 1]
         snapshot().removeTab(to)
+
+        // 核心拦截：独立子窗口（非主窗口）在最后一个 Tab 被关闭或移出时，绝不回退到 homeTo 重开仪表盘，而是立即退出关闭
+        if (isDesktop() && desktopWindowName() !== 'main' && rest.length === 0) {
+          void closeDesktopWindow(desktopWindowName())
+          return
+        }
+
         settleAt(neighbor?.to ?? homeTo)
       },
 
@@ -442,10 +476,16 @@ function useTabActions(homeTo: string, activeTo: string | null): TabActions {
 
       closeAll: () => {
         snapshot().closeAll()
+        if (isDesktop() && desktopWindowName() !== 'main') {
+          void closeDesktopWindow(desktopWindowName())
+          return
+        }
         settleAt(homeTo)
       },
 
       togglePinned: (to) => snapshot().togglePinned(to),
+
+      moveTab: (from, to) => snapshot().moveTab(from, to),
     }
   }, [activeTo, homeTo, isRtl, navigate])
 }

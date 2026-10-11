@@ -7,7 +7,7 @@ import { PageTabStrip } from '#/components/page-tab-strip'
 import { AiPanel } from '#/features/ai/components/panel'
 import { DesktopHistoryNav } from './title-bar'
 import { cn } from '#/lib/cn'
-import { handleDesktopHeaderDoubleClick, useDesktopBlurred } from './bridge'
+import { handleDesktopHeaderDoubleClick, useDesktopBlurred, closeDesktopWindow } from './bridge'
 import { useUserPermissions } from '#/lib/permissions'
 import { usePreferencesStore } from '#/lib/store'
 import { usePageTabsStore } from '#/lib/page-tabs'
@@ -92,10 +92,10 @@ export function DesktopStandaloneLayout({ children }: { children?: ReactNode }) 
   useEffect(() => {
     // 延迟检查，避免首屏初次加载阶段触发
     const timer = setTimeout(() => {
-      if (tabs.length === 0 && typeof window !== 'undefined') {
-        window.close()
+      if (tabs.length === 0) {
+        void closeDesktopWindow()
       }
-    }, 500)
+    }, 300)
     return () => clearTimeout(timer)
   }, [tabs.length])
 
@@ -119,7 +119,7 @@ export function DesktopStandaloneLayout({ children }: { children?: ReactNode }) 
     <div
       data-desktop-chrome
       data-desktop-standalone
-      className="flex h-svh w-svw flex-col overflow-hidden bg-kumo-canvas select-text"
+      className="flex h-svh w-svw flex-col overflow-hidden bg-transparent select-text"
     >
       <DesktopStandaloneTitleBar
         onToggleAskAi={handleToggleAskAi}
@@ -130,11 +130,11 @@ export function DesktopStandaloneLayout({ children }: { children?: ReactNode }) 
       {/* 工作区容器：避让顶部 40px 窗口条，内容与 AI 面板之间设置 gap-1 px-2 pb-2 */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col pt-[var(--shell-chrome-h,40px)]">
         <div className="flex min-h-0 min-w-0 flex-1 gap-1 px-2 pb-2">
-          {/* 主内容列 */}
-          <div className="flex min-w-0 flex-1 flex-col h-full min-h-0 overflow-hidden rounded-lg bg-kumo-canvas">
+          {/* 主内容列：内嵌圆角卡片，承载背景色并透出外层毛玻璃 */}
+          <div className="flex min-w-0 flex-1 flex-col h-full min-h-0 overflow-hidden rounded-lg bg-kumo-canvas shadow-xs">
             <main
               data-shell-content
-              className="flex-1 min-h-0 overflow-y-auto"
+              className="flex-1 min-h-0 overflow-y-auto px-4 py-4 md:px-6 md:py-5 lg:px-8 lg:py-6"
             >
               <DetailPreviewProvider>
                 {children ?? <Outlet />}
