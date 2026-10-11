@@ -977,3 +977,24 @@ main[data-shell-content]:has([data-notfound]) [data-detail-preview-main] {
     transparent 100%
   );
 }
+
+/*
+ * 全局模态遮罩与命令面板（CommandPalette / Dialog）最高层级与防穿透保护。
+ *
+ * 页面内部存在桌面窗口条（z-40）、侧边栏（z-20）等定位层级；
+ * Kumo 默认未给 DialogBackdrop 与弹窗浮层显式声明 z-index，导致遮罩被页面内高层级元素穿透。
+ * 此处规范层级秩序：
+ * 1. 模态遮罩层提升至 z-50，彻底盖过并阻隔底层页面与输入框；
+ * 2. 弹窗浮层（Portal 内非遮罩元素、通用兄弟节点与 role=dialog 元素）提升至 z-[51]，
+ *    确保绝对置于遮罩正上方，解除暗色蒙层遮蔽，交互、点击与输入清晰无阻。
+ */
+.bg-kumo-overlay,
+div[role='presentation'].bg-kumo-overlay {
+  z-index: 50 !important;
+}
+
+[data-base-ui-portal] > div:not(.bg-kumo-overlay),
+.bg-kumo-overlay ~ div:not(.bg-kumo-overlay),
+div[role='dialog'].fixed {
+  z-index: 51 !important;
+}
