@@ -31,8 +31,8 @@ import (
 	"github.com/nivo-team/dashboard/apps/desktop/internal/shell"
 )
 
-// version 由构建时注入：-ldflags "-X main.version=1.2.3"（页面侧可用 core.info 读到）。
-var version = "dev"
+// version 由构建时注入：-ldflags "-X main.version=0.0.1-alpha"（页面侧可用 core.info 读到）。
+var version = "0.0.1-alpha"
 
 var (
 	currentThemeMode     = "system"

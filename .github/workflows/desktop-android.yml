@@ -1,0 +1,152 @@
+name: Desktop & Android CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      desktop_url:
+        description: '前端远程加载地址 (DESKTOP_URL)'
+        required: false
+        default: 'https://admin.example.com'
+      app_version:
+        description: '发布版本号'
+        required: false
+        default: '0.0.1-alpha'
+  push:
+    branches: [main, canary]
+    paths:
+      - 'apps/desktop/**'
+      - '.github/workflows/desktop-android.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+
+concurrency:
+  group: desktop-android-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: 协议层与跨平台静态检查
+    runs-on: macos-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: apps/desktop/go.sum
+
+      - name: 运行桌面端测试
+        run: go -C apps/desktop test ./...
+
+      - name: 检查方法目录生成物最新状态
+        run: go -C apps/desktop run ./cmd/genbindings -check
+
+  build-macos:
+    name: 构建 macOS 桌面端
+    needs: test
+    runs-on: macos-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: apps/desktop/go.sum
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建 macOS 二进制
+        env:
+          DESKTOP_URL: ${{ github.event.inputs.desktop_url || 'https://admin.example.com' }}
+          APP_VERSION: ${{ github.event.inputs.app_version || '0.0.1-alpha' }}
+        run: pnpm desktop:build
+
+      - name: 上传 macOS 桌面产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: nivo-desktop-macos-${{ github.event.inputs.app_version || '0.0.1-alpha' }}
+          path: apps/desktop/dist/nivo-desktop
+          if-no-files-found: error
+
+  build-android:
+    name: 构建 Android APK
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: apps/desktop/go.sum
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 安装 Android 构建工具与 NDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;26.3.11579264"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.3.11579264" >> $GITHUB_ENV
+
+      - name: 安装 Wails v3 CLI
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建 Android Release APK
+        env:
+          DESKTOP_URL: ${{ github.event.inputs.desktop_url || 'https://admin.example.com' }}
+          APP_VERSION: ${{ github.event.inputs.app_version || '0.0.1-alpha' }}
+          GRADLE_USER_HOME: ${{ github.workspace }}/.gradle-cache
+        run: pnpm desktop:android:build --release
+
+      - name: 上传 Android APK 产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: nivo-admin-android-apk-${{ github.event.inputs.app_version || '0.0.1-alpha' }}
+          path: apps/desktop/dist/nivo-admin.apk
+          if-no-files-found: error

@@ -21,6 +21,7 @@ const appDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const LDVAR = 'github.com/nivo-team/dashboard/apps/desktop/internal/shell.DefaultURL'
 
 const url = (process.env.DESKTOP_URL ?? '').trim()
+const appVersion = (process.env.APP_VERSION ?? '0.0.1-alpha').trim()
 
 if (!url) {
   console.error(
@@ -46,7 +47,16 @@ if (/^https?:\/\/(localhost|127\.0\.0\.1)/.test(url)) {
 
 const result = spawnSync(
   'go',
-  ['build', '-tags', 'release,private_mac_apis', '-ldflags', `-X ${LDVAR}=${url}`, '-o', 'dist/nivo-desktop', '.'],
+  [
+    'build',
+    '-tags',
+    'release,private_mac_apis',
+    '-ldflags',
+    `-X ${LDVAR}=${url} -X main.version=${appVersion}`,
+    '-o',
+    'dist/nivo-desktop',
+    '.',
+  ],
   { cwd: appDir, stdio: 'inherit' },
 )
 

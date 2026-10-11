@@ -34,6 +34,8 @@ pnpm desktop:test     # 桌面壳的 Go 测试（协议层护栏）
 pnpm desktop:bindings # 由 Go 方法目录生成页面侧 bridge 类型（apps/web/src/desktop/generated/）
 pnpm desktop:bindings:check  # 校验生成物是否为最新（CI / 提交前）
 pnpm desktop:build    # 桌面壳出发布产物（地址来自构建环境 DESKTOP_URL，见 apps/desktop/README.md）
+pnpm desktop:android:build  # 桌面壳 Android 构建（打包 APK，见 apps/desktop/README.md）
+pnpm desktop:android:env    # 检测 Android 构建环境（JDK / SDK / NDK / CLI）
 pnpm build            # 前端生产构建（走 vp build，输出 apps/web/dist）
 pnpm preview          # 预览前端构建产物
 pnpm typecheck        # tsc --noEmit

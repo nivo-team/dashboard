@@ -1,5 +1,8 @@
 version: '3'
 
+includes:
+  android: ./build/android/Taskfile.yml
+
 # `wails3 build` / `wails3 package` 走这里（CLI 内置 go-task，`build` 会执行 build 任务）。
 #
 # 只保留这个壳真正用得上的任务：Wails 模板工程那套 per-OS 打包 / docker / msix /

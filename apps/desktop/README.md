@@ -265,6 +265,75 @@ go -C apps/desktop build -tags release -o dist/nivo-desktop \
 没给 `DESKTOP_URL` 时构建脚本**直接失败**并说明怎么补；万一拿到一个没编地址的发布产物，
 它启动时会明确报错而不是开一个空白窗口。
 
+## Android 构建（APK 打包）
+
+Wails v3 支持将 Go 代码编译为 C-shared 库（`libwails.so`），并通过原生 Android 宿主（`MainActivity` + `WebViewAssetLoader`）打包成标准 Android APK / AAB。
+
+在超薄壳架构下，Android 端同样支持加载远程/本地前端地址（通过 `DESKTOP_URL` 或 `start_url` 注入），并已配置 `android:usesCleartextTraffic="true"` 允许本地网络与内网 HTTP 访问。
+
+### 常用命令
+
+```bash
+# 1. 检测本地环境依赖（JDK、Android SDK、NDK、wails3 CLI）
+pnpm desktop:android:env
+
+# 2. 构建 Debug APK（默认 arm64，产物输出到 dist/nivo-admin.apk）
+pnpm desktop:android:build
+
+# 3. 指定远程生产前端地址构建 Release APK
+DESKTOP_URL=https://admin.example.com pnpm desktop:android:build --release
+
+# 4. 指定目标架构（arm64 / x86_64）
+pnpm desktop:android:build --arch=x86_64
+
+# 也可使用 wails3 CLI 直接执行 Taskfile
+wails3 task android:package          # 编译 Release APK
+wails3 task android:run:device       # 编译并部署到已连接的 Android 真机
+wails3 task android:deploy-emulator  # 部署到 Android 模拟器
+```
+
+### 环境要求（纯命令行免 Android Studio）
+
+无需安装体积庞大的 Android Studio，直接使用 Homebrew 即可完成全套 Android 开发链配置：
+
+#### 1. 使用 Homebrew 安装基础工具包
+
+```bash
+# 安装 JDK 21
+brew install openjdk@21
+
+# 安装 Android 命令行工具、平台调试工具及 NDK
+brew install --cask android-commandlinetools android-platform-tools android-ndk
+```
+
+#### 2. 配置环境变量（写入 `~/.zshrc` 并 `source ~/.zshrc`）
+
+```bash
+# JDK 21
+export JAVA_HOME="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
+
+# Android SDK & NDK
+export ANDROID_HOME="/opt/homebrew/share/android-commandlinetools"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+export ANDROID_NDK_HOME="/opt/homebrew/share/android-ndk"
+
+# Android 命令行工具 PATH (含 sdkmanager, avdmanager, adb)
+export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+```
+
+#### 3. 接受协议并下载 SDK 编译核心组件
+
+```bash
+# 自动接受 Android SDK 许可协议
+yes | sdkmanager --licenses
+
+# 安装编译所需的 Android 平台 (API 35) 与构建工具 (Build-Tools 35.0.0)
+sdkmanager "platforms;android-35" "build-tools;35.0.0"
+```
+
+安装完成后执行 `pnpm desktop:android:env` 即可验证环境是否全绿。
+
 ## 结构
 
 ```

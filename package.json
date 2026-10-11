@@ -1,6 +1,6 @@
 {
   "name": "admin-console",
-  "version": "0.1.0",
+  "version": "0.0.1-alpha",
   "private": true,
   "description": "多应用后台管理模板：契约自持的前端 + Nitro Mock API。",
   "type": "module",
@@ -16,6 +16,8 @@
     "ai:deploy": "pnpm -C apps/ai deploy",
     "desktop": "go -C apps/desktop run -tags devtools,private_mac_apis .",
     "desktop:build": "node apps/desktop/scripts/build.mjs",
+    "desktop:android:build": "node apps/desktop/scripts/build-android.mjs",
+    "desktop:android:env": "node apps/desktop/scripts/build-android.mjs --check-env",
     "desktop:test": "go -C apps/desktop test ./...",
     "desktop:bindings": "go -C apps/desktop run ./cmd/genbindings",
     "desktop:bindings:check": "go -C apps/desktop run ./cmd/genbindings -check",
