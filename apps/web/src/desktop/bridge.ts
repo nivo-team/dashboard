@@ -197,6 +197,20 @@ export function isSphereWindow(): boolean {
   return isDesktop() && desktopWindowName() === 'sphere'
 }
 
+/** 是否处于独立极简（超简洁布局：无侧边栏、无标签条）桌面子窗口中。 */
+export function isStandaloneWindow(): boolean {
+  if (!isDesktop()) return false
+  const name = desktopWindowName()
+  if (name.startsWith('standalone')) return true
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('__layout') === 'standalone' || params.get('__standalone') === '1') {
+      return true
+    }
+  }
+  return false
+}
+
 export interface OpenDesktopWindowOptions {
   /** 要加载的应用相对路径或完整 URL（如 '/console/sphere'） */
   path: string
@@ -333,21 +347,16 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * 桌面壳 Header 空白处双击 = 最大化 / 还原窗口。
- * 落在按钮、链接、输入框、下拉菜单等交互控件上时不抢事件。
+ * 桌面壳 Header 空白处双击。
+ *
+ * 各桌面平台（macOS / Windows / Linux）由 CSS .drag（-webkit-app-region: drag）
+ * 区域交由操作系统原生底层直接处理窗口缩放（最大化/还原），不通过 JS 手动发消息，
+ * 避免多窗口环境下手动调用跨窗口干扰。
  */
 export function handleDesktopHeaderDoubleClick(
-  event: ReactMouseEvent<HTMLElement> | MouseEvent,
+  _event?: ReactMouseEvent<HTMLElement> | MouseEvent,
 ): void {
-  if (!isDesktop()) return
-  const target = event.target as HTMLElement | null
-  if (!target) return
-  if (target.closest('button, a, input, select, textarea, [role="button"], [role="menu"], [role="menuitem"]')) {
-    return
-  }
-  void invoke('window.toggleMaximise').catch(() => {
-    /* 壳未实现该方法时静默忽略 */
-  })
+  // 交由操作系统原生处理
 }
 
 /** 壳带来的自定义标记（`-mark k=v`）；浏览器里是空对象。 */

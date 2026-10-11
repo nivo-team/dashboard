@@ -276,7 +276,11 @@ func registerWindowMethods(registry *bridge.Registry, app *application.App, wind
 		}
 		title := req.Title
 		if title == "" {
-			title = "Sphere"
+			if req.Name == "sphere" {
+				title = "Sphere"
+			} else {
+				title = cfg.Title
+			}
 		}
 
 		newWin := app.Window.NewWithOptions(application.WebviewWindowOptions{

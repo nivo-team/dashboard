@@ -4,6 +4,7 @@ import { DropdownMenu } from '@cloudflare/kumo'
 import {
   ArrowLineLeftIcon,
   ArrowLineRightIcon,
+  ArrowSquareOutIcon,
   PushPinIcon,
   PushPinSlashIcon,
   XCircleIcon,
@@ -13,7 +14,7 @@ import {
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '#/lib/cn'
-import { isDesktop } from '#/desktop/bridge'
+import { isDesktop, openDesktopWindow } from '#/desktop/bridge'
 import type { PageTab } from '#/lib/page-tabs'
 
 /**
@@ -113,6 +114,28 @@ export function PageTabItem({
 
   const closableBefore = tabs.slice(0, index).filter((item) => !item.pinned).length
   const closableAfter = tabs.slice(index + 1).filter((item) => !item.pinned).length
+
+  const handleOpenInNew = () => {
+    if (isDesktop()) {
+      const targetUrl = tab.to.includes('?')
+        ? `${tab.to}&__layout=standalone`
+        : `${tab.to}?__layout=standalone`
+      const windowName = `standalone_${tab.to.replace(/[^a-zA-Z0-9_]/g, '_')}`
+      void openDesktopWindow({
+        path: targetUrl,
+        name: windowName,
+        title: label || 'Nivo Admin',
+        width: 1120,
+        height: 760,
+      })
+      // 成功调起新独立窗口后，从当前主窗口 tabs 列表中移除该标签
+      actions.close(tab.to)
+    } else {
+      if (typeof window !== 'undefined') {
+        window.open(tab.to, '_blank')
+      }
+    }
+  }
 
   return (
     <DropdownMenu
@@ -289,6 +312,17 @@ export function PageTabItem({
           )}
           <span className="text-xs text-kumo-default">
             {pinned ? t('pageTabs.unpin', '取消固定') : t('pageTabs.pin', '固定标签页')}
+          </span>
+        </DropdownMenu.Item>
+
+        <DropdownMenu.Separator />
+
+        <DropdownMenu.Item className="gap-2" onClick={handleOpenInNew}>
+          <ArrowSquareOutIcon size={16} className="shrink-0 text-kumo-subtle" aria-hidden />
+          <span className="text-xs text-kumo-default">
+            {isDesktop()
+              ? t('pageTabs.openInNewWindow', '在新窗口打开')
+              : t('pageTabs.openInNewTab', '在新标签页打开')}
           </span>
         </DropdownMenu.Item>
       </DropdownMenu.Content>

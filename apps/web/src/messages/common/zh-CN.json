@@ -371,6 +371,8 @@
     "closeAll": "关闭全部",
     "pin": "固定标签页",
     "unpin": "取消固定",
+    "openInNewWindow": "在新窗口打开",
+    "openInNewTab": "在新标签页打开",
     "dragHint": "用鼠标拖动标签可以调整顺序。",
     "new": "打开新页面",
     "groups": {

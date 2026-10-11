@@ -5,8 +5,9 @@ import { AiPanel } from '#/features/ai/components/panel'
 import { AppHeader } from '#/components/app-header'
 import { AppSidebar } from '#/components/app-sidebar'
 import { CommandPaletteDialog } from '#/components/command-palette'
-import { isDesktop, isSphereWindow, openDesktopWindow } from '#/desktop/bridge'
+import { isDesktop, isSphereWindow, isStandaloneWindow, openDesktopWindow } from '#/desktop/bridge'
 import { DesktopTitleBar } from '#/desktop/title-bar'
+import { DesktopStandaloneLayout } from '#/desktop/standalone-layout'
 import { DetailPreviewProvider } from '#/components/detail-preview'
 import { HeaderActions } from '#/components/header-actions'
 import { PageTabStrip } from '#/components/page-tab-strip'
@@ -36,6 +37,14 @@ import { ShellLayout } from './shell-layout'
  * 小屏（< 768px）自动切换为全屏抽屉适配手机端。
  */
 export function AppShell() {
+  if (isStandaloneWindow()) {
+    return <DesktopStandaloneLayout />
+  }
+
+  return <AppShellStandard />
+}
+
+function AppShellStandard() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   /**
    * AI 面板的展开状态：由顶栏「Ask AI」按钮**切换**（`onToggleAskAi`，按钮同时拿到

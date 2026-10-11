@@ -1,4 +1,5 @@
-import { isDesktop } from '#/desktop/bridge'
+import { isDesktop, isStandaloneWindow } from '#/desktop/bridge'
+import { DesktopStandaloneLayout } from '#/desktop/standalone-layout'
 import { NotFound } from '#/components/not-found'
 import { DesktopMainLayout } from './desktop-main-layout'
 import { WebMainLayout } from './web-main-layout'
@@ -7,12 +8,17 @@ import { WebMainLayout } from './web-main-layout'
  * 通用外壳（`_main` 路由，包括应用选择、个人中心与系统设置）：
  *
  * 采用与 Sphere 相同的变体拆分架构（`SphereLayout` → `DesktopSphereLayout` / `WebSphereLayout`）：
+ * - 独立极简窗口（`isStandaloneWindow()`）→ `DesktopStandaloneLayout`（无侧边栏、无标签条，仅页面内容）；
  * - 桌面壳形态（`isDesktop()`）→ `DesktopMainLayout`（全高透明侧边栏 + fixed 窗口条，天然不含品牌 Logo 与移动端抽屉）；
  * - 浏览器形态 → `WebMainLayout`（常规 flex 一行布局，包含完整品牌 Logo、移动端抽屉与顶栏）。
  *
  * 本入口只负责按环境分派变体，两侧物理隔离、各司其职，彻底避免通用组件内杂揉 `isDesktop()` 判断。
  */
 export function MainLayout({ children }: { children?: React.ReactNode }) {
+  if (isStandaloneWindow()) {
+    return <DesktopStandaloneLayout>{children}</DesktopStandaloneLayout>
+  }
+
   return isDesktop() ? (
     <DesktopMainLayout>{children}</DesktopMainLayout>
   ) : (
