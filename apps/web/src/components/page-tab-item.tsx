@@ -15,6 +15,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '#/lib/cn'
 import { isDesktop, openDesktopWindow } from '#/desktop/bridge'
+import { setTabTransferData } from '#/desktop/tab-transfer'
 import type { PageTab } from '#/lib/page-tabs'
 
 /**
@@ -181,6 +182,12 @@ export function PageTabItem({
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault()
                 actions.activate(tab.to)
+              }
+            }}
+            draggable={isDesktop()}
+            onDragStart={(event) => {
+              if (isDesktop()) {
+                setTabTransferData(event.dataTransfer, tab)
               }
             }}
             className={cn(

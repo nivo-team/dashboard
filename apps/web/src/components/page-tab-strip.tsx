@@ -20,8 +20,15 @@ import {
   type TabActions,
 } from '#/components/page-tab-item'
 import { cn } from '#/lib/cn'
-import { resolvePageTab, usePageTabsStore } from '#/lib/page-tabs'
+import { resolvePageTab, usePageTabsStore, type PageTab } from '#/lib/page-tabs'
 import { useLocale } from '#/lib/use-locale'
+import {
+  TAB_TRANSFER_MIME,
+  getTabTransferData,
+  broadcastTabTransferred,
+  subscribeTabTransferred,
+} from '#/desktop/tab-transfer'
+import { desktopWindowName, isDesktop } from '#/desktop/bridge'
 
 export interface PageTabStripProps {
   /**
@@ -111,10 +118,66 @@ export function PageTabStrip({
    * 这里记住「谁在被拖」，由每个标签自己算出要不要退出交互（`useSortable` 的 `disabled`）。
    */
   const [dragPinned, setDragPinned] = useState<boolean | null>(null)
+  const [isOverTransferTarget, setIsOverTransferTarget] = useState(false)
 
   /** 当前路径对应的标签（也是「哪个标签是激活态」的判据） */
   const activeTab = resolvePageTab(pathname)
   const actions = useTabActions(homeTo, activeTab?.to ?? null)
+
+  // 跨窗口接收广播监听：若本窗口流出的 Tab 已被其它窗口接收，由本窗口负责移除该 Tab
+  useEffect(() => {
+    if (!isDesktop()) return
+    const currentWindow = desktopWindowName()
+    const unsubscribe = subscribeTabTransferred((payload) => {
+      if (payload.sourceWindow === currentWindow) {
+        actions.close(payload.to)
+      }
+    })
+    return unsubscribe
+  }, [actions])
+
+  const handleNativeDragOver = (e: React.DragEvent) => {
+    if (!isDesktop()) return
+    if (e.dataTransfer.types.includes(TAB_TRANSFER_MIME)) {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+      if (!isOverTransferTarget) {
+        setIsOverTransferTarget(true)
+      }
+    }
+  }
+
+  const handleNativeDragLeave = (e: React.DragEvent) => {
+    if (!isDesktop()) return
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsOverTransferTarget(false)
+    }
+  }
+
+  const handleNativeDrop = (e: React.DragEvent) => {
+    if (!isDesktop()) return
+    setIsOverTransferTarget(false)
+    const data = getTabTransferData(e.dataTransfer)
+    if (!data) return
+
+    e.preventDefault()
+    const currentWindow = desktopWindowName()
+
+    // 只有当 Tab 来自其它窗口时，才触发跨窗口接收合并
+    if (data.sourceWindow !== currentWindow) {
+      const incomingTab: PageTab = {
+        to: data.to,
+        label: data.label,
+        labelKey: data.labelKey,
+        pinned: data.pinned,
+      }
+      openTab(incomingTab)
+      actions.activate(data.to)
+
+      // 广播通知源窗口交接完成
+      broadcastTabTransferred(data)
+    }
+  }
 
   const navRef = useRef<HTMLElement | null>(null)
 
@@ -218,8 +281,12 @@ export function PageTabStrip({
 
   return (
     <div
+      onDragOver={handleNativeDragOver}
+      onDragLeave={handleNativeDragLeave}
+      onDrop={handleNativeDrop}
       className={cn(
-        'flex min-w-0 flex-1 items-center gap-1 self-stretch',
+        'flex min-w-0 flex-1 items-center gap-1 self-stretch rounded-md transition-all',
+        isOverTransferTarget && 'ring-2 ring-kumo-brand/60 bg-kumo-base/30',
         className,
       )}
     >

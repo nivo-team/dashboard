@@ -2,78 +2,102 @@ import { Outlet } from '@tanstack/react-router'
 import { useEffect, useState, type ReactNode } from 'react'
 import { CommandPaletteDialog } from '#/components/command-palette'
 import { DetailPreviewProvider } from '#/components/detail-preview'
+import { HeaderActions } from '#/components/header-actions'
+import { PageTabStrip } from '#/components/page-tab-strip'
+import { AiPanel } from '#/features/ai/components/panel'
 import { DesktopHistoryNav } from './title-bar'
 import { cn } from '#/lib/cn'
 import { handleDesktopHeaderDoubleClick, useDesktopBlurred } from './bridge'
 import { useUserPermissions } from '#/lib/permissions'
+import { usePreferencesStore } from '#/lib/store'
+import { usePageTabsStore } from '#/lib/page-tabs'
 
 /**
- * 超简洁独立窗口专用的窗口条：
- * 1. 浮在窗口最顶端，整宽贯穿，左侧避让 macOS 原生红绿灯；
- * 2. 红绿灯右侧紧跟前进/后退历史导航 DesktopHistoryNav；
- * 3. 页面标题绝对居中；
- * 4. 全条支持窗口拖拽（drag）与双击最大化/还原窗口。
+ * 桌面壳独立子窗口专用的窗口条：
+ * 1. 浮在窗口最顶端，整宽贯穿，左侧物理避让 macOS 原生红绿灯；
+ * 2. 红绿灯右侧紧跟前进/后退历史导航 DesktopHistoryNav 与 PageTabStrip 标签条；
+ * 3. 右侧工具区按需精简：**仅保留 Ask AI**，支持与用户头像等仅在主窗口展示；
+ * 4. 标签条最大化自适应剩余可用空间，全条空白区支持拖拽（drag）与原生双击缩放。
  */
-function DesktopStandaloneTitleBar() {
+function DesktopStandaloneTitleBar({
+  onToggleAskAi,
+  isAskAiOpen,
+  onOpenCommandPalette,
+}: {
+  onToggleAskAi: () => void
+  isAskAiOpen: boolean
+  onOpenCommandPalette: () => void
+}) {
   const isBlurred = useDesktopBlurred()
-  const [pageTitle, setPageTitle] = useState(() => (typeof document !== 'undefined' ? document.title : ''))
-
-  useEffect(() => {
-    const updateTitle = () => {
-      if (typeof document !== 'undefined') {
-        setPageTitle(document.title)
-      }
-    }
-    updateTitle()
-    const observer = new MutationObserver(updateTitle)
-    const titleEl = document.querySelector('title')
-    if (titleEl) {
-      observer.observe(titleEl, { childList: true, characterData: true, subtree: true })
-    }
-    return () => observer.disconnect()
-  }, [])
+  const aiEnabled = usePreferencesStore((state) => state.aiEnabled)
 
   return (
     <header
       data-desktop-title-bar
       onDoubleClick={handleDesktopHeaderDoubleClick}
       className={cn(
-        'fixed inset-x-0 top-0 z-40 flex h-[var(--shell-chrome-h,40px)] items-center justify-between',
-        'border-b-0 px-3 select-none drag',
+        'fixed inset-x-0 top-0 z-40 flex h-[var(--shell-chrome-h,40px)] items-center gap-1',
+        'border-b-0 select-none drag',
         isBlurred ? 'bg-transparent' : 'bg-kumo-tint',
         'pl-[max(var(--shell-traffic-light-w,0px),0.5rem)] pr-2',
       )}
     >
-      {/* 左侧：红绿灯右侧放置前进/后退导航 */}
-      <DesktopHistoryNav />
-
-      {/* 中间：标题绝对居中（pointer-events-none 保证拖拽） */}
-      <div className="pointer-events-none absolute inset-x-0 mx-auto flex max-w-[50%] items-center justify-center">
-        <span className="truncate text-center text-xs font-medium text-kumo-subtle">
-          {pageTitle}
-        </span>
+      {/* 左侧控制组：红绿灯右侧放置前进/后退历史导航 */}
+      <div className="flex shrink-0 items-center drag">
+        <DesktopHistoryNav />
       </div>
 
-      {/* 右侧空占位，保持对称且整条空白可拖拽 */}
-      <div className="w-16 shrink-0 drag" />
+      {/* 中间自适应标签条（chrome 风格），填满全部剩余可用空间 */}
+      <PageTabStrip
+        homeTo="/"
+        variant="chrome"
+        onOpenCommandPalette={onOpenCommandPalette}
+      />
+
+      {/* 右侧精简工具区：仅保留 Ask AI，隐藏支持与用户菜单 */}
+      <HeaderActions
+        size="sm"
+        showAskAi={aiEnabled}
+        onAskAi={onToggleAskAi}
+        askAiExpanded={isAskAiOpen}
+        showSupport={false}
+        showUserMenu={false}
+        onOpenCommandPalette={onOpenCommandPalette}
+      />
     </header>
   )
 }
 
 /**
- * 桌面壳超简洁独立子窗口布局：
+ * 桌面壳独立子窗口布局（对标 VS Code 辅助窗口模式）：
  *
- * 1. 彻底去除侧边栏（Sidebar）；
- * 2. 彻底去除标签条（Tabs）与全局顶栏；
- * 3. 彻底去除 AI 侧边面板；
- * 4. 仅渲染极简窗口条 DesktopStandaloneTitleBar 与页面内容主体；
- * 5. 挂载 DetailPreviewProvider 确保详情预览功能正常工作。
+ * 1. 拥有完整的标签页系统（PageTabStrip），支持标签打开、关闭、排序；
+ * 2. 支持与主窗口以及其它子窗口互相拖动 Tab 标签流转；
+ * 3. 顶栏操作区精简：仅包含 Ask AI 助手入口，不含支持和账号菜单；
+ * 4. 工作区全高展示，无左侧主导航栏，提供开阔的工作与编辑视界；
+ * 5. 支持开合右侧 AI 面板；
+ * 6. 若所有标签页均被移出或关闭，子窗口将自动优雅关闭。
  */
 export function DesktopStandaloneLayout({ children }: { children?: ReactNode }) {
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [aiPanelOpen, setAiPanelOpen] = useState(false)
+  const [aiCollapsed, setAiCollapsed] = useState(false)
 
   // 保证独立窗口下的权限上下文正常就绪
   useUserPermissions()
+
+  const tabs = usePageTabsStore((state) => state.tabs)
+
+  // 监听标签页清空：如果子窗口内所有 Tab 均被关闭或拖走，自动关闭当前子窗口
+  useEffect(() => {
+    // 延迟检查，避免首屏初次加载阶段触发
+    const timer = setTimeout(() => {
+      if (tabs.length === 0 && typeof window !== 'undefined') {
+        window.close()
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [tabs.length])
 
   // ⌘K / Ctrl+K 快捷键支持
   useEffect(() => {
@@ -87,22 +111,47 @@ export function DesktopStandaloneLayout({ children }: { children?: ReactNode }) 
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
+  const handleToggleAskAi = () => {
+    setAiPanelOpen((prev) => !prev)
+  }
+
   return (
     <div
       data-desktop-chrome
       data-desktop-standalone
       className="flex h-svh w-svw flex-col overflow-hidden bg-kumo-canvas select-text"
     >
-      <DesktopStandaloneTitleBar />
+      <DesktopStandaloneTitleBar
+        onToggleAskAi={handleToggleAskAi}
+        isAskAiOpen={aiPanelOpen}
+        onOpenCommandPalette={() => setPaletteOpen(true)}
+      />
 
-      <main
-        data-shell-content
-        className="flex min-h-0 min-w-0 flex-1 flex-col pt-[var(--shell-chrome-h,40px)] overflow-y-auto"
-      >
-        <DetailPreviewProvider>
-          {children ?? <Outlet />}
-        </DetailPreviewProvider>
-      </main>
+      {/* 工作区容器：避让顶部 40px 窗口条，内容与 AI 面板之间设置 gap-1 px-2 pb-2 */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col pt-[var(--shell-chrome-h,40px)]">
+        <div className="flex min-h-0 min-w-0 flex-1 gap-1 px-2 pb-2">
+          {/* 主内容列 */}
+          <div className="flex min-w-0 flex-1 flex-col h-full min-h-0 overflow-hidden rounded-lg bg-kumo-canvas">
+            <main
+              data-shell-content
+              className="flex-1 min-h-0 overflow-y-auto"
+            >
+              <DetailPreviewProvider>
+                {children ?? <Outlet />}
+              </DetailPreviewProvider>
+            </main>
+          </div>
+
+          {/* 右侧 AI 助手面板（可由顶栏 Ask AI 开关控制） */}
+          <AiPanel
+            open={aiPanelOpen}
+            onClose={() => setAiPanelOpen(false)}
+            skipEnterAnimation={false}
+            collapsed={aiCollapsed}
+            onToggleCollapsed={() => setAiCollapsed((v) => !v)}
+          />
+        </div>
+      </div>
 
       <CommandPaletteDialog open={paletteOpen} onOpenChange={setPaletteOpen} />
     </div>

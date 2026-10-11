@@ -25,6 +25,10 @@ export interface HeaderActionsProps {
    * `Support`、账号菜单完全一致。与 `onAskAi` 配套使用。
    */
   askAiExpanded?: boolean
+  /** 是否展示支持按钮，默认 true（子窗口可设为 false） */
+  showSupport?: boolean
+  /** 是否展示用户菜单，默认 true（子窗口可设为 false） */
+  showUserMenu?: boolean
   /** Support 入口回调。**当前无人传入**：这里只布局好位置与样式，点击暂无动作。 */
   onSupport?: () => void
   /** 透传给 UserMenu（与 AppHeader 既有调用签名一致）。 */
@@ -53,6 +57,8 @@ export function HeaderActions({
   showAskAi = false,
   onAskAi,
   askAiExpanded = false,
+  showSupport = true,
+  showUserMenu = true,
   onSupport,
   onOpenCommandPalette,
   size = isDesktop() ? 'sm' : 'base',
@@ -90,18 +96,22 @@ export function HeaderActions({
         </Tooltip>
       ) : null}
 
-      <Button
-        size={size}
-        variant="ghost"
-        icon={<QuestionIcon size={iconSize} />}
-        className="text-kumo-subtle hover:text-kumo-default"
-        aria-label={supportLabel}
-        onClick={onSupport}
-      >
-        <span>{supportLabel}</span>
-      </Button>
+      {showSupport ? (
+        <Button
+          size={size}
+          variant="ghost"
+          icon={<QuestionIcon size={iconSize} />}
+          className="text-kumo-subtle hover:text-kumo-default"
+          aria-label={supportLabel}
+          onClick={onSupport}
+        >
+          <span>{supportLabel}</span>
+        </Button>
+      ) : null}
 
-      <UserMenu size={size} onOpenCommandPalette={onOpenCommandPalette} />
+      {showUserMenu ? (
+        <UserMenu size={size} onOpenCommandPalette={onOpenCommandPalette} />
+      ) : null}
     </div>
   )
 }
