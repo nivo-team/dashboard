@@ -339,7 +339,8 @@ export function TicketsListPage() {
   )
 
   const schemaColumns = useSchemaColumns<TicketItem>(TicketItemSchema, {
-    ns: 'example', keyPrefix: 'tickets',
+    ns: 'example',
+    keyPrefix: 'tickets',
     columns: TICKET_COLUMN_SPECS,
     sortable: TICKET_SORTABLE_FIELDS,
     baseMeta: { headerClassName: MIN_COLUMN_WIDTH },

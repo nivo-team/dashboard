@@ -93,7 +93,9 @@ function isSet(value) {
 
 /** OpenAI 兼容的对话端点路径 —— 三种形态的 base 都能拼它。 */
 export function resolveChatEndpoint(base) {
-  const normalized = String(base ?? '').trim().replace(/\/+$/, '')
+  const normalized = String(base ?? '')
+    .trim()
+    .replace(/\/+$/, '')
   if (!normalized) return ''
   // 从控制台复制的常常是完整端点，别拼成 `…/chat/completions/chat/completions`
   if (normalized.endsWith(CHAT_COMPLETIONS_PATH)) return normalized
@@ -106,7 +108,9 @@ export function resolveChatEndpoint(base) {
  * @returns {{ mode: string, error?: string }} 显式值非法时返回 error（不静默回退）
  */
 export function resolveAuthMode(explicit, baseUrl) {
-  const raw = String(explicit ?? '').trim().toLowerCase()
+  const raw = String(explicit ?? '')
+    .trim()
+    .toLowerCase()
   if (raw) {
     if (AUTH_MODES.includes(raw)) return { mode: raw }
     return {
@@ -213,10 +217,7 @@ export function readProviderConfig(env = process.env, i18nConfig = loadConfig())
   const key = pickSecret(env, 'I18N_GATEWAY_KEY', 'DSH_GATEWAY_KEY')
   const providerKey = pickSecret(env, 'I18N_PROVIDER_KEY')
 
-  const { mode: authMode, error: authError } = resolveAuthMode(
-    authModeRaw.value,
-    baseUrl.value,
-  )
+  const { mode: authMode, error: authError } = resolveAuthMode(authModeRaw.value, baseUrl.value)
 
   /*
     缺什么取决于鉴权形态：
@@ -433,9 +434,7 @@ async function callOpenAiCompatible(config, prompt) {
       }).catch((error) => {
         // fetch 自身的失败信息很含糊（只有 "fetch failed"），带上 cause 才可排查
         const cause = error?.cause?.message ?? error?.cause?.code ?? ''
-        throw new Error(
-          `请求网关失败：${error.message}${cause ? `（${cause}）` : ''}｜端点 ${url}`,
-        )
+        throw new Error(`请求网关失败：${error.message}${cause ? `（${cause}）` : ''}｜端点 ${url}`)
       })
     } finally {
       clearTimeout(timer)
@@ -465,9 +464,7 @@ async function callOpenAiCompatible(config, prompt) {
   const data = await response.json()
   const content = data?.choices?.[0]?.message?.content
   if (typeof content !== 'string') {
-    throw new Error(
-      `网关响应里没有 message.content：${JSON.stringify(data).slice(0, 300)}`,
-    )
+    throw new Error(`网关响应里没有 message.content：${JSON.stringify(data).slice(0, 300)}`)
   }
   return content
 }
@@ -491,9 +488,7 @@ export async function translateBatch(options, config = readProviderConfig()) {
 
   const supported = ['openai-completions', 'openai', 'openai-compatible']
   if (!supported.includes(config.api)) {
-    throw new Error(
-      `不支持的 api=${config.api}；本脚本目前支持：${supported.join(', ')}`,
-    )
+    throw new Error(`不支持的 api=${config.api}；本脚本目前支持：${supported.join(', ')}`)
   }
 
   const prompt = buildPrompt(options)

@@ -1,5 +1,5 @@
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
-import { isDesktop, isSettingsWindow, openSettingsWindow } from '#/desktop/bridge'
+import { isDesktop, isSettingsWindow, openSettingsWindow } from '#/native/bridge'
 
 /**
  * 设置模块根（/_main/settings/route.tsx）

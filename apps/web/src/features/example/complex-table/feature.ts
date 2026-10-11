@@ -31,13 +31,10 @@ export interface ComplexTableFeatureOptions {
   clearSelection: () => void
 }
 
-export function createComplexTableFeature(
-  options: ComplexTableFeatureOptions,
-): FeatureSpec {
+export function createComplexTableFeature(options: ComplexTableFeatureOptions): FeatureSpec {
   return defineFeature({
     title: '复杂表格',
-    description:
-      '宽表示例：25 个字段、单层表头、全字段可筛选；数据为前端本地构造。',
+    description: '宽表示例：25 个字段、单层表头、全字段可筛选；数据为前端本地构造。',
     entities: ['订单', '客户', '商品', '金额', '筛选'],
     permissions: ['example:read'],
     /*

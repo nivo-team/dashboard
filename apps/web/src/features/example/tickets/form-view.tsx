@@ -3,7 +3,12 @@ import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
-import { getExampleTicketsById, postExampleTickets, putExampleTickets, type TicketItem } from '#/api'
+import {
+  getExampleTicketsById,
+  postExampleTickets,
+  putExampleTickets,
+  type TicketItem,
+} from '#/api'
 import { useAiFormFields, useAiFormSubmit, type AiFormField } from '#/features/ai/core'
 import { appToastManager } from '#/lib/toast'
 import { toDisplayText } from '#/lib/to-text'

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useActiveSessionTitle } from '#/features/ai/components/session-picker'
 import { useAiSessionStore } from '#/features/ai/core'
 import { cn } from '#/lib/cn'
-import { handleDesktopHeaderDoubleClick, isDesktop } from '#/desktop/bridge'
+import { handleDesktopHeaderDoubleClick, isDesktop } from '#/native/bridge'
 import { useLocale } from '#/lib/use-locale'
 import { useSphereCollapse } from './use-sphere-collapse'
 

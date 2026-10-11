@@ -21,8 +21,8 @@ import { SettingChoicePreview, usePreviewAnimation } from '#/components/settings
 import { SettingsCard, SettingRow } from '#/components/settings-card'
 import { DEFAULT_APP_ID, isMultiAppEnabled, useAuth } from '#/lib/auth'
 import { cn } from '#/lib/cn'
-import { DesktopBlurSetting } from '#/desktop/blur-setting'
-import { isDesktop } from '#/desktop/bridge'
+import { DesktopBlurSetting } from '#/native/blur-setting'
+import { isDesktop } from '#/native/bridge'
 import {
   ACCENT_COLOR_OPTIONS,
   DEFAULT_COLOR_VALUE,
@@ -694,10 +694,7 @@ export function AppearanceSettingsPage() {
                   'profile.settings.pageTabsHintDesktop',
                   '桌面壳里始终开启：窗口条上就是标签条，关掉只会剩一条空栏',
                 )
-              : t(
-                  'profile.settings.pageTabsHint',
-                  '在顶栏用标签页切换已打开的页面（会替掉面包屑）',
-                )
+              : t('profile.settings.pageTabsHint', '在顶栏用标签页切换已打开的页面（会替掉面包屑）')
           }
         >
           <Switch
@@ -708,7 +705,7 @@ export function AppearanceSettingsPage() {
           />
         </SettingRow>
 
-        {/* 桌面壳专属：窗口背景模糊（浏览器里整行不渲染，见 #/desktop/blur-setting） */}
+        {/* 桌面壳专属：窗口背景模糊（浏览器里整行不渲染，见 #/native/blur-setting） */}
         <DesktopBlurSetting />
       </SettingsCard>
 

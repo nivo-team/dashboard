@@ -125,23 +125,20 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
 - 侧边栏折叠状态、拖拽宽度、内部滚动位置**完全保留**；
 - 页面仅在 `<Outlet />` 区域替换组件，避免整页闪烁与重复渲染。
 
-### 外壳的组成：一个布局 + 三个插槽
+### 外壳的组成：统一 Layout 体系与三大变体
 
-两个外壳（业务 `AppShell` / 通用 `MainLayout`）只负责**准备插槽**，摆位置交给
-`#/components/shell` 的 `ShellLayout`（插槽契约 `ShellLayoutProps`：`sidebar` / `header` /
-`main` / `ai` / `topBar`）：
+外壳布局统一归拢在 `#/layouts`（`apps/web/src/layouts`）。对外提供统一的 `AppShell` 与 `MainLayout`，内部根据宿主与视口决策器（`useActiveLayout()`）自动分派对应端物理隔离的布局实现：
 
-- 浏览器 → `#/components/shell/browser-shell-layout`：一行 flex，顶栏在内容列里；
-- 桌面壳 → `#/desktop/shell-layout`：窗口条整行在上，顶栏不渲染（窗口条取代它）。
+- **`default` 变体**（`#/layouts/default`）：Web 浏览器通用布局，经典的 Flex 一行流，顶栏集成在内容列中；
+- **`desktop` 变体**（`#/layouts/desktop`）：PC 桌面原生壳专属（macOS / Windows / Linux），整宽 fixed 浮层窗口条取代传统顶栏，全高毛玻璃侧边栏；
+- **`mobile` 变体**（`#/layouts/mobile`）：移动端视口与移动原生壳（Android APK）专属，沉浸式顶部安全区适配（`safe-area-inset-top`），汉堡按钮唤出全屏抽屉侧边栏，点击导航项后自动收拢。
 
-布局组件**不认识 router / store / 权限 / AI 状态** —— 侧边栏内容、顶栏、`<main>` 内部与
-AI 面板全部由外壳传进来；形态差异只存在于两个变体里。共享的 `ShellSidebarProvider`
-（Provider 接线 + 移动端抽屉）与内容列骨架也在这个目录，桌面形态的窗口条只存在于 `#/desktop`。
+布局目录内各自独立组织 `sidebar.tsx`、`header.tsx`、`app-layout.tsx`、`main-layout.tsx` 等子模块，形态彻底解耦，互不干扰。
 
 ### 桌面壳里的外壳形态（全高侧边栏 + 整宽窗口条浮层）
-在桌面壳里（`isDesktop()`，标记来自 URL，见 [apps/desktop/README.md](../../apps/desktop/README.md)）
+在桌面壳里（`isDesktop()`，标记来自 URL，见 [apps/native/README.md](../../apps/native/README.md)）
 两个外壳都换一种形态：侧边栏是**整窗高的左列**（`100svh`、**背景透明**），右侧是**工作区**；
-**窗口条**（`#/desktop/title-bar`）是盖在最顶端的**整宽浮层**（取代顶栏）：
+**窗口条**（`#/native/title-bar`）是盖在最顶端的**整宽浮层**（取代顶栏）：
 
 - **控制组**（收起侧边栏开关 + 前进后退）**属于窗口条**，
   浮在透明侧边栏之上 —— 侧边栏收起时控件不动，因此**不需要折叠时切换组件**；
@@ -152,9 +149,9 @@ AI 面板全部由外壳传进来；形态差异只存在于两个变体里。�
 
 于是布局由「窗口条在上」变成「整宽窗口条浮层 ─ 全高透明侧边栏 │ 工作区」：
 
-- **窗口条由谁排**：`#/desktop/shell-layout` 的 `DesktopShellLayout` —— 它把
-  `ShellLayoutProps.topBar` 渲染成 `fixed` 浮层（不占文档流），并给工作区留出
-  `pt-[--shell-chrome-h]`；`ShellSidebarProvider` 只负责排「全高侧边栏 │ 工作区」这一行；
+- **窗口条由谁排**：`#/layouts/desktop/shell-layout` 的 `DesktopShellLayout` —— 它把
+  窗口条渲染成 `fixed` 浮层（不占文档流），并给工作区留出
+  `pt-[--shell-chrome-h]`；`LayoutSidebarProvider` 只负责排「全高侧边栏 │ 工作区」这一行；
 - **顶栏不再渲染**（`AppHeader` / `MainHeader`）：窗口条与它是同一份 chrome 的两种形态，
   不是两行（桌面壳里 `ShellLayout` 只渲染窗口条，顶栏插槽根本不挂）；
 - **标签条是通用件，不只桌面壳有**：`#/components/page-tab-strip` 挂在哪儿由外壳决定 ——

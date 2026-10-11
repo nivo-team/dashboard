@@ -12,7 +12,7 @@ import {
 } from '@phosphor-icons/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { isDesktop, openSettingsWindow } from '#/desktop/bridge'
+import { isDesktop, openSettingsWindow } from '#/native/bridge'
 import { useAuth } from '#/lib/auth'
 import { useColorMode } from '#/lib/use-color-mode'
 import type { ColorMode } from '#/lib/use-color-mode'

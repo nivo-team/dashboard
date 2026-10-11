@@ -19,7 +19,7 @@ import { AiSessionPicker, useActiveSessionTitle } from '#/features/ai/components
 import { SHELL_PANEL_FRAME, SidePanelResizeHandle } from '#/components/side-panel'
 import { useAiSessionStore, type AiPermissionMode } from '#/features/ai/core'
 import type { AiCapabilityGrant } from '#/features/ai/core/capabilities'
-import { isDesktop, isDesktopMac } from '#/desktop/bridge'
+import { isDesktop, isDesktopMac } from '#/native/bridge'
 import { cn } from '#/lib/cn'
 import {
   AI_FLOAT_MAX_HEIGHT,
@@ -389,6 +389,8 @@ export function AiPanel({
     */
     if (!open) return null
 
+    const isDesktopShell = isDesktop()
+
     /*
       折叠只在桌面端成立：移动端浮窗是**整屏**（`inset-0` 会把没有高度的盒子照样撑满），
       「只留一条」在那儿既画不出来也没意义。所以这里统一取「桌面端 + 已折叠」，
@@ -467,8 +469,10 @@ export function AiPanel({
             移动端：仅在非桌面端视口下整屏覆盖（`inset-0`）。
             桌面端无论视口多窄，始终按 PC 原生右下角小窗呈现，绝不覆盖全屏。
           */
-          !isDesktopShell && 'inset-0 md:top-auto md:start-auto md:end-4 md:bottom-4 md:rounded-xl md:border md:border-kumo-line md:shadow-lg',
-          isDesktopShell && 'top-auto start-auto end-4 bottom-4 rounded-xl border border-kumo-line shadow-lg',
+          !isDesktopShell &&
+            'inset-0 md:top-auto md:start-auto md:end-4 md:bottom-4 md:rounded-xl md:border md:border-kumo-line md:shadow-lg',
+          isDesktopShell &&
+            'top-auto start-auto end-4 bottom-4 rounded-xl border border-kumo-line shadow-lg',
         )}
       >
         {/*
@@ -580,7 +584,8 @@ export function AiPanel({
           */
           'overflow-hidden',
           // 移动端（非桌面壳）：覆盖整个视口（面板自己的头行带关闭按钮，不必露出 AppHeader）
-          !isDesktopShell && 'fixed inset-x-0 z-30 md:sticky md:inset-x-auto md:z-20 md:shrink-0 md:max-w-[calc(100%_-_320px)]',
+          !isDesktopShell &&
+            'fixed inset-x-0 z-30 md:sticky md:inset-x-auto md:z-20 md:shrink-0 md:max-w-[calc(100%_-_320px)]',
           // 桌面端：始终回到文档流，成为与内容区并排的一列，绝不覆盖全屏
           isDesktopShell && 'sticky inset-x-auto z-20 shrink-0 max-w-[calc(100%_-_240px)]',
           !isDesktopShell && 'md:border-s',

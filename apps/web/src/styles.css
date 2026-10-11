@@ -372,7 +372,9 @@ html.is_desktop [data-sidebar='sidebar'] {
   background: transparent !important;
 }
 
-[data-desktop-sphere] [data-sidebar='sidebar']:not([data-mobile='true']) > [data-sidebar='content-container'] {
+[data-desktop-sphere]
+  [data-sidebar='sidebar']:not([data-mobile='true'])
+  > [data-sidebar='content-container'] {
   top: 0 !important;
   height: 100svh !important;
   max-height: 100svh !important;
@@ -385,12 +387,17 @@ html.is_desktop [data-sidebar='sidebar'] {
   border-left-width: 0 !important;
 }
 
-[dir='rtl'] [data-desktop-sphere] [data-sidebar='sidebar']:not([data-mobile='true']) > [data-sidebar='content-container'] {
+[dir='rtl']
+  [data-desktop-sphere]
+  [data-sidebar='sidebar']:not([data-mobile='true'])
+  > [data-sidebar='content-container'] {
   border-left: 1px solid var(--color-kumo-line) !important;
   border-right-width: 0 !important;
 }
 
-[data-desktop-sphere] [data-sidebar='sidebar'][data-state='collapsed'] > [data-sidebar='content-container'] {
+[data-desktop-sphere]
+  [data-sidebar='sidebar'][data-state='collapsed']
+  > [data-sidebar='content-container'] {
   border-right-width: 0 !important;
   border-left-width: 0 !important;
 }
@@ -746,7 +753,6 @@ html.is_desktop [data-sidebar='resize-handle']:active::after {
   -webkit-app-region: no-drag !important;
   --wails-draggable: no-drag !important;
 }
-
 
 [dir='rtl'] [data-slot='input-group'][data-focus-mode='hybrid'] > *:not(:first-child) {
   margin-left: 0 !important;

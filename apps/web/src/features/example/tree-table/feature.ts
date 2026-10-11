@@ -30,8 +30,7 @@ export interface TreeTableFeatureOptions {
 export function createTreeTableFeature(options: TreeTableFeatureOptions): FeatureSpec {
   return defineFeature({
     title: '树形表格',
-    description:
-      '树形表格能力示例：父子行、展开折叠、搜索联动展开与子行强调；数据为前端本地构造。',
+    description: '树形表格能力示例：父子行、展开折叠、搜索联动展开与子行强调；数据为前端本地构造。',
     entities: ['分类', '商品', '层级'],
     permissions: ['example:read'],
     /*

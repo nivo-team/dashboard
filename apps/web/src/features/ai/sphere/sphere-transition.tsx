@@ -1,4 +1,4 @@
-import { isDesktop } from '#/desktop/bridge'
+import { isDesktop } from '#/native/bridge'
 import { useMotionEnabled } from '#/lib/use-motion'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { AiBotAvatar } from '#/features/ai/components/bot-avatar'
 import { useActiveSessionTitle } from '#/features/ai/components/session-picker'
 import { useAiSessionStore } from '#/features/ai/core'
-import { handleDesktopHeaderDoubleClick } from '#/desktop/bridge'
+import { handleDesktopHeaderDoubleClick } from '#/native/bridge'
 import { useLocale } from '#/lib/use-locale'
 import { cn } from '#/lib/cn'
 

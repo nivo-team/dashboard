@@ -17,7 +17,15 @@ const columnHelper = createColumnHelper<StockFeatures, ComplexTableRow>()
   用之前先查官方 registry（`npx @cloudflare/kumo doc Badge`），
   不要凭印象写 `neutral` / `danger` / `green` 这类不在集合里的名字 —— 它们会被静默忽略。
 */
-type BadgeVariant = 'primary' | 'secondary' | 'error' | 'warning' | 'success' | 'info' | 'outline' | 'beta'
+type BadgeVariant =
+  | 'primary'
+  | 'secondary'
+  | 'error'
+  | 'warning'
+  | 'success'
+  | 'info'
+  | 'outline'
+  | 'beta'
 
 /** 订单状态 → 徽章变体。 */
 const ORDER_STATUS_VARIANT: Record<OrderStatus, BadgeVariant> = {
@@ -74,7 +82,9 @@ export function useComplexTableColumns(): ColumnDef<StockFeatures, ComplexTableR
         },
         cell: options?.mono
           ? ({ getValue }) => (
-              <span className="font-mono text-xs text-kumo-default">{String(getValue() ?? '')}</span>
+              <span className="font-mono text-xs text-kumo-default">
+                {String(getValue() ?? '')}
+              </span>
             )
           : undefined,
       })
@@ -89,9 +99,7 @@ export function useComplexTableColumns(): ColumnDef<StockFeatures, ComplexTableR
           headerClassName: MIN_COLUMN_WIDTH,
           cellClassName: 'text-end',
         },
-        cell: ({ getValue }) => (
-          <span className="tabular-nums">{format(getValue())}</span>
-        ),
+        cell: ({ getValue }) => <span className="tabular-nums">{format(getValue())}</span>,
       })
 
     /** 时间列（按全局时区格式化）。 */

@@ -10,7 +10,7 @@
     <title>Nivo Admin</title>
     <script>
       /*
-       * 桌面壳标记：壳（apps/desktop）在**导航之前**把标记写进 URL
+       * 桌面壳标记：壳（apps/native）在**导航之前**把标记写进 URL
        * （`?__desktop=1[&__desktop_<k>=<v>]`），这里在**任何应用代码之前**
        * 把它落地成 window.__DESKTOP__ 与 <html> 上的 is_desktop。
        *
@@ -143,10 +143,7 @@
           }
           root.style.setProperty('--shell-chrome-h', titleBarH + 'px')
           // 仅在 macOS 下设置 78px 红绿灯留白，其他系统为 0px
-          root.style.setProperty(
-            '--shell-traffic-light-w',
-            platform === 'darwin' ? '78px' : '0px',
-          )
+          root.style.setProperty('--shell-traffic-light-w', platform === 'darwin' ? '78px' : '0px')
 
           if (fromUrl) {
             try {

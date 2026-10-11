@@ -29,8 +29,8 @@ import {
   subscribeTabTransferred,
   markDragHandled,
   isTabExchangeAllowedWindow,
-} from '#/desktop/tab-transfer'
-import { desktopWindowName, isDesktop, closeDesktopWindow } from '#/desktop/bridge'
+} from '#/native/tab-transfer'
+import { desktopWindowName, isDesktop, closeDesktopWindow } from '#/native/bridge'
 
 export interface PageTabStripProps {
   /**
@@ -56,7 +56,7 @@ export interface PageTabStripProps {
  * 页面标签条：**左边是可拖拽排序的标签（可滚动），右边紧跟着「+」**。
  *
  * 两处宿主，本体同一份（`#/lib/page-tabs` 是唯一数据源）：
- * - **桌面壳**：`#/desktop/title-bar` 的窗口条行首（恒开，`variant="chrome"`）；
+ * - **桌面壳**：`#/native/title-bar` 的窗口条行首（恒开，`variant="chrome"`）；
  * - **浏览器**：顶栏行首那一格，替掉面包屑 —— 由 设置 → 外观 的「页面标签页」开关决定
  *   （默认关，见 `#/lib/store/shell-ui-store` 的 `pageTabsEnabled`）。
  *
@@ -178,7 +178,10 @@ export function PageTabStrip({
     const currentWindow = desktopWindowName()
 
     // 窗口白名单校验：只有 main 与 page_* 页面窗口允许互相交换 Tabs
-    if (!isTabExchangeAllowedWindow(currentWindow) || !isTabExchangeAllowedWindow(data.sourceWindow)) {
+    if (
+      !isTabExchangeAllowedWindow(currentWindow) ||
+      !isTabExchangeAllowedWindow(data.sourceWindow)
+    ) {
       return
     }
 
@@ -232,9 +235,7 @@ export function PageTabStrip({
   const pinnedEntries = indexed.filter((entry) => entry.tab.pinned)
   const unpinnedEntries = indexed.filter((entry) => !entry.tab.pinned)
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-  )
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
   /*
     路由一变就把当前页面登记成标签。放在 effect 里而不是渲染期：渲染期改 store

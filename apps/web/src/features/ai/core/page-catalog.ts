@@ -78,7 +78,11 @@ export const AI_PAGE_CATALOG: readonly AiPageCatalogEntry[] = [
     permission: 'example:read',
     keywords: ['表格', '用户', 'records', 'table', 'crud'],
     endpoints: [
-      { method: 'GET', path: '/example/table', purpose: '分页查询记录列表（支持 kw 与多字段筛选）' },
+      {
+        method: 'GET',
+        path: '/example/table',
+        purpose: '分页查询记录列表（支持 kw 与多字段筛选）',
+      },
       { method: 'POST', path: '/example/table', purpose: '新建记录' },
       { method: 'PUT', path: '/example/table', purpose: '更新记录' },
       { method: 'DELETE', path: '/example/table/{id}', purpose: '删除单条记录' },
@@ -101,7 +105,11 @@ export const AI_PAGE_CATALOG: readonly AiPageCatalogEntry[] = [
     permission: 'example:read',
     keywords: ['工单', 'ticket', '批量', '状态'],
     endpoints: [
-      { method: 'GET', path: '/example/tickets', purpose: '分页查询工单（状态 / 优先级 / 分类筛选）' },
+      {
+        method: 'GET',
+        path: '/example/tickets',
+        purpose: '分页查询工单（状态 / 优先级 / 分类筛选）',
+      },
       { method: 'GET', path: '/example/tickets/{id}', purpose: '读取单条工单详情' },
       { method: 'POST', path: '/example/tickets', purpose: '新建工单' },
       { method: 'PUT', path: '/example/tickets', purpose: '更新单条工单（body 带 id）' },

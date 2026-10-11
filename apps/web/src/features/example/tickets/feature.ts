@@ -48,7 +48,13 @@ export function createTicketsFeature(options: TicketsFeatureOptions): FeatureSpe
     description:
       '分页浏览工单，支持关键词搜索、状态/优先级/分类筛选与排序，以及新建、编辑、单条删除、变更状态。**后端只提供单条接口，没有批量端点** —— 批量操作需要按条编排。',
     entities: ['工单', '状态', '优先级', '负责人', '分类'],
-    permissions: ['example:read', 'example:create', 'example:edit', 'example:update', 'example:delete'],
+    permissions: [
+      'example:read',
+      'example:create',
+      'example:edit',
+      'example:update',
+      'example:delete',
+    ],
     endpoints: [
       {
         method: 'GET',
@@ -56,7 +62,12 @@ export function createTicketsFeature(options: TicketsFeatureOptions): FeatureSpe
         permission: 'example:read',
         purpose: '分页查询工单；支持 kw、status / priority / category 筛选与排序',
       },
-      { method: 'POST', path: '/example/tickets', permission: 'example:create', purpose: '新建工单' },
+      {
+        method: 'POST',
+        path: '/example/tickets',
+        permission: 'example:create',
+        purpose: '新建工单',
+      },
       {
         method: 'PUT',
         path: '/example/tickets',

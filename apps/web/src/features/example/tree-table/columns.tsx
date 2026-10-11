@@ -71,9 +71,7 @@ export function useTreeTableColumns(): ColumnDef<StockFeatures, TreeTableRow>[] 
         id: 'count',
         header: label('count', '商品数'),
         meta: { label: label('count', '商品数'), headerClassName: MIN_COLUMN_WIDTH },
-        cell: ({ getValue }) => (
-          <span className="tabular-nums">{String(getValue() ?? 0)}</span>
-        ),
+        cell: ({ getValue }) => <span className="tabular-nums">{String(getValue() ?? 0)}</span>,
       }),
       columnHelper.accessor('amount', {
         id: 'amount',

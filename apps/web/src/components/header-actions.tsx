@@ -2,7 +2,7 @@ import { Button, Tooltip } from '@cloudflare/kumo'
 import { QuestionIcon, SparkleIcon } from '@phosphor-icons/react'
 import { useTranslation } from 'react-i18next'
 import { UserMenu } from '#/components/user-menu'
-import { isDesktop } from '#/desktop/bridge'
+import { isDesktop } from '#/native/bridge'
 
 export interface HeaderActionsProps {
   /**
@@ -109,9 +109,7 @@ export function HeaderActions({
         </Button>
       ) : null}
 
-      {showUserMenu ? (
-        <UserMenu size={size} onOpenCommandPalette={onOpenCommandPalette} />
-      ) : null}
+      {showUserMenu ? <UserMenu size={size} onOpenCommandPalette={onOpenCommandPalette} /> : null}
     </div>
   )
 }

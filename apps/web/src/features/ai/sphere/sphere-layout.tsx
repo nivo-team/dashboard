@@ -2,7 +2,7 @@ import { useNavigate, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { CommandPaletteDialog } from '#/components/command-palette'
 import { registerAiShellBridge, useAiSessionStore } from '#/features/ai/core'
-import { isDesktop } from '#/desktop/bridge'
+import { isDesktop } from '#/native/bridge'
 import { DesktopSphereLayout } from './desktop-sphere-layout'
 import { WebSphereLayout } from './web-sphere-layout'
 
@@ -59,11 +59,7 @@ export function SphereLayout({ appId }: { appId: string }) {
 
   return (
     <>
-      {isDesktop() ? (
-        <DesktopSphereLayout appId={appId} />
-      ) : (
-        <WebSphereLayout appId={appId} />
-      )}
+      {isDesktop() ? <DesktopSphereLayout appId={appId} /> : <WebSphereLayout appId={appId} />}
 
       <CommandPaletteDialog open={paletteOpen} onOpenChange={setPaletteOpen} />
     </>

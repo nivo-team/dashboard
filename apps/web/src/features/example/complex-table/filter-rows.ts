@@ -20,9 +20,7 @@ export function filterRows(
   // 只挑出本页声明过的筛选参数，避免 `page` / `kw` 这类主参数混进来
   const active = COMPLEX_TABLE_FILTER_FIELDS.filter(
     (field) =>
-      query[field.param] !== undefined &&
-      query[field.param] !== null &&
-      query[field.param] !== '',
+      query[field.param] !== undefined && query[field.param] !== null && query[field.param] !== '',
   )
 
   if (!active.length) return [...rows]

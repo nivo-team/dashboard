@@ -44,7 +44,7 @@ import {
   type TaskItemData,
 } from '#/features/ai/components/task-card'
 import { useIsMobileViewport } from '#/lib/use-mobile-viewport'
-import { isDesktop } from '#/desktop/bridge'
+import { isDesktop } from '#/native/bridge'
 
 export interface AiComposerProps {
   className?: string

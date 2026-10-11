@@ -187,9 +187,7 @@ export const COMPLEX_TABLE_FILTER_FIELDS: QueryFilterField[] = [
  * 键必须与上面目录的 `param` / `paramTo` **逐一对应** ——
  * `defineFilterParsers` 会在编译期校验：多写或拼错的键会直接报类型错误。
  */
-export const COMPLEX_TABLE_FILTER_PARSERS = defineFilterParsers<
-  ComplexTableQueryParams
->()({
+export const COMPLEX_TABLE_FILTER_PARSERS = defineFilterParsers<ComplexTableQueryParams>()({
   // 订单与客户
   id: parseAsString,
   customer_name: parseAsString,

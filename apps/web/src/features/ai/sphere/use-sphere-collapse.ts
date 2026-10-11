@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useContext } from 'react'
-import { invoke, isSphereWindow } from '#/desktop/bridge'
+import { invoke, isSphereWindow } from '#/native/bridge'
 import { readMaximizeOrigin } from '#/features/ai/core'
 import { SphereTransitionContext } from './sphere-transition'
 

@@ -2,21 +2,14 @@ import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DataTable, stockFeatures, useTable } from '#/components/data-table'
 import type { ColumnVisibilityState, RowSelectionState } from '#/components/data-table'
-import {
-  FilterBuilder,
-  TableControls,
-  describeFilterCondition,
-} from '#/components/table-controls'
+import { FilterBuilder, TableControls, describeFilterCondition } from '#/components/table-controls'
 import type { FilterCondition, ResolveFilterFieldOptions } from '#/components/table-controls'
 import { PageHeader } from '#/components/page-header'
 import { useFeature } from '#/features/ai/page'
 import { useTableQuery } from '#/lib/list-query'
 import { useComplexTableColumns } from './columns'
 import { COMPLEX_TABLE_ROWS, COMPLEX_TABLE_ROW_ID, summarizeComplexTable } from './data'
-import {
-  COMPLEX_TABLE_FILTER_FIELDS,
-  COMPLEX_TABLE_FILTER_PARSERS,
-} from './filter-fields'
+import { COMPLEX_TABLE_FILTER_FIELDS, COMPLEX_TABLE_FILTER_PARSERS } from './filter-fields'
 import { filterRows } from './filter-rows'
 import { createComplexTableFeature } from './feature'
 
@@ -52,7 +45,12 @@ export function ComplexTablePage() {
     查询驱动状态全部托管给 useTableQuery（URL state，nuqs 驱动）——
     筛选条件因此可分享、可刷新复现，AI 也能直接改 URL 来驱动页面。
   */
-  const { pagination, search, filters: tableFilters, rawQuery } = useTableQuery({
+  const {
+    pagination,
+    search,
+    filters: tableFilters,
+    rawQuery,
+  } = useTableQuery({
     filterParsers: COMPLEX_TABLE_FILTER_PARSERS,
     fields: COMPLEX_TABLE_FILTER_FIELDS,
     defaultPage: 1,
@@ -71,7 +69,9 @@ export function ComplexTablePage() {
           const q = search.value.trim().toLowerCase()
           return COMPLEX_TABLE_ROWS.filter((row) =>
             Object.values(row).some((value) =>
-              String(value ?? '').toLowerCase().includes(q),
+              String(value ?? '')
+                .toLowerCase()
+                .includes(q),
             ),
           )
         })()
@@ -245,10 +245,7 @@ export function ComplexTablePage() {
           },
         }}
         emptyTitle={t('empty.title', '暂无数据')}
-        emptyDescription={t(
-          'empty.description',
-          '未找到符合条件的数据，请调整筛选条件或关键词',
-        )}
+        emptyDescription={t('empty.description', '未找到符合条件的数据，请调整筛选条件或关键词')}
         footer={
           <span>
             {t('summary', '共 {{orders}} 个订单 / 合计数量 {{qty}} / 合计金额 {{total}}', {

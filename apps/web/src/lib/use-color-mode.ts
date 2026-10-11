@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { invoke, isDesktop, subscribe } from '#/desktop/bridge'
+import { invoke, isDesktop, subscribe } from '#/native/bridge'
 import { usePreferencesStore, type ColorMode } from './store/preferences-store'
 
 /**

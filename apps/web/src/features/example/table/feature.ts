@@ -75,7 +75,12 @@ export function createTableExampleListFeature(
         purpose: '分页查询表格示例；支持 kw、多字段 filter 与排序',
       },
       { method: 'POST', path: '/example/table', permission: 'example:create', purpose: '新建记录' },
-      { method: 'PUT', path: '/example/table', permission: 'example:update', purpose: '编辑更新记录' },
+      {
+        method: 'PUT',
+        path: '/example/table',
+        permission: 'example:update',
+        purpose: '编辑更新记录',
+      },
       {
         method: 'DELETE',
         path: '/example/table/{id}',

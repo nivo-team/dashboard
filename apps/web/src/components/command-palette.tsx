@@ -4,7 +4,7 @@ import { ArrowRightIcon, DesktopIcon, MoonIcon, SunIcon } from '@phosphor-icons/
 import { useNavigate } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { isDesktop, openSettingsWindow } from '#/desktop/bridge'
+import { isDesktop, openSettingsWindow } from '#/native/bridge'
 import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
 import {
   ALL_NAV_TARGETS,
@@ -84,21 +84,21 @@ export function CommandPaletteDialog({ open, onOpenChange }: CommandPaletteDialo
       .filter((item) => !NAV_DIRECTORY_PATHS.has(item.to))
       .map((item) => {
         const selfLabel = item.labelKey ? t(item.labelKey, item.label) : item.label
-      const parentLabel = item.parentLabelKey
-        ? t(item.parentLabelKey, {
-            defaultValue: item.parentLabel ?? item.parentLabelKey,
-          })
-        : item.parentLabel
-      const label = parentLabel ? `${parentLabel} · ${selfLabel}` : selfLabel
+        const parentLabel = item.parentLabelKey
+          ? t(item.parentLabelKey, {
+              defaultValue: item.parentLabel ?? item.parentLabelKey,
+            })
+          : item.parentLabel
+        const label = parentLabel ? `${parentLabel} · ${selfLabel}` : selfLabel
 
-      return {
-        id: `nav:${item.to}#${label}`,
-        label,
-        icon: item.icon,
-        keywords: item.keywords.join(' '),
-        run: () => navigate({ to: `/${appId}${item.to}` as never }),
-      }
-    })
+        return {
+          id: `nav:${item.to}#${label}`,
+          label,
+          icon: item.icon,
+          keywords: item.keywords.join(' '),
+          run: () => navigate({ to: `/${appId}${item.to}` as never }),
+        }
+      })
 
     // 外壳页面（应用选择 / 个人资料 / 设置）：`to` 已是绝对路径，不能再拼 appId
     const shellItems: PaletteItem[] = filterShellNavItems(ALL_SHELL_NAV_TARGETS, {

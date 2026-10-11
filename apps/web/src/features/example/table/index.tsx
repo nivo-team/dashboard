@@ -461,7 +461,8 @@ export function TableExampleListPage() {
   )
 
   const schemaColumns = useSchemaColumns<UserItem>(UserItemSchema, {
-    ns: 'example', keyPrefix: 'table',
+    ns: 'example',
+    keyPrefix: 'table',
     columns: TABLE_EXAMPLE_COLUMN_SPECS,
     sortable: SORTABLE_FIELDS,
     baseMeta: { headerClassName: MIN_COLUMN_WIDTH },

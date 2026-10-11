@@ -1,27 +1,16 @@
-import { ShellContentColumn } from './content-column'
-import { ShellSidebarProvider } from './shell-sidebar-provider'
-import type { ShellLayoutProps } from './types'
+import { LayoutSidebarProvider } from '#/layouts/provider'
+import { ShellContentColumn } from '#/layouts/common/content-column'
+import type { LayoutSlots } from '#/layouts/types'
 
-/**
- * 浏览器形态的外壳：**一行 flex** —— 侧边栏 │ 内容列（顶栏 + main）│ AI 面板。
- *
- * 没有窗口条，所以 `ShellSidebarProvider` 的外层退化成 `display: contents`，不产生盒子，
- * 这一行就是 `Sidebar.Provider` 自身。
- */
-export function BrowserShellLayout({
-  sidebar,
-  header,
-  mainClassName,
-  ai,
-  children,
-}: ShellLayoutProps) {
+/** 兼容旧引用的通用浏览器骨架 */
+export function BrowserShellLayout({ sidebar, header, mainClassName, ai, children }: LayoutSlots) {
   return (
-    <ShellSidebarProvider>
+    <LayoutSidebarProvider>
       {sidebar}
       <ShellContentColumn header={header} mainClassName={mainClassName} desktop={false}>
         {children}
       </ShellContentColumn>
       {ai}
-    </ShellSidebarProvider>
+    </LayoutSidebarProvider>
   )
 }

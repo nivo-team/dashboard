@@ -14,7 +14,7 @@ import {
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '#/lib/cn'
-import { isDesktop, openDesktopWindow, desktopWindowName } from '#/desktop/bridge'
+import { isDesktop, openDesktopWindow, desktopWindowName } from '#/native/bridge'
 import {
   getTabTransferData,
   broadcastTabTransferred,
@@ -25,7 +25,7 @@ import {
   endTabDragSession,
   isTabExchangeAllowedWindow,
   TAB_TRANSFER_MIME,
-} from '#/desktop/tab-transfer'
+} from '#/native/tab-transfer'
 import { usePageTabsStore, resolvePageTab, type PageTab } from '#/lib/page-tabs'
 
 /**
@@ -188,7 +188,10 @@ export function PageTabItem({
     const currentWindow = desktopWindowName()
 
     // 窗口类型安全校验：只有主窗口 (main) 与页面辅助窗口 (page_*) 允许进行 Tabs 交换
-    if (!isTabExchangeAllowedWindow(currentWindow) || !isTabExchangeAllowedWindow(data.sourceWindow)) {
+    if (
+      !isTabExchangeAllowedWindow(currentWindow) ||
+      !isTabExchangeAllowedWindow(data.sourceWindow)
+    ) {
       return
     }
 

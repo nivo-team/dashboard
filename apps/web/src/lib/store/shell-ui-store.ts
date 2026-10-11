@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { isDesktop } from '#/desktop/bridge'
+import { isDesktop } from '#/native/bridge'
 
 import { enableCrossTabSync } from './cross-tab-sync'
 

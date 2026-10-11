@@ -21,10 +21,7 @@ export function DesktopSphereLayout({ appId }: { appId: string }) {
   const { isRtl } = useLocale()
 
   return (
-    <div
-      data-desktop-sphere
-      className="flex h-svh w-svw overflow-hidden bg-transparent p-0"
-    >
+    <div data-desktop-sphere className="flex h-svh w-svw overflow-hidden bg-transparent p-0">
       <Sidebar.Provider
         variant="inset"
         key={isRtl ? 'rtl' : 'ltr'}

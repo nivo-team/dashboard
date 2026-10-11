@@ -1,5 +1,5 @@
 import { cn } from '#/lib/cn'
-import { isDesktop } from '#/desktop/bridge'
+import { isDesktop } from '#/native/bridge'
 import type { UsePanelResizeResult } from '#/lib/use-panel-resize'
 
 /**

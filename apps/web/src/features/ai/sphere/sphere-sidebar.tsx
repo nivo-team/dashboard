@@ -8,8 +8,7 @@ import { AiSessionDeleteDialog } from '#/features/ai/components/session-delete-d
 import { useAiSessionStore } from '#/features/ai/core'
 import type { AiSessionSummary } from '#/features/ai/core'
 import { GROUP_FALLBACK, formatRelative, groupSessions } from '#/features/ai/core/session-groups'
-import { handleDesktopHeaderDoubleClick, isDesktop } from '#/desktop/bridge'
-import { useLocale } from '#/lib/use-locale'
+import { isDesktop } from '#/native/bridge'
 import { cn } from '#/lib/cn'
 import { SessionSearchDialog } from './session-search-dialog'
 
@@ -44,7 +43,6 @@ export function SphereSidebar({ appId }: { appId: string }) {
   const { t, i18n } = useTranslation('ai')
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
-  const { isRtl } = useLocale()
   const sessions = useAiSessionStore((state) => state.sessions)
   const activeSessionId = useAiSessionStore((state) => state.activeSessionId)
   const startNewSession = useAiSessionStore((state) => state.startNewSession)
@@ -119,7 +117,12 @@ export function SphereSidebar({ appId }: { appId: string }) {
               <Tooltip
                 content={t('sidebarCollapse', '收起侧边栏')}
                 className="cursor-pointer"
-                render={<Sidebar.Trigger aria-label={t('sidebarCollapse', '收起侧边栏')} className="no-drag" />}
+                render={
+                  <Sidebar.Trigger
+                    aria-label={t('sidebarCollapse', '收起侧边栏')}
+                    className="no-drag"
+                  />
+                }
               />
             ) : null}
           </Sidebar.Header>

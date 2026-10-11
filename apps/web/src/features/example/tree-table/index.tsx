@@ -12,12 +12,7 @@ import { TableControls } from '#/components/table-controls'
 import { useFeature } from '#/features/ai/page'
 import { countTreeNodes, filterTreeByMatch } from '#/lib/tree-search'
 import { useTreeTableColumns } from './columns'
-import {
-  summarizeTreeTable,
-  TREE_TABLE_ROWS,
-  TREE_TABLE_ROW_ID,
-  TREE_TABLE_SUB_ROWS,
-} from './data'
+import { summarizeTreeTable, TREE_TABLE_ROWS, TREE_TABLE_ROW_ID, TREE_TABLE_SUB_ROWS } from './data'
 import { createTreeTableFeature } from './feature'
 
 /**
@@ -95,10 +90,7 @@ export function TreeTableExamplePage() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title={t('title', '树形表格')}
-        description={t(
-          'description',
-          '父子行、展开折叠与搜索联动展开的能力示例（数据为前端构造）',
-        )}
+        description={t('description', '父子行、展开折叠与搜索联动展开的能力示例（数据为前端构造）')}
       />
 
       <TableControls
@@ -126,10 +118,7 @@ export function TreeTableExamplePage() {
           count: countTreeNodes(filteredRows, TREE_TABLE_SUB_ROWS),
         })}
         emptyTitle={t('empty.title', '暂无数据')}
-        emptyDescription={t(
-          'empty.description',
-          '未找到符合条件的数据，请尝试更换关键词',
-        )}
+        emptyDescription={t('empty.description', '未找到符合条件的数据，请尝试更换关键词')}
         footer={
           <span>
             {t('summary', '顶层分类 {{roots}} 个 / 合计商品数 {{count}} / 合计金额 {{amount}}', {

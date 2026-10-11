@@ -52,11 +52,7 @@ import {
   ROOT,
 } from './lib/config.mjs'
 import { getCached, loadCache, putCached, saveCache } from './lib/cache.mjs'
-import {
-  describeProvider,
-  readProviderConfig,
-  translateBatch,
-} from './lib/provider.mjs'
+import { describeProvider, readProviderConfig, translateBatch } from './lib/provider.mjs'
 
 // ---------------------------------------------------------------- 参数
 
@@ -314,7 +310,9 @@ if (showProvider) {
 
     if (provider.missing.length) {
       console.log(`\n⚠ 配置不完整：${provider.missing.join('；')}`)
-      console.log('  补 i18n.config.json 的 provider 段，或设 I18N_GATEWAY_* 变量；缺密钥时回退 DSH_GATEWAY_KEY。')
+      console.log(
+        '  补 i18n.config.json 的 provider 段，或设 I18N_GATEWAY_* 变量；缺密钥时回退 DSH_GATEWAY_KEY。',
+      )
     } else if (!provider.placeholders.length) {
       console.log('\n✔ 配置可用')
     }
