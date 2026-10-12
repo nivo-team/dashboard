@@ -115,7 +115,7 @@ export function CommandPaletteDialog({ open, onOpenChange }: CommandPaletteDialo
             void openSettingsWindow(item.to)
             return
           }
-          navigate({ to: item.to as never })
+          void navigate({ to: item.to as never })
         },
       }
     })

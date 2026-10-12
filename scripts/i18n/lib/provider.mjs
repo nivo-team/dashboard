@@ -323,8 +323,8 @@ export const LOCALE_NAMES = {
  * @param {string} options.targetLocale
  * @param {string} options.moduleName 给模型一点模块上下文（术语更一致）
  * @param {Record<string,string>} options.entries 键 → 源文
- * @param {Record<string,string>} options.glossary 术语表（可选）
- * @param {Record<string,string>} options.moduleDescriptions 模块 → 中文说明
+ * @param {Record<string,Record<string,string>>} [options.glossary] 术语表（可选）
+ * @param {Record<string,string>} [options.moduleDescriptions] 模块 → 中文说明（可选）
  */
 export function buildPrompt({
   sourceLocale,

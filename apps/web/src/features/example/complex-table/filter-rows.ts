@@ -45,17 +45,25 @@ export function filterRows(
         }
         case 'enum':
         case 'boolean': {
-          const value = String(readField(row, field.name) ?? '')
+          const value = formatFieldValue(readField(row, field.name))
           return value === String(raw)
         }
         default: {
           // text / array：包含匹配
-          const value = String(readField(row, field.name) ?? '')
+          const value = formatFieldValue(readField(row, field.name))
           return value.toLowerCase().includes(String(raw).toLowerCase())
         }
       }
     }),
   )
+}
+
+function formatFieldValue(val: unknown): string {
+  if (val === null || val === undefined) return ''
+  if (Array.isArray(val)) return val.join(' ')
+  if (typeof val === 'string') return val
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val)
+  return ''
 }
 
 /**

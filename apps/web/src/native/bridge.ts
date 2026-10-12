@@ -695,7 +695,7 @@ function emitToListeners(name: string, data: unknown): void {
 
   const set = eventListeners.get(name)
   if (!set) return
-  for (const handler of [...set]) {
+  for (const handler of set) {
     try {
       handler(data)
     } catch (error) {

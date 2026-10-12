@@ -90,7 +90,10 @@ export function useComplexTableColumns(): ColumnDef<StockFeatures, ComplexTableR
       })
 
     /** 数字列（右对齐、等宽数字）。 */
-    const number = (key: keyof ComplexTableRow, format = money) =>
+    const number = <K extends keyof ComplexTableRow>(
+      key: K,
+      format: (val: ComplexTableRow[K]) => string = money as never,
+    ) =>
       columnHelper.accessor(key, {
         id: key,
         header: label(key),
@@ -99,7 +102,11 @@ export function useComplexTableColumns(): ColumnDef<StockFeatures, ComplexTableR
           headerClassName: MIN_COLUMN_WIDTH,
           cellClassName: 'text-end',
         },
-        cell: ({ getValue }) => <span className="tabular-nums">{format(getValue())}</span>,
+        cell: ({ getValue }) => (
+          <span className="tabular-nums">
+            {format(getValue() as unknown as ComplexTableRow[K])}
+          </span>
+        ),
       })
 
     /** 时间列（按全局时区格式化）。 */
