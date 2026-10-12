@@ -119,7 +119,7 @@ export function LayoutSidebarProvider({ children }: { children: ReactNode }) {
           onOpenChange={handleOpenChange}
           contained={isDesktopShell}
           mobileBreakpoint={isDesktopShell ? 0 : SHELL_MOBILE_BREAKPOINT}
-          peekable={!isDesktopShell}
+          peekable={!isDesktopShell && sidebarExpandMode === 'full'}
           resizable
           defaultWidth={sidebarWidth}
           onWidthChange={persistSidebarWidth}
@@ -156,76 +156,37 @@ function SidebarPeekBridge({
   expandMode: SidebarExpandMode
   children: ReactNode
 }) {
-  const { open, isMobile, startPeek, stopPeek } = useSidebar()
+  const { open, isMobile, stopPeek } = useSidebar()
   const wrapperRef = useRef<HTMLDivElement>(null)
-  const isPeekingFromLogoRef = useRef(false)
 
   useEffect(() => {
-    if (open || isMobile) {
-      isPeekingFromLogoRef.current = false
+    if (expandMode === 'none') {
+      stopPeek()
     }
-  }, [open, isMobile])
+  }, [expandMode, stopPeek])
 
   useEffect(() => {
     if (isMobile || isDesktop()) return
     const wrapper = wrapperRef.current
     if (!wrapper) return
 
-    const handlePointerOver = (e: MouseEvent) => {
-      if (open) return
-      const target = e.target as HTMLElement | null
-
-      if (expandMode === 'none') {
-        stopPeek()
-        return
-      }
-
-      if (expandMode === 'full') {
-        return
-      }
-
-      const inHeader = Boolean(target?.closest('[data-sidebar="header"]'))
-      if (inHeader) {
-        isPeekingFromLogoRef.current = true
-        startPeek()
-      } else if (!isPeekingFromLogoRef.current) {
-        stopPeek()
-      }
-    }
-
-    const handlePointerOut = (e: MouseEvent) => {
-      if (open) return
-      const related = e.relatedTarget as HTMLElement | null
-      const sidebarEl = wrapper.querySelector('[data-sidebar="sidebar"]')
-
-      if (sidebarEl && !sidebarEl.contains(related)) {
-        isPeekingFromLogoRef.current = false
-        stopPeek()
-      }
-    }
-
     const handleClick = (e: MouseEvent) => {
+      if (open) return
       const target = e.target as HTMLElement | null
       if (
         target?.closest('a') ||
         target?.closest('[data-sidebar="menu-button"]') ||
         target?.closest('[data-sidebar="menu-sub-button"]')
       ) {
-        isPeekingFromLogoRef.current = false
         stopPeek()
       }
     }
 
-    wrapper.addEventListener('mouseover', handlePointerOver)
-    wrapper.addEventListener('mouseout', handlePointerOut)
     wrapper.addEventListener('click', handleClick)
-
     return () => {
-      wrapper.removeEventListener('mouseover', handlePointerOver)
-      wrapper.removeEventListener('mouseout', handlePointerOut)
       wrapper.removeEventListener('click', handleClick)
     }
-  }, [expandMode, isMobile, open, startPeek, stopPeek])
+  }, [isMobile, open, stopPeek])
 
   return (
     <div ref={wrapperRef} className="contents">

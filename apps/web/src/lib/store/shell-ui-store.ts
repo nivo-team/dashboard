@@ -115,16 +115,29 @@ export const DEFAULT_PAGE_TABS_ENABLED = false
 export const DEFAULT_DESKTOP_BLUR_ENABLED = true
 
 /**
+ * 桌面端窗口毛玻璃背景叠加底色不透明度（0–100），默认 50。
+ *
+ * 仅在桌面壳环境下生效且开启窗口背景模糊时生效；
+ * 驱动 body 的半透明底色：color-mix(in srgb, var(--color-kumo-base) <opacity>%, transparent)。
+ */
+export const DEFAULT_DESKTOP_BLUR_OPACITY = 50
+export const MIN_DESKTOP_BLUR_OPACITY = 0
+export const MAX_DESKTOP_BLUR_OPACITY = 100
+
+export function clampDesktopBlurOpacity(opacity: number): number {
+  return Math.min(MAX_DESKTOP_BLUR_OPACITY, Math.max(MIN_DESKTOP_BLUR_OPACITY, Math.round(opacity)))
+}
+
+/**
  * 侧边栏折叠时的快速展开方式：
- * - `logo`：**仅悬浮在 Logo 展开**（默认）—— 鼠标悬浮在侧边栏顶部的 Logo / 品牌区域时触发临时展开；悬浮其他菜单项时不展开；
  * - `full`：**悬浮展开** —— 鼠标悬浮在侧边栏任意区域均触发临时展开；
  * - `none`：**禁止悬浮展开** —— 完全关闭悬浮临时展开，仅通过底部折叠按钮切换展开状态。
  */
-export type SidebarExpandMode = 'logo' | 'full' | 'none'
-export const DEFAULT_SIDEBAR_EXPAND_MODE: SidebarExpandMode = 'logo'
+export type SidebarExpandMode = 'full' | 'none'
+export const DEFAULT_SIDEBAR_EXPAND_MODE: SidebarExpandMode = 'full'
 
 export function isSidebarExpandMode(value: unknown): value is SidebarExpandMode {
-  return value === 'logo' || value === 'full' || value === 'none'
+  return value === 'full' || value === 'none'
 }
 
 /** 拖拽期间的写盘节流：`onWidthChange` 每帧都会触发，同步写 localStorage 会卡。 */
@@ -151,6 +164,8 @@ interface ShellUiState {
   pageTabsEnabled: boolean
   /** 桌面端窗口毛玻璃背景开关（默认开；关掉后顶栏窗口条回退为实底） */
   desktopBlurEnabled: boolean
+  /** 桌面端窗口毛玻璃背景叠加底色不透明度（0–100，默认 50） */
+  desktopBlurOpacity: number
   setSidebarOpen: (open: boolean) => void
   setSidebarWidth: (width: number) => void
   setSidebarExpandMode: (mode: SidebarExpandMode) => void
@@ -159,6 +174,7 @@ interface ShellUiState {
   setMotionEnabled: (enabled: boolean) => void
   setPageTabsEnabled: (enabled: boolean) => void
   setDesktopBlurEnabled: (enabled: boolean) => void
+  setDesktopBlurOpacity: (opacity: number) => void
   /**
    * 浮窗的两个方向一起写。
    *
@@ -180,6 +196,7 @@ type PersistedShellUi = Pick<
   | 'motionEnabled'
   | 'pageTabsEnabled'
   | 'desktopBlurEnabled'
+  | 'desktopBlurOpacity'
 >
 
 export function clampSidebarWidth(width: number): number {
@@ -215,6 +232,7 @@ export const useShellUiStore = create<ShellUiState>()(
       motionEnabled: DEFAULT_MOTION_ENABLED,
       pageTabsEnabled: DEFAULT_PAGE_TABS_ENABLED,
       desktopBlurEnabled: DEFAULT_DESKTOP_BLUR_ENABLED,
+      desktopBlurOpacity: DEFAULT_DESKTOP_BLUR_OPACITY,
       setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
       setSidebarWidth: (sidebarWidth) => set({ sidebarWidth: clampSidebarWidth(sidebarWidth) }),
       setSidebarExpandMode: (sidebarExpandMode) => set({ sidebarExpandMode }),
@@ -229,6 +247,8 @@ export const useShellUiStore = create<ShellUiState>()(
       setMotionEnabled: (motionEnabled) => set({ motionEnabled }),
       setPageTabsEnabled: (pageTabsEnabled) => set({ pageTabsEnabled }),
       setDesktopBlurEnabled: (desktopBlurEnabled) => set({ desktopBlurEnabled }),
+      setDesktopBlurOpacity: (desktopBlurOpacity) =>
+        set({ desktopBlurOpacity: clampDesktopBlurOpacity(desktopBlurOpacity) }),
     }),
     {
       name: 'admin.shell-ui',
@@ -244,6 +264,7 @@ export const useShellUiStore = create<ShellUiState>()(
         motionEnabled: state.motionEnabled,
         pageTabsEnabled: state.pageTabsEnabled,
         desktopBlurEnabled: state.desktopBlurEnabled,
+        desktopBlurOpacity: state.desktopBlurOpacity,
       }),
       /**
        * 旧存档没有 `detailPanelWidth` / `aiPanelWidth`（后续新增）—— 缺失或非法一律回落
@@ -292,6 +313,11 @@ export const useShellUiStore = create<ShellUiState>()(
             typeof saved.desktopBlurEnabled === 'boolean'
               ? saved.desktopBlurEnabled
               : current.desktopBlurEnabled,
+          desktopBlurOpacity:
+            typeof saved.desktopBlurOpacity === 'number' &&
+            Number.isFinite(saved.desktopBlurOpacity)
+              ? clampDesktopBlurOpacity(saved.desktopBlurOpacity)
+              : current.desktopBlurOpacity,
         }
       },
     },

@@ -118,16 +118,18 @@
             if (platform) root.classList.add('platform_' + platform)
           }
           var blurEnabled = true
+          var blurOpacity = 50
           try {
             var shellUiRaw = window.localStorage.getItem('admin.shell-ui')
             if (shellUiRaw) {
               var shellUi = JSON.parse(shellUiRaw)
-              if (
-                shellUi &&
-                typeof shellUi.state === 'object' &&
-                typeof shellUi.state.desktopBlurEnabled === 'boolean'
-              ) {
-                blurEnabled = shellUi.state.desktopBlurEnabled
+              if (shellUi && typeof shellUi.state === 'object') {
+                if (typeof shellUi.state.desktopBlurEnabled === 'boolean') {
+                  blurEnabled = shellUi.state.desktopBlurEnabled
+                }
+                if (typeof shellUi.state.desktopBlurOpacity === 'number') {
+                  blurOpacity = shellUi.state.desktopBlurOpacity
+                }
               }
             }
           } catch (e) {}
@@ -135,6 +137,7 @@
           var isBlurred = blurSupported && blurEnabled
           root.dataset.desktopBlurred = isBlurred ? 'true' : 'false'
           root.dataset.desktopBlurSupported = blurSupported ? 'true' : 'false'
+          root.style.setProperty('--desktop-blur-opacity', blurOpacity + '%')
           if (platform) {
             root.dataset.desktopPlatform = platform
             if (platform === 'darwin') root.classList.add('is_mac')

@@ -206,7 +206,7 @@ html.is_desktop #app {
   padding: 0 !important;
 }
 
-/* 仅在 desktop + 开启并支持毛玻璃模糊穿透时，html 与 #app 设为透明，body 叠加 50% 语义背景底色 */
+/* 仅在 desktop + 开启并支持毛玻璃模糊穿透时，html 与 #app 设为透明，body 叠加语义背景底色（受 --desktop-blur-opacity 控制，默认 50%） */
 html.is_desktop[data-desktop-blurred='true'],
 html.is_desktop[data-desktop-blurred='true'] #app {
   background: transparent !important;
@@ -214,8 +214,16 @@ html.is_desktop[data-desktop-blurred='true'] #app {
 }
 
 html.is_desktop[data-desktop-blurred='true'] body {
-  background: color-mix(in srgb, var(--color-kumo-base) 50%, transparent) !important;
-  background-color: color-mix(in srgb, var(--color-kumo-base) 50%, transparent) !important;
+  background: color-mix(
+    in srgb,
+    var(--color-kumo-base) var(--desktop-blur-opacity, 50%),
+    transparent
+  ) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--color-kumo-base) var(--desktop-blur-opacity, 50%),
+    transparent
+  ) !important;
 }
 
 /* 桌面端未开启模糊穿透时（关闭或不支持），保持实体底色（bg-kumo-base） */

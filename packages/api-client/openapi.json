@@ -2673,35 +2673,6 @@
               "status": {
                 "type": "integer",
                 "description": "1 正常 / 2 停用"
-              },
-              "current_region": {
-                "type": "string",
-                "description": "当前语言区域"
-              },
-              "regions": {
-                "type": "array",
-                "description": "有权限的语言区域",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "value": {
-                      "type": "string",
-                      "description": "区域值（与 current_region 比较）"
-                    },
-                    "region": {
-                      "type": "string",
-                      "description": "区域标识"
-                    },
-                    "label": {
-                      "type": "string",
-                      "description": "展示名"
-                    },
-                    "disabled": {
-                      "type": "boolean",
-                      "description": "是否禁用"
-                    }
-                  }
-                }
               }
             },
             "required": [

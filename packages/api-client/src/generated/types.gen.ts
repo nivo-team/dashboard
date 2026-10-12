@@ -554,31 +554,6 @@ export type ProfileResult = {
          * 1 正常 / 2 停用
          */
         status?: number;
-        /**
-         * 当前语言区域
-         */
-        current_region?: string;
-        /**
-         * 有权限的语言区域
-         */
-        regions?: Array<{
-            /**
-             * 区域值（与 current_region 比较）
-             */
-            value?: string;
-            /**
-             * 区域标识
-             */
-            region?: string;
-            /**
-             * 展示名
-             */
-            label?: string;
-            /**
-             * 是否禁用
-             */
-            disabled?: boolean;
-        }>;
     };
 };
 

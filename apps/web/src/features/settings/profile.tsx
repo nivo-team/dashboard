@@ -14,7 +14,7 @@ import { useAuth } from '#/lib/auth'
  * 与根路径 `/`（应用空间选择）共用 `_main` 通用外壳；
  * 进入 `/settings/**` 后侧边栏会切换为设置专属导航（见 #/components/shell/main-layout.tsx）。
  *
- * 数据来自 `GET /profile`（当前登录用户的个人资料与区域权限，**只读**：后端没有更新接口）——
+ * 数据来自 `GET /profile`（当前登录用户的个人资料，**只读**：后端没有更新接口）——
  * 接口路径与前端路由无关，仍复用同一支接口。
  * 接口不可用时回落到本地登录态（`useAuth().user`），并显式提示，
  * 避免把兜底数据当成后端真实值展示。
@@ -35,8 +35,6 @@ export function ProfilePage() {
   const uid = profile?.uid ?? user?.uid
   const role = profile?.role || user?.role
   const status = profile?.status
-  const currentRegion = profile?.current_region
-  const regions = profile?.regions ?? []
 
   return (
     <div className="flex flex-col gap-4">
@@ -99,43 +97,6 @@ export function ProfilePage() {
 
               <InfoRow label={t('profile.fields.status', '状态')}>{statusBadge(status, t)}</InfoRow>
             </div>
-          </LayerCard.Primary>
-        </LayerCard>
-
-        {/* 区域权限：单列纵向排列，跟着基本信息一路往下 */}
-        <LayerCard className="p-0">
-          <LayerCard.Secondary>{t('profile.sections.regions', '区域权限')}</LayerCard.Secondary>
-          <LayerCard.Primary className="flex flex-col gap-3 p-4">
-            <InfoRow label={t('profile.fields.currentRegion', '当前区域')}>
-              <span className="text-sm text-kumo-default">
-                {currentRegion === undefined || currentRegion === null
-                  ? '-'
-                  : String(currentRegion)}
-              </span>
-            </InfoRow>
-
-            {regions.length === 0 ? (
-              <p className="text-sm text-kumo-subtle">
-                {t('profile.regions.empty', '暂无区域权限')}
-              </p>
-            ) : (
-              <ul className="flex flex-wrap gap-2">
-                {regions.map((item, index) => {
-                  const isCurrent =
-                    currentRegion !== undefined &&
-                    currentRegion !== null &&
-                    item.value === currentRegion
-                  return (
-                    <li key={`${item.value ?? item.region ?? index}`}>
-                      <Badge variant={isCurrent ? 'success' : 'secondary'} appearance="dot">
-                        {item.label || item.region || String(item.value ?? '-')}
-                        {item.disabled ? ` · ${t('profile.status.disabled', '禁用')}` : ''}
-                      </Badge>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
           </LayerCard.Primary>
         </LayerCard>
       </div>

@@ -85,7 +85,6 @@
       "sidebarExpandMode": "侧边栏快速展开方式",
       "sidebarExpandModeHint": "折叠状态下的临时展开行为；底部折叠按钮始终可用",
       "sidebarExpandModes": {
-        "logo": "仅悬浮在 Logo 展开",
         "full": "悬浮展开",
         "none": "禁止悬浮展开"
       },
@@ -106,6 +105,8 @@
       "desktopBlur": "窗口背景模糊",
       "desktopBlurHint": "开启桌面窗口毛玻璃背景与透明标题栏穿透；关闭后恢复纯色底色",
       "desktopBlurUnsupportedHint": "当前桌面环境不支持背景模糊：{{reason}}",
+      "desktopBlurOpacity": "背景透明度",
+      "desktopBlurOpacityHint": "调整窗口毛玻璃背景叠加底色的不透明度；数值越低越通透（默认 50%）",
       "pageWidths": {
         "full": "全宽",
         "follow": "跟随外观",
@@ -206,8 +207,7 @@
     },
     "loadError": "资料接口暂不可用，当前展示本地登录信息",
     "sections": {
-      "basic": "基本信息",
-      "regions": "区域权限"
+      "basic": "基本信息"
     },
     "fields": {
       "username": "用户名",
@@ -215,15 +215,11 @@
       "email": "邮箱",
       "uid": "UID",
       "role": "角色",
-      "status": "状态",
-      "currentRegion": "当前区域"
+      "status": "状态"
     },
     "status": {
       "enabled": "启用",
       "disabled": "禁用"
-    },
-    "regions": {
-      "empty": "暂无区域权限"
     }
   },
   "selectApp": {

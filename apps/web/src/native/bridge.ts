@@ -396,13 +396,24 @@ function applyDesktopBlurredState(): void {
   document.documentElement.dataset.desktopBlurred = isBlurred ? 'true' : 'false'
 }
 
-// 模块初始化即同步一次，并监听外壳偏好中的 desktopBlurEnabled 变化
+/** 同步桌面端窗口背景不透明度变量（--desktop-blur-opacity）到根节点。 */
+function applyDesktopBlurOpacity(): void {
+  if (typeof document === 'undefined') return
+  const opacity = useShellUiStore.getState().desktopBlurOpacity
+  document.documentElement.style.setProperty('--desktop-blur-opacity', `${opacity}%`)
+}
+
+// 模块初始化即同步一次，并监听外壳偏好中的 desktopBlurEnabled 与 desktopBlurOpacity 变化
 if (typeof window !== 'undefined') {
   applyDesktopBlurredState()
+  applyDesktopBlurOpacity()
 
   useShellUiStore.subscribe((state, prevState) => {
     if (state.desktopBlurEnabled !== prevState.desktopBlurEnabled) {
       applyDesktopBlurredState()
+    }
+    if (state.desktopBlurOpacity !== prevState.desktopBlurOpacity) {
+      applyDesktopBlurOpacity()
     }
   })
 }

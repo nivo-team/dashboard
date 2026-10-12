@@ -121,17 +121,10 @@ const DETAIL_OPEN_MODE_OPTIONS: SettingsChoiceOption<DetailOpenMode>[] = [
 
 /**
  * 侧边栏折叠时的快速展开方式：
- * - `logo`：仅悬浮在 Logo 展开（默认）；
  * - `full`：悬浮展开（整条侧边栏悬浮展开）；
  * - `none`：禁止悬浮展开（完全通过底部折叠按钮切换）。
  */
 const SIDEBAR_EXPAND_MODE_OPTIONS: SettingsChoiceOption<SidebarExpandMode>[] = [
-  {
-    key: 'logo',
-    labelKey: 'profile.settings.sidebarExpandModes.logo',
-    defaultLabel: '仅悬浮在 Logo 展开',
-    icon: SidebarSimpleIcon,
-  },
   {
     key: 'full',
     labelKey: 'profile.settings.sidebarExpandModes.full',
@@ -491,8 +484,8 @@ export function AppearanceSettingsPage() {
         </SettingRow>
 
         {/*
-            侧边栏快速展开方式：三项短枚举，分段控件（Tabs segmented）。
-            控制折叠状态下的临时展开方式（仅悬浮在 Logo 展开 / 悬浮展开 / 禁止悬浮展开）。
+            侧边栏快速展开方式：两项短枚举，分段控件（Tabs segmented）。
+            控制折叠状态下的临时展开方式（悬浮展开 / 禁止悬浮展开）。
           */}
         <SettingRow
           label={t('profile.settings.sidebarExpandMode', '侧边栏快速展开方式')}

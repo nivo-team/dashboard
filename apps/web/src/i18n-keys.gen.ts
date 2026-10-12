@@ -1,6 +1,6 @@
 /* eslint-disable */
 // 本文件由 scripts/i18n/gen-types.mjs 生成 —— 不要手改。
-// 源语言：zh-CN｜命名空间：10 个｜键：1151 个
+// 源语言：zh-CN｜命名空间：10 个｜键：1149 个
 // 重新生成：pnpm i18n:types
 
 /**
@@ -276,7 +276,6 @@ export interface I18nNamespaceKeys {
     | "pageTabs.openInNewWindow"
     | "pageTabs.pin"
     | "pageTabs.unpin"
-    | "profile.fields.currentRegion"
     | "profile.fields.email"
     | "profile.fields.nickName"
     | "profile.fields.role"
@@ -284,9 +283,7 @@ export interface I18nNamespaceKeys {
     | "profile.fields.uid"
     | "profile.fields.username"
     | "profile.loadError"
-    | "profile.regions.empty"
     | "profile.sections.basic"
-    | "profile.sections.regions"
     | "profile.settings.accentColor"
     | "profile.settings.aiActivityGlow"
     | "profile.settings.aiActivityGlowHint"
@@ -369,6 +366,8 @@ export interface I18nNamespaceKeys {
     | "profile.settings.currentApp"
     | "profile.settings.desktopBlur"
     | "profile.settings.desktopBlurHint"
+    | "profile.settings.desktopBlurOpacity"
+    | "profile.settings.desktopBlurOpacityHint"
     | "profile.settings.desktopBlurUnsupportedHint"
     | "profile.settings.detailOpenMode"
     | "profile.settings.detailOpenModeHint"
@@ -397,7 +396,6 @@ export interface I18nNamespaceKeys {
     | "profile.settings.sidebarExpandMode"
     | "profile.settings.sidebarExpandModeHint"
     | "profile.settings.sidebarExpandModes.full"
-    | "profile.settings.sidebarExpandModes.logo"
     | "profile.settings.sidebarExpandModes.none"
     | "profile.settings.themeDisabled"
     | "profile.settings.timezoneHint"

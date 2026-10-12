@@ -35,20 +35,6 @@ defineRouteMeta({
                   email: { type: 'string' },
                   role: { type: 'string', description: '角色名' },
                   status: { type: 'integer', description: '1 正常 / 2 停用' },
-                  current_region: { type: 'string', description: '当前语言区域' },
-                  regions: {
-                    type: 'array',
-                    description: '有权限的语言区域',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        value: { type: 'string', description: '区域值（与 current_region 比较）' },
-                        region: { type: 'string', description: '区域标识' },
-                        label: { type: 'string', description: '展示名' },
-                        disabled: { type: 'boolean', description: '是否禁用' },
-                      },
-                    },
-                  },
                 },
                 required: ['uid', 'username'],
               },
@@ -60,12 +46,6 @@ defineRouteMeta({
     },
   },
 })
-
-/** 有权限的语言区域（Mock 里三个账号一致，与语言清单对应）。 */
-const MOCK_REGIONS = [
-  { value: 'zh-CN', region: 'zh-CN', label: '简体中文', disabled: false },
-  { value: 'ar-SA', region: 'ar-SA', label: 'العربية', disabled: false },
-]
 
 /**
  * 按登录 token 返回对应账号的信息。
@@ -85,7 +65,5 @@ export default defineHandler((event) => {
     email: account.email,
     role: account.roleName,
     status: 1,
-    current_region: 'zh-CN',
-    regions: MOCK_REGIONS,
   })
 })
