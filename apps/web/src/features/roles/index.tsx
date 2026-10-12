@@ -1,7 +1,6 @@
 import { Button, DropdownMenu, useKumoToastManager } from '@cloudflare/kumo'
 import { DotsThree, PencilSimple, PlusIcon, Trash } from '@phosphor-icons/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useMemo, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import {
@@ -12,6 +11,12 @@ import {
   postRoleMutation,
 } from '#/api'
 import type { RoleItem } from '#/api'
+import {
+  CrudFloatingContainer,
+  CrudViewContainer,
+  useCrudView,
+  type CrudController,
+} from '#/components/crud'
 import {
   DataTable,
   createColumnHelper,
@@ -27,22 +32,16 @@ import { extractApiErrorMessage } from '#/lib/api-error'
 import { DEFAULT_APP_ID, useAuth } from '#/lib/auth'
 import { useFeature } from '#/features/ai/page'
 import { useHasPermission } from '#/lib/permissions'
-import { ROLE_STATUS } from '../role-form'
-import { RoleFormDialog } from '../role-form-dialog'
-import { createRoleListFeature } from './feature'
+import { RoleDetailPage } from './detail'
+import { createRoleListFeature } from './list/feature'
+import { ROLE_STATUS, RoleForm, type RoleFormValues } from './role-form'
 
 const columnHelper = createColumnHelper<StockFeatures, RoleItem>()
 
 const MIN_COLUMN_WIDTH = 'min-w-[120px]'
 const DEFAULT_PAGE_SIZE = 10
-
-/** 默认隐藏列（列 id = 后端字段名）：默认**不隐藏**。 */
 const DEFAULT_HIDDEN_COLUMNS: readonly string[] = []
 
-/**
- * 列顺序即白名单。ID 排第一（便于与后端数据对照），其余按「标识 → 说明 → 状态 → 派生 → 时间」。
- * 列 id 必须等于后端字段名（排序时直接作为 `field` 参数）。
- */
 const ROLE_COLUMN_SPECS: (string | SchemaColumnSpec<RoleItem>)[] = [
   { field: 'id', render: 'code' },
   'name',
@@ -54,20 +53,90 @@ const ROLE_COLUMN_SPECS: (string | SchemaColumnSpec<RoleItem>)[] = [
 ]
 
 /**
- * 角色列表（`/$appId/system/roles`）。
- *
- * 页面结构遵循 `src/features/example/table` 的薄容器模式：查询状态 + 表格 + 新建弹窗，
- * 表格列由运行时 schema 驱动（`RoleItemSchema`），列文案取 `roles:columns.*`。
- *
- * **编辑走详情页**（那里还要做菜单授权），列表页的弹窗只负责新建。
+ * 角色管理总控页面（`/$appId/system/roles` 与 `/$appId/system/roles/$`）。
+ * 遵循 Single-Route & CrudView 规范，单文件编排列表、整页详情与新建弹窗/整页。
  */
-export function RoleListPage() {
+export function RoleListPage({ splat }: { splat?: string }) {
   const { t } = useTranslation('roles')
-  const navigate = useNavigate()
-  const toast = useKumoToastManager()
-  const queryClient = useQueryClient()
   const { currentApp } = useAuth()
   const appId = currentApp?.id || DEFAULT_APP_ID
+
+  const crud = useCrudView<RoleItem>({
+    basePath: `/${appId}/system/roles`,
+    splat,
+    enableDetail: true,
+    getFormMetadata: () => ({
+      title: t('form.createTitle', '新建角色'),
+      description: t('form.createDescription', '创建后到详情页为它分配可见菜单'),
+    }),
+    getDetailMetadata: (id) => ({
+      title: t('title', '角色管理'),
+      description: `ID ${id}`,
+    }),
+  })
+
+  // 1. 若当前命中整页沉浸态 (URL Path 触发: /roles/new 或 /roles/:roleId)
+  if (crud.isPageMode) {
+    if (crud.activeView.type === 'page-form') {
+      return <RoleCreatePageMode crud={crud} />
+    }
+    if (crud.activeView.type === 'page-detail') {
+      return <RoleDetailPage roleId={crud.activeView.id} onBack={crud.close} />
+    }
+  }
+
+  // 2. 否则渲染标准列表 (带有浮层控制器)
+  return <RoleListContent crud={crud} />
+}
+
+/** 独立整页新建角色模式 */
+function RoleCreatePageMode({ crud }: { crud: CrudController<RoleItem> }) {
+  const { t } = useTranslation('roles')
+  const toast = useKumoToastManager()
+  const queryClient = useQueryClient()
+  const createMutation = useMutation(postRoleMutation())
+  const [createError, setCreateError] = useState<string | null>(null)
+
+  const handleCreate = async (values: RoleFormValues) => {
+    setCreateError(null)
+    try {
+      await createMutation.mutateAsync({
+        body: {
+          name: values.name.trim(),
+          code: values.code.trim(),
+          description: values.description.trim(),
+          status: values.status,
+          sort: values.sort,
+        },
+      })
+      await queryClient.invalidateQueries({ queryKey: getRoleQueryKey() })
+      toast.add({ title: t('form.successCreate', '角色创建成功'), variant: 'success' })
+      crud.close()
+    } catch (submitError) {
+      setCreateError(
+        extractApiErrorMessage(submitError, t('form.failed', '操作失败，请稍后重试')),
+      )
+    }
+  }
+
+  return (
+    <CrudViewContainer crud={crud}>
+      <RoleForm
+        formId={crud.formId}
+        submitting={createMutation.isPending}
+        submitError={createError}
+        onSubmit={(values) => void handleCreate(values)}
+        onCancel={crud.close}
+      />
+    </CrudViewContainer>
+  )
+}
+
+/** 列表模式：DataTable、搜索筛选、删除弹窗与浮层容器 */
+function RoleListContent({ crud }: { crud: CrudController<RoleItem> }) {
+  const { t } = useTranslation('roles')
+  const toast = useKumoToastManager()
+  const queryClient = useQueryClient()
 
   const [searchInput, setSearchInput] = useState('')
   const [keyword, setKeyword] = useState('')
@@ -77,12 +146,10 @@ export function RoleListPage() {
     Object.fromEntries(DEFAULT_HIDDEN_COLUMNS.map((id) => [id, false])),
   )
 
-  const [createOpen, setCreateOpen] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<RoleItem | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
-  // 按钮级权限收口：与侧边栏 / 路由守卫 / AI 能力共用同一套判定
   const canCreate = useHasPermission('role:create')
   const canEdit = useHasPermission('role:edit')
   const canDelete = useHasPermission('role:delete')
@@ -108,17 +175,7 @@ export function RoleListPage() {
     [queryClient],
   )
 
-  const openDetail = useCallback(
-    (role: RoleItem) => {
-      void navigate({
-        to: '/$appId/system/roles/$roleId',
-        params: { appId, roleId: String(role.id) },
-      })
-    },
-    [navigate, appId],
-  )
-
-  // 这一页对 AI 暴露的能力：角色数据源 + 重新取数（声明见 ./feature.ts）
+  // 这一页对 AI 暴露的能力
   useFeature(
     createRoleListFeature({
       roles: items,
@@ -129,27 +186,36 @@ export function RoleListPage() {
 
   const renderers = useMemo<Record<string, ColumnRenderer<RoleItem>>>(
     () => ({
-      // 名称是进入详情的入口（列表点行也走同一个 openDetail）
       name: ({ row }) => (
         <button
           type="button"
           className="text-start font-medium text-kumo-default hover:underline"
-          onClick={() => openDetail(row)}
+          onClick={() => crud.openDetail(row.id)}
         >
           {row.name}
         </button>
       ),
-      status: ({ row, t: translate }) => (
-        <span
-          className={row.status === ROLE_STATUS.enabled ? 'text-kumo-success' : 'text-kumo-subtle'}
-        >
-          {row.status === ROLE_STATUS.enabled
-            ? translate('status.enabled', '启用')
-            : translate('status.disabled', '禁用')}
+      status: ({ value }) => {
+        const isEnabled = Number(value) === ROLE_STATUS.enabled
+        return (
+          <span
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+              isEnabled
+                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                : 'bg-kumo-line text-kumo-subtle'
+            }`}
+          >
+            {isEnabled ? t('form.statusEnabled', '启用') : t('form.statusDisabled', '禁用')}
+          </span>
+        )
+      },
+      menu_count: ({ value }) => (
+        <span className="font-mono text-xs text-kumo-subtle">
+          {t('columns.menuCountValue', '{{count}} 项', { count: Number(value) || 0 })}
         </span>
       ),
     }),
-    [openDetail],
+    [crud, t],
   )
 
   const schemaColumns = useSchemaColumns<RoleItem>(RoleItemSchema, {
@@ -163,62 +229,59 @@ export function RoleListPage() {
     () =>
       columnHelper.columns([
         ...schemaColumns,
-        // 操作列：编辑进详情页、删除走二次确认；两项都无权限时整列不渲染
-        ...(canEdit || canDelete
-          ? [
-              columnHelper.display({
-                id: 'actions',
-                header: () => <span className="sr-only">{t('columns.actions', '操作')}</span>,
-                enableHiding: false,
-                meta: { sticky: 'right' as const, cellClassName: 'text-end' },
-                cell: ({ row }) => (
-                  <DropdownMenu>
-                    <DropdownMenu.Trigger
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          shape="square"
-                          aria-label={t('rowActions.label', '更多操作')}
-                        >
-                          <DotsThree weight="bold" size={16} />
-                        </Button>
-                      }
-                    />
-                    <DropdownMenu.Content align="end">
-                      {canEdit ? (
-                        <DropdownMenu.Item
-                          className="gap-2"
-                          onClick={() => openDetail(row.original)}
-                        >
-                          <PencilSimple size={16} />
-                          <span>{t('rowActions.edit', '编辑')}</span>
-                        </DropdownMenu.Item>
-                      ) : null}
-                      {canDelete ? (
-                        <>
-                          <DropdownMenu.Separator />
-                          <DropdownMenu.Item
-                            className="gap-2"
-                            variant="danger"
-                            onClick={() => {
-                              setDeleteError(null)
-                              setDeleteTarget(row.original)
-                            }}
-                          >
-                            <Trash size={16} />
-                            <span>{t('rowActions.delete', '删除')}</span>
-                          </DropdownMenu.Item>
-                        </>
-                      ) : null}
-                    </DropdownMenu.Content>
-                  </DropdownMenu>
-                ),
-              }),
-            ]
-          : []),
+        columnHelper.display({
+          id: 'actions',
+          header: () => <span className="sr-only">{t('columns.actions', '操作')}</span>,
+          enableHiding: false,
+          meta: {
+            sticky: 'right',
+            cellClassName: 'text-end',
+          },
+          cell: ({ row }) => {
+            const role = row.original
+            return (
+              <DropdownMenu>
+                <DropdownMenu.Trigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      shape="square"
+                      aria-label={t('rowActions.label', '更多操作')}
+                    >
+                      <DotsThree weight="bold" size={16} />
+                    </Button>
+                  }
+                />
+                <DropdownMenu.Content align="end">
+                  <DropdownMenu.Item
+                    icon={PencilSimple}
+                    onClick={() => crud.openDetail(role.id)}
+                  >
+                    {canEdit ? t('rowActions.edit', '配置') : t('rowActions.view', '查看')}
+                  </DropdownMenu.Item>
+                  {canDelete ? (
+                    <>
+                      <DropdownMenu.Separator />
+                      <DropdownMenu.Item
+                        icon={Trash}
+                        variant="danger"
+                        onClick={() => {
+                          setDeleteError(null)
+                          setDeleteTarget(role)
+                        }}
+                      >
+                        {t('rowActions.delete', '删除')}
+                      </DropdownMenu.Item>
+                    </>
+                  ) : null}
+                </DropdownMenu.Content>
+              </DropdownMenu>
+            )
+          },
+        }),
       ]),
-    [schemaColumns, canEdit, canDelete, openDetail, t],
+    [schemaColumns, canEdit, canDelete, crud, t],
   )
 
   const table = useTable({
@@ -229,19 +292,8 @@ export function RoleListPage() {
     onColumnVisibilityChange: setColumnVisibility,
   })
 
-  const errorMsg = query.isError
-    ? ((query.error as { message?: string } | null)?.message ??
-      t('messages.fetchFailed', '获取角色列表失败'))
-    : null
-
   const handleCreate = useCallback(
-    async (values: {
-      name: string
-      code: string
-      description: string
-      status: number
-      sort: number
-    }) => {
+    async (values: RoleFormValues, close: () => void) => {
       setCreateError(null)
       try {
         await createMutation.mutateAsync({
@@ -255,7 +307,7 @@ export function RoleListPage() {
         })
         await invalidate()
         toast.add({ title: t('form.successCreate', '角色创建成功'), variant: 'success' })
-        setCreateOpen(false)
+        close()
       } catch (submitError) {
         setCreateError(
           extractApiErrorMessage(submitError, t('form.failed', '操作失败，请稍后重试')),
@@ -279,6 +331,10 @@ export function RoleListPage() {
       )
     }
   }, [deleteTarget, deleteMutation, invalidate, toast, t])
+
+  const errorMsg = query.isError
+    ? extractApiErrorMessage(query.error, t('messages.fetchFailed', '获取角色列表失败'))
+    : null
 
   return (
     <div className="flex flex-col gap-4">
@@ -315,7 +371,7 @@ export function RoleListPage() {
               icon={<PlusIcon size={16} />}
               onClick={() => {
                 setCreateError(null)
-                setCreateOpen(true)
+                crud.openCreate()
               }}
             >
               {t('actions.create', '新建角色')}
@@ -331,7 +387,7 @@ export function RoleListPage() {
         onRetry={() => {
           void query.refetch()
         }}
-        onRowClick={openDetail}
+        onRowClick={(role) => crud.openDetail(role.id)}
         moduleName={t('title', '角色管理')}
         quotaText={
           <Trans
@@ -358,17 +414,20 @@ export function RoleListPage() {
         }}
       />
 
-      <RoleFormDialog
-        open={createOpen}
-        onOpenChange={(open) => {
-          setCreateOpen(open)
-          if (!open) setCreateError(null)
-        }}
-        submitting={createMutation.isPending}
-        submitError={createError}
-        onSubmit={(values) => {
-          void handleCreate(values)
-        }}
+      {/* 浮层外壳容器 */}
+      <CrudFloatingContainer
+        crud={crud}
+        dialogSize="sm"
+        saveLabel={t('form.create', '创建')}
+        renderForm={(ctx) => (
+          <RoleForm
+            formId={ctx.formId}
+            submitting={createMutation.isPending}
+            submitError={createError}
+            onSubmit={(values) => void handleCreate(values, ctx.close)}
+            onCancel={ctx.close}
+          />
+        )}
       />
 
       <DangerConfirmDialog
@@ -390,13 +449,11 @@ export function RoleListPage() {
           />
         }
         confirmationText={deleteTarget?.name ?? ''}
-        confirmLabel={t('rowActions.delete', '删除')}
+        confirmLabel={t('detail.deleteAction', '确认删除')}
         cancelLabel={t('form.cancel', '取消')}
         loading={deleteMutation.isPending}
         errorMessage={deleteError}
-        onConfirm={() => {
-          void handleDeleteConfirm()
-        }}
+        onConfirm={handleDeleteConfirm}
       />
     </div>
   )

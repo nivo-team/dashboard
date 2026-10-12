@@ -212,13 +212,10 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
       parentId === 0 ||
       parentId === MENU_ROOT_ID
     ) {
-      void navigate({ to: '/$appId/system/menus', params: { appId } })
+      void navigate({ href: `/${appId}/system/menus` })
       return
     }
-    void navigate({
-      to: '/$appId/system/menus/$featureId',
-      params: { appId, featureId: String(parentId) },
-    })
+    void navigate({ href: `/${appId}/system/menus/${parentId}` })
   }, [appId, navigate, node?.parent_id])
 
   /** 保存功能组自身（名称 / 图标 / 排序 / 启用 / 显示）。 */
@@ -309,8 +306,7 @@ export function FeatureContainer({ node, onData }: FeatureContainerProps) {
         return
       }
       void navigate({
-        to: '/$appId/system/menus/$featureId',
-        params: { appId, featureId: String(target.menu_id) },
+        href: `/${appId}/system/menus/${target.menu_id}`,
       })
     },
     [appId, navigate],

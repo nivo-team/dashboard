@@ -1,7 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { FeaturesRootPage } from '#/features/menus/list'
+import { MenusPage } from '#/features/menus'
 
-/** 功能根视图路由（`/$appId/system/menus`）—— 薄适配层，业务在 `src/features`。 */
+/**
+ * 菜单管理根路由（`/$appId/system/menus`）—— **薄适配层**。
+ * 业务实现与节点调度在 `src/features/menus/`。
+ */
 export const Route = createFileRoute('/$appId/system/menus/')({
-  component: FeaturesRootPage,
+  component: MenusPage,
 })

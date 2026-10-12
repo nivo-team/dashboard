@@ -29,10 +29,12 @@ export function FeatureCreateActions({ parentId = MENU_ROOT_ID }: FeatureCreateA
 
   const goCreate = useCallback(
     (type?: 'group') => {
+      const searchParams = new URLSearchParams()
+      if (parentId) searchParams.set('pid', String(parentId))
+      if (type) searchParams.set('type', type)
+      const queryString = searchParams.toString()
       void navigate({
-        to: '/$appId/system/menus/new',
-        params: { appId },
-        search: { pid: parentId, type },
+        href: `/${appId}/system/menus/new${queryString ? `?${queryString}` : ''}`,
       })
     },
     [appId, navigate, parentId],

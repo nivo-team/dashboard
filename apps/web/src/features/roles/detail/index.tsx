@@ -1,4 +1,5 @@
-import { LayerCard, Switch, useKumoToastManager } from '@cloudflare/kumo'
+import { Button, LayerCard, Switch, useKumoToastManager } from '@cloudflare/kumo'
+import { ArrowLeftIcon } from '@phosphor-icons/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -52,11 +53,18 @@ function sameIds(a: readonly number[], b: readonly number[]): boolean {
  *
  * 校验只在 `validateRoleForm` 一处（浮条保存不经过 `<form>` 的 submit，见 skill `editable-detail`）。
  */
-export function RoleDetailPage() {
+export function RoleDetailPage({
+  roleId: propRoleId,
+  onBack,
+}: {
+  roleId?: string | number
+  onBack?: () => void
+} = {}) {
   const { t } = useTranslation('roles')
   const toast = useKumoToastManager()
   const queryClient = useQueryClient()
-  const { roleId } = useParams({ from: '/$appId/system/roles/$roleId' })
+  const routeParams = useParams({ strict: false }) as { roleId?: string }
+  const roleId = propRoleId ?? routeParams.roleId
   const numericId = Number(roleId)
 
   const canEdit = useHasPermission('role:edit')
@@ -218,19 +226,31 @@ export function RoleDetailPage() {
         title={role?.name ?? t('title', '角色管理')}
         description={<span className="font-mono text-xs">{role?.code ?? '-'}</span>}
         actions={
-          // 启用开关放到页头（表单里不再渲染）；无 `role:edit` 时禁用
-          <Switch
-            disabled={!canEdit}
-            checked={status === ROLE_STATUS.enabled}
-            onCheckedChange={(checked) =>
-              setStatus(checked ? ROLE_STATUS.enabled : ROLE_STATUS.disabled)
-            }
-            label={
-              status === ROLE_STATUS.enabled
-                ? t('form.statusEnabled', '启用')
-                : t('form.statusDisabled', '禁用')
-            }
-          />
+          <div className="flex items-center gap-3">
+            {onBack ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<ArrowLeftIcon size={16} className="rtl-flip" />}
+                onClick={onBack}
+              >
+                {t('detail.back', { ns: 'example', keyPrefix: 'table', defaultValue: '返回列表' })}
+              </Button>
+            ) : null}
+            {/* 启用开关放到页头（表单里不再渲染）；无 `role:edit` 时禁用 */}
+            <Switch
+              disabled={!canEdit}
+              checked={status === ROLE_STATUS.enabled}
+              onCheckedChange={(checked) =>
+                setStatus(checked ? ROLE_STATUS.enabled : ROLE_STATUS.disabled)
+              }
+              label={
+                status === ROLE_STATUS.enabled
+                  ? t('form.statusEnabled', '启用')
+                  : t('form.statusDisabled', '禁用')
+              }
+            />
+          </div>
         }
       />
 

@@ -182,13 +182,10 @@ export function FeatureDetail({ node }: FeatureDetailProps) {
       parentId === 0 ||
       parentId === MENU_ROOT_ID
     ) {
-      void navigate({ to: '/$appId/system/menus', params: { appId } })
+      void navigate({ href: `/${appId}/system/menus` })
       return
     }
-    void navigate({
-      to: '/$appId/system/menus/$featureId',
-      params: { appId, featureId: String(parentId) },
-    })
+    void navigate({ href: `/${appId}/system/menus/${parentId}` })
   }, [appId, navigate, node.parent_id])
 
   /** 子项下钻：功能组与功能走同一条动态路由（权限不可点，由 `menuIsNavigable` 拦下）。 */
@@ -198,8 +195,7 @@ export function FeatureDetail({ node }: FeatureDetailProps) {
         return
       }
       void navigate({
-        to: '/$appId/system/menus/$featureId',
-        params: { appId, featureId: String(child.menu_id) },
+        href: `/${appId}/system/menus/${child.menu_id}`,
       })
     },
     [appId, navigate],

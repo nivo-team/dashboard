@@ -58,7 +58,7 @@ export function FeatureNodePage({ featureId }: { featureId: string }) {
   )
 
   const goRoot = () => {
-    void navigate({ to: '/$appId/system/menus', params: { appId } })
+    void navigate({ href: `/${appId}/system/menus` })
   }
 
   if (!hasValidId) {
