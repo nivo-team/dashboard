@@ -13,13 +13,6 @@ import { useAiFormFields, useAiFormSubmit, type AiFormField } from '#/features/a
 import { appToastManager } from '#/lib/toast'
 import { toDisplayText } from '#/lib/to-text'
 
-/**
- * 工单表单（新建 / 编辑）—— 与 `table-example/form-view` 同一套结构：
- * 一个组件承担 page / split / dialog 三种形态，AI 表单桥两半（字段 + 提交）由它注册。
- *
- * `priority` 在表单里是**字符串**（`Select` 的值），提交时转成数字 —— 与接口契约对齐。
- */
-
 export interface TicketFormMetadata {
   title: string
   description: string
@@ -36,11 +29,11 @@ export function getTicketFormMetadata(mode: 'create' | 'edit', t: TFunction): Ti
 }
 
 export interface TicketFormViewProps {
-  variant?: 'page' | 'split' | 'dialog'
   formId?: string
   mode?: 'create' | 'edit'
   ticketId?: number | string | null
   initialData?: TicketItem | null
+  hideActions?: boolean
   onSuccess?: () => void
   onClose?: () => void
 }
@@ -53,11 +46,11 @@ const PRIORITY_OPTIONS = [
 ]
 
 export function TicketFormView({
-  variant = 'page',
   formId: formIdProp,
   mode = 'create',
   ticketId,
   initialData,
+  hideActions = false,
   onSuccess,
   onClose,
 }: TicketFormViewProps) {
@@ -98,7 +91,7 @@ export function TicketFormView({
             setCategory(item.category ?? '')
           }
         } catch {
-          // 接口异常由拦截器处理
+          // 由 API 层拦截器统一提示
         } finally {
           setLoadingDetail(false)
         }
@@ -112,31 +105,59 @@ export function TicketFormView({
     : 'ticket-form-create'
 
   const aiFields: AiFormField[] = [
-    { name: 'title', label: t('form.title', '标题'), type: 'text', required: true },
-    { name: 'description', label: t('form.description', '描述'), type: 'text' },
+    {
+      name: 'title',
+      label: t('form.title', '标题'),
+      type: 'text',
+      description: t('form.titlePlaceholder', '一句话描述问题'),
+    },
     {
       name: 'priority',
       label: t('form.priority', '优先级'),
       type: 'select',
+      description: '1=低, 2=中, 3=高, 4=紧急',
       options: PRIORITY_OPTIONS,
     },
-    { name: 'assignee', label: t('form.assignee', '负责人'), type: 'text' },
-    { name: 'category', label: t('form.category', '分类'), type: 'text' },
+    {
+      name: 'assignee',
+      label: t('form.assignee', '负责人'),
+      type: 'text',
+      description: t('form.assigneePlaceholder', '留空则为「未分配」'),
+    },
+    {
+      name: 'category',
+      label: t('form.category', '分类'),
+      type: 'text',
+      description: t('form.categoryPlaceholder', '如「缺陷」「需求」'),
+    },
+    {
+      name: 'description',
+      label: t('form.description', '描述'),
+      type: 'text',
+      description: t('form.descriptionPlaceholder', '补充复现步骤、期望结果等'),
+    },
   ]
 
   useAiFormFields({
     id: formBridgeId,
     title: meta.title,
     fields: aiFields,
-    getValues: () => ({ title, description, priority, assignee, category }),
+    getValues: () => ({
+      title,
+      description,
+      priority: Number(priority) || 2,
+      assignee,
+      category,
+    }),
     setValues: (patch) => {
       if (typeof patch.title === 'string') {
         setTitle(patch.title)
         if (titleError) setTitleError(null)
       }
       if (typeof patch.description === 'string') setDescription(patch.description)
-      // priority 可能是数字（模型给的）也可能是字符串（表单控件的值），统一成字符串
-      if (patch.priority !== undefined) setPriority(toDisplayText(patch.priority))
+      if (typeof patch.priority === 'number' || typeof patch.priority === 'string') {
+        setPriority(String(patch.priority))
+      }
       if (typeof patch.assignee === 'string') setAssignee(patch.assignee)
       if (typeof patch.category === 'string') setCategory(patch.category)
     },
@@ -151,16 +172,17 @@ export function TicketFormView({
 
     setSubmitting(true)
     try {
-      const body = {
-        title: trimmedTitle,
-        description: description.trim(),
-        priority: Number(priority) || 2,
-        assignee: assignee.trim() || '未分配',
-        category: category.trim() || '咨询',
-      }
-
+      const priorityNum = Number(priority) || 2
       if (!isEdit) {
-        const res = await postExampleTickets({ body })
+        const res = await postExampleTickets({
+          body: {
+            title: trimmedTitle,
+            description: description.trim(),
+            priority: priorityNum,
+            assignee: assignee.trim(),
+            category: category.trim(),
+          },
+        })
         if (res.data?.code === 0) {
           appToastManager.add({
             title: t('form.createSuccess', '创建工单成功'),
@@ -170,7 +192,16 @@ export function TicketFormView({
         }
       } else {
         const targetId = Number(ticketId || initialData?.id)
-        const res = await putExampleTickets({ body: { id: targetId, ...body } })
+        const res = await putExampleTickets({
+          body: {
+            id: targetId,
+            title: trimmedTitle,
+            description: description.trim(),
+            priority: priorityNum,
+            assignee: assignee.trim(),
+            category: category.trim(),
+          },
+        })
         if (res.data?.code === 0) {
           appToastManager.add({
             title: t('form.updateSuccess', '更新工单成功'),
@@ -179,6 +210,12 @@ export function TicketFormView({
           onSuccess?.()
         }
       }
+    } catch (err) {
+      appToastManager.add({
+        title: isEdit ? t('form.updateFailed', '更新工单失败') : t('form.createFailed', '创建工单失败'),
+        description: toDisplayText(err),
+        variant: 'error',
+      })
     } finally {
       setSubmitting(false)
     }
@@ -208,70 +245,62 @@ export function TicketFormView({
 
   const activeFormId = formIdProp || `form-${formBridgeId}`
 
-  const renderFormFields = () => {
-    if (loadingDetail) {
-      return (
-        <div className="flex h-40 items-center justify-center">
-          <Loader size="lg" />
-        </div>
-      )
-    }
+  if (loadingDetail) {
     return (
-      <form id={activeFormId} onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <Input
-          label={t('form.title', '标题')}
-          error={titleError ? { message: titleError, match: 'customError' } : undefined}
-          value={title}
-          onChange={(e) => {
-            setTitle(e.target.value)
-            if (titleError) setTitleError(null)
-          }}
-          placeholder={t('form.titlePlaceholder', '一句话描述问题')}
-          autoFocus
-        />
-
-        <Input
-          label={t('form.assignee', '负责人')}
-          value={assignee}
-          onChange={(e) => setAssignee(e.target.value)}
-          placeholder={t('form.assigneePlaceholder', '留空则为「未分配」')}
-        />
-
-        <div className="grid grid-cols-2 gap-3">
-          <Select
-            label={t('form.priority', '优先级')}
-            value={priority}
-            onValueChange={(value) => setPriority(String(value))}
-            items={PRIORITY_OPTIONS}
-          />
-          <Input
-            label={t('form.category', '分类')}
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            placeholder={t('form.categoryPlaceholder', '如「缺陷」「需求」')}
-          />
-        </div>
-
-        <Textarea
-          label={t('form.description', '描述')}
-          value={description}
-          onValueChange={(value) => setDescription(value)}
-          placeholder={t('form.descriptionPlaceholder', '补充复现步骤、期望结果等')}
-          autoResize
-          minRows={4}
-          maxRows={8}
-        />
-      </form>
+      <div className="flex h-40 items-center justify-center">
+        <Loader size="lg" />
+      </div>
     )
   }
 
-  if (variant === 'dialog') return renderFormFields()
+  return (
+    <form id={activeFormId} onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <Input
+        label={t('form.title', '标题')}
+        error={titleError ? { message: titleError, match: 'customError' } : undefined}
+        value={title}
+        onChange={(e) => {
+          setTitle(e.target.value)
+          if (titleError) setTitleError(null)
+        }}
+        placeholder={t('form.titlePlaceholder', '一句话描述问题')}
+        autoFocus
+      />
 
-  if (variant === 'split') {
-    return (
-      <div className="flex h-full flex-col">
-        <div className="flex-1 overflow-y-auto p-4">{renderFormFields()}</div>
-        <div className="flex items-center justify-end gap-3 border-t border-kumo-line bg-kumo-base px-4 py-3">
+      <Input
+        label={t('form.assignee', '负责人')}
+        value={assignee}
+        onChange={(e) => setAssignee(e.target.value)}
+        placeholder={t('form.assigneePlaceholder', '留空则为「未分配」')}
+      />
+
+      <div className="grid grid-cols-2 gap-3">
+        <Select
+          label={t('form.priority', '优先级')}
+          value={priority}
+          onValueChange={(value) => setPriority(String(value))}
+          items={PRIORITY_OPTIONS}
+        />
+        <Input
+          label={t('form.category', '分类')}
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          placeholder={t('form.categoryPlaceholder', '如「缺陷」「需求」')}
+        />
+      </div>
+
+      <Textarea
+        label={t('form.description', '描述')}
+        value={description}
+        onValueChange={(value) => setDescription(value)}
+        placeholder={t('form.descriptionPlaceholder', '补充复现步骤、期望结果等')}
+        autoResize
+        minRows={4}
+        maxRows={8}
+      />
+
+      {!hideActions ? (
+        <div className="mt-4 flex items-center justify-end gap-3 border-t border-kumo-line pt-4">
           {onClose ? (
             <Button variant="secondary" onClick={onClose} disabled={submitting}>
               {t('form.cancel', '取消')}
@@ -281,24 +310,7 @@ export function TicketFormView({
             {t('form.save', '保存')}
           </Button>
         </div>
-      </div>
-    )
-  }
-
-  // page 形态：整页卡片
-  return (
-    <div className="flex flex-col gap-5">
-      {renderFormFields()}
-      <div className="flex items-center justify-end gap-3">
-        {onClose ? (
-          <Button variant="secondary" onClick={onClose} disabled={submitting}>
-            {t('form.cancel', '取消')}
-          </Button>
-        ) : null}
-        <Button variant="primary" form={activeFormId} type="submit" loading={submitting}>
-          {t('form.save', '保存')}
-        </Button>
-      </div>
-    </div>
+      ) : null}
+    </form>
   )
 }
