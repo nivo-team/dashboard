@@ -25,6 +25,7 @@ export type CrudActiveView =
       mode: 'create' | 'edit'
       id?: string | number
       floatingType: 'dialog' | 'split'
+      isMaximized?: boolean
       title: string
       description?: string
     }
@@ -72,6 +73,8 @@ export interface CrudController<TFormItem = any> {
   openEdit: (id: string | number, initialValues?: Partial<TFormItem> | null) => void
   /** 主动打开详情 */
   openDetail: (id: string | number) => void
+  /** 切换当前弹窗的最大化状态（持久化至 URL view=maximized） */
+  setMaximized: (maximized: boolean) => void
   /** 关闭当前表单或详情（Path 态后退回列表，Query 态清空对应参数） */
   close: () => void
   /** 从浮层形态一键平滑放大/展开至独立整页 */

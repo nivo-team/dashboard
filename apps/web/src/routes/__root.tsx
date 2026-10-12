@@ -1,6 +1,6 @@
 import { LinkProvider, Toasty } from '@cloudflare/kumo'
 import { TanStackDevtools } from '@tanstack/react-devtools'
-import { Outlet, createRootRoute } from '@tanstack/react-router'
+import { Outlet, createRootRoute, useRouter } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { NuqsAdapter } from '#/lib/list-query'
 import { AppLink } from '#/components/app-link'
@@ -15,6 +15,8 @@ export const Route = createRootRoute({
 })
 
 function RootComponent() {
+  const router = useRouter({ warn: false })
+
   return (
     // LinkProvider 让所有 Kumo 链接组件（Link / LinkButton / Sidebar.MenuButton /
     // Breadcrumbs.Link）都走 TanStack Router 的客户端跳转。
@@ -30,17 +32,19 @@ function RootComponent() {
             <Outlet />
           </AppRootLayout>
         </NuqsAdapter>
-        <TanStackDevtools
-          config={{
-            position: 'bottom-right',
-          }}
-          plugins={[
-            {
-              name: 'TanStack Router',
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-          ]}
-        />
+        {import.meta.env.DEV && router ? (
+          <TanStackDevtools
+            config={{
+              position: 'bottom-right',
+            }}
+            plugins={[
+              {
+                name: 'TanStack Router',
+                render: <TanStackRouterDevtoolsPanel router={router} />,
+              },
+            ]}
+          />
+        ) : null}
       </LinkProvider>
     </Toasty>
   )

@@ -108,7 +108,7 @@ export const openFormTool: AiToolDefinition = {
     const path = pageCtx.pathname || ''
     if (path) {
       const qs =
-        action === 'create' ? 'form=create' : `form=edit&formId=${encodeURIComponent(id || '')}`
+        action === 'create' ? 'type=create' : `id=${encodeURIComponent(id || '')}&type=edit`
       const target = path.includes('?') ? `${path}&${qs}` : `${path}?${qs}`
       ctx.navigate(target)
       return {

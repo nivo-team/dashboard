@@ -247,9 +247,11 @@ export function DetailPreviewProvider({ children }: { children: ReactNode }) {
   }, [location.pathname, request])
 
   /** 偏好被改成「跳转详情页」（或在设置页把视口拖窄）时，已打开的浮层要跟着收掉。 */
-  useEffect(() => {
-    if (effectiveMode === 'page') setIsOpen(false)
-  }, [effectiveMode])
+  const isViewPage = useMemo(() => {
+    if (typeof location === 'undefined' || !location.search) return false
+    const searchParams = new URLSearchParams(location.search)
+    return searchParams.get('view') === 'page'
+  }, [location.search])
 
   /** 「展开」：先关浮层再导航，避免路由切换与浮层关闭两个动画叠在一起。 */
   const handleExpand = useCallback(() => {
@@ -269,7 +271,7 @@ export function DetailPreviewProvider({ children }: { children: ReactNode }) {
   )
 
   const variant: DetailPreviewVariant = effectiveMode === 'sheet' ? 'sheet' : 'split'
-  const showSplit = isOpen && variant === 'split'
+  const showSplit = isOpen && variant === 'split' && !isViewPage
 
   return (
     <DetailPreviewContext.Provider value={value}>

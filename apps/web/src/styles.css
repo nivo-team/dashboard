@@ -1012,3 +1012,24 @@ div[role='presentation'].bg-kumo-overlay {
 div[role='dialog'].fixed {
   z-index: 51 !important;
 }
+
+/*
+ * LayerDialog 全屏最大化（90% 视口）样式规则：
+ * 1. 弹窗容器尺寸平滑扩大至视口的 90vw 与 90vh；
+ * 2. 内部 DrawerContent（.overflow-visible）撑满整个卡片高度（flex-1 h-full）；
+ * 3. 内部嵌套的 LayerDialog.Body 占满头部与操作栏之间的剩余空间，并由 ScrollArea 自适应滚动；
+ * 4. 底部的 LayerDialog.Actions（取消与保存）始终固定在弹窗最底部。
+ */
+[data-layer-dialog-maximized='true'] {
+  max-width: 90vw !important;
+  width: 90vw !important;
+  height: 90vh !important;
+  max-height: 90vh !important;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+[data-layer-dialog-maximized='true'] .overflow-visible {
+  flex: 1 1 0% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}

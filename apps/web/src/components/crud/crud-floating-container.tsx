@@ -1,7 +1,8 @@
 import { Button, LayerDialog } from '@cloudflare/kumo'
-import { ArrowsOutIcon } from '@phosphor-icons/react'
-import { useEffect, useRef } from 'react'
+import { ArrowsInIcon, ArrowsOutIcon } from '@phosphor-icons/react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDetailPreview } from '#/components/detail-preview'
 import type { CrudController } from './types'
@@ -29,6 +30,88 @@ export interface CrudFloatingContainerProps<TFormItem = any> {
   cancelLabel?: string
 }
 
+/** 弹窗右上角最大化（放大到 90% 全屏输入）/ 还原控制器 */
+function DialogMaximizeButton({
+  isMaximized,
+  onToggle,
+}: {
+  isMaximized: boolean
+  onToggle: () => void
+}) {
+  const { t } = useTranslation('common')
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const [dialogElement, setDialogElement] = useState<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (anchorRef.current) {
+      const popup = anchorRef.current.closest('[role="dialog"]') as HTMLElement | null
+      if (popup) {
+        setDialogElement(popup)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!dialogElement) return
+    if (isMaximized) {
+      dialogElement.dataset.layerDialogMaximized = 'true'
+      dialogElement.style.setProperty('max-width', '90vw', 'important')
+      dialogElement.style.setProperty('width', '90vw', 'important')
+      dialogElement.style.setProperty('height', '90vh', 'important')
+      dialogElement.style.setProperty('max-height', '90vh', 'important')
+      dialogElement.style.setProperty(
+        'transition',
+        'all 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+        'important',
+      )
+    } else {
+      delete dialogElement.dataset.layerDialogMaximized
+      dialogElement.style.removeProperty('max-width')
+      dialogElement.style.removeProperty('width')
+      dialogElement.style.removeProperty('height')
+      dialogElement.style.removeProperty('max-height')
+      dialogElement.style.removeProperty('transition')
+    }
+    return () => {
+      delete dialogElement.dataset.layerDialogMaximized
+      dialogElement.style.removeProperty('max-width')
+      dialogElement.style.removeProperty('width')
+      dialogElement.style.removeProperty('height')
+      dialogElement.style.removeProperty('max-height')
+      dialogElement.style.removeProperty('transition')
+    }
+  }, [dialogElement, isMaximized])
+
+  const button = (
+    <Button
+      variant="ghost"
+      size="sm"
+      shape="square"
+      className="absolute right-4.5 top-4 z-40 text-kumo-subtle hover:text-kumo-default"
+      onClick={onToggle}
+      aria-label={
+        isMaximized
+          ? t('restore', { defaultValue: '还原' })
+          : t('maximize', { defaultValue: '全屏展开' })
+      }
+      title={
+        isMaximized
+          ? t('restore', { defaultValue: '还原' })
+          : t('maximize', { defaultValue: '全屏展开' })
+      }
+    >
+      {isMaximized ? <ArrowsInIcon size={16} /> : <ArrowsOutIcon size={16} />}
+    </Button>
+  )
+
+  return (
+    <>
+      <div ref={anchorRef} className="hidden" aria-hidden="true" />
+      {dialogElement ? createPortal(button, dialogElement) : null}
+    </>
+  )
+}
+
 export function CrudFloatingContainer<TFormItem = any>({
   crud,
   renderForm,
@@ -39,28 +122,37 @@ export function CrudFloatingContainer<TFormItem = any>({
 }: CrudFloatingContainerProps<TFormItem>) {
   const { t } = useTranslation('common')
   const { open: openPreview, close: closePreview, isOpen: isPreviewOpen } = useDetailPreview()
-  const lastActiveTypeRef = useRef(crud.activeView.type)
 
   const { activeView } = crud
+  const isMaximized = Boolean(activeView.type === 'floating-form' && activeView.isMaximized)
+
+  const activeFloatingType = 'floatingType' in activeView ? activeView.floatingType : undefined
+  const activeId = 'id' in activeView ? activeView.id : undefined
+  const activeMode = 'mode' in activeView ? activeView.mode : undefined
 
   // 1. 挤压分屏 (split) 或抽屉 (sheet) 时与 useDetailPreview 联动
   useEffect(() => {
-    if (activeView.type === 'floating-form' && activeView.floatingType === 'split') {
+    if (activeView.type === 'floating-form' && activeFloatingType === 'split') {
       openPreview({
-        key: `crud-form-${activeView.mode}-${activeView.id ?? 'create'}`,
+        key: `crud-form-${activeMode}-${activeId ?? 'create'}`,
         title: activeView.title,
         description: activeView.description,
         mode: 'split',
-        onExpand: crud.expandToPage,
+        onExpand: () => {
+          crud.expandToPage()
+        },
         onClose: crud.close,
         render: ({ close }) =>
           renderForm({
-            mode: activeView.mode,
-            id: activeView.id,
+            mode: activeMode ?? 'create',
+            id: activeId,
             formId: crud.formId,
             initialData: crud.formInitialData,
             hideActions: false,
-            close,
+            close: () => {
+              close()
+              crud.close()
+            },
           }),
       })
       return
@@ -68,64 +160,68 @@ export function CrudFloatingContainer<TFormItem = any>({
 
     if (activeView.type === 'floating-detail' && renderDetail) {
       openPreview({
-        key: `crud-detail-${activeView.id}`,
+        key: `crud-detail-${activeId}`,
         title: activeView.title,
         description: activeView.description,
-        mode: activeView.floatingType,
-        onExpand: crud.expandToPage,
+        mode: activeFloatingType,
+        onExpand: () => {
+          crud.expandToPage()
+        },
         onClose: crud.close,
         render: ({ close }) =>
           renderDetail({
-            id: activeView.id,
-            close,
+            id: activeId!,
+            close: () => {
+              close()
+              crud.close()
+            },
           }),
       })
       return
     }
 
-    if (
-      lastActiveTypeRef.current !== activeView.type &&
-      activeView.type !== 'floating-form' &&
-      activeView.type !== 'floating-detail' &&
-      isPreviewOpen
-    ) {
+    // 当活动视窗退出分屏/抽屉浮层时，如果侧面板仍处于开启态，必须同步关闭
+    if (isPreviewOpen) {
       closePreview()
     }
-    lastActiveTypeRef.current = activeView.type
-  }, [activeView, crud, openPreview, closePreview, isPreviewOpen, renderForm, renderDetail])
+  }, [
+    activeView.type,
+    activeFloatingType,
+    activeId,
+    activeMode,
+  ])
 
   // 2. 居中模态弹窗 (dialog) 渲染
   if (activeView.type === 'floating-form' && activeView.floatingType === 'dialog') {
     return (
-      <LayerDialog open={true} onOpenChange={(open) => !open && crud.close()}>
+      <LayerDialog
+        open={true}
+        onOpenChange={(open) => {
+          if (!open) {
+            crud.close()
+          }
+        }}
+      >
         <LayerDialog.Content size={dialogSize}>
-          <LayerDialog.Title>
-            <span className="flex items-center justify-between">
-              <span>{activeView.title}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                shape="square"
-                onClick={crud.expandToPage}
-                aria-label={t('expand', { defaultValue: '全屏展开' })}
-                title={t('expand', { defaultValue: '全屏展开' })}
-              >
-                <ArrowsOutIcon size={16} />
-              </Button>
-            </span>
-          </LayerDialog.Title>
+          <LayerDialog.Title>{activeView.title}</LayerDialog.Title>
           {activeView.description ? (
             <LayerDialog.Description>{activeView.description}</LayerDialog.Description>
           ) : null}
 
           <LayerDialog.Body>
+            <DialogMaximizeButton
+              isMaximized={isMaximized}
+              onToggle={() => crud.setMaximized(!isMaximized)}
+            />
             {renderForm({
               mode: activeView.mode,
               id: activeView.id,
               formId: crud.formId,
               initialData: crud.formInitialData,
               hideActions: true,
-              close: crud.close,
+              close: () => {
+                crud.close()
+              },
             })}
           </LayerDialog.Body>
 

@@ -82,16 +82,23 @@
   ```
 
 ### 2.3 规范三：URL 绝对第一真值法则（URL as Source of Truth）
-URL 是页面展现形态的唯一权威依据，决定了当前是整页还是浮层：
+URL 是页面展现形态与状态的唯一权威依据，**所有 ID、表单状态与视窗形态全部在 URL 中保存**：
 
-| 当前 URL 状态 | 最终呈现形态 | 列表背景行为 |
-| :--- | :--- | :--- |
-| **Path**: `/table/new` 或 `/:id/edit` 或 `/:id` | **Page 整页沉浸** | **完全不渲染**（跳过列表取数与 DOM，极致性能） |
-| **Query**: `?form=create` 或 `?form=edit&formId=:id` | **Dialog / Split 浮层** | **正常渲染列表**，浮层叠在列表之上 |
-| **Query**: `?detailId=:id` | **Sheet / Split 浮层** | **正常渲染列表**，浮层叠在列表之上 |
-| **Path**: `/table` (无参数) | **List 标准列表** | 正常渲染列表 |
+| 当前 URL 状态 | 最终呈现形态 | 列表背景行为 | 状态说明 |
+| :--- | :--- | :--- | :--- |
+| **Path**: `/table/new` 或 `/:id/edit` 或 `/:id` | **Page 整页沉浸** | **完全不渲染**（跳过列表取数与 DOM，极致性能） | 独立整页模式；未匹配的非法路径直接触发 404 Not Found |
+| **Query**: `?type=create` | **Dialog 模态弹窗新建** | **正常渲染列表** | 新建表单（无 ID） |
+| **Query**: `?type=create&view=split` | **Split 分屏新建** | **正常渲染列表** | 右侧协同分屏新建 |
+| **Query**: `?id=:id&type=edit` | **Dialog 模态弹窗编辑** | **正常渲染列表** | 编辑指定 ID 的表单 |
+| **Query**: `?id=:id&type=edit&view=maximized` | **Dialog 90% 最大化全屏** | **正常渲染列表** | 弹窗就地扩大至 90% 视口全屏输入 |
+| **Query**: `?id=:id&type=detail` | **Sheet 抽屉详情** | **正常渲染列表** | 查看指定 ID 的详情 |
+| **Query**: `?id=:id&type=detail&view=split` | **Split 分屏详情** | **正常渲染列表** | 右侧并列分屏查看详情 |
+| **Path**: `/table` (无参数) | **List 标准列表** | 正常渲染列表 | 根列表 |
 
-> **关键规则**：若复制或分享的链接中带有 Query 参数（如 `?form=create`），**即使访问者本机的本地偏好设置是 `page`，也必须直接遵循 Query 参数在列表上打开浮层**，确保分享链接 100% 还原当时的视觉状态！
+> **关键规则**：
+> 1. **全状态持久化**：链接完整携带 `id`、`type` 与 `view`，刷新或分享能够 100% 还原当时的表单类型、记录对象与弹窗尺寸形态；
+> 2. **保护路径约束**：`/table/new` 与 `/table/edit` 为受保护保留路径，孤立的 `/edit` 缺少 ID 或未找到记录直接触发 `notFound()` 组件，绝不静默回退；
+> 3. **关闭即清空**：点击关闭或取消时，URL Query 自动完全清空，视图精准回到纯净列表。
 
 ### 2.4 规范四：用户偏好仅在主动触发时生效
 用户本地偏好（`formOpenMode` / `detailOpenMode`）**仅在发生主动事件时作为默认策略**：
@@ -102,8 +109,8 @@ URL 是页面展现形态的唯一权威依据，决定了当前是整页还是�
 - **移动端视口（`< 768px`）**：主动事件**一律降级为跳转 Path**（如 `/${appId}/example/table/new`），避免小屏幕上弹窗或分屏挤压变形；
 - **桌面端视口**：
   - 偏好为 `page` $\rightarrow$ 跳转 Path（`/${appId}/example/table/new`）；
-  - 偏好为 `dialog` / `split` $\rightarrow$ 叠加 Query（`?form=create` 或 `?form=edit&formId=123`）；
-  - 偏好为 `sheet` / `split` $\rightarrow$ 叠加 Query（`?detailId=123`）。
+  - 偏好为 `dialog` / `split` $\rightarrow$ 叠加 Query（`?type=create` 或 `?id=123&type=edit`）；
+  - 偏好为 `sheet` / `split` $\rightarrow$ 叠加 Query（`?id=123&type=detail`）。
 
 ### 2.5 规范五：原生注册 AI 表单桥（AI Form Bridge）
 表单组件挂载时，必须在组件内部通过 `useAiFormFields` 与 `useAiFormSubmit` 注册自己：
