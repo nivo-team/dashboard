@@ -17,7 +17,7 @@ import type { FormOpenOptions } from '#/features/ai/core/form-bridge'
  * 新人（以及 AI agent）想知道「这一页对 AI 暴露了什么」，得把这些文件全读一遍 ——
  * 更糟的是它们**没有任何一处能回答「这一页能不能删、删的时候要不要确认」**。
  *
- * 现在：**一个页面 = 一个文件夹 = 一份 `feature.ts`**（见 `.agents/docs/features-architecture.md`），
+ * 现在：**一个页面 = 一个文件夹 = 一份 `feature.ts`**（见 `.agents/skills/business-development/references/features-architecture.md`），
  * 里面同时写清四件事：
  *
  * | 声明 | 回答的问题 | 谁消费 |

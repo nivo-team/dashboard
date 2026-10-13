@@ -110,11 +110,12 @@ echo 'VITE_API_BASE_URL=https://your-api.example.com' > apps/web/.env.local
 
 ## 深入技术文档
 
-技术细节与设计规范已独立整理在 **[docs](./docs)** 目录中，供开发者深入查阅：
+技术细节与设计规范已按主题整理成仓库自带的 **skill**（在 `.agents/skills/` 下，每个都有 `references/` 放细节），
+选型调研与设计取舍的完整记录在 **[docs](./docs)** 目录：
 
-- [📘 路由与布局架构 (.agents/docs/routing-architecture.md)](./.agents/docs/routing-architecture.md) —— 文件系统路由、无路径布局机制、新增页面规范
-- [🎨 UI 与样式设计规范 (.agents/docs/ui-and-styling.md)](./.agents/docs/ui-and-styling.md) —— Kumo UI 接入要点、Tailwind v4 配置、界面设计规则
+- [📘 路由与布局架构](.agents/skills/platform-development/references/routing-architecture.md) —— 文件系统路由、无路径布局机制、新增页面规范
+- [🎨 UI 与样式设计规范](.agents/skills/platform-development/references/ui-and-styling.md) —— Kumo UI 接入要点、Tailwind v4 配置、界面设计规则
 - [🧩 Mock API (apps/mock/README.md)](./apps/mock/README.md) —— 契约驱动的假数据后端、部署到 Cloudflare / Vercel
 - [📜 API 契约与客户端 (packages/api-client/README.md)](./packages/api-client/README.md) —— 契约来源切换、API 生成产物与「换后端」步骤
-- [🔐 认证、多应用与国际化 (.agents/docs/auth-and-i18n.md)](./.agents/docs/auth-and-i18n.md) —— 双阶段登录认证、应用池配置、模块化零配置 i18n
-- [🤖 AI 编程助手指引 (AGENTS.md)](./AGENTS.md) —— 面向 AI Agent / Claude Code 的项目开发总览与常用命令
+- [🔐 认证、多应用与国际化](.agents/skills/platform-development/references/auth-and-i18n.md) —— 双阶段登录认证、应用池配置、模块化零配置 i18n
+- [🤖 AI 编程助手指引 (AGENTS.md)](./AGENTS.md) —— 面向 AI Agent / Claude Code 的项目开发总览、命令与「该加载哪个 skill」的索引

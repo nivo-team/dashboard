@@ -35,6 +35,22 @@ Look for the originating spec, in this order:
 
 Anything in the repo that documents how code should be written, such as `CODING_STANDARDS.md` or `CONTRIBUTING.md`.
 
+**In this repo the standards live in skills, not in loose markdown files.** Start from the root `AGENTS.md`
+(its "铁律" section is the contract-level hard rules, loaded every session), then load the skill that owns
+the area the diff touches, and read only the references that area needs:
+
+| The diff touches | Load |
+| --- | --- |
+| Business pages (`apps/web/src/features/**`, page routes) | `business-development` — its SKILL.md red lines, then `references/table.md` / `references/editable-detail.md` / `references/permissions-architecture.md` as relevant |
+| Platform (`routes/**` skeleton, `lib/store/**`, styles, `api/**`) | `platform-development` — `references/routing-architecture.md` / `references/store.md` / `references/ui-and-styling.md` |
+| AI (`features/ai/**`, `apps/ai/**`, `packages/ai-prompt/**`) | `ai-development` — `references/ai-architecture.md` first |
+| Workflows / CI / i18n pipeline (`.github/**`) | `platform-ops` — `references/ai-dev-pipeline.md` |
+
+The rules most often violated, worth checking every time: only the source locale is hand-written in
+`messages/<ns>/<sourceLocale>.json`; no `dark:` variants, no `tracking-*`, no `font-bold`; colors only from
+Kumo semantic tokens; links only via `#/components/router-link`; name lists exist in exactly one place
+(`navigation.ts`, `widget-registry.tsx`, `AI_TOOLS`).
+
 On top of whatever the repo documents, the Standards axis always carries the **smell baseline** below: a fixed set of Fowler code smells (_Refactoring_, ch.3) that applies even when a repo documents nothing. Two rules bind it:
 
 - **The repo overrides.** A documented repo standard always wins; where it endorses something the baseline would flag, suppress the smell.

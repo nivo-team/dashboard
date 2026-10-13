@@ -6,7 +6,7 @@
  * `ALLOWED_ORIGINS` 里显式列出真实域名。
  *
  * ⚠️ **CORS 不是鉴权**：它只约束「浏览器里的页面能不能读响应」，拦不住 curl。
- * 上线前必须补真正的鉴权（见 `.agents/docs/ai-server-layer.md` 的「鉴权」一节）。
+ * 上线前必须补真正的鉴权（见 `.agents/skills/ai-development/references/ai-server-layer.md` 的「鉴权」一节）。
  */
 
 /** 未配置 `ALLOWED_ORIGINS` 时放行的本地开发来源（web 的 dev server）。 */

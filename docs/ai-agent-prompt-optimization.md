@@ -2,8 +2,8 @@
 
 > **落地状态（本仓库）**：本文的 P0–P3⑪ 已落地，仅剩「按真实数据继续压缩」与两项刻意留待后续的优化。
 > 代码见 `apps/web/src/lib/ai/{runtime.ts,tools/**}`、`packages/ai-prompt/src/**`、`apps/ai/src/**`；
-> 现状说明见 [`.agents/docs/ai-server-layer.md`](../.agents/docs/ai-server-layer.md) §1.4 与
-> [`ai-architecture.md`](../.agents/docs/ai-architecture.md)（坑 #19 记录了"模型把工具调用写成文本"的兜底）。
+> 现状说明见 [`.agents/skills/ai-development/references/ai-server-layer.md`](../.agents/skills/ai-development/references/ai-server-layer.md) §1.4 与
+> [`ai-architecture.md`](../.agents/skills/ai-development/references/ai-architecture.md)（坑 #19 记录了"模型把工具调用写成文本"的兜底）。
 >
 > | 本文条目 | 状态 |
 > |---|---|

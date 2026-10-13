@@ -1,0 +1,3 @@
+interface:
+  display_name: 'AI Development'
+  short_description: 'Change the AI assistant: prompts, tools, permissions, worker'

@@ -1,0 +1,3 @@
+interface:
+  display_name: 'Platform Ops'
+  short_description: 'AI pipeline, CI gates, repo secrets, i18n translation'

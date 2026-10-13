@@ -1,7 +1,7 @@
 /**
  * AI **核心逻辑**出口（运行时 / 工具层 / 上下文 / 会话）。
  *
- * 分层与设计约定见 `.agents/docs/ai-integration.md`：
+ * 分层与设计约定见 `.agents/skills/ai-development/references/ai-integration.md`：
  * - `types`：工具与消息的公共类型（与厂商、SDK 无关）；
  * - `page-context`：当前 URL / 路由 / 应用的采集，以及把 router 能力注入进来的「外壳桥」；
  * - `page-reload-bridge`：页面把「重新取数」交给 AI 通道（写操作成功后刷新列表用）；

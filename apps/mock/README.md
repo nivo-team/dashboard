@@ -26,7 +26,7 @@ pnpm mock          # 在仓库根执行，启动 http://localhost:3001
 > 不再用 `token.includes('super')` 这类子串猜测。
 >
 > **`Admin` 不是超管**：前端的超管判定只认 `Super Admin`（见
-> [permissions-architecture.md](../../.agents/docs/permissions-architecture.md)）。
+> [permissions-architecture.md](../../.agents/skills/business-development/references/permissions-architecture.md)）。
 > 把 `Admin` 当超管的后果是「admin 不能删」在判定第一道就被短路掉。
 
 ### 局域网访问
@@ -89,7 +89,7 @@ MOCK_PUBLIC_URL=http://<本机 IP>:3001
 而不是循环调用单条接口（那样每一条都要一次模型往返）。
 
 所以**不要**给 `/ticket` 补批量端点 —— 那会让这个示例失去意义。
-它对应前端 `/$appId/example/tickets`（见 [features-architecture.md](../../.agents/docs/features-architecture.md)）。
+它对应前端 `/$appId/example/tickets`（见 [features-architecture.md](../../.agents/skills/business-development/references/features-architecture.md)）。
 
 > **`GET /api` 的清单必须与真实接口对齐**：它不只是"功能管理里的 API Keys 选项"，
 > 同时是 **AI 写操作的白名单**（`call_write_api` 按它校验 method + 路径模板）。

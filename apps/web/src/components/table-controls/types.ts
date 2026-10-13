@@ -16,7 +16,7 @@ export interface FilterFieldOption {
  * 把筛选字段解析成候选项（**运行时**，可跟随字典变化）。
  *
  * 返回 `undefined` 表示该字段没有动态来源，控件退回字段自带的静态 `options`
- * （生成产物里从 openapi enum 提取的那份）。用法见 `.agents/docs/dict-options.md` 的筛选一节：
+ * （生成产物里从 openapi enum 提取的那份）。用法见 `.agents/skills/business-development/references/dict-options.md` 的筛选一节：
  * 页面用 `useDictOptionEntries('<分类编码>')` 取字典选项，把 value + 多语言文案交给控件。
  */
 export type ResolveFilterFieldOptions = (

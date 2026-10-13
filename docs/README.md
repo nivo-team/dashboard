@@ -3,28 +3,28 @@
 这个目录**只放「给人看」的东西**：技术选型调研、设计取舍的完整记录。它们相对稳定 ——
 不会因为某次代码改动就过时，是「当时为什么这么选」的存档。
 
-> **现状说明与开发规范不在这个目录**，在 [`.agents/docs/`](../.agents/docs/README.md) ——
-> 那些描述**当前状态**（模块现状、架构、接入清单、踩过的坑），会随代码过时，
-> 写给 coding agent 读，改相关代码时要顺手同步它。
+> **现状说明与开发规范不在这个目录**，在各 skill 的 `references/` 里
+> （`.agents/skills/*/references/`）—— 那些描述**当前状态**（模块现状、架构、接入清单、
+> 踩过的坑），会随代码过时，写给 coding agent 读，改相关代码时要顺手同步。
 >
 > **契约级的硬约束在仓库根的 [`AGENTS.md`](../AGENTS.md)**（只留「不知道就会写错」的部分，
-> 与一张指向各文档的索引表）。
+> 与一张「要做什么 → 加载哪个 skill」的索引表）。
 
-## 目录导航
+## 这里的东西什么时候用
 
-- [仓库配置清单 (repo-configuration.md)](./repo-configuration.md)
-  - **给人看的**：三条 workflow 各自要配哪些 Secrets / Variables、从哪取、不填会怎样；
-    翻译如何单独拆模型、占位符为什么不能当空值用
+**日常开发用不上。** 只有两种情况值得翻：
+
+- 想追溯某次选型**为什么这么定**（对比了哪些方案、为什么不选另一个）；
+- 要改一个**当年调研过**的领域（比如换栅格库、换桌面壳方案），先看当时的约束再动手。
+
+## 文件
+
 - [AI 技术选型调研 (ai-stack-research.md)](./ai-stack-research.md)
   - fx.sh / Vercel AI SDK / WebMCP / MCP SDK 的能力、浏览器可行性与体积实测对比
   - 结论：fx.sh 因 WASM JSPI 与 36 MB 产物排除，WebMCP 仍处 Origin Trial，故自研工具层
 - [仪表盘栅格库调研 (dashboard-grid-layout-research.md)](./dashboard-grid-layout-research.md)
   - react-grid-layout / gridstack / dnd-kit 实测对比（版本、peer、RTL、体积、许可）
   - 结论：RGL v2 不支持 RTL，一票否决 → 手写；gridstack 是唯一条件性备选
-- [AI 开发流水线 (ai-dev-pipeline.md)](./ai-dev-pipeline.md)
-  - Warp Oz / omp 生态调研在本仓的落地方案：触发层（issue 模板 + label 状态机）、
-    执行层（Actions 里的 agent CLI）、门控层（CI + 铁律机器门控）
-  - 含首测方案、需要配置的 Secrets/Variables，以及接入时发现的存量问题
 - [URL 状态管理与 TanStack Router 适配调研 (nuqs-url-state-research.md)](./nuqs-url-state-research.md)
   - nuqs 2.10.1 源码与 TanStack Router 官方适配机制实测
   - 核心 ~7.1 KB + 适配器 ~1.0 KB 体积、无 SSR 依赖、React 19 完美支持
@@ -51,3 +51,10 @@
     注入远程页面（只注入最小内核），默认 HTTP 通道 `fetch(location.origin + "/wails/runtime")`
     必然打到远程站点 → 桥改走 `application.Options.RawMessageHandler`
     （含 `OriginInfo` 三平台字段差异、`ExecJS` 的 `wails:runtime:ready` 门控、线程模型更正）
+
+## 已经从本目录移走的
+
+这两份当年写在这里，但**它们是「要照着执行」的操作手册，不是给人看的存档**，所以归了 skill：
+
+- AI 开发流水线 → `.agents/skills/platform-ops/references/ai-dev-pipeline.md`
+- 仓库配置清单（Secrets / Variables）→ `.agents/skills/platform-ops/references/repo-configuration.md`

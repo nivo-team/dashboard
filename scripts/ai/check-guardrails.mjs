@@ -28,7 +28,7 @@
  * ## 刻意的例外
  *
  * `apps/web/src/messages/dict/**` 跳过键树一致性：字典项文案按
- * `.agents/docs/dict-i18n.md` §2 的约定「只放真实存在的语言，缺就整份回落」，
+ * `.agents/skills/business-development/references/dict-i18n.md` §2 的约定「只放真实存在的语言，缺就整份回落」，
  * **语言之间本来就可以不同**。
  *
  * 用法：

@@ -15,7 +15,7 @@ import { getPageContext, resolveNavLabel } from './page-context'
  * 它是**给模型看的**：输入框里打的字会原样进会话（用户看到的还是自己打的那串），
  * 真正发给模型时由 `expandRouteRefs()` 展开成「模块 / 页面 / 路径」。这样两边都不吃亏 ——
  * 用户不用记住路径，模型也不靠猜。展开发生在 `runtime.toModelMessages()`，
- * 是**唯一**一处（见 `.agents/docs/ai-architecture.md` 的「@ 引用」）。
+ * 是**唯一**一处（见 `.agents/skills/ai-development/references/ai-architecture.md` 的「@ 引用」）。
  *
  * 三条设计约定：
  *

@@ -20,7 +20,7 @@ import { appToastManager } from '#/lib/toast'
  * 目前有两处挂载点，将来还会有更多 ——
  * - `routes/$appId/route.tsx`：正常的业务外壳（`AppShell`）；
  * - `routes/$appId_.sphere/route.tsx`：全屏 AI 对话页（**刻意逃离业务外壳**，见
- *   `.agents/docs/routing-architecture.md` §1 的「逃离父布局」一节）。
+ *   `.agents/skills/platform-development/references/routing-architecture.md` §1 的「逃离父布局」一节）。
  *
  * 后者不是 `$appId` 布局的子路由（否则会一并继承 `AppShell` 的侧边栏与顶栏），
  * 因此它拿不到父级的 `beforeLoad`；两处若各写一份，将来加一条规则（比如按权限

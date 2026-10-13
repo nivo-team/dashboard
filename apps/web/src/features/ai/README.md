@@ -1,8 +1,8 @@
 # AI 模块（`src/features/ai`）
 
 > **整个 AI 核心的单一目录**。改 AI 相关代码前先看这张地图，再读
-> [`.agents/docs/ai-architecture.md`](../../../../../.agents/docs/ai-architecture.md)（分层 / 数据流 / 踩过的坑）
-> 与 [`.agents/docs/ai-module-inventory.md`](../../../../../.agents/docs/ai-module-inventory.md)（清单：提示词层 / 工具全表 / 设置项）。
+> [`.agents/skills/ai-development/references/ai-architecture.md`](../../../../../.agents/skills/ai-development/references/ai-architecture.md)（分层 / 数据流 / 踩过的坑）
+> 与 [`.agents/skills/ai-development/references/ai-module-inventory.md`](../../../../../.agents/skills/ai-development/references/ai-module-inventory.md)（清单：提示词层 / 工具全表 / 设置项）。
 
 ## 为什么聚成一个目录
 
@@ -77,8 +77,8 @@ import { defineFeature, useFeature } from '#/features/ai/page'
 
 ## 相关文档
 
-- [ai-architecture.md](../../../../../.agents/docs/ai-architecture.md) —— 分层、数据流、扩展点、**踩过的坑**（改任何 AI 代码前必读）
-- [ai-module-inventory.md](../../../../../.agents/docs/ai-module-inventory.md) —— 提示词 14 层、21 个工具全表、审批矩阵、设置项全表、文件地图
-- [ai-server-layer.md](../../../../../.agents/docs/ai-server-layer.md) —— 服务端中间层（`apps/ai`）与提示词拼接
-- [features-architecture.md](../../../../../.agents/docs/features-architecture.md) —— 页面特性（`feature.ts`）的写法
-- [permissions-architecture.md](../../../../../.agents/docs/permissions-architecture.md) —— 权限体系（AI 权限是它的一层）
+- [ai-architecture.md](../../../../../.agents/skills/ai-development/references/ai-architecture.md) —— 分层、数据流、扩展点、**踩过的坑**（改任何 AI 代码前必读）
+- [ai-module-inventory.md](../../../../../.agents/skills/ai-development/references/ai-module-inventory.md) —— 提示词 14 层、21 个工具全表、审批矩阵、设置项全表、文件地图
+- [ai-server-layer.md](../../../../../.agents/skills/ai-development/references/ai-server-layer.md) —— 服务端中间层（`apps/ai`）与提示词拼接
+- [features-architecture.md](../../../../../.agents/skills/business-development/references/features-architecture.md) —— 页面特性（`feature.ts`）的写法
+- [permissions-architecture.md](../../../../../.agents/skills/business-development/references/permissions-architecture.md) —— 权限体系（AI 权限是它的一层）

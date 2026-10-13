@@ -12,7 +12,7 @@ import { compactLayout, type DashboardWidget } from '#/lib/dashboard-layout'
 /**
  * 仪表盘的拖动 / 缩放交互（**零依赖手写**）。
  *
- * 为什么不用 react-grid-layout 这类库，见 `.agents/docs/dashboard-module.md` 的选型说明；
+ * 为什么不用 react-grid-layout 这类库，见 `.agents/skills/business-development/references/dashboard-module.md` 的选型说明；
  * 这里只记实现上的几个要点：
  *
  * 1. **拖动期间不落盘**：指针移动时只更新本地 `preview` 布局（每帧一次，

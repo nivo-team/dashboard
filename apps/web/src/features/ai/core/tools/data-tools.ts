@@ -9,7 +9,7 @@ import type { AiToolContext, AiToolDefinition } from '../types'
 /**
  * 「取数」类工具：检索接口清单、调用只读接口、读字典枚举。
  *
- * 两条安全约定（见 .agents/docs/ai-integration.md §3.3）：
+ * 两条安全约定（见 .agents/skills/ai-development/references/ai-integration.md §3.3）：
  * 1. **白名单**：只能调 `GET /api` 清单里真实存在、且 method 为 GET 的接口 ——
  *    清单既是给模型检索的索引，也是它无法越过的边界；
  * 2. **只读**：这里没有任何写方法。写操作将来走 `commit` 工具 + 人工审批，不在这条路上开口子。

@@ -52,12 +52,12 @@ import type { TimezoneKey } from '#/lib/timezone'
  * - 主题：`#/lib/use-color-mode`（偏好 store 的 colorMode）
  * - 语言：`#/lib/use-locale`（偏好 store 的 locale，含 RTL 切换）
  * - 时区：`#/lib/timezone`（偏好 store 的 timezone，全站时间格式化共用同一份状态）
- * - 详情打开方式：`#/lib/store` 的 detailOpenMode（表格里点开详情的行为，见 .agents/docs/detail-preview.md）
+ * - 详情打开方式：`#/lib/store` 的 detailOpenMode（表格里点开详情的行为，见 .agents/skills/business-development/references/detail-preview.md）
  * - 页面宽度：`#/lib/store` 的 pageWidth（全宽 / 限宽居中，落点在 `#/lib/page-width`）
  * - 界面动效：`#/lib/store` 的 motionEnabled（关掉后 AI 面板与全屏对话页的过渡直接切换，
  *   判定在 `#/lib/use-motion`）
  *
- * 前五项持久化在 `admin.preferences:<appId>`（按应用隔离，见 .agents/docs/store.md）；
+ * 前五项持久化在 `admin.preferences:<appId>`（按应用隔离，见 .agents/skills/platform-development/references/store.md）；
  * 最后一项是**全局**的 `admin.shell-ui` —— 「要不要动效」换个应用仍成立，不该按应用各存一份
  * （理由见 `#/lib/store/shell-ui-store` 里 `motionEnabled` 的注释）。
  * 布局是「一张卡片 + 若干设置行」，每行左 label、右控件（`SettingRow`）——

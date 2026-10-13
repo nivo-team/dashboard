@@ -107,4 +107,4 @@ console.log(m.buildSystemPrompt({ mode:'ask', surface:'panel', appName:'Nivo', a
 
 前端 `apps/web/src/lib/ai/prompt/**` 与漂移门控 `scripts/ai/check-prompt-drift.mjs` 都已删除：
 规则文本**只在本包**（`src/layers/**`），前端只上报事实（`PromptFacts`）。
-历史迁移步骤与边界见 [`.agents/docs/ai-server-layer.md`](../../.agents/docs/ai-server-layer.md) §5。
+历史迁移步骤与边界见 [`.agents/skills/ai-development/references/ai-server-layer.md`](../../.agents/skills/ai-development/references/ai-server-layer.md) §5。

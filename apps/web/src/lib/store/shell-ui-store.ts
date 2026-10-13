@@ -19,7 +19,7 @@ import { enableCrossTabSync } from './cross-tab-sync'
  * （只给 `defaultOpen` / `defaultWidth` 作初始值，用 `onOpenChange` / `onWidthChange`
  * 把变化写回这里）；移动端**受控**，`open` 跟随抽屉自己的开合 —— 否则桌面折叠态会顺着
  * Kumo 的 `state` 泄漏进移动端，抽屉里的二级菜单永远展开不出来（见那支组件与
- * `.agents/docs/store.md` §5.4）。
+ * `.agents/skills/platform-development/references/store.md` §5.4）。
  */
 
 /** 侧边栏布局常量：两个外壳共用，避免 Provider 参数各写一份而漂移。 */

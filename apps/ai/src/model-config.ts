@@ -3,7 +3,7 @@ import type { AiEnv } from './env'
 /**
  * 上游（AI Gateway / 厂商）与鉴权头的解析 —— **本节是「provider 与 model 配置在 AI Gateway」的落点**。
  *
- * 职责划分（见 `.agents/docs/ai-server-layer.md`）：
+ * 职责划分（见 `.agents/skills/ai-development/references/ai-server-layer.md`）：
  *
  * | 谁 | 持有什么 |
  * |---|---|

@@ -51,7 +51,8 @@ function sameIds(a: readonly number[], b: readonly number[]): boolean {
  * 1. **基本信息**（`PUT /role`）—— 表单内嵌，动作交给浮条；
  * 2. **菜单授权**（`PUT /role/menus`）—— 独立的关联资源，但改动同样算「未保存」。
  *
- * 校验只在 `validateRoleForm` 一处（浮条保存不经过 `<form>` 的 submit，见 skill `editable-detail`）。
+ * 校验只在 `validateRoleForm` 一处（浮条保存不经过 `<form>` 的 submit，
+ * 见 skill `business-development` 的 `references/editable-detail.md`）。
  */
 export function RoleDetailPage({
   roleId: propRoleId,
@@ -116,7 +117,7 @@ export function RoleDetailPage({
     切换角色 / 后端刷新 → 重置全部本地编辑态。
     依赖只写 `role?.id` 与 `role?.status`：**不要写 `role` 对象本身** ——
     它在每次 refetch 后都是新引用，effect 会跟着重跑，把用户正在编辑的草稿清掉
-    （见 skill `editable-detail` 坑 4）。
+    （见 skill `business-development` 的 `references/editable-detail.md` 坑 4）。
   */
   useEffect(() => {
     if (role) setStatus(role.status ?? ROLE_STATUS.enabled)

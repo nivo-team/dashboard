@@ -25,7 +25,7 @@ pnpm -C apps/ai deploy     # 部署到 Cloudflare
 
 请求体里的私有字段 **`promptFacts`** = 事实快照（页面上下文 / 页面摘要 / 工具目录 / 导航 / 任务 / 模式 / 容器 / 输出语言），
 由前端上报；服务端消费后**必然删除**，不会发给厂商。字段表见
-[`.agents/docs/ai-server-layer.md`](../../.agents/docs/ai-server-layer.md) §3.5。
+[`.agents/skills/ai-development/references/ai-server-layer.md`](../../.agents/skills/ai-development/references/ai-server-layer.md) §3.5。
 
 另有私有字段 **`promptStage`**（`'router' | 'execution'`）：决定本轮装配哪几层提示词，
 同样**消费后即删除**；**缺省 `execution`**（老前端行为不变）。语义见同文档 §1.4。
@@ -90,7 +90,7 @@ AI_GATEWAY_ID = ""                      # 留空走 default gateway；要指定�
 AI_MODEL_ID = "deepseek/deepseek-chat"  # 注意 author/model 格式
 ```
 
-**模型 id 的实测提醒**（详见 [`.agents/docs/ai-server-layer.md`](../../.agents/docs/ai-server-layer.md) §10.2）：
+**模型 id 的实测提醒**（详见 [`.agents/skills/ai-development/references/ai-server-layer.md`](../../.agents/skills/ai-development/references/ai-server-layer.md) §10.2）：
 
 - `deepseek/deepseek-chat` 实测可用，但**不在官方模型目录**里 → `{provider}/{model}` 的 model 段走 provider 侧命名，属**未文档化路径**；
 - `402 Insufficient balance` 是**账户余额/BYOK 问题**，不是配置错；
@@ -104,4 +104,4 @@ pnpm -C apps/ai exec wrangler secret put AI_GATEWAY_TOKEN       # 线上
 `.dev.vars` 已在根 `.gitignore` 里。
 
 > 完整设计、SSE 的官方成本依据、Cloudflare AI Gateway 的限制与鉴权/脱敏计划见
-> [`.agents/docs/ai-server-layer.md`](../../.agents/docs/ai-server-layer.md)。
+> [`.agents/skills/ai-development/references/ai-server-layer.md`](../../.agents/skills/ai-development/references/ai-server-layer.md)。

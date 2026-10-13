@@ -16,7 +16,7 @@ name: i18n 翻译
 #   3. 被别的 workflow 调用（workflow_call）。
 #
 # 默认**不自动开 PR**：用 GITHUB_TOKEN 开的 PR 不会触发 CI（防递归），
-# 反而制造「门控在工作」的错觉 —— 与 ai-implement 的取舍一致（见 docs/ai-dev-pipeline.md §14.3）。
+# 反而制造「门控在工作」的错觉 —— 与 ai-implement 的取舍一致（见 .agents/skills/platform-ops/references/ai-dev-pipeline.md §14.3）。
 
 on:
   issues:

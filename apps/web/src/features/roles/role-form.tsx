@@ -28,7 +28,8 @@ export type RoleFormFieldError = { field: 'name' | 'code'; message: string }
 /**
  * 表单校验：**导出**给两条提交路径共用。
  *
- * 详情页的浮条保存不经过 `<form>` 的 `submit`（见 skill `editable-detail` 坑 1），
+ * 详情页的浮条保存不经过 `<form>` 的 `submit`
+ * （见 skill `business-development` 的 `references/editable-detail.md` 坑 1），
  * 校验若只写在表单内部，浮条那条路径就会绕过它 —— 所以这里是唯一实现。
  */
 export function validateRoleForm(values: RoleFormValues, t: TFunction): RoleFormFieldError | null {

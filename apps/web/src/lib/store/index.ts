@@ -9,7 +9,7 @@
  * - 认证与应用状态在 `#/lib/auth`（同样基于 zustand + persist）。
  *
  * AI 厂商 / 模型配置已从这里移除（模型与凭证都在 `apps/ai`，前端不持有）——
- * 见 `.agents/docs/ai-server-layer.md` §5.3。
+ * 见 `.agents/skills/ai-development/references/ai-server-layer.md` §5.3。
  */
 export * from './app-scope'
 export * from './dashboard-store'

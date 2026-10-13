@@ -26,7 +26,7 @@ import type { AiEnv } from '../env'
  *    （Cloudflare 明文：CPU time 不含网络等待；HTTP 请求的 wall time 无硬上限，只要客户端还连着）。
  *
  * 所以：**只要不做内容变换，就不要碰 body**。将来要脱敏时再权衡（那必须变成逐块处理，
- * 见 `.agents/docs/ai-server-layer.md` §9 与 §7）。
+ * 见 `.agents/skills/ai-development/references/ai-server-layer.md` §9 与 §7）。
  *
  * ## 与前端的三条约定
  *

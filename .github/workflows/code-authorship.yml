@@ -4,7 +4,7 @@ name: 代码作者门控
 #
 # 为什么要有这道门控：
 # 本仓的约定是「人写需求（issue）→ AI 写代码 → 人 review 合并」。光靠文档约定
-# 是不可执行的 —— 一次手滑的直接 push 就能绕过全部规范（`.agents/docs/*` 的
+# 是不可执行的 —— 一次手滑的直接 push 就能绕过全部规范（`.agents/skills/*` 的
 # 架构约定、铁律、i18n 流程）。这道门控把它变成**机器判定**。
 #
 # 判定依据是**提交身份**：PR 引入的每个 commit，其 author email 必须在允许名单内
@@ -52,7 +52,7 @@ jobs:
           DEFAULT_EMAILS='cocodev@agent.qq.com,i18n-bot@users.noreply.github.com'
 
           # 占位符（值形如 <FILL_ME>）视为「没配」—— 与全仓约定一致（见
-          # docs/repo-configuration.md §4）。不这样处理的话，预置的占位符会让
+          # .agents/skills/platform-ops/references/repo-configuration.md §4）。不这样处理的话，预置的占位符会让
           # **所有提交都不匹配**，把 AI 自己的 PR 也拦下来。
           if [[ -z "${ALLOWED_EMAILS:-}" || "$ALLOWED_EMAILS" =~ ^\<.*\>$ ]]; then
             ALLOWED="$DEFAULT_EMAILS"

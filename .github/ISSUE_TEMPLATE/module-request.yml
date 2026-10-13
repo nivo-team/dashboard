@@ -10,14 +10,14 @@ body:
         ## 怎么填
 
         这份表单就是你说的「模块细节」。AI **不会**猜业务意图 —— 它只会按你写的做，
-        并遵守仓库里 `AGENTS.md` 与 `.agents/docs/*` 的既有规范。
+        并遵守仓库里 `AGENTS.md` 与各 skill 的 `references/` 既有规范。
 
         **最重要的两个字段是「参考的现有模块」和「验收标准」**：
         本仓每个模块的实现模式高度一致，指一个样板比写十句描述都管用；
         而验收标准决定了 AI 什么时候该停下来问你。
 
         填完后，由维护者在评论里 **@ 触发账号**（见仓库 Variable `AI_TRIGGER_ACCOUNTS`
-        与 [docs/ai-dev-pipeline.md](../../docs/ai-dev-pipeline.md)）来开工 —— **填表本身不会触发**。
+        与 [.agents/skills/platform-ops/references/ai-dev-pipeline.md](../../.agents/skills/platform-ops/references/ai-dev-pipeline.md)）来开工 —— **填表本身不会触发**。
 
         > 触发方式已从「打 `ai:ready` 标签」改为「评论 @ 指定账号」：`@` 是一个明确的
         > 「请你做」信号，不会被普通讨论误触发；且只有仓库协作者的 @ 才生效。

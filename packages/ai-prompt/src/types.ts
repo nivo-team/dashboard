@@ -101,7 +101,7 @@ export interface PromptFacts {
 export interface PromptLayer {
   /** 层的稳定标识，供文档 / 调试引用 */
   id: string
-  /** 层的职责一句话（与 `.agents/docs/ai-architecture.md` 的表格一一对应） */
+  /** 层的职责一句话（与 `.agents/skills/ai-development/references/ai-architecture.md` 的表格一一对应） */
   title: string
   /**
    * 这一层属于哪一组（只用于文档 / 日志 / 自检，不改变拼接顺序）：
@@ -127,7 +127,7 @@ export interface PromptLayer {
    * **这一位决定它落在哪**：`false`（默认）进 system 前缀，`true` 落在对话**末尾**。
    * 原因是前缀缓存：`system` 在 messages 最前面，它里面任何一处变化都会让**后面的一切
    * （含整段对话历史）**失去前缀匹配。所以「每轮会变」的内容必须放在末尾 ——
-   * 详见 `.agents/docs/ai-server-layer.md` §缓存对齐。
+   * 详见 `.agents/skills/ai-development/references/ai-server-layer.md` §缓存对齐。
    */
   volatile?: boolean
   build: (facts: PromptFacts) => string | null

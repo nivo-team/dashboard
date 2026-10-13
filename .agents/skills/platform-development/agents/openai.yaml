@@ -1,0 +1,3 @@
+interface:
+  display_name: 'Platform Development'
+  short_description: 'Routing, stores, styling, auth, API client and codegen'

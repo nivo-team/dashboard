@@ -2,10 +2,10 @@
 
 > **本文件是索引，不是手册。**
 > 它**每次会话都会被自动加载**，所以只放四样东西：项目是什么、怎么跑命令、
-> **要做什么该读哪份文档**、以及少数几条任何改动都适用的铁律。
+> **要做什么该加载哪个 skill**、以及少数几条任何改动都适用的铁律。
 >
-> **动手前先查下面那张表**，读对应的那份 —— **细节都在 `.agents/docs/`，需要时才读，
-> 不要一次全读**（那些文档加起来近 200 KB）。
+> **动手前先查下面那张表，加载对应的 skill** —— 细节都在各 skill 的 `references/` 里，
+> 由 skill 的 §0 表再往下导，**不要一次全读**（各 skill 的 references 加起来超过 500 KB）。
 
 ## 项目是什么
 
@@ -14,7 +14,7 @@
 - **React 19** + **Vite+ 1.1.0**（Vite 8 / Rolldown 内核，`vp` 工具链，配置在根 `vite.config.ts`）
   + **TanStack Router / Query** + **zustand 5**（persist）
 - **Tailwind CSS v4**（无 config）+ **Kumo**（Cloudflare 设计系统，基于 Base UI）
-  + **dnd-kit**（只用于页面标签页的拖拽排序，见 [routing-architecture.md](./.agents/docs/routing-architecture.md)）
+  + **dnd-kit**（只用于页面标签页的拖拽排序，见 [routing-architecture.md](.agents/skills/platform-development/references/routing-architecture.md)）
 - **i18next**（多语言；**语言清单的真值只有 `i18n.config.json` 一处**，别照抄文档里的列表）
 - 路径别名 `#/*` 与 `@/*` → `./src/*`；包管理器 **pnpm**
 - **AI 核心集中在 [`src/features/ai/`](./apps/web/src/features/ai/README.md)**（逻辑 / UI / 渲染 / 全屏页 / 页面声明框架）—— 改 AI 先读那里的地图
@@ -59,43 +59,28 @@ pnpm i18n:types       # 重新生成 i18n 键类型（改了 zh-CN.json 后跑�
 > 改完代码、提交前后都不要主动跑；正确性靠阅读类型定义、调用方与生成产物来保证。
 >
 > **注意这不适用于 CI**：流水线里 `typecheck` / `build` **必须跑**（它是合并的硬门控，
-> 见 [docs/ai-dev-pipeline.md](./docs/ai-dev-pipeline.md)）。本约束管的是「人别为了确认而顺手跑」，
+> 见 [.agents/skills/platform-ops/references/ai-dev-pipeline.md](.agents/skills/platform-ops/references/ai-dev-pipeline.md)）。本约束管的是「人别为了确认而顺手跑」，
 > 不是「禁止在流水线里跑」。
 
-## 要做什么 → 读哪份
+## 要做什么 → 加载哪个 skill
 
-| 要做什么 | 读哪份 |
+**规范与现状已经全部收进 skill**（在 `.agents/skills/`，用户可用 `/<名字>` 调用）。
+先加载下面这个 skill，它内部还有一张更细的 §0 表把你导到具体 reference。
+
+| 要做什么 | 加载哪个 skill |
 |---|---|
-| **加页面 / 改页面业务代码（`src/features`）** | [features-architecture.md](./.agents/docs/features-architecture.md)（薄路由 + 一页一份 `feature.ts` 声明权限/指令/数据源，框架在 `#/features/ai/page`）· 功能与测试清单 [features-catalog.md](./.agents/docs/features-catalog.md) |
-| 加页面 / 改路由 / 改外壳布局 | [routing-architecture.md](./.agents/docs/routing-architecture.md)（外壳布局统一在 `src/layouts`，支持 default / desktop / mobile 三变体） |
-| 改导航项 / 命令面板 / 面包屑 | 同上（含「导航系统与命令面板」契约速查） |
-| 改样式 / 用 Kumo 组件 / RTL 适配 | [ui-and-styling.md](./.agents/docs/ui-and-styling.md) |
-| 加 store / 改持久化 / 切应用作用域 | [store.md](./.agents/docs/store.md) |
-| 改登录登出 / 加 UI 文案 / 字典枚举 | [auth-and-i18n.md](./.agents/docs/auth-and-i18n.md) · [dict-i18n.md](./.agents/docs/dict-i18n.md) · [dict-options.md](./.agents/docs/dict-options.md) |
-| **加/改用户可见文案（i18n 翻译流水线）** | [i18n-translation-pipeline.md](./.agents/docs/i18n-translation-pipeline.md) —— 只写 `zh-CN`，其它语言交给 `pnpm i18n` |
-| **加需要权限的页面 / 按钮 / 菜单 / AI 工具** | [permissions-architecture.md](./.agents/docs/permissions-architecture.md)（唯一判定点 `hasPermission`、`Admin` 不是超管、三个导航过滤入口、守卫与按钮级收口） |
-| 改接口调用 / 生成产物 / 缓存策略 | [api-client.md](./.agents/docs/api-client.md) |
+| **写业务页面**：列表 / 表格 / 表单 / 详情 / CRUD 视窗 / 编辑浮条 / 仪表盘卡片 / 系统模块页（角色 / 菜单 / 字典） / 权限接入 / 薄路由 | **`business-development`** |
+| **改工程底座**：路由与外壳布局 / 导航与命令面板 / 状态与持久化 / 样式与 Kumo / 登录与多应用 / API 客户端与代码生成 | **`platform-development`** |
+| **改 AI**：提示词 / 工具 / 权限粒度 / 上下文预算 / 中间层（`apps/ai`、`packages/ai-prompt`）/ 页面声明框架 | **`ai-development`** |
+| **仓库运维**：AI 开发流水线 / CI 门控 / issue 模板 / Secrets 与 Variables / i18n 翻译流水线 | **`platform-ops`** |
+| **改原生壳 / 加原生能力 / 改 bridge 协议** | [apps/native/README.md](./apps/native/README.md)（Wails v3 超薄壳；页面侧接口 `#/native/bridge`，生成物在 `apps/web/src/native/generated/`） |
 | **改 Mock 接口 / 加一个接口** | [apps/mock/README.md](./apps/mock/README.md) —— 接口定义即契约 |
-| **换后端 / 改契约来源 / 改 API 生成** | [packages/api-client/README.md](./packages/api-client/README.md) |
-| **列表页 / 表格 / 筛选 / 列设置** | skill **`table-development`** ← 先加载它 |
-| **表格 URL 搜索参数 / 增删改查规范** | [table-query-and-crud.md](./.agents/docs/table-query-and-crud.md) |
-| **表单架构 / 人机协同 / 三态自适应** | [form-architecture.md](./.agents/docs/form-architecture.md) |
-| **详情页表单 / 保存浮条 / 状态开关** | skill **`editable-detail`** ← 先加载它 |
-| 列表点行看详情（分屏 / 抽屉） | [detail-preview.md](./.agents/docs/detail-preview.md) |
-| 加仪表盘卡片 / 改栅格 | [dashboard-module.md](./.agents/docs/dashboard-module.md) |
-| 改菜单管理（菜单树）/ 角色管理 | [features-module.md](./.agents/docs/features-module.md)（术语已从「功能」改为**目录 / 菜单 / 操作**；菜单与角色数据模型见 [apps/mock/README.md](./apps/mock/README.md)） |
-| 改数据字典分类 | [data-dict-module.md](./.agents/docs/data-dict-module.md) |
-| **改任何 AI 代码** | 先看模块地图 [src/features/ai/README.md](./apps/web/src/features/ai/README.md)（**AI 核心全在这一个目录**：core / components / markdown / sphere / page）· [ai-architecture.md](./.agents/docs/ai-architecture.md)（架构 / 数据流 / 扩展点 / 踩过的坑）· [ai-integration.md](./.agents/docs/ai-integration.md)（设计蓝图） |
-| **加/改 AI 工具、AI 权限粒度、批量任务编排** | [ai-architecture.md](./.agents/docs/ai-architecture.md) §3.1（能力矩阵）· §7.1（Todo 编排）· 清单 [ai-module-inventory.md](./.agents/docs/ai-module-inventory.md) §6 |
-| **改 AI 开发流水线 / issue 模板 / CI 门控** | [docs/ai-dev-pipeline.md](./docs/ai-dev-pipeline.md)（触发层 + 执行层 + 门控层，含标签状态机与铁律对应表） |
-| **改原生壳 / 加原生能力（菜单 / 托盘 / 文件对话框）/ 改 bridge 协议** | [apps/native/README.md](./apps/native/README.md)（Wails v3 超薄壳：URL 桌面标记、Raw Messages 通道、方法目录 → 页面侧类型由 Go 生成）· 页面侧接口 `#/native/bridge`（生成物在 `apps/web/src/native/generated/`） |
-| **配仓库的 Secrets / Variables / 分支保护** | [docs/repo-configuration.md](./docs/repo-configuration.md)（每条流水线要配什么、触发白名单、person token、占位符为何不能当空值） |
-| **了解「谁才能写代码」/ 触发 AI 的规则** | [docs/ai-dev-pipeline.md](./docs/ai-dev-pipeline.md) §4（只有 @ 白名单账号才触发）· §8.1（代码作者门控 + 逃生舱） |
-| 想知道「当初为什么这么选」 | [docs/](./docs/README.md)（调研与设计记录，相对稳定） |
+| **改 API 生成链路本身** | [packages/api-client/README.md](./packages/api-client/README.md) |
+| 想知道「当初为什么这么选」 | [docs/](./docs/README.md)（调研与设计记录，相对稳定；**日常开发用不上**） |
 | 要跑校验 | skill **`verify`** —— **只有使用者点名时才跑** |
 
-各目录的完整清单：[.agents/docs/README.md](./.agents/docs/README.md)（现状与规范）、
-[docs/README.md](./docs/README.md)（调研与设计）。
+> **`platform-ops` 与 `platform-development` 别搞混**：前者管「仓库怎么运转」（CI、Secrets、翻译流水线），
+> 后者管「代码怎么写」（路由、store、样式、请求）。
 
 ## 铁律（任何改动都适用，不必读文档）
 
@@ -107,7 +92,7 @@ pnpm i18n:types       # 重新生成 i18n 键类型（改了 zh-CN.json 后跑�
    **不要在文档、注释或代码里列举语言** —— 它变过，抄到别处必然过期。
    写错键名会在 `pnpm typecheck` / `pnpm build` 直接报错（用 `#/lib/use-typed-t` 的
    `useT('ns')`）；`pnpm i18n:check` 会拦住「没补翻译就合并」。详见
-   [i18n-translation-pipeline.md](./.agents/docs/i18n-translation-pipeline.md)。
+   [i18n-translation-pipeline.md](.agents/skills/platform-ops/references/i18n-translation-pipeline.md)。
 2. **禁用 Tailwind 的 `dark:` 变体**（主题由根节点 `data-mode` 驱动）、**禁用 `tracking-*`**、
    **严禁 `font-bold`**（标题 `font-semibold`、强调 `font-medium`）；颜色只用 Kumo 语义令牌
    （`bg-kumo-base` / `text-kumo-default` / `border-kumo-line` …）；
@@ -121,12 +106,17 @@ pnpm i18n:types       # 重新生成 i18n 键类型（改了 zh-CN.json 后跑�
 6. **本文件超过 64 KB 会被静默截断**（按字节截，不是行边界）—— 所以**别往里塞细节**，
    写到对应 doc 里，在这里的表里加一行。
 
-## 文档目录的分工
+## 文档放哪
 
 | 位置 | 内容 | 会过期吗 | 谁读 |
 |---|---|---|---|
 | **本文件** | 索引 + 铁律 + 命令 | 少变 | 每次会话自动加载 |
-| [`.agents/docs/`](./.agents/docs/README.md) | **现状与规范**：模块现状、架构、接入清单、踩过的坑 | **会**，改码时顺手同步 | coding agent |
+| **`.agents/skills/*/references/`** | **现状与规范**：模块现状、架构、接入清单、踩过的坑 | **会**，改码时顺手同步 | coding agent（由 skill 按需加载） |
 | [`docs/`](./docs/README.md) | **调研与设计记录**：选型对比、为什么这么选 | 相对稳定 | 人（也供 agent 追溯依据） |
+| `apps/*/README.md` | 单个 app / 包自己的说明与命令 | 会 | 改那个 app 时 |
 
-新增文档 → 登记到所在目录的 README，并在这张表或上面的索引里加一行。
+**新增规范文档 → 放进对应 skill 的 `references/`，并把该 skill 的 §0 表加一行。**
+不要新建顶层文档目录，也不要往本文件里塞细节（超过 64 KB 会被静默截断）。
+不确定该归哪个 skill，就问：这属于「页面怎么写」`business-development`、
+「底座怎么搭」`platform-development`、「AI 怎么改」`ai-development`、
+还是「仓库怎么运转」`platform-ops`。

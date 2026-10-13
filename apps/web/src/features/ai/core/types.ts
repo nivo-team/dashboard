@@ -444,7 +444,7 @@ export interface AiImageAttachment {
  * 一轮的 token 用量 —— 只留我们真正会看的几项。
  *
  * `cacheReadTokens` 是**前缀缓存是否对齐的唯一客观指标**：提示词里任何一处「不该变却变了」
- * 都会让它掉下来（详见 `.agents/docs/ai-server-layer.md` §7.5 / §7.6）。
+ * 都会让它掉下来（详见 `.agents/skills/ai-development/references/ai-server-layer.md` §7.5 / §7.6）。
  *
  * 字段取自 AI SDK 归一化后的 `LanguageModelUsage.inputTokenDetails` —— 各厂商原始字段名
  * 完全不同（DeepSeek `prompt_cache_hit_tokens`、Anthropic `cache_read_input_tokens`、

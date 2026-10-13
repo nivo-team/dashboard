@@ -48,7 +48,7 @@ export interface AiEnv {
    *   —— 用 `Authorization: Bearer <CLOUDFLARE_API_TOKEN>`，子路径 `/chat/completions` · `/responses` · `/messages`。
    *
    * ⚠️ OpenAI 兼容的 Unified API（`/compat`）官方已标注 **Deprecated**（单模型调用）。
-   * 取舍与鉴权分层见 `.agents/docs/ai-server-layer.md`。留空表示「尚未接入网关」。
+   * 取舍与鉴权分层见 `.agents/skills/ai-development/references/ai-server-layer.md`。留空表示「尚未接入网关」。
    */
   AI_GATEWAY_BASE_URL?: string
   /** 厂商 API Key —— **secret**，只允许由 `wrangler secret` / `.dev.vars` 提供 */

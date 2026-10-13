@@ -15,7 +15,7 @@ import type { AiMessage } from './types'
  *
  * ## 为什么是「阶梯」而不是「每轮前移一位」
  *
- * 各家厂商的前缀缓存都要求「**只追加、不改写历史**」（见 `.agents/docs/ai-server-layer.md` §7.6）：
+ * 各家厂商的前缀缓存都要求「**只追加、不改写历史**」（见 `.agents/skills/ai-development/references/ai-server-layer.md` §7.6）：
  * 编辑 / 删除 / 重排任何早期消息都会让缓存失配。而"每轮前移一位"的衰减，
  * 等于**每一轮都改写一处历史** —— 上一轮写入的缓存前缀单元因此永远匹配不上，
  * 命中率被系统性压低。

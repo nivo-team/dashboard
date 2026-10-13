@@ -13,7 +13,7 @@
 3. **解析权是「读归 TSR、per-key 归 nuqs」**：adapter 直接读 `router.state.location.search`（TSR `parseSearch` 出来的对象，**未经 `validateSearch`**），再摊平成 `URLSearchParams` 交给 nuqs 的 per-key parser；写回时走 `router.navigate({ to: pathname + querystring })`，**因此写回会经过 TSR 的 `validateSearch` 与 search middlewares**。→ **读=未校验，写=经过校验**，这是后面所有冲突的根源。
 4. **最大风险：动态段路由 + `validateSearch` 会让 URL 出现两段 query string** —— upstream issue [#1590](https://github.com/47ng/nuqs/issues/1590)（nuqs 2.10.1 + TSR 1.170.35 已复现，**至今 open**，修复 PR [#1596](https://github.com/47ng/nuqs/pull/1596) / [#1598](https://github.com/47ng/nuqs/pull/1598) 未合并）。**本仓库所有列表页都在 `$appId` 动态段下**，正好命中触发条件（见 §5.4 / §9）。
 5. **`shallow` 对本项目无意义**：官方明确「it has no effect in React SPA」，且 adapter 源码只读 `options.history` 与 `options.scroll`，**完全忽略 `options.shallow`**。`history` / `scroll` 则被正确映射为 `navigate({ replace, resetScroll })`。
-6. **类型安全可以做到「缺键 / 多键 / 值类型不符」全部编译期拦截，但必须换一种写法**：`useQueryStates` 的参数是 `KeyMap extends UseQueryStatesKeysMap`，**接受映射类型**；然而把 parser 标注成 `SingleParserBuilder<Q[K]>` 会**抹掉 `.withDefault()` 的非空推断**（`tsc` 实测：状态全变 `T | null`）。**这会直接打到 `.agents/docs/table-query-and-crud.md` 里 `defineFilterParsers` 的现设计**（见 §6.5）。
+6. **类型安全可以做到「缺键 / 多键 / 值类型不符」全部编译期拦截，但必须换一种写法**：`useQueryStates` 的参数是 `KeyMap extends UseQueryStatesKeysMap`，**接受映射类型**；然而把 parser 标注成 `SingleParserBuilder<Q[K]>` 会**抹掉 `.withDefault()` 的非空推断**（`tsc` 实测：状态全变 `T | null`）。**这会直接打到 `.agents/skills/business-development/references/table-query-and-crud.md` 里 `defineFilterParsers` 的现设计**（见 §6.5）。
 
 ---
 
@@ -365,7 +365,7 @@ type Nullable<T> = { [K in keyof T]: T[K] | null } & {}
 | 任务里提到的名字 | 2.10.1 的真实情况 |
 | --- | --- |
 | `Parser<T>` | 存在，但**已 `@deprecated`**：`/** @deprecated use SingleParser instead */` |
-| `ParserBuilder<T>` | 存在，但**已 `@deprecated`**（`use SingleParserBuilder instead`）；**只有一个泛型参数**（`.agents/docs/table-query-and-crud.md` 里写的 `ParserBuilder<any, boolean>` **不存在**，会直接编译失败） |
+| `ParserBuilder<T>` | 存在，但**已 `@deprecated`**（`use SingleParserBuilder instead`）；**只有一个泛型参数**（`.agents/skills/business-development/references/table-query-and-crud.md` 里写的 `ParserBuilder<any, boolean>` **不存在**，会直接编译失败） |
 | `singleParser` | **不存在**。没有这个名字的函数或类型；对应物是类型 `SingleParser<T>` 与 builder 类型 `SingleParserBuilder<T>` |
 | `inferParserMapType` | **不存在**。只有 `inferParserType`（内部另有 `inferParserRecordType`，未导出） |
 | `parseAsNumberLiteral` | ✅ 存在 |
@@ -440,7 +440,7 @@ const [state, setState] = useUserListQuery({
 - ✅ **同样推荐的等价写法**：`as const satisfies FilterParsers<Q>` 定义静态 parser map，再直接 `useQueryStates(P)`（写法 B）。代价是 map 得是模块级常量，动态默认值不灵活。
 - ⚠️ `useQueryStates(parsers)` 里那个 `parsers` **不要**先声明成 `FilterParsers<Q>` 类型（写法 F），否则同样退化。
 
-### 6.5 对 `.agents/docs/table-query-and-crud.md` 现设计的直接反馈
+### 6.5 对 `.agents/skills/business-development/references/table-query-and-crud.md` 现设计的直接反馈
 
 该文档里的 `FilterParserConfig` / `defineFilterParsers` 有两个会真的挂掉的问题：
 
@@ -613,7 +613,7 @@ URL 写入默认被 **throttle**，时长按浏览器自适应（50ms / Safari 1
 - **P0｜先验证，再落地**：在 `$appId` 下的一个列表路由上，挂 `NuqsAdapter` + `useQueryState`，实测「点一次筛选 → URL 只有一段 query string」。若出现两段，立即执行下面的缓解。
 - **P0｜`validateSearch` 只用 `createStandardSchemaV1(parsers, { partialOutput: true })`**，不要写返回默认值的裸函数式 `validateSearch`。理由：`partialOutput` 在空输入时返回 `{}` → `buildLocation` 的 `nextSearch` 为空 → `searchStr` 为空 → **不会追加第二段 query string**。这是对 #1590 的定向缓解（机制见 §4.3 / §5.3）。
 - **P0｜列出「不定义 `validateSearch`」的备选**：若不做 TSR 类型安全链接，列表路由**完全不写 `validateSearch`** 即可同时避开 #1590 与坑 #3（#1177）。代价是 `Link search={{…}}` 失去类型检查。
-- **P1｜类型安全按 §6.4 的工厂写法**，并修掉 `.agents/docs/table-query-and-crud.md` 里的 `ParserBuilder<any, X>` 与 `defineFilterParsers` 返回类型擦除（§6.5）。
+- **P1｜类型安全按 §6.4 的工厂写法**，并修掉 `.agents/skills/business-development/references/table-query-and-crud.md` 里的 `ParserBuilder<any, X>` 与 `defineFilterParsers` 返回类型擦除（§6.5）。
 - **P1｜不要用 `urlKeys`**：官方标 TSR 不支持，别把 URL 短键名设计压在这上面。
 - **P1｜不要用 `parseAsJson` / 对象数组参数**（坑 #2，`[object Object]`）；复杂筛选值拆成扁平标量或逗号数组。
 - **P1｜不要用 `parseAsTimestamp`**（坑 #3）；要用日期就 `parseAsIsoDateTime`，并在导入时实地验证。

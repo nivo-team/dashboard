@@ -36,7 +36,7 @@ export { buildOutputLayer } from './layers/output.ts'
  * 等于**每轮都在为整段历史重新付费**。
  *
  * 所以：**新加一层时先问它会不会随环境变**；会变就标 `volatile: true` 放进 `VOLATILE_LAYERS`。
- * 详见 `.agents/docs/ai-server-layer.md` §缓存对齐。
+ * 详见 `.agents/skills/ai-development/references/ai-server-layer.md` §缓存对齐。
  *
  * ## 再加一维：**阶段**（按需加载，见 `PromptLayer.stages`）
  *

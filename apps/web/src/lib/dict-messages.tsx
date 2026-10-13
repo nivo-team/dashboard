@@ -9,7 +9,7 @@ import { useLocale } from './use-locale'
  * 这是**可选的多语言覆盖**能力，不配也能正常工作 —— 未收录的 key 会回落到
  * 后端下发的 `label`。当前仓库没有放置任何字典文案文件，需要时按目录约定补即可。
  *
- * 完整约定见 `.agents/docs/dict-i18n.md`，这里只强调三点实现上的取舍：
+ * 完整约定见 `.agents/skills/business-development/references/dict-i18n.md`，这里只强调三点实现上的取舍：
  *
  * 1. **按模块懒加载**：`import.meta.glob` **不带 `eager`**，构建时每个 JSON 独立成 chunk，
  *    首屏不加载任何字典文案；只有真正渲染到某模块的枚举值时才拉「该模块 × 当前语言」。

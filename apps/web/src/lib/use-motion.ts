@@ -15,7 +15,7 @@ import { useShellUiStore } from '#/lib/store'
  * 一遍，出现「开关关了但某一处还在动」只是时间问题 —— 判定收在这里，接入点只问这一个问题。
  *
  * 目前接入的是 **AI 面板** 与 **全屏对话页（`/$appId/sphere`）**；其余过渡
- * （详情分屏、侧边栏、设置页缩略图）暂时仍只跟随系统设置，见 `.agents/docs/ui-and-styling.md`。
+ * （详情分屏、侧边栏、设置页缩略图）暂时仍只跟随系统设置，见 `.agents/skills/platform-development/references/ui-and-styling.md`。
  */
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'

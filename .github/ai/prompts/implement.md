@@ -9,10 +9,12 @@
 
 ## 一、开工前必须做的事（不要跳过）
 
-1. **读 `/AGENTS.md`** —— 它是索引，不是手册。里面有「要做什么 → 读哪份」的映射表和 6 条铁律。
-2. **按映射表读对应文档**：需求落到哪个模块，就读 `.agents/docs/` 里那一份
-   （例如表格 → 先加载 `.agents/skills/table-development/`，详情表单 → `.agents/skills/editable-detail/`）。
-   **不要一次读完 `.agents/docs/` 全部**（接近 200 KB），按需读。
+1. **读 `/AGENTS.md`** —— 它是索引，不是手册。里面有「要做什么 → 加载哪个 skill」的映射表和 6 条铁律。
+2. **按映射表加载对应 skill**：需求落到哪一类，就加载哪个
+   （`business-development` 业务页 / `platform-development` 工程底座 /
+   `ai-development` AI / `platform-ops` 仓库运维）。**规范与现状已经全部收进
+   `.agents/skills/*/references/`** —— 每个 skill 的 §0 表会再把你导到具体那一份。
+   **不要一次读完所有 reference**（合计超过 500 KB），按需读。
 3. **读 issue 里指定的「参考的现有模块」** —— 如果需求里给了参考路径，
    把那个模块的关键文件读一遍，照着它的结构、命名习惯、错误处理来写。
    本仓每个模块的实现模式高度一致，**照抄样板比自己设计更符合预期**。
@@ -26,7 +28,7 @@
    现读现用。用户可见文案只改 `apps/web/src/messages/<ns>/<sourceLocale>.json`。
 
    **翻译是另一条独立流水线，与你无关**：其它语言由 `pnpm i18n` 按配置自动生成
-   （带缓存、只翻增量，见 `.agents/docs/i18n-translation-pipeline.md`）。
+   （带缓存、只翻增量，见 `.agents/skills/platform-ops/references/i18n-translation-pipeline.md`）。
    **不要手写其它语言** —— 会被流水线覆盖，且浪费 token。
    **也不要在代码、注释或文档里写「支持 N 种语言」这类清单** —— 语言清单的真值只有
    `i18n.config.json` 一处，抄到别处必然过期。
@@ -45,7 +47,7 @@
 
 ## 三、明确不要做的事
 
-- **不要动**：`.github/` 下的流水线配置、`AGENTS.md` 与 `.agents/docs/` 的既有约定（除非需求明确要求改文档）、
+- **不要动**：`.github/` 下的流水线配置、`AGENTS.md` 与 `.agents/skills/*/references/` 的既有约定（除非需求明确要求改文档）、
   公共组件的对外接口、权限判断逻辑。
 - **不要引入新的第三方依赖**（除非需求明确要求，且说明理由）。
 - **不要顺手重构**需求之外的文件。「我顺手优化了一下」是最常见的被拒原因。

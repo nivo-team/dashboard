@@ -18,7 +18,7 @@ import type { FeatureSpec } from '#/features/ai/page'
  * 弹窗状态（`createParentId` / `deleteTarget` / 是否打开）也归它持有 —— 页面拿不到这些句柄，
  * 硬造一条指令只会变成"AI 说删了、其实什么都没发生"。
  *
- * 补齐它的正确做法（见 [features-architecture.md](../../../../../.agents/docs/features-architecture.md) §7）：
+ * 补齐它的正确做法（见 [features-architecture.md](../../../../../../.agents/skills/business-development/references/features-architecture.md) §7）：
  * 把弹窗状态提到页面，或让表格暴露一个命令句柄（`onRequestCreate` / `onRequestDelete(id)` 这类回调），
  * 再在 `commands` 里接上。**在那之前不声明指令**，比声明一条假的诚实。
  */

@@ -10,6 +10,19 @@ You don't remember every skill, so ask.
 
 A **flow** is a path through the skills. Most paths run along one **main flow**, and two **on-ramps** merge onto it. Everything else is standalone, or a vocabulary layer that runs underneath.
 
+## This repo's own skills (read these first)
+
+The flows below are generic process. **This repo also has four skills that own its architecture, standards and conventions** — they are not a flow, they are the reference the flows point at whenever the work touches this codebase. Load the one matching the area before you write or review anything:
+
+| Area | Skill |
+| --- | --- |
+| Business pages: list / table / form / detail / CRUD viewport / permissions / thin routes / dashboard widgets / system modules | **`business-development`** |
+| Platform: routing & shell layout, stores, styling & Kumo, auth, API client & codegen | **`platform-development`** |
+| AI: prompts, tools, permission granularity, context budget, the `apps/ai` worker | **`ai-development`** |
+| Repo operations: AI pipeline, CI gates, issue templates, Secrets / Variables, i18n pipeline | **`platform-ops`** |
+
+`/code-review`'s Standards axis reads them; `/implement` loads them; `/verify` runs this repo's checks. Their `references/` hold the long-form detail — load the skill, then the one reference you need, never all of them.
+
 ## The main flow: idea → ship
 
 The route most work travels. You have an idea and want it built.

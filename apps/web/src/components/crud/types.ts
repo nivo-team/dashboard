@@ -142,7 +142,7 @@ export interface CrudViewportProps<TFormItem = any> {
   /**
    * 整页详情包装外壳策略：
    * - 'default' (默认)：由标准 CrudViewContainer 包裹（带标准 PageHeader 和返回按钮）；
-   * - 'none'：不包裹外壳，直接渲染 renderDetail 返回的内容（适用于自带 PageHeader 与状态开关的 editable-detail 页面）。
+   * - 'none'：不包裹外壳，直接渲染 renderDetail 返回的内容（适用于自带 PageHeader 与状态开关的可编辑详情页，见 business-development skill 的 `references/editable-detail.md`）。
    */
   pageDetailWrapper?: 'default' | 'none'
 

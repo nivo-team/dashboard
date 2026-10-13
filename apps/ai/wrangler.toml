@@ -2,7 +2,7 @@
 #
 # 职责：拼系统提示词（规则真值在 packages/ai-prompt）+ 作为 **OpenAI 兼容管道**把请求透传到
 # AI Gateway 并**原样回传 SSE**。provider / 模型路由配置在 AI Gateway；凭证只在本 Worker。
-# 前端切换步骤与完整取舍见 `.agents/docs/ai-server-layer.md`。
+# 前端切换步骤与完整取舍见 `.agents/skills/ai-development/references/ai-server-layer.md`。
 #
 # 部署：pnpm -C apps/ai deploy
 # 本地：pnpm -C apps/ai dev   （http://localhost:3002 或 http://<本机 IP>:3002）
@@ -55,5 +55,5 @@ AI_PROVIDER_KIND = "openai"
 #        —— Authorization: Bearer <CLOUDFLARE_API_TOKEN>，需要 Account > Workers AI > Read 权限
 #           （只给 AI Gateway 权限会 401 + error code 10000）
 # 注意：OpenAI 兼容的 Unified API `/compat` 官方已标注 Deprecated（单模型调用别再用它）。
-# DLP 的边界（**只能阻断/标记，不能脱敏**）与鉴权分层见 .agents/docs/ai-server-layer.md
+# DLP 的边界（**只能阻断/标记，不能脱敏**）与鉴权分层见 .agents/skills/ai-development/references/ai-server-layer.md
 AI_GATEWAY_BASE_URL = ""

@@ -11,7 +11,7 @@ import type { PromptFacts } from '../types.ts'
  * 否则它对当前业务的自我认知会停留在上一次打开的应用上。
  *
  * ⚠️ **迁移注意**：末句「运行在用户自己的浏览器里」描述的是**当前**前端直连厂商的形态。
- * 将来若模型流量改为经 `apps/ai` 出站，这句措辞需要一并复审（见 `.agents/docs/ai-server-layer.md`）。
+ * 将来若模型流量改为经 `apps/ai` 出站，这句措辞需要一并复审（见 `.agents/skills/ai-development/references/ai-server-layer.md`）。
  * 本轮为了让服务端与前端的规则文本**逐字一致**（`scripts/ai/check-prompt-drift.mjs` 门控），
  * 刻意保持原样。
  */

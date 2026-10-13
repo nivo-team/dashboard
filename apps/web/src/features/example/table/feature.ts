@@ -14,7 +14,7 @@ import type { FeatureSpec } from '#/features/ai/page'
  * 页面每轮渲染调一次 `createTableExampleListFeature({...})`，`useFeature` 会把最新的一份登记进去 ——
  * 于是 AI 读到的永远是用户正看着的那一屏，而不是首帧快照。
  *
- * 页面实现见 `./index.tsx`，架构约定见 `.agents/docs/features-architecture.md`。
+ * 页面实现见 `./index.tsx`，架构约定见 `.agents/skills/business-development/references/features-architecture.md`。
  */
 
 /** 可排序列：列 id 与后端 field 参数一致，页面与 AI 声明**共用这一份**（别写两遍）。 */

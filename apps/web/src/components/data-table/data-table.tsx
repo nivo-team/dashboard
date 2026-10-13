@@ -207,7 +207,7 @@ export function DataTable({
    * 树表的层级列 = **第一个可见的数据列**（跳过多选列）。
    *
    * 刻意不从 props 指定：列顺序 / 列显隐变了，展开控件依然在最左边；
-   * 调用方只管把层级列排在第一（见 table-development skill 的「ID 永远排第一列」）。
+   * 调用方只管把层级列排在第一（见 business-development skill 的 `references/table.md`「ID 永远排第一列」）。
    */
   const treeColumnId = tree
     ? // 显式注解：`getVisibleLeafColumns()` 的元素类型在这里推不出来（TS7006），

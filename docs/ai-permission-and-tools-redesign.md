@@ -4,7 +4,7 @@
 > **不含代码改动**。
 >
 > 背景：AI 中间层已落地（规则、模型凭证、provider 都在服务端，见
-> [`.agents/docs/ai-server-layer.md`](../.agents/docs/ai-server-layer.md)）。
+> [`.agents/skills/ai-development/references/ai-server-layer.md`](../.agents/skills/ai-development/references/ai-server-layer.md)）。
 >
 > v2 相对 v1 的**关键修正**：v1 把「用户可自选 AI 权限」当成安全问题，那是错的 ——
 > 见 §0。

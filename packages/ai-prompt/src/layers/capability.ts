@@ -10,7 +10,7 @@ import type { PromptFacts } from '../types.ts'
  * 所以能力边界一律交给工具清单。
  *
  * 它**不随 mode / surface 变化**，所以留在 system 前缀里 —— 这是前缀缓存友好的前提
- * （见 `.agents/docs/ai-server-layer.md` §缓存对齐）。
+ * （见 `.agents/skills/ai-development/references/ai-server-layer.md` §缓存对齐）。
  */
 export function buildCapabilityLayer(): string {
   return [

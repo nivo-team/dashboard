@@ -23,7 +23,7 @@ const API_ITEMS = [
   { label: '更新表格示例记录', method: 'PUT', path: '/example/table' },
   // 删除类接口**必须在清单里**：清单就是 AI 的写操作白名单（call_write_api 按它校验
   // method + 路径模板），缺一条 AI 就完全删不了那个模块。页面能力里的 endpoints 与这里
-  // 应当保持一致（见 .agents/docs/ai-architecture.md §8.1 的"清单即边界"）。
+  // 应当保持一致（见 .agents/skills/ai-development/references/ai-architecture.md §8.1 的"清单即边界"）。
   { label: '删除表格示例记录', method: 'DELETE', path: '/example/table/{id}' },
   { label: '批量删除表格示例记录', method: 'POST', path: '/example/table/batch-delete' },
   // 工单：**刻意没有批量端点** —— 批量操作靠 AI 用 manage_tasks 编排 N 次单条调用。

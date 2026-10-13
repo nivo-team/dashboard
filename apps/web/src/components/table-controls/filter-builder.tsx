@@ -37,7 +37,7 @@ export function describeFilterCondition(
    * 枚举字段的 value → 显示文案（可选）。
    *
    * 传入后 chip 显示「账号类型 普通用户」而不是「账号类型 normal」；
-   * 页面通常用 `useDictOptionEntries()` 构造（见 .agents/docs/dict-options.md）。
+   * 页面通常用 `useDictOptionEntries()` 构造（见 .agents/skills/business-development/references/dict-options.md）。
    */
   optionLabelOf?: (field: QueryFilterField, value: string) => string | undefined,
 ): string {
@@ -79,7 +79,7 @@ export interface FilterBuilderProps {
    *
    * 返回 `undefined` 的字段退回自带的静态 `options`（openapi enum 提取的那份）。
    * 页面传入基于字典的实现，候选项与文案即可跟随后端字典（含多语言），
-   * 不必等 `pnpm api` 重新生成字段目录 —— 见 .agents/docs/dict-options.md。
+   * 不必等 `pnpm api` 重新生成字段目录 —— 见 .agents/skills/business-development/references/dict-options.md。
    */
   resolveFieldOptions?: ResolveFilterFieldOptions
 }
