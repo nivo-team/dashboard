@@ -1,4 +1,5 @@
 import { HouseIcon } from '@phosphor-icons/react'
+import type { PermissionRequirement } from '#/lib/permissions'
 import { describe, expect, it } from 'vite-plus/test'
 import {
   ALL_NAV_TARGETS,
@@ -80,11 +81,10 @@ describe('getNavFeatureRequirement', () => {
 
 describe('flattenPermissionRequirements', () => {
   it('嵌套数组递归摊平成逐个权限点', () => {
-    expect(flattenPermissionRequirements(['a:read', ['b:read', ['c:read']]])).toEqual([
-      'a:read',
-      'b:read',
-      'c:read',
-    ])
+    // 声明的类型只允许一层数组，实现却按 `Array.isArray` 递归 —— 这里刻意越界喂它两层
+    const nested = ['a:read', ['b:read', ['c:read']]] as unknown as PermissionRequirement
+
+    expect(flattenPermissionRequirements(nested)).toEqual(['a:read', 'b:read', 'c:read'])
   })
 
   it('空值返回空数组；对象要求原样保留', () => {

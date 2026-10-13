@@ -358,25 +358,39 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 | `features/ai/page/index.ts` | 27 | barrel |
 | `src/features/**/feature.ts` | 10 份 | 各页面声明（参考实现：`table-example/feature.ts`，279 行） |
 
-### 4.3 UI 组件（`features/ai/components/*.tsx`，11 个，4411 行）
+### 4.3 UI 组件（`features/ai/components/`：10 个文件 + `composer/` 目录）
 
 | 文件 | 行数 | 职责 |
 |---|---:|---|
-| `ai-composer.tsx` | 1150 | 输入区：文本、附件（`AI_MAX_ATTACHMENTS=4` / 图片 4MB / 文本 256KB）、模式菜单、`@` mention、任务卡（行尾设置按钮只剩「配置权限」，仅面板给） |
-| `ai-panel.tsx` | 1120 | 面板本体：split / float 两形态、头行、权限视图（整块替换内容）、拖拽与折叠动画 |
-| `ai-conversation.tsx` | 831 | 消息渲染：Markdown、工具卡片（默认隐藏）、审批卡、导航建议卡、空态 |
-| `ai-permission-config.tsx` | 331 | 权限三档 + 工具勾选（名单取自 `AI_TOOLS`）；`settings` / `panel` 两形态。三档各有 tooltip 说明、分组说明挂在标题的 Info 图标上（不常显） |
-| `ai-task-card.tsx` | 202 | 任务清单卡片（会话内 + 悬浮） |
-| `ai-activity-glow.tsx` | 178 | 进行中页面光晕（`border-beam`） |
-| `ai-session-list.tsx` | 145 | 浮层会话列表（搜索 + 分组 + 删除） |
-| `ai-conversation-scroller.tsx` | 139 | 会话滚动容器（RAF 驱动、上翻暂停、回到底部） |
-| `ai-session-picker.tsx` | 86 | 头行会话选择器 + `useActiveSessionTitle` |
-| `ai-session-delete-dialog.tsx` | 56 | 删除确认弹窗（两处共用） |
-| `ai-bot-avatar.tsx` | 49 | `bot-avatars` 封装（`theme` 必须我们传） |
+| `composer/` | 1477 | 输入区：文本、附件、模式菜单、`@` mention、任务卡（行尾设置按钮只剩「配置权限」，仅面板给）—— 见下表 |
+| `panel.tsx` | 1128 | 面板本体：split / float 两形态、头行、权限视图（整块替换内容）、拖拽与折叠动画 |
+| `conversation.tsx` | 928 | 消息渲染：Markdown、工具卡片（默认隐藏）、审批卡、导航建议卡、空态 |
+| `task-card.tsx` | 316 | 任务清单卡片（会话内 + 悬浮） |
+| `permission-config.tsx` | 296 | 权限三档 + 工具勾选（名单取自 `AI_TOOLS`）；`settings` / `panel` 两形态。三档各有 tooltip 说明、分组说明挂在标题的 Info 图标上（不常显） |
+| `activity-glow.tsx` | 180 | 进行中页面光晕（`border-beam`） |
+| `session-list.tsx` | 145 | 浮层会话列表（搜索 + 分组 + 删除） |
+| `conversation-scroller.tsx` | 140 | 会话滚动容器（RAF 驱动、上翻暂停、回到底部） |
+| `session-picker.tsx` | 82 | 头行会话选择器 + `useActiveSessionTitle` |
+| `session-delete-dialog.tsx` | 62 | 删除确认弹窗（两处共用） |
+| `bot-avatar.tsx` | 49 | `bot-avatars` 封装（`theme` 必须我们传） |
 
-**AI 消息渲染外围**：`markdown-content.tsx`(30) → `markdown-renderer.tsx`(147)、
-`pretext-stream-text.tsx`(80) → `lib/pretext/**`（仓库自带，非 npm 依赖）。挂载点：`app-shell.tsx`。
+#### 输入区 `composer/`：一份实现，每件事一个文件
 
+原来是 1253 行的单文件（组件、附件闸门、`@` 语法、浮层、草稿 IO 全在里面）。现在：
+
+| 文件 | 行数 | 管什么 |
+|---|---:|---|
+| `index.tsx` | 580 | **只留状态、键盘与提交**（组件级文档在文件头） |
+| `attachments.ts` | 162 | 附件准入：三道闸 + 提示优先级 + 读取。`planAttachments` 是纯函数 ★ |
+| `mention.ts` | 116 | `@` 语法解析、行清单、匹配与分段（纯）★ |
+| `mode-menu.tsx` | 156 | 输入模式 pill（询问 / 自动） |
+| `mention-panel.tsx` | 143 | `@` 面板（刻意的无 Trigger + 焦点守卫，见文件头三条参数说明） |
+| `use-composer-draft.ts` | 114 | 草稿的装载 / 防抖落库 / 清理（`isLoadedRef` 那套） |
+| `actions-menu.tsx` | 112 | 行首「+」三项菜单（附件 / 引用位置 / 新对话） |
+| `settings-menu.tsx` | 61 | 行尾设置按钮（只剩「配置权限」，没有入口时整颗不渲染） |
+| `attachment-list.tsx` | 56 | 待发送附件卡片（缩略图 + 文件卡） |
+
+★ 有单测：`attachments.test.ts` / `mention.test.ts`（见 [testing.md](../../platform-development/references/testing.md)）。
 ### 4.4 路由：全屏对话页（`routes/$appId_.sphere/**`，10 个文件，1102 行）
 
 `route.tsx`(225，逃离 `$appId` 布局、注册 `AiShellBridge` + 过渡 Provider)、`index.tsx`(28，新会话)、

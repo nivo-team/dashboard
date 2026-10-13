@@ -89,6 +89,8 @@ CI（`.github/workflows/ci.yml`）依次跑：铁律门控 → i18n 检查 → `
 | `src/lib/app-config.test.ts` | 单/多应用、单/多账号、进入选择页策略（`auto` / `always` / `never`）、默认应用 id 与名称、`VITE_SUPER_ADMIN_ID` 命中规则、部署快照 |
 | `src/lib/store/permission-store.test.ts` | `normalizeRoleName`、`computePermissions`（`Admin` 不是超管 / 通配 / 模块展开）、store 的 `setIdentity` ↔ `setPermissions` 顺序无关性、`resetPermissions` |
 | `src/layouts/common/nav-matching.test.ts` | 侧边栏高亮的等价写法（`/home` 的四种 URL）、子路径前缀命中、`roles-other` 不误命中 |
+| `src/features/ai/components/composer/attachments.test.ts` | 附件三道闸（单个上限 / 总数上限 / 类型白名单）、边界值、**提示优先级**（加满了 > 收不下 > 读不出来）、被拦下的文件不占额度、体积格式化 |
+| `src/features/ai/components/composer/mention.test.ts` | `@` 必须是行首或空白之后（邮箱里的 `@` 不算）、四处匹配通道、**记录引用兜底**（`@mod:1234` 不误报「没有匹配」）、分段与跨段连续的行号 |
 | `src/lib/navigation/filter.test.ts` | `feature` / `permission` 声明的三种写法与 `:*` 补全、摊平、组级 `all` / `any`、折叠项的收敛与修剪、组内清空、自定义谓词、`enablePermissionFilter: false`、超管、真实名单的「只有 `dict:read` 时系统组可见」回归 |
 
 ## 8. 待补的缺口（按价值排序）

@@ -209,7 +209,8 @@ export function SelectAppPage({ redirect: redirectUrl }: { redirect?: string }) 
       setFormError(null)
       try {
         if (editingApp) {
-          await updateMutation.mutateAsync({ body: { id: editingApp.id, ...values } })
+          // `id` 必须排在展开**之后**：它要钉住当前编辑的那条记录，写在前面会被 values.id 覆盖
+          await updateMutation.mutateAsync({ body: { ...values, id: editingApp.id } })
           toast.add({ title: t('form.successUpdate', '应用更新成功'), variant: 'success' })
         } else {
           await createMutation.mutateAsync({ body: values })

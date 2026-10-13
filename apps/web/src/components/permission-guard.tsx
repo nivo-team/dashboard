@@ -60,7 +60,11 @@ export function Can({ permission, fallback = null, children }: CanProps) {
 
 type KumoButtonProps = ComponentProps<typeof Button>
 
-export interface PermissionButtonProps extends KumoButtonProps {
+/**
+ * `ComponentProps<typeof Button>` 是条件类型（成员不可静态枚举），
+ * **`interface ... extends` 收不了它** —— 所以这里用类型别名 + 交叉，语义与继承等价。
+ */
+export type PermissionButtonProps = KumoButtonProps & {
   /** 权限要求；缺省时等价于普通 Button（始终渲染）。 */
   permission?: PermissionRequirement
   /** 权限不足时：`hide` 不渲染（默认），`disable` 渲染但禁用。 */
@@ -87,12 +91,15 @@ export function PermissionButton({
 
   if (!allowed && denied === 'hide') return null
 
+  /*
+    无权限时用 `title` 说明原因。**不传 `undefined`** —— Kumo 的 `Button` 是联合类型，
+    其中 icon-only 那一支把 `title` 声明为必填，显式给 `undefined` 会判成「不可赋值」；
+    条件展开则在没有理由时**不带这个键**。
+  */
+  const deniedTitle = !allowed && deniedHint ? { title: deniedHint } : {}
+
   return (
-    <Button
-      {...buttonProps}
-      disabled={disabled || !allowed}
-      title={!allowed ? deniedHint : undefined}
-    >
+    <Button {...buttonProps} {...deniedTitle} disabled={disabled || !allowed}>
       {children}
     </Button>
   )
