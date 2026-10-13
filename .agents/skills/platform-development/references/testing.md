@@ -88,10 +88,11 @@ CI（`.github/workflows/ci.yml`）依次跑：铁律门控 → i18n 检查 → `
 | --- | --- |
 | `src/lib/app-config.test.ts` | 单/多应用、单/多账号、进入选择页策略（`auto` / `always` / `never`）、默认应用 id 与名称、`VITE_SUPER_ADMIN_ID` 命中规则、部署快照 |
 | `src/lib/store/permission-store.test.ts` | `normalizeRoleName`、`computePermissions`（`Admin` 不是超管 / 通配 / 模块展开）、store 的 `setIdentity` ↔ `setPermissions` 顺序无关性、`resetPermissions` |
+| `src/layouts/common/nav-matching.test.ts` | 侧边栏高亮的等价写法（`/home` 的四种 URL）、子路径前缀命中、`roles-other` 不误命中 |
 
 ## 8. 待补的缺口（按价值排序）
 
-1. `lib/navigation.ts` 的过滤管道（导航名单是唯一真值，改它最危险）；
+1. `lib/navigation.ts` 的过滤管道（导航名单是唯一真值，改它最危险）—— **下一个迭代的目标**；
 2. `lib/store/app-scope` + `scoped-storage` 的键生成与 legacy 迁移（纯逻辑，好测）；
 3. `features/select-app/feature.ts` 这类「页面声明 → AI 能力」的映射；
 4. `lib/dict-key.ts` 的 `new.` 前缀适配。

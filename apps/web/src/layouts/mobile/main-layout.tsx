@@ -10,7 +10,7 @@ import { usePageTabsEnabled } from '#/lib/page-tabs'
 import { usePreferencesStore } from '#/lib/store'
 import { LayoutSidebarProvider } from '../provider'
 import { ShellContentColumn } from '../common/content-column'
-import { MobileMainSidebar } from './main-sidebar'
+import { MainSidebar } from '#/components/main-sidebar'
 
 function MobileMainHeader({
   onOpenCommandPalette,
@@ -62,7 +62,7 @@ export function MobileMainLayout({ children }: { children?: React.ReactNode }) {
   return (
     <>
       <LayoutSidebarProvider>
-        <MobileMainSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />
+        <MainSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />
 
         <ShellContentColumn
           desktop={false}

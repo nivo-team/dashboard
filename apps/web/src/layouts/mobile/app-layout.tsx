@@ -20,7 +20,7 @@ import { useUserPermissions } from '#/lib/permissions'
 import { usePreferencesStore } from '#/lib/store'
 import { LayoutSidebarProvider } from '../provider'
 import { ShellContentColumn } from '../common/content-column'
-import { MobileAppSidebar } from './sidebar'
+import { AppSidebar } from '#/components/app-sidebar'
 import { MobileAppHeader } from './header'
 
 /**
@@ -108,7 +108,7 @@ export function MobileAppLayout() {
 
   return (
     <LayoutSidebarProvider>
-      <MobileAppSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />
+      <AppSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />
 
       <ShellContentColumn
         desktop={false}

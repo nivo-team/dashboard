@@ -182,7 +182,36 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
 - **`desktop` 变体**（`#/layouts/desktop`）：PC 桌面原生壳专属（macOS / Windows / Linux），整宽 fixed 浮层窗口条取代传统顶栏，全高毛玻璃侧边栏；
 - **`mobile` 变体**（`#/layouts/mobile`）：移动端视口与移动原生壳（Android APK）专属，沉浸式顶部安全区适配（`safe-area-inset-top`），汉堡按钮唤出全屏抽屉侧边栏，点击导航项后自动收拢。
 
-布局目录内各自独立组织 `sidebar.tsx`、`header.tsx`、`app-layout.tsx`、`main-layout.tsx` 等子模块，形态彻底解耦，互不干扰。
+布局目录内各自独立组织 `header.tsx`、`app-layout.tsx`、`main-layout.tsx` 等子模块。
+
+#### 变体之间怎么共用：**一份实现 + 一张变体表**
+
+「物理隔离」指的是**外壳骨架**（顶栏 / 窗口条 / 内容列的排布方式），不是把每个零件都抄三份。
+早期三个变体各有一份 ~200 行的 `sidebar.tsx`，其中菜单树渲染、高亮判定、权限过滤、
+搜索入口**逐字相同**，只有四处平台差异 —— 三份并存意味着「改一处忘两处」。
+
+现在的划分（**加平台 = 加一行表**，渲染逻辑一行都不用动）：
+
+| 位置 | 角色 |
+| --- | --- |
+| `#/layouts/common/app-sidebar.tsx` | 业务侧边栏（`$appId` 导航）唯一实现 + `SIDEBAR_VARIANTS` 变体表 |
+| `#/layouts/common/main-sidebar.tsx` | 通用外壳侧边栏（`_main` 导航 + 设置二级导航）唯一实现 + `MAIN_SIDEBAR_VARIANTS` 变体表 |
+| `#/layouts/common/sidebar-variant.ts` | `SidebarVariant` 与「外壳布局 → 变体」映射，**两个侧边栏共用一份** |
+| `#/layouts/common/sidebar-chrome.ts` | 平台相关的那几串 className（安全区高度、折叠态描边、收起态隐藏文案） |
+| `#/layouts/common/nav-matching.ts` | 应用内导航高亮判定（纯函数，有单测） |
+| `#/components/app-sidebar.tsx`、`#/components/main-sidebar.tsx` | 环境分派：`useActiveLayout()` → 变体，选纯视图还是抽屉包装 |
+
+变体差异一共四类，全部在表里：**顶栏形态**（应用切换器 / 抽屉头 + 关闭键 / 不渲染）、
+**底部折叠按钮**、**点击导航后是否收起抽屉**、**长文案是否在收起态隐藏**。
+
+两个坑：
+
+1. **抽屉感知必须拆成两层组件**（`*View` + `Drawer*`）：`useSidebar()` 需要
+   `Sidebar.Provider` 祖先，而**桌面壳的外壳没有这个 Provider**（折叠由窗口标题栏统一控制）。
+   合回一个组件会让桌面端一渲染就报错，而 hook 不能有条件调用。
+2. **桌面壳的「设置」开独立窗口，但设置窗口里的导航不能再开一个**：
+   `settingsInOwnWindow` 只在 `!isSettingsSection` 时生效，否则会无限套娃。
+
 
 ### 桌面壳里的外壳形态（全高侧边栏 + 整宽窗口条浮层）
 在桌面壳里（`isDesktop()`，标记来自 URL，见 [apps/native/README.md](../../../../apps/native/README.md)）
@@ -291,7 +320,7 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
   - `_main/index.tsx`：根路径 (`/`)。在多应用模式下承载 `SelectAppPage` —— **应用选择 + 应用管理同一页**（点行进入应用；新建 / 编辑 / 删除按钮按 `app:create/edit/delete` 收敛，见 business-development 的 features-module.md §13）；在单应用模式下（默认），通过 `beforeLoad` 直接规范化重定向至默认应用首页 (`/nivo/home`，由 `DEFAULT_APP_ID` 配置)，无需接口请求与选应用流程。
   - `_main/select-app.tsx`：兼容历史 `/select-app` 路径，规范化重定向至根路径 `/`。
   - `_main/settings/`：设置模块（**目录化**，与 `/` 共用 `MainLayout`；当前「个人资料 / 外观 / AI」三个子页）。
-    - `settings/route.tsx`：模块根，只渲染 `<Outlet />`；`settings/index.tsx` 把 `/settings` 重定向到默认子页 `/settings/profile`（与 `$appId/example/` 同一套写法）。**设置模块的二级导航由 `MainLayout` 的 `MainSidebarSwitch` 按路由前缀切换**（`/settings`、`/settings/**` → `SettingsSidebar`，其余 → 通用导航）—— 嵌套路由只能替换内容区，无法接管外层侧边栏。两套导航共用品牌 Header（`SidebarBrandHeader`：方块 + 标题 + 移动端关闭按钮）与「快速搜索」入口（`SidebarSearchButton`，与 `AppSidebar` 同一套 Kumo 官方范式）；`SettingsSidebar` 在品牌行之下再加一行 `SettingsModuleHeader`（返回 `/` + 模块标题「设置」，参照 Cloudflare 控制台），**真正替换的只有模块行与菜单**。这是「同一 Sidebar 位置换内容」而非第二个 `Sidebar`，`Sidebar.Provider` 不重挂，折叠状态与拖拽宽度都保留。`_main` 外壳已挂 `CommandPaletteDialog`（⌘K / Ctrl+K，与 `AppShell` 同款接线），搜索按钮与快捷键共享同一面板。
+    - `settings/route.tsx`：模块根，只渲染 `<Outlet />`；`settings/index.tsx` 把 `/settings` 重定向到默认子页 `/settings/profile`（与 `$appId/example/` 同一套写法）。**设置模块的二级导航由 `MainSidebar` 按路由前缀切换**（`/settings`、`/settings/**` → 设置导航，其余 → 通用导航；判定就是 `isSettingsSection` 一处）—— 嵌套路由只能替换内容区，无法接管外层侧边栏。两套导航共用品牌头（`BrandHeader`：方块 + 标题 + 移动端关闭按钮）与「快速搜索」入口（`SidebarSearchButton`，与业务侧边栏同一套 Kumo 官方范式）；设置导航在品牌行之下再加一行 `SettingsModuleHeader`（返回 `/` + 模块标题「设置」，参照 Cloudflare 控制台），**真正替换的只有模块行与菜单**。这是「同一 Sidebar 位置换内容」而非第二个 `Sidebar`，`Sidebar.Provider` 不重挂，折叠状态与拖拽宽度都保留。两套导航的渲染函数也是同一个（`ShellNavList`），只有菜单源不同。`_main` 外壳已挂 `CommandPaletteDialog`（⌘K / Ctrl+K，与 `AppShell` 同款接线），搜索按钮与快捷键共享同一面板。
     - `settings/profile.tsx`：个人资料 (`/settings/profile`)，只读展示 `GET /profile` 返回的账号资料 —— 接口路径与前端路由无关，仍是同一支接口；后端没有更新接口，因此不做表单；接口不可用时逐项回落本地登录态（`useAuth().user`）并显式提示，不把兜底数据伪装成后端值。
     - `settings/appearance.tsx`：外观 (`/settings/appearance`)，单张 `LayerCard`（标题「通用设置」`profile.settings.general`，形态是 `LayerCard.Secondary` + `LayerCard.Primary`）里放着若干本机偏好：主题（`#/lib/use-color-mode`）/ 语言（`#/lib/use-locale`）/ 时区（`#/lib/timezone`）/ 详情打开方式（`#/lib/store` 的 `detailOpenMode`，见 [./detail-preview.md](../../business-development/references/detail-preview.md)）/ 页面宽度（`#/lib/store` 的 `pageWidth`：全宽 / 限宽居中，默认全宽，落点在 `#/lib/page-width`）—— 这些是**即时生效 + 持久化在 `admin.preferences:<appId>`（按应用隔离，见 [./store.md](./store.md)）**，所以**没有保存按钮、没有 dirty 状态，不要套 `UnsavedChangesBar` 那套编辑态契约**。同页还有两个**开关型的外壳偏好**，它们在全局的 `admin.shell-ui` 里（「换个应用还成立」）：界面动效（`motionEnabled`，默认开）与**页面标签页**（`pageTabsEnabled`，默认关；桌面壳里恒开、这一项在那边禁用 + 提示，见上面「桌面壳里的外壳形态」）。控件选型：**短枚举（≤3 项）用 Kumo `Tabs` 的 segmented 分段控件**（主题、详情打开方式、页面宽度），长枚举（语言、时区）用 `Select`，**布尔用 `Switch`**（界面动效、页面标签页）；**「详情打开方式」与「页面宽度」每段选项悬浮时还会弹一个浮层，用通用缩略图把该档位的页面变化演一遍**（`#/components/app-shell-preview`，见第 5 节）。账号安全 / 已连接应用 / API Token 等更重的设置后续扩展（往 `components/main-layout.tsx` 的 `SETTINGS_NAV_ITEMS` 追加导航项、或在卡片下方再加一张 `LayerCard` 即可）。
     - `settings/AI.tsx`：AI (`/settings/AI`)，与外观页同一套「设置卡片 + 设置行」形态（`#/components/settings-card` 的 `SettingsCard` / `SettingRow`，不要再手写 `LayerCard`）。设置行有若干项，其中**显示方式**（`admin.preferences:<appId>` 的 `aiPanelMode`，`split` = Split View / `float` = Float）与**页面宽度**（`aiPageWidth`：跟随外观 / 全宽 / 限宽居中 —— **只作用于 `/$appId/sphere`**，会话区 + 输入区收在同一个宽度约束里；上限是聊天自己的 `max-w-4xl`，**比页面的 1440px 窄**，「跟随外观」只跟外观那个选择的档，落点见 `#/lib/page-width` 的 `aiChatWidthClass`）—— 与外观页同属「即时生效 + 按应用隔离持久化」，**没有保存按钮、没有 dirty 状态**。控件是与「主题」一致的分段控件（`Tabs` + `role="group"` 兜可访问名称），并带与「详情打开方式」同款的悬浮预览（见第 5 节；页面宽度那一行直接复用外观页的宽度缩略图动画）。**卡片标题直接复用 `profile.settings.general`（「通用设置」），不另开 `aiSection` 之类的重复文案**；设置项文案在 `profile.settings.aiDisplayMode*`，**两个选项（`aiModes.split` / `aiModes.float`）是形态名、各语言各自本地化**（中文「分屏视图 / 浮窗」，不要写成产品术语原文）。后续 AI 偏好继续往这张卡片加 `SettingRow`，或下方再加一张 `SettingsCard`。**文件名与路径保留大写的 `AI`**（缩写，与导航项显示名一致），由 `pnpm generate-routes` 生成的 `routeTree.gen.ts` 同步。
@@ -352,9 +381,9 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
 - `apps/web/src/lib/navigation.ts` 是管理后台所有导航项的**单一真值来源 (SSOT)**，共三份配置：
   - `NAV_GROUPS`：`$appId` 业务导航，`to` **相对 appId**（`/home`、`/example/table`）；由 `AppSidebar` 渲染、`AppHeader` 用它的 `to` 做面包屑最长前缀匹配，并经 `ALL_NAV_TARGETS` 扁平化后供命令面板使用；
   - `MAIN_NAV_ITEMS`：`_main` 通用外壳导航（应用选择 `/`、个人资料 `/settings/profile`），由 `MainSidebar` 渲染；
-  - `SETTINGS_NAV_ITEMS`：设置模块的二级导航（个人资料 `/settings/profile`、外观 `/settings/appearance`（图标 `SwatchesIcon`、文案 `profileNav.appearance`）、AI `/settings/AI`（图标 `SparkleIcon`、文案 `profileNav.ai`，**路径保留大写缩写**）），由 `SettingsSidebar` 渲染。**「外观」与「主题」是两个 key**：前者是模块入口（`profileNav.appearance`），后者是主题选择器的分组标题（`theme.label`），不要合并。
+  - `SETTINGS_NAV_ITEMS`：设置模块的二级导航（个人资料 `/settings/profile`、外观 `/settings/appearance`（图标 `SwatchesIcon`、文案 `profileNav.appearance`）、AI `/settings/AI`（图标 `SparkleIcon`、文案 `profileNav.ai`，**路径保留大写缩写**）），由 `MainSidebar` 的设置分支渲染。**「外观」与「主题」是两个 key**：前者是模块入口（`profileNav.appearance`），后者是主题选择器的分组标题（`theme.label`），不要合并。
   - 后两份是 `ShellNavItem`，`to` 是**绝对路径**（不拼 appId），并带 `matchPaths` 表达「历史别名也算选中」（如 `/select-app` 之于 `/`）。**不要把外壳项塞进 `NAV_GROUPS`** —— 会污染 `AppHeader` 的业务面包屑匹配，且 `_main` 外壳根本没有 appId 前缀。`ALL_SHELL_NAV_TARGETS` 是两份外壳导航合并去重后的命令面板数据源。
-- **三处侧边栏与命令面板都必须是「配置对象 → map 渲染」**，不允许把菜单项硬编码在 JSX 里（`MainSidebar` 曾如此）：加 / 改导航项只动 `navigation.ts`，业务侧边栏、外壳侧边栏、⌘K 面板三个入口自动同步。外壳侧边栏统一走 `#/components/shell/main-layout.tsx` 的 `ShellNavButton`。
+- **三处侧边栏与命令面板都必须是「配置对象 → map 渲染」**，不允许把菜单项硬编码在 JSX 里（`MainSidebar` 曾如此）：加 / 改导航项只动 `navigation.ts`，业务侧边栏、外壳侧边栏、⌘K 面板三个入口自动同步。外壳侧边栏统一走 `#/layouts/common/nav-shared` 的 `ShellNavButton`（`#/components/shell/main-nav-shared.tsx` 只是转发层）。
 - **导航项没有描述字段**：侧边栏与命令面板列表**只显示标题**（曾经给命令面板当副标题的 `description` 已删除，不要加回来）；检索能力靠 `keywords`（中英双语，保证两种输入都能命中）。
 - 导航文案通过 `labelKey` / `children[].labelKey` 指向 `common` 命名空间下的 i18n 键，不要在组件里硬编码路径→文案的映射；新增导航项时**只写 `zh-CN` 的 `nav.*` 文案**，其它语言由翻译流水线补齐。
 - 业务首页路径统一配置为 `/home`，拼接当前激活应用标识生成 `/$appId/home`；它的**文案是「仪表盘」**（`nav.home`），别只改一处就以为改完了 —— 导航项、命令面板、顶栏面包屑三处共用这个 key。检索关键词同时保留 `home` / `首页` 与 `dashboard` / `仪表盘`（老用户还在按老名字找它）。

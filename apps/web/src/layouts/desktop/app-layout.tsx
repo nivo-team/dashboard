@@ -21,7 +21,7 @@ import { useUserPermissions } from '#/lib/permissions'
 import { usePreferencesStore } from '#/lib/store'
 import { DesktopShellLayout } from './shell-layout'
 import { DesktopTitleBar } from './title-bar'
-import { DesktopAppSidebar } from './sidebar'
+import { AppSidebar } from '#/components/app-sidebar'
 
 /**
  * PC 桌面端业务外壳布局（Desktop AppLayout）：
@@ -141,7 +141,7 @@ function DesktopAppLayoutStandard() {
   return (
     <>
       <DesktopShellLayout
-        sidebar={<DesktopAppSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />}
+        sidebar={<AppSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />}
         topBar={
           <DesktopTitleBar
             homeTo={`/${appId}/home`}

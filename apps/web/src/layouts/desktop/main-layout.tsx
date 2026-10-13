@@ -10,7 +10,7 @@ import { pageContentWidthClass } from '#/lib/page-width'
 import { usePreferencesStore } from '#/lib/store'
 import { DesktopShellLayout } from './shell-layout'
 import { DesktopTitleBar } from './title-bar'
-import { DesktopMainSidebar } from './main-sidebar'
+import { MainSidebar } from '#/components/main-sidebar'
 
 /**
  * 桌面壳形态的通用外壳布局（Desktop MainLayout）：
@@ -60,7 +60,7 @@ function DesktopMainLayoutStandard({ children }: { children?: React.ReactNode })
   return (
     <>
       <DesktopShellLayout
-        sidebar={<DesktopMainSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />}
+        sidebar={<MainSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />}
         topBar={
           <DesktopTitleBar
             homeTo="/settings/profile"

@@ -1,2 +1,7 @@
 export * from './nav-shared'
+export * from './nav-matching'
+export * from './sidebar-chrome'
+export * from './sidebar-variant'
+export * from './app-sidebar'
+export * from './main-sidebar'
 export * from './content-column'
