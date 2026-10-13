@@ -7,10 +7,10 @@ interface SelectAppSearch {
 }
 
 /**
- * 根路径应用空间选择路由（`/_main/index.tsx` -> "/"）—— **薄适配层**。
+ * 根路径"应用选择 + 管理"路由（`/_main/index.tsx` -> "/"）—— **薄适配层**。
  *
  * `validateSearch` / `beforeLoad` 是路由语义，留在这一层；
- * 页面本体在 `#/features/select-app`，`redirect` 通过 props 传入。
+ * 页面本体在 `#/features/select-app`（点行进应用、写按钮按权限收敛），`redirect` 通过 props 传入。
  */
 export const Route = createFileRoute('/_main/')({
   validateSearch: (search: Record<string, unknown>): SelectAppSearch => {

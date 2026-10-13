@@ -18,7 +18,7 @@ interface AppSwitcherProps {
  * 特性：
  * - 优先从全局认证状态同步当前账号实际可用的应用列表；
  * - 侧边栏顶部不显示多余描述，仅显示应用名称，保持克制整洁；
- * - 下拉菜单仅供切换可用应用，仅展示应用名称，完整描述信息在应用选择页（/select-app）展示；
+ * - 下拉菜单仅供切换可用应用，仅展示应用名称，完整描述信息在根路径的应用页（/）展示；
  * - 侧边栏折叠为图标模式时自动隐藏文字与箭头，只保留应用图标；
  * - 悬停时提供柔和反馈（hover:bg-kumo-tint）。
  */
@@ -123,7 +123,7 @@ export function AppSwitcher({
           )
         })}
 
-        {/* 查看所有应用：回到根路径的应用选择页（_main/index.tsx -> "/"） */}
+        {/* 查看所有应用：回到根路径的应用页（_main/index.tsx -> "/"，选择 + 管理同一页） */}
         <DropdownMenu.Separator />
         <DropdownMenu.Item
           onClick={() => router.navigate({ to: '/' })}

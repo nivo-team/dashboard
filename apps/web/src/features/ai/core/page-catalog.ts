@@ -172,6 +172,22 @@ export const AI_PAGE_CATALOG: readonly AiPageCatalogEntry[] = [
       { method: 'DELETE', path: '/role/{id}', purpose: '删除角色' },
     ],
   },
+  {
+    path: '/',
+    title: '应用（选择与管理）',
+    desc: '工作空间入口（根路径，与具体应用无关）：列出应用，点行进入对应工作空间。超级管理员还可就地新建、编辑、删除应用（应用标识即路由前缀与数据作用域）；其它角色只能看到自己能进入的应用。',
+    entities: ['应用', '工作空间', '应用标识', '接口根地址'],
+    permission: 'app:read',
+    keywords: ['应用', '工作空间', '应用管理', '应用选择', 'app', 'workspace', '多应用'],
+    endpoints: [
+      { method: 'GET', path: '/apps', purpose: '可用应用列表（工作空间视角，所有登录用户）' },
+      { method: 'GET', path: '/app', purpose: '应用分页列表（配置视角，仅超级管理员）' },
+      { method: 'GET', path: '/app/{id}', purpose: '读取应用详情（仅超级管理员）' },
+      { method: 'POST', path: '/app', purpose: '新建应用（仅超级管理员）' },
+      { method: 'PUT', path: '/app', purpose: '更新应用（仅超级管理员）' },
+      { method: 'DELETE', path: '/app/{id}', purpose: '删除应用（仅超级管理员）' },
+    ],
+  },
 ]
 
 /**

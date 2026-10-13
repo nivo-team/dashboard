@@ -52,7 +52,11 @@ MOCK_PUBLIC_URL=http://<本机 IP>:3001
 | POST | `/login` | 登录（仅三个预设测试账号，密码 `123`） |
 | GET | `/profile` | 当前用户信息（按 token 反查账号） |
 | GET | `/permissions` | 当前用户的权限点清单（按 token 反查角色；`?role=` 可覆盖，仅供调试） |
-| GET | `/apps` | 可选应用列表（每个应用带自己的 `apiBaseUrl`） |
+| GET | `/apps` | 可选应用列表（**工作空间视角**：只含启用应用，每个应用带自己的 `apiBaseUrl`；所有登录用户） |
+| GET | `/app` | 应用分页列表（**配置视角**，根路径 `/` 的应用管理视图用：含停用应用与 status / sort / 时间戳；**仅超管**，非超管 403） |
+| GET | `/app/{id}` | 应用详情（按应用标识；**仅超管**） |
+| POST / PUT | `/app` | 新建 / 更新应用（应用标识即路由前缀，创建后不可修改；**仅超管**） |
+| DELETE | `/app/{id}` | 删除应用（**仅超管**；没有「内置应用」概念，任何应用都可删） |
 | GET | `/api` | 系统接口清单（菜单管理关联接口权限用，**同时是 AI 写操作白名单**） |
 | GET | `/user` | 用户分页列表（支持 `kw` 搜索） |
 | POST / PUT | `/user` | 新建 / 更新用户 |
@@ -121,6 +125,12 @@ MOCK_PUBLIC_URL=http://<本机 IP>:3001
 
 两层刻意分开：Mock 里 `Viewer` 仍有 `role:read` 权限点，但它的菜单授权里没有「角色管理」——
 用来演示「有权限点 ≠ 导航里有入口」。
+
+**平台级能力不进菜单树**：应用管理（`app:*`）的对象是「应用」本身、对哪个 appId 都成立，
+所以它没有菜单节点、也不受 `role_menus` 约束；真值只在 `permissions.get.ts` 的
+`ROLE_PERMISSIONS`（`app:` 整模块只给超管，见文件里的 `SUPER_ADMIN_ONLY_MODULES`），
+并由 `app*.ts` 这几个接口用 `isSuperAdminRequest(authHeader)` 挡在入口（非超管 403）。
+前端 `/` 页据此分档：超管走 `GET /app` 管理视图，其它角色走 `GET /apps` 只读选择视图。
 
 两个菜单接口的分工：
 

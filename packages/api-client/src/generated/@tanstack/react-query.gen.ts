@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { deleteDataDictById, deleteDataDictTypeById, deleteExampleTableById, deleteExampleTicketsById, deleteRoleById, deleteSystemMenuById, getApi, getApps, getDataDict, getDataDictOptions, getDataDictTypeTree, getExampleTable, getExampleTableById, getExampleTickets, getExampleTicketsById, getMenusNavigation, getPermissions, getProfile, getRole, getRoleById, getRoleMenus, getSystemMenuTree, type Options, patchExampleTicketsByIdStatus, postDataDict, postDataDictType, postExampleTable, postExampleTableBatchDelete, postExampleTickets, postLogin, postLogout, postRole, postSystemMenu, putDataDict, putDataDictType, putExampleTable, putExampleTickets, putRole, putRoleMenus, putSystemMenu } from '../sdk.gen';
-import type { DeleteDataDictByIdData, DeleteDataDictByIdResponse, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponse, DeleteExampleTableByIdData, DeleteExampleTableByIdResponse, DeleteExampleTicketsByIdData, DeleteExampleTicketsByIdResponse, DeleteRoleByIdData, DeleteRoleByIdResponse, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponse, GetApiData, GetApiResponse, GetAppsData, GetAppsResponse, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponse, GetDataDictResponse, GetDataDictTypeTreeData, GetDataDictTypeTreeResponse, GetExampleTableByIdData, GetExampleTableByIdResponse, GetExampleTableData, GetExampleTableResponse, GetExampleTicketsByIdData, GetExampleTicketsByIdResponse, GetExampleTicketsData, GetExampleTicketsResponse, GetMenusNavigationData, GetMenusNavigationResponse, GetPermissionsData, GetPermissionsResponse, GetProfileData, GetProfileResponse, GetRoleByIdData, GetRoleByIdResponse, GetRoleData, GetRoleMenusData, GetRoleMenusResponse, GetRoleResponse, GetSystemMenuTreeData, GetSystemMenuTreeResponse, PatchExampleTicketsByIdStatusData, PatchExampleTicketsByIdStatusResponse, PostDataDictData, PostDataDictResponse, PostDataDictTypeData, PostDataDictTypeResponse, PostExampleTableBatchDeleteData, PostExampleTableBatchDeleteResponse, PostExampleTableData, PostExampleTableResponse, PostExampleTicketsData, PostExampleTicketsResponse, PostLoginData, PostLoginResponse, PostLogoutData, PostLogoutResponse, PostRoleData, PostRoleResponse, PostSystemMenuData, PostSystemMenuResponse, PutDataDictData, PutDataDictResponse, PutDataDictTypeData, PutDataDictTypeResponse, PutExampleTableData, PutExampleTableResponse, PutExampleTicketsData, PutExampleTicketsResponse, PutRoleData, PutRoleMenusData, PutRoleMenusResponse, PutRoleResponse, PutSystemMenuData, PutSystemMenuResponse } from '../types.gen';
+import { deleteAppById, deleteDataDictById, deleteDataDictTypeById, deleteExampleTableById, deleteExampleTicketsById, deleteRoleById, deleteSystemMenuById, getApi, getApp, getAppById, getApps, getDataDict, getDataDictOptions, getDataDictTypeTree, getExampleTable, getExampleTableById, getExampleTickets, getExampleTicketsById, getMenusNavigation, getPermissions, getProfile, getRole, getRoleById, getRoleMenus, getSystemMenuTree, type Options, patchExampleTicketsByIdStatus, postApp, postDataDict, postDataDictType, postExampleTable, postExampleTableBatchDelete, postExampleTickets, postLogin, postLogout, postRole, postSystemMenu, putApp, putDataDict, putDataDictType, putExampleTable, putExampleTickets, putRole, putRoleMenus, putSystemMenu } from '../sdk.gen';
+import type { DeleteAppByIdData, DeleteAppByIdResponse, DeleteDataDictByIdData, DeleteDataDictByIdResponse, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponse, DeleteExampleTableByIdData, DeleteExampleTableByIdResponse, DeleteExampleTicketsByIdData, DeleteExampleTicketsByIdResponse, DeleteRoleByIdData, DeleteRoleByIdResponse, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponse, GetApiData, GetApiResponse, GetAppByIdData, GetAppByIdResponse, GetAppData, GetAppResponse, GetAppsData, GetAppsResponse, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponse, GetDataDictResponse, GetDataDictTypeTreeData, GetDataDictTypeTreeResponse, GetExampleTableByIdData, GetExampleTableByIdResponse, GetExampleTableData, GetExampleTableResponse, GetExampleTicketsByIdData, GetExampleTicketsByIdResponse, GetExampleTicketsData, GetExampleTicketsResponse, GetMenusNavigationData, GetMenusNavigationResponse, GetPermissionsData, GetPermissionsResponse, GetProfileData, GetProfileResponse, GetRoleByIdData, GetRoleByIdResponse, GetRoleData, GetRoleMenusData, GetRoleMenusResponse, GetRoleResponse, GetSystemMenuTreeData, GetSystemMenuTreeResponse, PatchExampleTicketsByIdStatusData, PatchExampleTicketsByIdStatusResponse, PostAppData, PostAppResponse, PostDataDictData, PostDataDictResponse, PostDataDictTypeData, PostDataDictTypeResponse, PostExampleTableBatchDeleteData, PostExampleTableBatchDeleteResponse, PostExampleTableData, PostExampleTableResponse, PostExampleTicketsData, PostExampleTicketsResponse, PostLoginData, PostLoginResponse, PostLogoutData, PostLogoutResponse, PostRoleData, PostRoleResponse, PostSystemMenuData, PostSystemMenuResponse, PutAppData, PutAppResponse, PutDataDictData, PutDataDictResponse, PutDataDictTypeData, PutDataDictTypeResponse, PutExampleTableData, PutExampleTableResponse, PutExampleTicketsData, PutExampleTicketsResponse, PutRoleData, PutRoleMenusData, PutRoleMenusResponse, PutRoleResponse, PutSystemMenuData, PutSystemMenuResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -55,6 +55,152 @@ export const getApiQueryOptions = (options?: Options<GetApiData>) => queryOption
         return data;
     },
     queryKey: getApiQueryKey(options)
+});
+
+export const getAppQueryKey = (options?: Options<GetAppData>) => createQueryKey('getApp', options);
+
+/**
+ * 应用分页列表（应用管理用，含停用应用与管理字段；仅超级管理员可访问）
+ */
+export const getAppQueryOptions = (options?: Options<GetAppData>) => queryOptions<GetAppResponse, DefaultError, GetAppResponse, ReturnType<typeof getAppQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getApp({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getAppQueryKey(options)
+});
+
+const createInfiniteParams = <K extends Pick<QueryKey<Options>[0], 'body' | 'headers' | 'path' | 'query'>>(queryKey: QueryKey<Options>, page: K) => {
+    const params = { ...queryKey[0] };
+    if (page.body) {
+        params.body = {
+            ...queryKey[0].body as any,
+            ...page.body as any
+        };
+    }
+    if (page.headers) {
+        params.headers = {
+            ...queryKey[0].headers,
+            ...page.headers
+        };
+    }
+    if (page.path) {
+        params.path = {
+            ...queryKey[0].path as any,
+            ...page.path as any
+        };
+    }
+    if (page.query) {
+        params.query = {
+            ...queryKey[0].query as any,
+            ...page.query as any
+        };
+    }
+    return params as unknown as typeof page;
+};
+
+export const getAppInfiniteQueryKey = (options?: Options<GetAppData>): QueryKey<Options<GetAppData>> => createQueryKey('getApp', options, true);
+
+/**
+ * 应用分页列表（应用管理用，含停用应用与管理字段；仅超级管理员可访问）
+ */
+export const getAppInfiniteOptions = (options?: Options<GetAppData>) => {
+    const opts = infiniteQueryOptions<GetAppResponse, DefaultError, InfiniteData<GetAppResponse>, QueryKey<Options<GetAppData>>, number | Pick<QueryKey<Options<GetAppData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<GetAppData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await getApp({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: getAppInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * 新建应用（应用标识即路由前缀，创建后不可修改；仅超级管理员可访问）
+ */
+export const postAppMutation = (options?: Partial<Options<PostAppData>>): UseMutationOptions<PostAppResponse, DefaultError, Options<PostAppData>> => {
+    const mutationOptions: UseMutationOptions<PostAppResponse, DefaultError, Options<PostAppData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await postApp({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 更新应用（应用标识不可修改；仅超级管理员可访问）
+ */
+export const putAppMutation = (options?: Partial<Options<PutAppData>>): UseMutationOptions<PutAppResponse, DefaultError, Options<PutAppData>> => {
+    const mutationOptions: UseMutationOptions<PutAppResponse, DefaultError, Options<PutAppData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putApp({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * 根据应用标识删除应用（仅超级管理员可访问）
+ */
+export const deleteAppByIdMutation = (options?: Partial<Options<DeleteAppByIdData>>): UseMutationOptions<DeleteAppByIdResponse, DefaultError, Options<DeleteAppByIdData>> => {
+    const mutationOptions: UseMutationOptions<DeleteAppByIdResponse, DefaultError, Options<DeleteAppByIdData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteAppById({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getAppByIdQueryKey = (options: Options<GetAppByIdData>) => createQueryKey('getAppById', options);
+
+/**
+ * 根据应用标识获取详情（仅超级管理员可访问）
+ */
+export const getAppByIdQueryOptions = (options: Options<GetAppByIdData>) => queryOptions<GetAppByIdResponse, DefaultError, GetAppByIdResponse, ReturnType<typeof getAppByIdQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getAppById({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getAppByIdQueryKey(options)
 });
 
 export const getAppsQueryKey = (options?: Options<GetAppsData>) => createQueryKey('getApps', options);
@@ -109,35 +255,6 @@ export const getDataDictQueryOptions = (options?: Options<GetDataDictData>) => q
     },
     queryKey: getDataDictQueryKey(options)
 });
-
-const createInfiniteParams = <K extends Pick<QueryKey<Options>[0], 'body' | 'headers' | 'path' | 'query'>>(queryKey: QueryKey<Options>, page: K) => {
-    const params = { ...queryKey[0] };
-    if (page.body) {
-        params.body = {
-            ...queryKey[0].body as any,
-            ...page.body as any
-        };
-    }
-    if (page.headers) {
-        params.headers = {
-            ...queryKey[0].headers,
-            ...page.headers
-        };
-    }
-    if (page.path) {
-        params.path = {
-            ...queryKey[0].path as any,
-            ...page.path as any
-        };
-    }
-    if (page.query) {
-        params.query = {
-            ...queryKey[0].query as any,
-            ...page.query as any
-        };
-    }
-    return params as unknown as typeof page;
-};
 
 export const getDataDictInfiniteQueryKey = (options?: Options<GetDataDictData>): QueryKey<Options<GetDataDictData>> => createQueryKey('getDataDict', options, true);
 

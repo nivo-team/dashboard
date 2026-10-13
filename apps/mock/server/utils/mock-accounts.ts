@@ -84,6 +84,17 @@ export function findAccountByToken(authHeader?: string | null): MockAccount | un
   return MOCK_ACCOUNTS.find((account) => account.token === token)
 }
 
+/**
+ * 当前请求是否为**超级管理员**。
+ *
+ * 用于**平台级**能力（如应用管理）的接口级拦截：这类能力对「哪个应用」都成立，
+ * 不该由某个应用的菜单授权决定。注意这里是**严格判定** —— 没有 token 或 token
+ * 不认识都算「不是超管」（不像读取类接口那样回落默认账号），否则拦住的门形同虚设。
+ */
+export function isSuperAdminRequest(authHeader?: string | null): boolean {
+  return findAccountByToken(authHeader)?.role === 'super'
+}
+
 /** 按登录名（含别名）反查账号，大小写不敏感。 */
 export function findAccountByUsername(username?: string | null): MockAccount | undefined {
   const normalized = (username ?? '').trim().toLowerCase()

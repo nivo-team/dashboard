@@ -224,7 +224,7 @@
   },
   "selectApp": {
     "title": "应用",
-    "subtitle": "选择一个应用。",
+    "subtitle": "选择一个应用进入，或在此管理应用。",
     "tableApp": "应用",
     "tableDesc": "描述",
     "loading": "正在加载应用列表…",

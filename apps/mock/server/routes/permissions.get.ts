@@ -74,13 +74,33 @@ const ALL_PERMISSIONS = [
   'role:create',
   'role:edit',
   'role:delete',
+  /*
+    应用管理（多应用支持）—— **平台级能力，只给超管**。
+    操作对象是「应用」本身（工作空间 / 路由前缀 / 独立 apiBaseUrl），
+    与工作空间选择列表（`GET /apps`）共用同一份数据源（`db.apps`）。
+    普通角色连 `app:read` 都没有：`GET /app`（配置视角）与增删改一律拒绝，
+    根路径 `/` 对他们降级成只读的工作空间选择页（读 `GET /apps`）。
+  */
+  'app:read',
+  'app:create',
+  'app:edit',
+  'app:delete',
 ] as const
+
+/** 平台级模块：不属于任何应用，只有超管持有其权限点。 */
+const SUPER_ADMIN_ONLY_MODULES = ['app'] as const
 
 /** 角色 → 权限点。真实后端由 RBAC 计算，这里只是 Mock 的替身。 */
 const ROLE_PERMISSIONS: Record<MockRole, readonly string[]> = {
   super: ALL_PERMISSIONS,
-  editor: ALL_PERMISSIONS.filter((p) => !p.endsWith(':delete')),
-  viewer: ALL_PERMISSIONS.filter((p) => p.endsWith(':read')),
+  editor: ALL_PERMISSIONS.filter(
+    (p) =>
+      !p.endsWith(':delete') && !SUPER_ADMIN_ONLY_MODULES.some((m) => p.startsWith(`${m}:`)),
+  ),
+  viewer: ALL_PERMISSIONS.filter(
+    (p) =>
+      p.endsWith(':read') && !SUPER_ADMIN_ONLY_MODULES.some((m) => p.startsWith(`${m}:`)),
+  ),
 }
 
 defineRouteMeta({

@@ -33,6 +33,88 @@ export type ApiListResult = {
 };
 
 /**
+ * 一个应用（含管理字段）
+ */
+export type ManagedAppItem = {
+    /**
+     * 应用标识：路由前缀与存储作用域，创建后不可修改
+     */
+    id: string;
+    /**
+     * 应用名称
+     */
+    name: string;
+    /**
+     * 副标题
+     */
+    headline?: string;
+    /**
+     * 说明文案
+     */
+    description?: string;
+    /**
+     * 展示用域名（不带协议）
+     */
+    domain?: string;
+    /**
+     * 该应用的接口根地址
+     */
+    apiBaseUrl?: string;
+    /**
+     * 角标文案
+     */
+    badge?: string;
+    /**
+     * 所属分类
+     */
+    category?: string;
+    /**
+     * 卡片渐变色（Tailwind 类名）
+     */
+    themeGradient?: string;
+    /**
+     * 1 启用 / 2 禁用
+     */
+    status?: number;
+    /**
+     * 排序
+     */
+    sort?: number;
+    /**
+     * 创建时间
+     */
+    created_at?: string;
+    /**
+     * 更新时间
+     */
+    updated_at?: string;
+};
+
+export type ManagedAppListResult = {
+    /**
+     * 0 表示成功
+     */
+    code: number;
+    message?: string;
+    result: {
+        /**
+         * 总条数
+         */
+        total: number;
+        items: Array<ManagedAppItem>;
+    };
+};
+
+export type ManagedAppResult = {
+    /**
+     * 0 表示成功
+     */
+    code: number;
+    message?: string;
+    result: ManagedAppItem;
+};
+
+/**
  * 一个可选应用
  */
 export type AppItem = {
@@ -821,6 +903,213 @@ export type GetApiResponses = {
 };
 
 export type GetApiResponse = GetApiResponses[keyof GetApiResponses];
+
+export type GetAppData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * 页码，从 1 开始
+         */
+        page?: number;
+        /**
+         * 每页条数
+         */
+        page_size?: number;
+        /**
+         * 关键词（应用标识 / 名称 / 副标题 / 分类模糊匹配）
+         */
+        kw?: string;
+        /**
+         * 状态：1 启用 / 2 禁用
+         */
+        status?: 1 | 2;
+    };
+    url: '/app';
+};
+
+export type GetAppResponses = {
+    /**
+     * 应用分页结果
+     */
+    200: ManagedAppListResult;
+};
+
+export type GetAppResponse = GetAppResponses[keyof GetAppResponses];
+
+export type PostAppData = {
+    body: {
+        /**
+         * 应用标识（小写字母开头，后接小写字母 / 数字 / 连字符）
+         */
+        id: string;
+        /**
+         * 应用名称
+         */
+        name: string;
+        /**
+         * 副标题
+         */
+        headline?: string;
+        /**
+         * 说明文案
+         */
+        description?: string;
+        /**
+         * 展示用域名（不带协议）
+         */
+        domain?: string;
+        /**
+         * 该应用的接口根地址
+         */
+        apiBaseUrl?: string;
+        /**
+         * 角标文案
+         */
+        badge?: string;
+        /**
+         * 所属分类
+         */
+        category?: string;
+        /**
+         * 卡片渐变色（Tailwind 类名）
+         */
+        themeGradient?: string;
+        /**
+         * 1 启用 / 2 禁用，默认 1
+         */
+        status?: number;
+        /**
+         * 排序
+         */
+        sort?: number;
+    };
+    path?: never;
+    query?: never;
+    url: '/app';
+};
+
+export type PostAppResponses = {
+    /**
+     * 新建的应用
+     */
+    200: ManagedAppResult;
+};
+
+export type PostAppResponse = PostAppResponses[keyof PostAppResponses];
+
+export type PutAppData = {
+    body: {
+        /**
+         * 应用标识（定位用，不可修改）
+         */
+        id: string;
+        /**
+         * 应用名称
+         */
+        name?: string;
+        /**
+         * 副标题
+         */
+        headline?: string;
+        /**
+         * 说明文案
+         */
+        description?: string;
+        /**
+         * 展示用域名（不带协议）
+         */
+        domain?: string;
+        /**
+         * 该应用的接口根地址
+         */
+        apiBaseUrl?: string;
+        /**
+         * 角标文案
+         */
+        badge?: string;
+        /**
+         * 所属分类
+         */
+        category?: string;
+        /**
+         * 卡片渐变色（Tailwind 类名）
+         */
+        themeGradient?: string;
+        /**
+         * 1 启用 / 2 禁用
+         */
+        status?: number;
+        /**
+         * 排序
+         */
+        sort?: number;
+    };
+    path?: never;
+    query?: never;
+    url: '/app';
+};
+
+export type PutAppResponses = {
+    /**
+     * 更新后的应用
+     */
+    200: ManagedAppResult;
+};
+
+export type PutAppResponse = PutAppResponses[keyof PutAppResponses];
+
+export type DeleteAppByIdData = {
+    body?: never;
+    path: {
+        /**
+         * 应用标识（路由前缀）
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/app/{id}';
+};
+
+export type DeleteAppByIdResponses = {
+    /**
+     * 删除结果
+     */
+    200: {
+        /**
+         * 0 表示成功
+         */
+        code: number;
+        message?: string;
+        /**
+         * 成功时为空
+         */
+        result?: null;
+    };
+};
+
+export type DeleteAppByIdResponse = DeleteAppByIdResponses[keyof DeleteAppByIdResponses];
+
+export type GetAppByIdData = {
+    body?: never;
+    path: {
+        /**
+         * 应用标识（路由前缀）
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/app/{id}';
+};
+
+export type GetAppByIdResponses = {
+    /**
+     * 应用详情
+     */
+    200: ManagedAppResult;
+};
+
+export type GetAppByIdResponse = GetAppByIdResponses[keyof GetAppByIdResponses];
 
 export type GetAppsData = {
     body?: never;

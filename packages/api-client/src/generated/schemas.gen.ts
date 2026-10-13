@@ -51,6 +51,125 @@ export const ApiListResultSchema = {
     ]
 } as const;
 
+export const ManagedAppItemSchema = {
+    type: 'object',
+    description: '一个应用（含管理字段）',
+    properties: {
+        id: {
+            type: 'string',
+            description: '应用标识：路由前缀与存储作用域，创建后不可修改'
+        },
+        name: {
+            type: 'string',
+            description: '应用名称'
+        },
+        headline: {
+            type: 'string',
+            description: '副标题'
+        },
+        description: {
+            type: 'string',
+            description: '说明文案'
+        },
+        domain: {
+            type: 'string',
+            description: '展示用域名（不带协议）'
+        },
+        apiBaseUrl: {
+            type: 'string',
+            description: '该应用的接口根地址'
+        },
+        badge: {
+            type: 'string',
+            description: '角标文案'
+        },
+        category: {
+            type: 'string',
+            description: '所属分类'
+        },
+        themeGradient: {
+            type: 'string',
+            description: '卡片渐变色（Tailwind 类名）'
+        },
+        status: {
+            type: 'integer',
+            description: '1 启用 / 2 禁用'
+        },
+        sort: {
+            type: 'integer',
+            description: '排序'
+        },
+        created_at: {
+            type: 'string',
+            description: '创建时间'
+        },
+        updated_at: {
+            type: 'string',
+            description: '更新时间'
+        }
+    },
+    required: [
+        'id',
+        'name'
+    ]
+} as const;
+
+export const ManagedAppListResultSchema = {
+    type: 'object',
+    properties: {
+        code: {
+            type: 'integer',
+            description: '0 表示成功'
+        },
+        message: {
+            type: 'string'
+        },
+        result: {
+            type: 'object',
+            properties: {
+                total: {
+                    type: 'integer',
+                    description: '总条数'
+                },
+                items: {
+                    type: 'array',
+                    items: {
+                        $ref: '#/components/schemas/ManagedAppItem'
+                    }
+                }
+            },
+            required: [
+                'total',
+                'items'
+            ]
+        }
+    },
+    required: [
+        'code',
+        'result'
+    ]
+} as const;
+
+export const ManagedAppResultSchema = {
+    type: 'object',
+    properties: {
+        code: {
+            type: 'integer',
+            description: '0 表示成功'
+        },
+        message: {
+            type: 'string'
+        },
+        result: {
+            $ref: '#/components/schemas/ManagedAppItem'
+        }
+    },
+    required: [
+        'code',
+        'result'
+    ]
+} as const;
+
 export const AppItemSchema = {
     type: 'object',
     description: '一个可选应用',

@@ -19,7 +19,7 @@ apps/web/src/routes/
 │   └── oauth/                 #   OAuth 回调 (/auth/oauth/$provider/callback)
 ├── _main/                     # 与 appId 无关的通用外壳布局（无路径布局）
 │   ├── route.tsx              #   全局工作台外壳（Kumo Sidebar + Header，登录鉴权拦截）
-│   ├── index.tsx              #   根路径 /：工作空间应用选择页 (SelectAppPage)
+│   ├── index.tsx              #   根路径 /：应用选择 + 应用管理页 (SelectAppPage)
 │   ├── select-app.tsx         #   兼容旧路由 /select-app，重定向至 /
 │   ├── settings/              #   设置模块（进入后侧边栏切换为模块专属二级导航）
 │   │   ├── route.tsx          #     模块根：仅 <Outlet />；二级侧边栏由 MainLayout 按路由前缀切换
@@ -52,7 +52,7 @@ apps/web/src/routes/
 ## 2. 核心架构机制
 
 ### 双层外壳拓扑：_main 与 $appId 隔离
-- **全局通用外壳 (`_main/`)**：处理与具体应用无关的通用业务，例如工作空间应用列表选择 (`/`)、个人资料 (`/settings/profile`) 等。
+- **全局通用外壳 (`_main/`)**：处理与具体应用无关的通用业务，例如根路径的应用选择 + 应用管理 (`/`)、个人资料 (`/settings/profile`) 等。应用管理放这里而不是 `/$appId/system/*`：应用是工作空间的根概念，管它不该先进入某个应用（鸡生蛋）。选择与管理**同一页**（`/`）——点行进应用，写按钮按 `app:create/edit/delete` 收敛，不再单开 `/apps` 页。
 - **业务控制台外壳 (`$appId/`)**：扁平化去除了多余的 `_app` 中间层，直接由 `apps/web/src/routes/$appId/route.tsx` 承载 `AppShell`。每个应用系统享有隔离的 URL 空间 `/$appId/...`，路由守卫自动根据 URL 参数同步激活当前 App 及其专属的 `apiBaseUrl`。
 - **单应用 vs 多应用模式（环境变量可配）**：
   - **单应用模式（默认，`VITE_MULTI_APP=false`）**：
@@ -66,6 +66,50 @@ apps/web/src/routes/
   - 顶栏面包屑自动剥离第一段 `$appId` 参数，使业务层级链路清晰直观（如 `/$appId/home` 显示为 `首页`，`/$appId/orders` 显示为 `首页 / 订单管理`）；
   - 历史别名路径（如 `/admin`）会自动规范化重定向至 `/$appId/home`；
   - 未知应用校验：若 URL 中指定的 `$appId` 不在可用应用列表与系统预设中，路由守卫直接抛出 `notFound()` 并在 `_main` 通用外壳中呈现 404 引导页，使用户仍可通过完整的导航与侧边栏回到工作空间。
+
+### 单应用模式能不能去掉 `/$appId` 前缀（调研结论）
+
+**问题**：单应用模式下永远只有一个应用，URL 里的 `/$appId`（如 `/nivo/system/roles`）
+是不是多余的？能不能干脆去掉，或者用一个中性的占位符（如 `/_`）？
+
+**结论**：**能去掉，但代价是全量路由改造；短期更稳的做法是把前缀固定为一个中性常量（`_` 占位），而不是真的删段。**
+
+**关键事实：`$appId` 这段路径不是数据作用域的真值。** 应用隔离靠的是 store 里的
+`currentApp`，不是 URL —— 三处证据：
+
+- API 请求头 `X-App-Id` 取自 `useAuthStore` 的 `currentApp.id`（`src/api/index.ts` 的
+  `configureAuthInterceptors`），与 URL 无关；
+- 存储作用域由 `setAppScope(chosenApp.id)` 驱动（`src/lib/auth.ts`），与 URL 无关；
+- 查询缓存按应用分区，同样读 `currentApp`（`src/lib/store/app-scope`、`query-client`）。
+
+所以 URL 里的 `$appId` 只承担三件事：**选中态同步、404 守卫、以及作为所有链接的前缀**。
+这三件事是「路由架构」层的，不涉及数据正确性 —— 删掉它不会串数据，只会牵动路由。
+
+**`$appId` 是承重墙，具体承重处**：
+
+- 布局路由本身：`src/routes/$appId/route.tsx`（`AppShell` 挂在这里），以及刻意逃离它的
+  `src/routes/$appId_.sphere/route.tsx`（全屏 AI 对话页）；
+- 守卫唯一入口 `guardAppRoute({ appId, href })`（`src/lib/app-route-guard.ts`）——
+  认证、应用有效性、选中态同步都在这里，两处挂载点共用；
+- 所有页面链接前缀：`src/lib/navigation.ts` 的 `NAV_GROUPS` 里 `to` 是**相对**路径，
+  由外壳拼成 `/${appId}${to}`；`useCrudView` 的 `basePath`、面包屑剥离
+  （`src/lib/breadcrumb-trail.ts` / `use-breadcrumbs`）、页面标签页（`src/lib/page-tabs.ts`）
+  都依赖这段前缀。
+
+**三条可选路线**：
+
+| 方案 | 做法 | 代价 / 风险 |
+| --- | --- | --- |
+| **A. 可选路径参数** | TanStack Router 的 `{-$appId}`（v1.81+）把这段声明为可选，`/home` 与 `/nivo/home` 都能命中 | 真正的「去前缀」，但**每个路由文件要改名**（`$appId/route.tsx` → `{-$appId}/route.tsx`），且所有 `to=/$appId/...` 链接、`basePath`、面包屑、标签页都要改成可选形式；改动面 = 全部路由 + 全部链接构造点 |
+| **B. 按模式生成两套路由** | 单应用产出无前缀树、多应用产出带前缀树 | **违反「名单只有一个真值」**：两套树必然分叉，新增页面要写两遍，是最不推荐的一条 |
+| **C. 前缀固定为中性占位常量** | 单应用模式把 `DEFAULT_APP_ID` 定为 `_`（或保留 `nivo`），URL 变成 `/_/home` | **零路由改动**：只是路径前缀值从应用名换成中性串。`_` 是合法路径段，守卫 / 作用域 / `X-App-Id` 照常工作。语义上诚实地表达「此为占位，非真实应用名」 |
+
+**推荐**：短期走 **C**（把单应用前缀从品牌名 `nivo` 收敛成中性 `_`，消除「URL 里出现应用名」的
+违和感，同时零风险）；若要做成真正的「无前缀」，按 **A** 单独开一次改动，**以
+`guardAppRoute` 为唯一改造收口**，不要走 B。
+
+> 注意：`_` 与 TanStack 的「段尾下划线」约定（`$appId_.sphere`）无关 —— 后者是文件名里的
+> 布局逃逸标记，不出现在 URL；前者是 URL 里的一个普通字面段。两者不要混淆。
 
 ### 逃离父布局：全屏 AI 对话页（`$appId_.sphere`）
 `/$appId/sphere` 是 AI 面板头行「最大化」按钮的落点：一个**没有应用侧边栏**的独立
@@ -244,7 +288,7 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
 
 - `__root.tsx`：根路由。统一使用 `<LinkProvider component={AppLink}>` 桥接所有 Kumo 内部链接至 TanStack 客户端导航，挂载全局 `<Toasty toastManager={appToastManager}>` 通知容器（共享管理器见 `apps/web/src/lib/toast.ts`，供 API 拦截器等非 React 上下文复用），并集成 TanStack Devtools。
 - `_main/`：与 `appId` 无关的全局通用无路径外壳 (`_main/route.tsx`)。
-  - `_main/index.tsx`：根路径 (`/`)。在多应用模式下承载工作空间应用选择页 (`SelectAppPage`)；在单应用模式下（默认），通过 `beforeLoad` 直接规范化重定向至默认应用首页 (`/nivo/home`，由 `DEFAULT_APP_ID` 配置)，无需接口请求与选应用流程。
+  - `_main/index.tsx`：根路径 (`/`)。在多应用模式下承载 `SelectAppPage` —— **应用选择 + 应用管理同一页**（点行进入应用；新建 / 编辑 / 删除按钮按 `app:create/edit/delete` 收敛，见 business-development 的 features-module.md §13）；在单应用模式下（默认），通过 `beforeLoad` 直接规范化重定向至默认应用首页 (`/nivo/home`，由 `DEFAULT_APP_ID` 配置)，无需接口请求与选应用流程。
   - `_main/select-app.tsx`：兼容历史 `/select-app` 路径，规范化重定向至根路径 `/`。
   - `_main/settings/`：设置模块（**目录化**，与 `/` 共用 `MainLayout`；当前「个人资料 / 外观 / AI」三个子页）。
     - `settings/route.tsx`：模块根，只渲染 `<Outlet />`；`settings/index.tsx` 把 `/settings` 重定向到默认子页 `/settings/profile`（与 `$appId/example/` 同一套写法）。**设置模块的二级导航由 `MainLayout` 的 `MainSidebarSwitch` 按路由前缀切换**（`/settings`、`/settings/**` → `SettingsSidebar`，其余 → 通用导航）—— 嵌套路由只能替换内容区，无法接管外层侧边栏。两套导航共用品牌 Header（`SidebarBrandHeader`：方块 + 标题 + 移动端关闭按钮）与「快速搜索」入口（`SidebarSearchButton`，与 `AppSidebar` 同一套 Kumo 官方范式）；`SettingsSidebar` 在品牌行之下再加一行 `SettingsModuleHeader`（返回 `/` + 模块标题「设置」，参照 Cloudflare 控制台），**真正替换的只有模块行与菜单**。这是「同一 Sidebar 位置换内容」而非第二个 `Sidebar`，`Sidebar.Provider` 不重挂，折叠状态与拖拽宽度都保留。`_main` 外壳已挂 `CommandPaletteDialog`（⌘K / Ctrl+K，与 `AppShell` 同款接线），搜索按钮与快捷键共享同一面板。

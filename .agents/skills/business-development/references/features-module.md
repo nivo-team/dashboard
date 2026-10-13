@@ -210,3 +210,73 @@ mock 里强制的两条硬约束：
 > 新接口已备好（按角色裁剪、节点带 `path`）；下一轮把侧边栏切成树驱动时，
 > 过滤口径要从「权限点」换成「菜单授权」，否则两层数据会各说各话
 > （见 [permissions-architecture.md](./permissions-architecture.md) §7.1）。
+
+---
+
+## 13. 应用选择与管理（2026-10 新增）
+
+模块：`apps/web/src/features/select-app/`，路由 `_main/index.tsx`（URL `/`，**位于通用外壳**，
+与 appId 无关）。权限点 `app:read / create / edit / delete` —— **只有超管持有**
+（mock `permissions.get.ts` 的 `ROLE_PERMISSIONS` 把 `app:` 整个模块从 `editor` / `viewer` 里滤掉）。
+
+**没有单独的「应用管理」页**：根路径 `/` 一页承担两件事 —— 它是工作空间入口
+（点某行进入该应用），也是应用管理台（新建 / 编辑 / 删除）。选择与管理共用同一份列表，
+不再另开 `/apps` 页。
+
+> **为什么不在 `/$appId/system/apps`**：应用是工作空间的根概念，管理「有哪些应用」不该要求
+> 先进入某个应用（否则陷入「先进应用才能改应用清单」的鸡生蛋）。它与设置（`/settings/**`）
+> 同属 `_main` 这一层。**平台级能力不通过 `$appId` 的菜单树表达** —— 所以 `db.ts` 的
+> `seedMenus()` 里没有「应用管理」节点，`roleMenus` 授权也不参与它。
+
+**同一页两种视图，按 `app:read` 分档**（enforcement 在接口层，前端只是不显示）：
+
+| | 有 `app:read`（超管） | 没有 |
+|---|---|---|
+| 数据源 | `GET /app`（配置视角，含停用应用与 `status / sort / created_at`） | `GET /apps`（工作空间视角，只含启用应用） |
+| 列表 | 全部应用，一屏拉全（`page_size=200`） | 认证 store 里的 `availableApps` |
+| 写操作 | 新建 / 编辑 / 删除按钮 | 一律不渲染（连「状态」列也隐藏） |
+
+页面行为：
+
+- **点行 = 进入**：仅启用的行可点，走 `selectAppAndComplete(id)` →
+  `router.invalidate()` → 跳 `?redirect` 或 `/<id>/home`；停用行置灰不可点（只读视图里不存在停用行）。
+- **管理按钮按权限收敛**：`useHasPermission('app:create' | 'app:edit' | 'app:delete')`。
+  新建按钮在页头；编辑 / 删除在行尾 `DropdownMenu` 里，**无任何写权限时整个「操作」列不渲染**
+  （`showActions = canEdit || canDelete`）。
+- 表单 `AppForm`（`app-form.tsx`）新建 / 编辑共用（字段、校验、`id` 只读开关只有一份），
+  弹窗外壳 `AppFormDialog`（`app-form-dialog.tsx`）用 `LayerDialog.Actions.Primary form={formId}` 提交；
+  删除用通用件 `DangerConfirmDialog`（要求原样输入应用 `id`）。
+- 任何写操作成功后：失效 `getAppQueryKey()` 列表 + 静默同步 `GET /apps` 回认证 store
+  —— 否则刚建的应用进不去、切换器也不更新。
+- 两档视图的行**在这里归一成同一种行**（`SelectAppRow`：`id / name / category / description /
+  enabled`）再交给 `feature.ts`，所以页面声明只有一份。
+
+**两档共用一份数据源**（mock，`apps/mock/server/utils/db.ts` 的 `AppRow`）：
+
+- `GET /apps` —— **工作空间视角**：登录后、进应用之前调用，只返回启用应用、且不带管理字段
+  （`apps.get.ts` 过滤 `status === 1` 后剥字段），结果写进认证 store 的 `availableApps`；
+  **所有登录用户都能拿**；
+- `GET /app` —— **配置视角**（管理视图显示用）：分页列表，含停用应用与 `status / sort / created_at`；
+  **只给超管**，非超管返回 `code 403`（见下）。
+
+**权限是接口层的真值，不是前端藏按钮**：`app.get.ts` / `app/[id].get.ts` / `app/index.post.ts` /
+`app/index.put.ts` / `app/[id].delete.ts` 都用 `isSuperAdminRequest(authHeader)`
+（`utils/mock-accounts.ts`，严格判定：缺 token / 未知 token 都算非超管）挡在入口，
+否则返回 `forbidden()`（`utils/response.ts`，与 `unauthorized()` 同款）。前端据此还有一处
+`useHasPermission('app:read')` 决定走哪档视图。
+
+数据模型：`AppRow` = `id / name / headline / description / domain / apiBaseUrl / badge /
+category / themeGradient / status / sort / created_at / updated_at`。
+
+- `id` 是**路由前缀 + 存储作用域 + `X-App-Id`** 的键，**创建后不可修改**（表单编辑态禁用该字段）；
+- **没有「内置应用」概念**：所有应用一视同仁，都可编辑、可删除（早期版本的 `BUILTIN_APP_ID`
+  与「内置默认应用不可删」护栏已移除）。单应用模式不读这张表 —— 默认应用由
+  `VITE_DEFAULT_APP_ID`（`apps/web/src/lib/app-config.ts`）决定，`guardAppRoute` 会自动注入，
+  所以删空列表也不会把单应用模式打挂；多应用模式下删空后 `/` 显示空态。
+
+> **单应用模式**：`_main/index.tsx` 的 `beforeLoad` 直接把 `/` 重定向到 `/$DEFAULT_APP_ID/home`
+> （`MAIN_NAV_ITEMS` 里也滤掉「应用」项），所以这一页实际只在多应用模式下可见。
+
+> 单应用模式去掉 `/$appId` 前缀的可行性与推荐方案，见
+> [platform-development/references/routing-architecture.md](../../platform-development/references/routing-architecture.md)
+> §2「单应用模式能不能去掉 `/$appId` 前缀（调研结论）」。
