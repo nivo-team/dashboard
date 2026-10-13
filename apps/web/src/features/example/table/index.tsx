@@ -12,10 +12,9 @@ import {
 import type { GetExampleTableData, UserItem } from '#/api'
 import { USER_FILTER_FIELDS } from '#/api'
 import {
-  CrudFloatingContainer,
-  CrudViewContainer,
+  CrudViewport,
   useCrudView,
-  type CrudController,
+  type CrudFormSlotProps,
 } from '#/components/crud'
 import {
   DataTable,
@@ -88,103 +87,6 @@ export function TableExampleListPage({ splat }: { splat?: string }) {
     }),
   })
 
-  // 1. 若当前命中整页沉浸态 (URL Path 触发)，不渲染背景列表
-  if (crud.isPageMode) {
-    return <TableExamplePageMode crud={crud} />
-  }
-
-  // 2. 否则渲染标准列表 (带有浮层控制器)
-  return <TableExampleListContent crud={crud} />
-}
-
-/** 独立整页模式：表单与详情沉浸式渲染，AI 能力挂载 */
-function TableExamplePageMode({ crud }: { crud: CrudController<UserItem> }) {
-  if (crud.activeView.type === 'page-form') {
-    if (crud.activeView.mode === 'create') {
-      return <TableExampleCreatePageMode crud={crud} />
-    }
-    return <TableExampleEditPageMode crud={crud} id={crud.activeView.id} />
-  }
-  if (crud.activeView.type === 'page-detail') {
-    return <TableExampleDetailPageMode crud={crud} id={crud.activeView.id} />
-  }
-  return null
-}
-
-function TableExampleCreatePageMode({ crud }: { crud: CrudController<UserItem> }) {
-  useFeature(tableExampleCreateFeature)
-  return (
-    <CrudViewContainer crud={crud}>
-      <TableExampleFormView
-        formId={crud.formId}
-        mode="create"
-        initialData={crud.formInitialData}
-        onSuccess={crud.close}
-        onClose={crud.close}
-      />
-    </CrudViewContainer>
-  )
-}
-
-function TableExampleEditPageMode({
-  crud,
-  id,
-}: {
-  crud: CrudController<UserItem>
-  id?: string | number
-}) {
-  useFeature(tableExampleEditFeature)
-  return (
-    <CrudViewContainer crud={crud}>
-      <TableExampleFormView
-        formId={crud.formId}
-        mode="edit"
-        userId={id}
-        initialData={crud.formInitialData}
-        onSuccess={crud.close}
-        onClose={crud.close}
-      />
-    </CrudViewContainer>
-  )
-}
-
-function TableExampleDetailPageMode({
-  crud,
-  id,
-}: {
-  crud: CrudController<UserItem>
-  id?: string | number
-}) {
-  const [detailUser, setDetailUser] = useState<UserItem | null>(null)
-  const [detailLoading, setDetailLoading] = useState(false)
-  const [detailDemo, setDetailDemo] = useState(false)
-
-  useFeature(
-    createTableExampleDetailFeature({
-      user: detailUser,
-      loading: detailLoading,
-      demoMode: detailDemo,
-      id: String(id ?? ''),
-    }),
-  )
-
-  return (
-    <CrudViewContainer crud={crud}>
-      <TableExampleDetailView
-        id={String(id ?? '')}
-        onData={(user, meta) => {
-          setDetailUser(user)
-          setDetailLoading(meta.loading)
-          setDetailDemo(meta.demoMode)
-        }}
-      />
-    </CrudViewContainer>
-  )
-}
-
-/** 列表模式：DataTable、搜索筛选、删除弹窗与浮层容器 */
-function TableExampleListContent({ crud }: { crud: CrudController<UserItem> }) {
-  const { t } = useTranslation('example', { keyPrefix: 'table' })
   const formatTimestamp = useFormatTimestamp()
 
   const canCreate = useHasPermission('example:create')
@@ -638,13 +540,26 @@ function TableExampleListContent({ crud }: { crud: CrudController<UserItem> }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
-        title={t('title', '表格示例')}
-        description={t(
-          'description',
-          '展示基于 TanStack Table 与通用列生成的后台数据表格，支持排序、筛选、列设置及导出。',
+      <CrudViewport
+        crud={crud}
+        renderForm={(ctx) => (
+          <TableExampleFormSlot
+            ctx={ctx}
+            onSuccess={() => {
+              ctx.close()
+              void fetchRows()
+            }}
+          />
         )}
-      />
+        renderDetail={(ctx) => <TableExampleDetailSlot id={ctx.id} />}
+      >
+        <PageHeader
+          title={t('title', '表格示例')}
+          description={t(
+            'description',
+            '展示基于 TanStack Table 与通用列生成的后台数据表格，支持排序、筛选、列设置及导出。',
+          )}
+        />
 
       <TableControls
         search={{
@@ -726,26 +641,6 @@ function TableExampleListContent({ crud }: { crud: CrudController<UserItem> }) {
         }}
       />
 
-      {/* 浮层外壳容器：无缝处理 Dialog、Sheet、Split 三态 */}
-      <CrudFloatingContainer
-        crud={crud}
-        renderForm={(ctx) => (
-          <TableExampleFormView
-            formId={ctx.formId}
-            mode={ctx.mode}
-            userId={ctx.id}
-            initialData={ctx.initialData}
-            hideActions={ctx.hideActions}
-            onSuccess={() => {
-              ctx.close()
-              void fetchRows()
-            }}
-            onClose={ctx.close}
-          />
-        )}
-        renderDetail={(ctx) => <TableExampleDetailView id={String(ctx.id)} />}
-      />
-
       {/* 单项删除二次确认 */}
       <LayerDialog.Alert open={singleDeleteOpen} onOpenChange={setSingleDeleteOpen}>
         <LayerDialog.Content size="sm">
@@ -793,6 +688,57 @@ function TableExampleListContent({ crud }: { crud: CrudController<UserItem> }) {
           </LayerDialog.Actions>
         </LayerDialog.Content>
       </LayerDialog.Alert>
-    </div>
+    </CrudViewport>
+  </div>
+  )
+}
+
+/** 统一表单插槽：内聚 AI Feature 挂载与业务表单交互 */
+function TableExampleFormSlot({
+  ctx,
+  onSuccess,
+}: {
+  ctx: CrudFormSlotProps<UserItem>
+  onSuccess: () => void
+}) {
+  useFeature(ctx.mode === 'create' ? tableExampleCreateFeature : tableExampleEditFeature)
+
+  return (
+    <TableExampleFormView
+      formId={ctx.formId}
+      mode={ctx.mode}
+      userId={ctx.id}
+      initialData={ctx.initialData}
+      hideActions={ctx.hideActions}
+      onSuccess={onSuccess}
+      onClose={ctx.close}
+    />
+  )
+}
+
+/** 统一详情插槽：内聚详情 AI Feature 挂载与数据反馈 */
+function TableExampleDetailSlot({ id }: { id: string | number }) {
+  const [detailUser, setDetailUser] = useState<UserItem | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailDemo, setDetailDemo] = useState(false)
+
+  useFeature(
+    createTableExampleDetailFeature({
+      user: detailUser,
+      loading: detailLoading,
+      demoMode: detailDemo,
+      id: String(id),
+    }),
+  )
+
+  return (
+    <TableExampleDetailView
+      id={String(id)}
+      onData={(user, meta) => {
+        setDetailUser(user)
+        setDetailLoading(meta.loading)
+        setDetailDemo(meta.demoMode)
+      }}
+    />
   )
 }

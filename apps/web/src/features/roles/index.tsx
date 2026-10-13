@@ -12,10 +12,8 @@ import {
 } from '#/api'
 import type { RoleItem } from '#/api'
 import {
-  CrudFloatingContainer,
-  CrudViewContainer,
+  CrudViewport,
   useCrudView,
-  type CrudController,
 } from '#/components/crud'
 import {
   DataTable,
@@ -75,66 +73,6 @@ export function RoleListPage({ splat }: { splat?: string }) {
     }),
   })
 
-  // 1. 若当前命中整页沉浸态 (URL Path 触发: /roles/new 或 /roles/:roleId)
-  if (crud.isPageMode) {
-    if (crud.activeView.type === 'page-form') {
-      return <RoleCreatePageMode crud={crud} />
-    }
-    if (crud.activeView.type === 'page-detail') {
-      return <RoleDetailPage roleId={crud.activeView.id} onBack={crud.close} />
-    }
-  }
-
-  // 2. 否则渲染标准列表 (带有浮层控制器)
-  return <RoleListContent crud={crud} />
-}
-
-/** 独立整页新建角色模式 */
-function RoleCreatePageMode({ crud }: { crud: CrudController<RoleItem> }) {
-  const { t } = useTranslation('roles')
-  const toast = useKumoToastManager()
-  const queryClient = useQueryClient()
-  const createMutation = useMutation(postRoleMutation())
-  const [createError, setCreateError] = useState<string | null>(null)
-
-  const handleCreate = async (values: RoleFormValues) => {
-    setCreateError(null)
-    try {
-      await createMutation.mutateAsync({
-        body: {
-          name: values.name.trim(),
-          code: values.code.trim(),
-          description: values.description.trim(),
-          status: values.status,
-          sort: values.sort,
-        },
-      })
-      await queryClient.invalidateQueries({ queryKey: getRoleQueryKey() })
-      toast.add({ title: t('form.successCreate', '角色创建成功'), variant: 'success' })
-      crud.close()
-    } catch (submitError) {
-      setCreateError(
-        extractApiErrorMessage(submitError, t('form.failed', '操作失败，请稍后重试')),
-      )
-    }
-  }
-
-  return (
-    <CrudViewContainer crud={crud}>
-      <RoleForm
-        formId={crud.formId}
-        submitting={createMutation.isPending}
-        submitError={createError}
-        onSubmit={(values) => void handleCreate(values)}
-        onCancel={crud.close}
-      />
-    </CrudViewContainer>
-  )
-}
-
-/** 列表模式：DataTable、搜索筛选、删除弹窗与浮层容器 */
-function RoleListContent({ crud }: { crud: CrudController<RoleItem> }) {
-  const { t } = useTranslation('roles')
   const toast = useKumoToastManager()
   const queryClient = useQueryClient()
 
@@ -338,12 +276,30 @@ function RoleListContent({ crud }: { crud: CrudController<RoleItem> }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
-        title={t('title', '角色管理')}
-        description={t('description', '维护角色及其可见菜单，登录账号按角色码关联角色')}
-      />
+      <CrudViewport
+        crud={crud}
+        dialogSize="sm"
+        saveLabel={t('form.create', '创建')}
+        pageDetailWrapper="none"
+        renderForm={(ctx) => (
+          <RoleForm
+            formId={ctx.formId}
+            submitting={createMutation.isPending}
+            submitError={createError}
+            onSubmit={(values) => void handleCreate(values, ctx.close)}
+            onCancel={ctx.close}
+          />
+        )}
+        renderDetail={(ctx) => (
+          <RoleDetailPage roleId={ctx.id} onBack={ctx.close} />
+        )}
+      >
+        <PageHeader
+          title={t('title', '角色管理')}
+          description={t('description', '维护角色及其可见菜单，登录账号按角色码关联角色')}
+        />
 
-      <TableControls
+        <TableControls
         search={{
           placeholder: t('searchPlaceholder', '搜索角色名称 / 角色码…'),
           ariaLabel: t('table.search.ariaLabel', { ns: 'common', defaultValue: '搜索' }),
@@ -414,22 +370,6 @@ function RoleListContent({ crud }: { crud: CrudController<RoleItem> }) {
         }}
       />
 
-      {/* 浮层外壳容器 */}
-      <CrudFloatingContainer
-        crud={crud}
-        dialogSize="sm"
-        saveLabel={t('form.create', '创建')}
-        renderForm={(ctx) => (
-          <RoleForm
-            formId={ctx.formId}
-            submitting={createMutation.isPending}
-            submitError={createError}
-            onSubmit={(values) => void handleCreate(values, ctx.close)}
-            onCancel={ctx.close}
-          />
-        )}
-      />
-
       <DangerConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => {
@@ -455,6 +395,7 @@ function RoleListContent({ crud }: { crud: CrudController<RoleItem> }) {
         errorMessage={deleteError}
         onConfirm={handleDeleteConfirm}
       />
-    </div>
+    </CrudViewport>
+  </div>
   )
 }

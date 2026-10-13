@@ -247,11 +247,16 @@ export function DetailPreviewProvider({ children }: { children: ReactNode }) {
   }, [location.pathname, request])
 
   /** 偏好被改成「跳转详情页」（或在设置页把视口拖窄）时，已打开的浮层要跟着收掉。 */
+  /** 当 URL 明确为 view=page 时，分屏与抽屉浮层强制关闭与隐藏 */
   const isViewPage = useMemo(() => {
-    if (typeof location === 'undefined' || !location.search) return false
-    const searchParams = new URLSearchParams(location.search)
-    return searchParams.get('view') === 'page'
-  }, [location.search])
+    if (typeof location === 'undefined') return false
+    const searchObj = location.search as Record<string, unknown> | undefined
+    if (searchObj && searchObj.view === 'page') return true
+    const searchStr =
+      (location as any).searchStr ||
+      (typeof window !== 'undefined' ? window.location.search : '')
+    return searchStr.includes('view=page')
+  }, [location])
 
   /** 「展开」：先关浮层再导航，避免路由切换与浮层关闭两个动画叠在一起。 */
   const handleExpand = useCallback(() => {
@@ -342,7 +347,7 @@ export function DetailPreviewProvider({ children }: { children: ReactNode }) {
         条件渲染会把关闭动画整段丢掉。
       */}
       <Dialog.Root
-        open={isOpen && variant === 'sheet'}
+        open={isOpen && variant === 'sheet' && !isViewPage}
         onOpenChange={(next) => {
           if (!next) close()
         }}

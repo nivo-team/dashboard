@@ -24,10 +24,8 @@ import type {
   StockFeatures,
 } from '#/components/data-table'
 import {
-  CrudFloatingContainer,
-  CrudViewContainer,
+  CrudViewport,
   useCrudView,
-  type CrudController,
 } from '#/components/crud'
 import { PageHeader } from '#/components/page-header'
 import { TableControls } from '#/components/table-controls'
@@ -99,6 +97,10 @@ export function TicketsListPage({ splat }: { splat?: string }) {
   const { currentApp } = useAuth()
   const appId = currentApp?.id || DEFAULT_APP_ID
 
+  const canCreate = useHasPermission('example:create')
+  const canEdit = useHasPermission('example:edit')
+  const canDelete = useHasPermission('example:delete')
+
   const crud = useCrudView<TicketItem>({
     basePath: `/${appId}/example/tickets`,
     splat,
@@ -111,41 +113,6 @@ export function TicketsListPage({ splat }: { splat?: string }) {
       }
     },
   })
-
-  // 1. 若当前命中独立整页沉浸态 (URL Path 触发)，不渲染背景列表
-  if (crud.isPageMode) {
-    return <TicketsPageMode crud={crud} />
-  }
-
-  // 2. 否则渲染标准列表 (带有浮层控制器)
-  return <TicketsListContent crud={crud} />
-}
-
-/** 独立整页模式：表单沉浸式渲染 */
-function TicketsPageMode({ crud }: { crud: CrudController<TicketItem> }) {
-  if (crud.activeView.type !== 'page-form') return null
-
-  return (
-    <CrudViewContainer crud={crud}>
-      <TicketFormView
-        formId={crud.formId}
-        mode={crud.activeView.mode}
-        ticketId={crud.activeView.id}
-        initialData={crud.formInitialData}
-        onSuccess={crud.close}
-        onClose={crud.close}
-      />
-    </CrudViewContainer>
-  )
-}
-
-/** 列表模式：DataTable、搜索筛选、删除弹窗与浮层容器 */
-function TicketsListContent({ crud }: { crud: CrudController<TicketItem> }) {
-  const { t } = useTranslation('example', { keyPrefix: 'tickets' })
-
-  const canCreate = useHasPermission('example:create')
-  const canEdit = useHasPermission('example:edit')
-  const canDelete = useHasPermission('example:delete')
 
   const {
     queryParams,
@@ -418,55 +385,7 @@ function TicketsListContent({ crud }: { crud: CrudController<TicketItem> }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
-        title={t('title', '工单管理')}
-        description={t('description', '工单的创建、分派、处理与关闭。')}
-      />
-
-      <TableControls
-        search={{
-          placeholder: t('searchPlaceholder', '搜索 ID / 标题 / 描述 / 负责人…'),
-          ariaLabel: t('table.search.ariaLabel', { ns: 'common', defaultValue: '搜索' }),
-          value: search.value,
-          onChange: search.onChange,
-          onSearch: search.onSearch,
-          onClear: search.onClear,
-        }}
-        table={table}
-        actions={{
-          onAddRecord: canCreate ? () => crud.openCreate() : undefined,
-          addRecordLabel: t('actions.create', '新建工单'),
-          onRefresh: () => {
-            void fetchRows()
-          },
-          refreshLoading: loading,
-        }}
-      />
-
-      <DataTable
-        table={table}
-        onRowClick={(ticket) => ticket.id !== undefined && canEdit && crud.openEdit(ticket.id, ticket)}
-        loading={loading}
-        error={errorMsg}
-        onRetry={fetchRows}
-        moduleName={t('moduleName', '工单')}
-        emptyTitle={t('empty.title', '暂无工单数据')}
-        emptyDescription={t(
-          'empty.description',
-          '未找到符合条件的工单，请尝试更换关键词或重置筛选条件',
-        )}
-        emptyIcon={<TicketIcon size={44} className="text-kumo-inactive" />}
-        pagination={{
-          page: pagination.page,
-          pageSize: pagination.pageSize,
-          total,
-          onPageChange: pagination.onPageChange,
-          onPageSizeChange: pagination.onPageSizeChange,
-        }}
-      />
-
-      {/* 浮层外壳容器 */}
-      <CrudFloatingContainer
+      <CrudViewport
         crud={crud}
         renderForm={(ctx) => (
           <TicketFormView
@@ -482,29 +401,76 @@ function TicketsListContent({ crud }: { crud: CrudController<TicketItem> }) {
             onClose={ctx.close}
           />
         )}
-      />
+      >
+        <PageHeader
+          title={t('title', '工单管理')}
+          description={t('description', '工单的创建、分派、处理与关闭。')}
+        />
 
-      {/* 删除二次确认 */}
-      <LayerDialog.Alert open={singleDeleteOpen} onOpenChange={setSingleDeleteOpen}>
-        <LayerDialog.Content size="sm">
-          <LayerDialog.Title>{t('dialogs.deleteTitle', '删除工单')}</LayerDialog.Title>
-          <LayerDialog.Description>
-            {t('dialogs.deleteConfirm', '确定要删除工单「{{name}}」吗？该操作不可撤销。', {
-              name: deletingTicket?.title || deletingTicket?.id,
-            })}
-          </LayerDialog.Description>
-          <LayerDialog.Body>{null}</LayerDialog.Body>
-          <LayerDialog.Actions dismissLabel={t('form.cancel', '取消')}>
-            <LayerDialog.Actions.Primary
-              variant="destructive"
-              onClick={handleConfirmDelete}
-              loading={singleDeleteLoading}
-            >
-              {t('dialogs.delete', '删除')}
-            </LayerDialog.Actions.Primary>
-          </LayerDialog.Actions>
-        </LayerDialog.Content>
-      </LayerDialog.Alert>
+        <TableControls
+          search={{
+            placeholder: t('searchPlaceholder', '搜索 ID / 标题 / 描述 / 负责人…'),
+            ariaLabel: t('table.search.ariaLabel', { ns: 'common', defaultValue: '搜索' }),
+            value: search.value,
+            onChange: search.onChange,
+            onSearch: search.onSearch,
+            onClear: search.onClear,
+          }}
+          table={table}
+          actions={{
+            onAddRecord: canCreate ? () => crud.openCreate() : undefined,
+            addRecordLabel: t('actions.create', '新建工单'),
+            onRefresh: () => {
+              void fetchRows()
+            },
+            refreshLoading: loading,
+          }}
+        />
+
+        <DataTable
+          table={table}
+          onRowClick={(ticket) => ticket.id !== undefined && canEdit && crud.openEdit(ticket.id, ticket)}
+          loading={loading}
+          error={errorMsg}
+          onRetry={fetchRows}
+          moduleName={t('moduleName', '工单')}
+          emptyTitle={t('empty.title', '暂无工单数据')}
+          emptyDescription={t(
+            'empty.description',
+            '未找到符合条件的工单，请尝试更换关键词或重置筛选条件',
+          )}
+          emptyIcon={<TicketIcon size={44} className="text-kumo-inactive" />}
+          pagination={{
+            page: pagination.page,
+            pageSize: pagination.pageSize,
+            total,
+            onPageChange: pagination.onPageChange,
+            onPageSizeChange: pagination.onPageSizeChange,
+          }}
+        />
+
+        {/* 删除二次确认 */}
+        <LayerDialog.Alert open={singleDeleteOpen} onOpenChange={setSingleDeleteOpen}>
+          <LayerDialog.Content size="sm">
+            <LayerDialog.Title>{t('dialogs.deleteTitle', '删除工单')}</LayerDialog.Title>
+            <LayerDialog.Description>
+              {t('dialogs.deleteConfirm', '确定要删除工单「{{name}}」吗？该操作不可撤销。', {
+                name: deletingTicket?.title || deletingTicket?.id,
+              })}
+            </LayerDialog.Description>
+            <LayerDialog.Body>{null}</LayerDialog.Body>
+            <LayerDialog.Actions dismissLabel={t('form.cancel', '取消')}>
+              <LayerDialog.Actions.Primary
+                variant="destructive"
+                onClick={handleConfirmDelete}
+                loading={singleDeleteLoading}
+              >
+                {t('dialogs.delete', '删除')}
+              </LayerDialog.Actions.Primary>
+            </LayerDialog.Actions>
+          </LayerDialog.Content>
+        </LayerDialog.Alert>
+      </CrudViewport>
     </div>
   )
 }

@@ -163,7 +163,7 @@ export function CrudFloatingContainer<TFormItem = any>({
         key: `crud-detail-${activeId}`,
         title: activeView.title,
         description: activeView.description,
-        mode: activeFloatingType,
+        mode: activeFloatingType === 'split' ? 'split' : 'sheet',
         onExpand: () => {
           crud.expandToPage()
         },

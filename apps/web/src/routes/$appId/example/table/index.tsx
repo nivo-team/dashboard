@@ -1,12 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { TableExampleListPage } from '#/features/example/table'
+import { guardRoutePermission } from '#/lib/app-route-guard'
 
 /**
- * 表格示例列表路由（`/$appId/example/table`）—— **薄适配层**。
- *
- * 页面本体、列编排与 AI 特性声明（可用指令 / 数据源 / 权限）全在
- * `src/features/example/table/`：这一层只负责“路径 → 组件”。
+ * 表格示例列表路由（`/$appId/example/table`）。
+ * 权限拦截收口在当前页面自身，不污染整个 example 模块。
  */
 export const Route = createFileRoute('/$appId/example/table/')({
+  beforeLoad: async ({ params, location }) => {
+    await guardRoutePermission({
+      appId: params.appId,
+      permission: 'example:read',
+      href: location.href,
+    })
+  },
   component: TableExampleListPage,
 })
