@@ -93,7 +93,7 @@ const permissionContext = usePermissionContext()   // { role, permissions, isSup
 
 ## 5. 过滤入口（全部复用同一命中器）
 
-`lib/navigation.ts` 里的 `createNavRequirementChecker()` 是导航类过滤的唯一命中实现：
+`lib/navigation/requirements.ts` 里的 `createNavRequirementChecker()` 是导航类过滤的唯一命中实现（内部件，不从 `#/lib/navigation` 导出）：
 
 | 入口 | 函数 | 输入 |
 |---|---|---|

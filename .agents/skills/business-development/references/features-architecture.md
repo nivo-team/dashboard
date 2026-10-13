@@ -104,7 +104,7 @@ src/routes/$appId/example/
    `commands` / `dataSources` / `reload` / `openForm` 写全。
 3. 页面里 `useFeature(...)` 一次，把 state 与处理函数交给工厂。
 4. `src/routes/...` 加薄路由：`createFileRoute` + 取参 + 渲染 feature 组件。
-5. 导航项（`src/lib/navigation.ts`）；i18n 只写 `zh-CN`（其它语言交给 `pnpm i18n`）。
+5. 导航项（`src/lib/navigation/app-nav.ts`）；i18n 只写 `zh-CN`（其它语言交给 `pnpm i18n`）。
 6. **把这一页登记进页面目录**（`src/features/ai/core/page-catalog.ts` 的 `AI_PAGE_CATALOG`）：
    补一条 `{ path, title, desc, endpoints }` —— 否则 AI 的 `search_pages` 检索不到它、
    也做不了跨页面聚合。`path` 必须与导航项逐字一致。

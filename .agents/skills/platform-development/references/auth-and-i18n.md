@@ -68,7 +68,7 @@
 
 单应用模式（`VITE_MULTI_APP=false`）没有第二阶段的交互：`/` 的 `beforeLoad` 直接重定向到
 `/$DEFAULT_APP_ID/home`，`AppSwitcher` 退化成静态名称展示，侧边栏导航里的「应用」一项也被过滤掉
-（见 `src/lib/navigation.ts` 的 `MAIN_NAV_ITEMS`）。
+（见 `src/lib/navigation/shell-nav.ts` 的 `MAIN_NAV_ITEMS`）。
 
 ### 拦截器解耦与会话失效（Auth Interceptors）
 通过 `configureAuthInterceptors` 机制将 API 请求/响应拦截器与认证状态解耦：
@@ -117,7 +117,7 @@
 1. **权限点**（真正的判据）：后端 `GET /permissions` 下发 `{module}:{action}`，
    落在 `src/lib/store/permission-store.ts`，读它只有 `useHasPermission()` / `hasPermission()`；
 2. **菜单可见性**（`role_menus` + `GET /menus/navigation`）：本前端**尚未消费**，
-   侧边栏目前是静态的 `src/lib/navigation.ts`。
+   侧边栏目前是静态的 `src/lib/navigation/`（`MAIN_NAV_ITEMS` 在 `shell-nav.ts`）。
 
 按钮级收敛用通用组件 `src/components/permission-guard.tsx`：
 

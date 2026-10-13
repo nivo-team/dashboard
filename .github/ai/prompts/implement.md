@@ -38,7 +38,7 @@
 2. **样式**：禁用 Tailwind 的 `dark:` 变体（主题由根节点 `data-mode` 驱动）；
    禁用 `tracking-*`；**严禁 `font-bold`**（标题用 `font-semibold`，强调用 `font-medium`）；
    颜色只用 Kumo 语义令牌（`bg-kumo-base` / `text-kumo-default` / `border-kumo-line` …）。
-3. **名单与配置只有一个真值**：导航只动 `apps/web/src/lib/navigation.ts`、仪表盘卡片只动
+3. **名单与配置只有一个真值**：导航只动 `apps/web/src/lib/navigation/`（名单在 `app-nav.ts` / `shell-nav.ts`）、仪表盘卡片只动
    `src/features/home/widget-registry.tsx`、AI 工具只动 `AI_TOOLS`。**不要在渲染处再硬编码一份平行名单**。
 4. **不要手改 `apps/web/src/routeTree.gen.ts`** —— 它由 `pnpm dev` / `pnpm build` 自动生成。
    如果你的改动新增或删除了路由文件，**把这个文件一起提交**（跑构建后它会被更新）。

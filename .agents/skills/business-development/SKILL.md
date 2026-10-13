@@ -136,7 +136,7 @@ export function RoleListPage({ splat }: { splat?: string }) {
    按钮 / 行内操作用 `useHasPermission('<模块>:<动作>')`。**没有权限的行内动作整列不渲染。**
 6. **i18n**：只写 `apps/web/src/messages/<ns>/<sourceLocale>.json`（源语言见 `i18n.config.json`），
    其它语言由 `pnpm i18n` 补齐。表格列文案取 `columns.<列 id>`，代码里用 `#/lib/use-typed-t` 的 `useT('ns')`。
-7. **接导航**：只动 `src/lib/navigation.ts`（**不要在渲染处再硬编码一份平行名单**）。
+7. **接导航**：只动 `src/lib/navigation/`（业务名单 = `app-nav.ts`）（**不要在渲染处再硬编码一份平行名单**）。
 8. **登记页面目录**：`src/features/ai/core/page-catalog.ts` 的 `AI_PAGE_CATALOG` 补一条
    `{ path, title, desc, endpoints }` —— 否则 AI 的 `search_pages` 检索不到它。`path` 与导航项逐字一致。
 

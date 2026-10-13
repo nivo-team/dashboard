@@ -91,7 +91,7 @@ apps/web/src/routes/
   `src/routes/$appId_.sphere/route.tsx`（全屏 AI 对话页）；
 - 守卫唯一入口 `guardAppRoute({ appId, href })`（`src/lib/app-route-guard.ts`）——
   认证、应用有效性、选中态同步都在这里，两处挂载点共用；
-- 所有页面链接前缀：`src/lib/navigation.ts` 的 `NAV_GROUPS` 里 `to` 是**相对**路径，
+- 所有页面链接前缀：`src/lib/navigation/app-nav.ts` 的 `NAV_GROUPS` 里 `to` 是**相对**路径，
   由外壳拼成 `/${appId}${to}`；`useCrudView` 的 `basePath`、面包屑剥离
   （`src/lib/breadcrumb-trail.ts` / `use-breadcrumbs`）、页面标签页（`src/lib/page-tabs.ts`）
   都依赖这段前缀。
@@ -295,11 +295,11 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
    }
    ```
 
-2. **配置导航与快捷入口**：在 `apps/web/src/lib/navigation.ts` 的 `NAV_GROUPS` 中添加该项，侧边栏与 ⌘K 命令面板将同步生效。
+2. **配置导航与快捷入口**：在 `apps/web/src/lib/navigation/app-nav.ts` 的 `NAV_GROUPS` 中添加该项，侧边栏与 ⌘K 命令面板将同步生效。
 
 3. **嵌套子导航**：如需多标签页或二级页面，可创建同名布局 `orders.tsx`（内含 Tab 栏与 `<Outlet />`）以及 `orders/index.tsx`、`orders/detail.tsx`。
 
-2. **配置导航与快捷入口**：在 `apps/web/src/lib/navigation.ts` 的 `NAV_GROUPS` 中添加该项，侧边栏与 ⌘K 命令面板将同步生效。
+2. **配置导航与快捷入口**：在 `apps/web/src/lib/navigation/app-nav.ts` 的 `NAV_GROUPS` 中添加该项，侧边栏与 ⌘K 命令面板将同步生效。
 
 3. **嵌套子导航**：如需多标签页或二级页面，可创建同名布局 `orders.tsx`（内含 Tab 栏与 `<Outlet />`）以及 `orders/index.tsx`、`orders/detail.tsx`。
 
@@ -378,12 +378,12 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
 
 ## 2. 导航系统与命令面板 (Navigation & Command Palette)
 
-- `apps/web/src/lib/navigation.ts` 是管理后台所有导航项的**单一真值来源 (SSOT)**，共三份配置：
+- `apps/web/src/lib/navigation/` 目录是管理后台所有导航项的**单一真值来源 (SSOT)**（入口 `index.ts`；名单分两个文件：业务的 `app-nav.ts`、外壳的 `shell-nav.ts`），共三份配置：
   - `NAV_GROUPS`：`$appId` 业务导航，`to` **相对 appId**（`/home`、`/example/table`）；由 `AppSidebar` 渲染、`AppHeader` 用它的 `to` 做面包屑最长前缀匹配，并经 `ALL_NAV_TARGETS` 扁平化后供命令面板使用；
   - `MAIN_NAV_ITEMS`：`_main` 通用外壳导航（应用选择 `/`、个人资料 `/settings/profile`），由 `MainSidebar` 渲染；
   - `SETTINGS_NAV_ITEMS`：设置模块的二级导航（个人资料 `/settings/profile`、外观 `/settings/appearance`（图标 `SwatchesIcon`、文案 `profileNav.appearance`）、AI `/settings/AI`（图标 `SparkleIcon`、文案 `profileNav.ai`，**路径保留大写缩写**）），由 `MainSidebar` 的设置分支渲染。**「外观」与「主题」是两个 key**：前者是模块入口（`profileNav.appearance`），后者是主题选择器的分组标题（`theme.label`），不要合并。
   - 后两份是 `ShellNavItem`，`to` 是**绝对路径**（不拼 appId），并带 `matchPaths` 表达「历史别名也算选中」（如 `/select-app` 之于 `/`）。**不要把外壳项塞进 `NAV_GROUPS`** —— 会污染 `AppHeader` 的业务面包屑匹配，且 `_main` 外壳根本没有 appId 前缀。`ALL_SHELL_NAV_TARGETS` 是两份外壳导航合并去重后的命令面板数据源。
-- **三处侧边栏与命令面板都必须是「配置对象 → map 渲染」**，不允许把菜单项硬编码在 JSX 里（`MainSidebar` 曾如此）：加 / 改导航项只动 `navigation.ts`，业务侧边栏、外壳侧边栏、⌘K 面板三个入口自动同步。外壳侧边栏统一走 `#/layouts/common/nav-shared` 的 `ShellNavButton`（`#/components/shell/main-nav-shared.tsx` 只是转发层）。
+- **三处侧边栏与命令面板都必须是「配置对象 → map 渲染」**，不允许把菜单项硬编码在 JSX 里（`MainSidebar` 曾如此）：加 / 改导航项只动 `navigation/` 下的名单文件，业务侧边栏、外壳侧边栏、⌘K 面板三个入口自动同步。外壳侧边栏统一走 `#/layouts/common/nav-shared` 的 `ShellNavButton`（`#/components/shell/main-nav-shared.tsx` 只是转发层）。
 - **导航项没有描述字段**：侧边栏与命令面板列表**只显示标题**（曾经给命令面板当副标题的 `description` 已删除，不要加回来）；检索能力靠 `keywords`（中英双语，保证两种输入都能命中）。
 - 导航文案通过 `labelKey` / `children[].labelKey` 指向 `common` 命名空间下的 i18n 键，不要在组件里硬编码路径→文案的映射；新增导航项时**只写 `zh-CN` 的 `nav.*` 文案**，其它语言由翻译流水线补齐。
 - 业务首页路径统一配置为 `/home`，拼接当前激活应用标识生成 `/$appId/home`；它的**文案是「仪表盘」**（`nav.home`），别只改一处就以为改完了 —— 导航项、命令面板、顶栏面包屑三处共用这个 key。检索关键词同时保留 `home` / `首页` 与 `dashboard` / `仪表盘`（老用户还在按老名字找它）。

@@ -89,12 +89,13 @@ CI（`.github/workflows/ci.yml`）依次跑：铁律门控 → i18n 检查 → `
 | `src/lib/app-config.test.ts` | 单/多应用、单/多账号、进入选择页策略（`auto` / `always` / `never`）、默认应用 id 与名称、`VITE_SUPER_ADMIN_ID` 命中规则、部署快照 |
 | `src/lib/store/permission-store.test.ts` | `normalizeRoleName`、`computePermissions`（`Admin` 不是超管 / 通配 / 模块展开）、store 的 `setIdentity` ↔ `setPermissions` 顺序无关性、`resetPermissions` |
 | `src/layouts/common/nav-matching.test.ts` | 侧边栏高亮的等价写法（`/home` 的四种 URL）、子路径前缀命中、`roles-other` 不误命中 |
+| `src/lib/navigation/filter.test.ts` | `feature` / `permission` 声明的三种写法与 `:*` 补全、摊平、组级 `all` / `any`、折叠项的收敛与修剪、组内清空、自定义谓词、`enablePermissionFilter: false`、超管、真实名单的「只有 `dict:read` 时系统组可见」回归 |
 
 ## 8. 待补的缺口（按价值排序）
 
-1. `lib/navigation.ts` 的过滤管道（导航名单是唯一真值，改它最危险）—— **下一个迭代的目标**；
-2. `lib/store/app-scope` + `scoped-storage` 的键生成与 legacy 迁移（纯逻辑，好测）；
-3. `features/select-app/feature.ts` 这类「页面声明 → AI 能力」的映射；
-4. `lib/dict-key.ts` 的 `new.` 前缀适配。
+1. `lib/store/app-scope` + `scoped-storage` 的键生成与 legacy 迁移（纯逻辑，好测）；
+2. `features/select-app/feature.ts` 这类「页面声明 → AI 能力」的映射；
+3. `lib/dict-key.ts` 的 `new.` 前缀适配；
+4. AI 的页面清单/上下文裁剪（`features/ai/core/page-context.ts` 的过滤点）。
 
 > 加用例时**顺手把这一节减一行**，别让「待补」变成永远不补的许愿池。

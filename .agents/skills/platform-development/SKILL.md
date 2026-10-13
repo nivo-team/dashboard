@@ -39,7 +39,7 @@ description: 本仓库工程底座（与「业务开发」相对）的入口 —
 
 1. **路由是薄适配层**：`src/routes/**` 里不写业务逻辑，只留守卫（`guardRoutePermission`）、取参、渲染。
    业务一律在 `src/features/**` —— 细节见 business-development。
-2. **名单只有一个真值**：导航只动 `src/lib/navigation.ts`、仪表盘卡片只动 `src/features/home/widget-registry.tsx`、
+2. **名单只有一个真值**：导航只动 `src/lib/navigation/`（名单在 `app-nav.ts` / `shell-nav.ts`）、仪表盘卡片只动 `src/features/home/widget-registry.tsx`、
    AI 工具只动 `AI_TOOLS`。**不要在渲染处再硬编码一份平行的名单。**
 3. **样式三条禁令**：不写 `dark:` 变体、不写 `tracking-*`、不用 `font-bold`
    （标题 `font-semibold`、强调 `font-medium`）。理由与替代写法见 `references/ui-and-styling.md`。
