@@ -358,12 +358,12 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 | `features/ai/page/index.ts` | 27 | barrel |
 | `src/features/**/feature.ts` | 10 份 | 各页面声明（参考实现：`table-example/feature.ts`，279 行） |
 
-### 4.3 UI 组件（`features/ai/components/`：10 个文件 + `composer/` 目录）
+### 4.3 UI 组件（`features/ai/components/`：9 个文件 + `composer/` + `panel/` 两个目录）
 
 | 文件 | 行数 | 职责 |
 |---|---:|---|
 | `composer/` | 1477 | 输入区：文本、附件、模式菜单、`@` mention、任务卡（行尾设置按钮只剩「配置权限」，仅面板给）—— 见下表 |
-| `panel.tsx` | 1128 | 面板本体：split / float 两形态、头行、权限视图（整块替换内容）、拖拽与折叠动画 |
+| `panel/` | 1306 | 面板本体：split / float 两形态、头行、权限视图（整块替换内容）、拖拽与折叠动画 —— 见下表 |
 | `conversation.tsx` | 928 | 消息渲染：Markdown、工具卡片（默认隐藏）、审批卡、导航建议卡、空态 |
 | `task-card.tsx` | 316 | 任务清单卡片（会话内 + 悬浮） |
 | `permission-config.tsx` | 296 | 权限三档 + 工具勾选（名单取自 `AI_TOOLS`）；`settings` / `panel` 两形态。三档各有 tooltip 说明、分组说明挂在标题的 Info 图标上（不常显） |
@@ -391,6 +391,25 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 | `attachment-list.tsx` | 56 | 待发送附件卡片（缩略图 + 文件卡） |
 
 ★ 有单测：`attachments.test.ts` / `mention.test.ts`（见 [testing.md](../../platform-development/references/testing.md)）。
+
+#### 面板 `panel/`：编排留一处，形态各管一段
+
+原来是 1128 行的单文件（两套形态的渲染、头行、权限视图、三条纯推导全混在一起）。现在：
+
+| 文件 | 行数 | 管什么 |
+|---|---:|---|
+| `index.tsx` | 438 | **编排 + Split 形态**：受控 props、三段式挂载状态、Esc、两条 store 同步、尺寸 hook；导入面不变（`#/features/ai/components/panel`） |
+| `header.tsx` | 229 | 头行：左三分支（权限视图 / 折叠窄条 / 会话选择器）+ 右动作区（新对话 → 新窗口 → 最大化 → 折叠 → 关闭） |
+| `float-panel.tsx` | 186 | Float 形态：`motion.aside`、变形、入场属性、三处降级（组件级文档在文件头） |
+| `panel-surface.tsx` | 180 | 两形态共用骨架：点阵背景 + 指针光斑（rAF）+ 头行 + 会话列 + 权限视图覆盖层 |
+| `float-resize-handles.tsx` | 134 | 浮窗三个尺寸手柄（`role="separator"` + 键盘可达，无 hover 视觉） |
+| `float-geometry.ts` | 58 | 浮窗几何推导：三形态判定 + 两个终点尺寸（纯）★ |
+| `permission-view.tsx` | 76 | 权限视图：`AiPermissionConfig` 的 `panel` 形态 + 保存 / 返回接线 |
+| `constants.ts` | 36 | 两条时长（`SPLIT_SLIDE_MS` / `FLOAT_COLLAPSE_MS`）+ 缓动 + 头行高度 |
+| `permission-draft.ts` | 22 | 权限草稿「改没改过」（**按集合比、不按顺序**）★ |
+
+无单测的静置文件是 `header.tsx` / `panel-surface.tsx` / `permission-view.tsx` —— 纯 DOM 装配，规则都在上面 ★ 的两个纯模块里。
+
 ### 4.4 路由：全屏对话页（`routes/$appId_.sphere/**`，10 个文件，1102 行）
 
 `route.tsx`(225，逃离 `$appId` 布局、注册 `AiShellBridge` + 过渡 Provider)、`index.tsx`(28，新会话)、

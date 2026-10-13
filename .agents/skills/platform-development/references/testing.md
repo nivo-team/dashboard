@@ -92,6 +92,8 @@ CI（`.github/workflows/ci.yml`）依次跑：铁律门控 → i18n 检查 → `
 | `src/features/ai/components/composer/attachments.test.ts` | 附件三道闸（单个上限 / 总数上限 / 类型白名单）、边界值、**提示优先级**（加满了 > 收不下 > 读不出来）、被拦下的文件不占额度、体积格式化 |
 | `src/features/ai/components/composer/mention.test.ts` | `@` 必须是行首或空白之后（邮箱里的 `@` 不算）、四处匹配通道、**记录引用兜底**（`@mod:1234` 不误报「没有匹配」）、分段与跨段连续的行号 |
 | `src/lib/navigation/filter.test.ts` | `feature` / `permission` 声明的三种写法与 `:*` 补全、摊平、组级 `all` / `any`、折叠项的收敛与修剪、组内清空、自定义谓词、`enablePermissionFilter: false`、超管、真实名单的「只有 `dict:read` 时系统组可见」回归 |
+| `src/features/ai/components/panel/float-geometry.test.ts` | 浮窗三形态判定：折叠只在桌面端成立、**变形期间内容仍是展开态**（一变内容动画就没东西可收）、关掉动效时直接切到位、终点尺寸（折叠 = 最小宽 × 头行高）随存档变 |
+| `src/features/ai/components/panel/permission-draft.test.ts` | 「有没有未保存的更改」：能力**按集合比、不按顺序比**（勾选顺序跟着点击走，按顺序比会一直误报未保存）、换档位算改过、多 / 少 / 换一个都算改过 |
 
 ## 8. 待补的缺口（按价值排序）
 
