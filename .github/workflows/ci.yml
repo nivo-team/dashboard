@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   verify:
-    name: typecheck + build
+    name: typecheck + test + build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -71,6 +71,11 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+      # 单元测试（`vp test` = vite-plus 自带的 Vitest 5，无需单独装 vitest）。
+      # 目前覆盖纯逻辑：部署模式矩阵、权限判定、存储分区的派生逻辑。
+      - name: Test
+        run: pnpm test
 
       - name: Build
         run: pnpm build

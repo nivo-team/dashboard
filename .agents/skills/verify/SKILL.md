@@ -45,10 +45,12 @@ pnpm exec vp check --fix      # 顺带按 oxfmt 规则格式化
   `openapi.json` 已在 `ignorePatterns` 里（`vp check` 扫 412 / 470 个文件），**不要**为了它们改代码；
 - 别用全局 `vp`（版本可能落后），一律 `pnpm exec vp …`，走本地 `vite-plus`。
 
-CI 门控仍是这两条：
+CI 门控是这三条：
 
 ```bash
 pnpm typecheck        # tsc --noEmit，无输出即通过
+pnpm test             # 单元测试（约 1 秒；不在铁律 5 的禁令内，改了被测模块就该跑）
+pnpm build            # 见 §3
 ```
 
 关注点：`useSchemaColumns<TData>` 的行类型必须是 **type 别名**（`interface` 没有隐式索引签名，会报 TS2344）；

@@ -21,9 +21,10 @@ description: 本仓库工程底座（与「业务开发」相对）的入口 —
 | 加 store / 改持久化 / 切应用作用域 / 迁移存储键 | [references/store.md](./references/store.md) |
 | 改登录登出 / 加多应用 / **改部署模式（单多应用 × 单多账号的环境变量）** / 改语言包加载 | [references/auth-and-i18n.md](./references/auth-and-i18n.md) |
 | 改接口调用 / 改生成产物 / 换后端 / 改契约来源 | [references/api-client.md](./references/api-client.md) |
+| **加用例 / 改测试策略 / 判断某块该不该有测试** | [references/testing.md](./references/testing.md) |
 | 生成链路本身（`packages/api-client` 怎么跑、怎么指新后端） | `packages/api-client/README.md` |
 
-**不要一次全读**：这五份加起来约 100 KB。按你要动的那一层取。
+**不要一次全读**：这六份加起来约 105 KB。按你要动的那一层取。
 
 ## 1. 四层底座，一句话各自是什么
 
