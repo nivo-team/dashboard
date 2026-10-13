@@ -66,19 +66,11 @@ export function startTabDragSession(dataTransfer: DataTransfer, tab: PageTab): v
   dataTransfer.effectAllowed = 'move'
 }
 
-/** 兼容旧接口别名 */
-export const setTabTransferData = startTabDragSession
-
 /** 标记当前拖拽已在某个合法位置（本窗口排序或目标窗口合并）被接收安置 */
 export function markDragHandled(): void {
   if (localDragSession) {
     localDragSession.isHandled = true
   }
-}
-
-/** 检查当前拖拽是否已被成功安置 */
-export function isDragHandled(): boolean {
-  return localDragSession?.isHandled ?? false
 }
 
 /** 结束本次拖拽会话并返回会话对象 */

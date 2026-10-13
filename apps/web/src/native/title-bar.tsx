@@ -282,11 +282,6 @@ export function DesktopHistoryNav() {
   )
 }
 
-/** 兼容旧引用的空组件，防止历史代码报错 */
-export function DesktopSidebarHeader() {
-  return null
-}
-
 /**
  * 桌面窗口条 —— 桌面壳里取代顶栏的那一行，**整宽浮在全高侧边栏之上**（`fixed`）。
  *

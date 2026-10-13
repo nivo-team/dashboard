@@ -68,8 +68,9 @@ HTML，不是 Wails 的 RPC 响应）。因此**远程页面既拿不到 Wails �
    官方文档与源码一致（§五.2）。
 9. `wails3 build` 在裸目录直接失败：`ERROR task: No Taskfile found at "<dir>"`；但 **`go run .` / `go build`
    完全可用**（实测最小 app 冷编译 27.7 s，产物 18.5 MB，GTK4 栈）。三平台的系统依赖见 §六。
-10. 本壳的 bridge 协议、线程模型与三条纪律见 §五；**有一处对 `apps/desktop/README.md` 的更正**
-    （`RawMessageHandler` 回调**不在**主线程，源码里是 `go a.handleWindowMessage(event)`）。
+10. 本壳的 bridge 协议、线程模型与三条纪律见 §五；其中「`RawMessageHandler` 回调**不在**主线程」
+    这一条（`go a.handleWindowMessage(event)`）在 §5.3 给了源码级依据，`apps/native/README.md` 的
+    「三条纪律」也照此表述。
 
 ---
 
@@ -374,7 +375,7 @@ func (w *WebviewWindow) ExecJS(js string) {
 - 探针 2（页面首屏手发 `postMessage("wails:runtime:ready")`）：立刻触发 `events.Common.WindowRuntimeReady`，
   随后的 `ExecJS` **成功到达**（`[RAW-MESSAGE] probe:execjs-ran|wails=object|jsOpt=object|interactive`）。
 
-> ✅ 本仓库 `apps/web/src/desktop/bridge.ts` 已经手发这条（`RUNTIME_READY`，并注释了「少这一条全都卡住」），
+> ✅ 本仓库 `apps/web/src/native/bridge.ts` 已经手发这条（`RUNTIME_READY`，并注释了「少这一条全都卡住」），
 > 与实测一致。**任何以后替换页面侧实现的人都不能删这一行。**
 
 ### 4.4 Go→JS 事件能进远程页面，但依赖页面提供 `dispatchWailsEvent`
@@ -411,7 +412,7 @@ and silently stops all frontend event listeners」）。本壳刻意**不引** `
 
 ## 五、本壳的 bridge 架构：为什么是 `RawMessageHandler`
 
-> 这一节是**已定架构**的调研依据，实现见 [`apps/desktop/README.md`](../apps/desktop/README.md)。
+> 这一节是**已定架构**的调研依据，实现见 [`apps/native/README.md`](../apps/native/README.md)。
 
 ### 5.1 选型：放弃 Wails 默认 runtime 通道（结论）
 
@@ -476,10 +477,10 @@ type OriginInfo struct {
 `TopOrigin` / `IsMainFrame` 只作为「有值时才额外收紧」的可选条件 —— 否则 Linux 上永远过不了。
 注意 Linux 的 `Origin` 是**完整 URL**（含 path），比对时应按 URL 解析后比 scheme+host(+port)，别用字符串相等。
 
-### 5.3 线程模型（含对 `apps/desktop/README.md` 的一处更正）
+### 5.3 线程模型（源码级依据）
 
-`apps/desktop/README.md` 写「`RawMessageHandler` 里必须 go 出去再干活 —— 回调在主线程」。
-**前半句（go 出去）是对的，后半句的理由不准确**：源码里消息泵已经是 `go` 出去的：
+常见直觉是「`RawMessageHandler` 回调跑在主线程，所以必须 go 出去再干活」，
+**后半句的理由不准确**：源码里消息泵本来就是 `go` 出去的：
 
 ```go
 // pkg/application/application.go:714-719
@@ -624,7 +625,7 @@ Linux 上 `webview_window_linux_dev.go` 要 `!production`、`webview_window_linu
 ## 七、已知坑清单（按踩到概率排序）
 
 1. **`ExecJS` 静默排队**（最高危）：页面不发 `wails:runtime:ready`，壳侧所有 `ExecJS` / 事件注入永远不到。
-   §4.3 有实测对照。→ 本壳在 `desktop/bridge.ts` 里手发；**别删**。
+   §4.3 有实测对照。→ 本壳在 `native/bridge.ts` 里手发；**别删**。
 2. **默认 runtime 通道在远程页面上是死的**：`fetch(location.origin + "/wails/runtime")` 打到远程站点；
    实测 200 + 站点 HTML。且 `wails://` 不能被 http(s) 页面 fetch（`TypeError: Load failed`）。
 3. **`options.JS` 不是 document-start**，Windows 上 URL 导航**根本不执行**（§3.1）。想要「加载前注入」只能走 URL。

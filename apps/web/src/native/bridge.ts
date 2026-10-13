@@ -74,8 +74,6 @@ declare global {
     __PLATFORM__?: string
     /** 是否为移动端设备/移动壳（如 Android）。 */
     __IS_MOBILE__?: boolean
-    /** 桌面端标题栏/红绿灯注入高度（px，默认 54）。 */
-    __DESKTOP_TITLE_BAR_H__?: number
     /** 当前宿主平台是否支持窗口背景模糊与毛玻璃穿透。 */
     __DESKTOP_BLUR_SUPPORTED__?: boolean
     /** 为什么支持或不支持背景模糊的详细原因。 */
@@ -194,13 +192,6 @@ export function isMobileDevice(): boolean {
  */
 export function isAndroid(): boolean {
   return desktopPlatform() === 'android'
-}
-
-/** 桌面端标题栏/红绿灯高度（px），默认 40。移动端恒为 0。 */
-export function desktopTitleBarHeight(): number {
-  if (typeof window === 'undefined') return 40
-  if (isMobileDevice() || isAndroid()) return 0
-  return window.__DESKTOP_TITLE_BAR_H__ ?? 40
 }
 
 /** 获取当前宿主平台名称（如 'darwin' / 'windows' / 'linux' / 'android'；纯浏览器环境返回空字符串）。 */
@@ -364,17 +355,6 @@ export function getDesktopBlurSupport(): BlurSupportInfo {
 /** 判断当前桌面壳是否支持窗口背景模糊。 */
 export function isDesktopBlurSupported(): boolean {
   return getDesktopBlurSupport().supported
-}
-
-/**
- * 是否激活窗口背景透明/模糊（静态判定）：
- * 需同时满足：桌面壳环境 + 平台支持 + 用户在偏好设置中未关闭。
- */
-export function isDesktopBlurredPlatform(): boolean {
-  if (!isDesktop()) return false
-  if (typeof window === 'undefined') return false
-  if (!isDesktopBlurSupported()) return false
-  return useShellUiStore.getState().desktopBlurEnabled
 }
 
 /**

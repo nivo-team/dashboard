@@ -43,7 +43,7 @@ wails3 task test                                     # = pnpm desktop:test
   那端口是留给 Wails 模板工程的前端 dev server 的，我们不用它 —— 换一个即可：
   `wails3 dev -port 9801`（或 `WAILS_VITE_PORT=9801`）。
   以前还会报 `open ./build/config.yml: no such file or directory`，那份配置现在已经补上了。
-- **必须在 `apps/desktop` 目录下执行**：CLI 按相对路径找 `build/config.yml` 与 `Taskfile.yml`。
+- **必须在 `apps/native` 目录下执行**：CLI 按相对路径找 `build/config.yml` 与 `Taskfile.yml`。
 
 > 没装 CLI 也完全不影响：`pnpm desktop` / `pnpm desktop:build` / `pnpm desktop:test` 走的是
 > 同一套 Go 命令与同一个构建脚本。

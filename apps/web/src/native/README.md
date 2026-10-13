@@ -11,12 +11,16 @@
 ```
 bridge.ts                  前端与壳之间唯一的接口（传输层 call/on + 类型层 invoke/subscribe）
 generated/bridge.gen.ts    ← Go 生成，别手改（`pnpm native:bindings`）
-shell-layout.tsx           桌面形态的外壳布局：全高透明侧边栏 + 工作区；窗口条是整宽 fixed 浮层
 title-bar.tsx              桌面壳的窗口条（取代顶栏；品牌 / 搜索 / 侧边栏开关 / 历史导航 / 标签条）
+settings-layout.tsx        桌面「设置」独立窗口的布局（窗口条无 Tab 模式，侧栏为设置导航）
+standalone-layout.tsx      桌面「页面工作区」独立窗口的布局（无主侧栏，带 Tabs）
+tab-transfer.ts            跨窗口 Tab 拖拽流转（BroadcastChannel + DataTransfer，含白名单与去重）
 blur-setting.tsx           设置 → 外观 的「窗口背景模糊」开关（浏览器里整行不渲染）
 ```
 
 外壳布局已统一归集于 `#/layouts`，根据 `isDesktop()` 与移动端环境分别按变体分派。
+上面 `settings-layout.tsx` 与 `standalone-layout.tsx` 是桌面**子窗口**专属的布局，
+两者都复用 `title-bar.tsx` 里的窗口条；主窗口的桌面外壳在 `#/layouts/desktop`。
 
 ## 两层：传输 vs 类型
 
@@ -63,4 +67,4 @@ const off = subscribe('theme:systemChanged', (d) => { d.isDarkMode })
 壳在导航前把 `?__desktop=1&__desktop_<k>=<v>` 写进 URL → `index.html` 的首屏脚本落地成
 `window.__DESKTOP__` 与 `<html class="is_desktop">`，并记进 `sessionStorage`（刷新后仍在）。
 `bridge.ts` 的 `isDesktop()` 只读这个标记，不碰网络。细节见
-[`apps/desktop/README.md`](../../../desktop/README.md) 的「桌面标记」一节。
+[`apps/native/README.md`](../../../../apps/native/README.md) 的「桌面标记」一节。
