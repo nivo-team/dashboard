@@ -13,7 +13,7 @@
 ```
 [未登录用户]
     ↓ 访问任何页面被 $appId 或 _main 的 beforeLoad 守卫拦截
-[登录门户 /login]
+[登录门户 /auth/login]
     ↓ 验证账号密码（apiLogin），获得 Token、用户基础信息及可用应用列表 availableApps
 [认证完成阶段 (isAuthenticated = true, currentApp = null)]
     ↓ 路由重定向到根路径 /
@@ -27,7 +27,7 @@
 ### 拦截器解耦与会话失效（Auth Interceptors）
 通过 `configureAuthInterceptors` 机制将 API 请求/响应拦截器与认证状态解耦：
 - **请求阶段**：动态拉取当前有效凭证，在请求标头中自动附加 `Authorization: Bearer <token>` 与当前选定应用的 `X-App-Id`；
-- **响应阶段**：当服务端返回 401（未授权/凭证过期）时，触发 `logout()` 响应式通知清除前端状态并平滑重定向至 `/login`；
+- **响应阶段**：当服务端返回 401（未授权/凭证过期）时，触发 `logout()` 响应式通知清除前端状态并平滑重定向至 `/auth/login`；
 - **安全注销时序**：执行 `logout()` 时，先携带当前有效 Token 异步通知后端 `/logout` 接口，在 `finally` 阶段统一重置内存与持久化状态，避免提前抹除 Token 导致注销接口报 401。
 
 ### 应用池（App Pool）
@@ -104,9 +104,9 @@ apps/web/src/messages/
 1. **安全注销时序**：`logout()` 先带当前有效 Token 异步请求 `/logout`，再在 `finally` 里
    清理内存与持久化状态。反过来（先清状态）的话，这次请求既丢鉴权（拦截器拿不到 Token）
    也丢地址（`apiBaseUrl` 被重置回默认）。
-2. **跳转收口在 `logout()` 末尾的 `redirectToLogin()`**（`window.location.replace('/login')`，
+2. **跳转收口在 `logout()` 末尾的 `redirectToLogin()`**（`window.location.replace('/auth/login')`，
    与 401 拦截器一致）。路由守卫只在**导航时**求值，把 `isAuthenticated` 置 false 不会自动
-   把用户带离当前页；而若调用方在 `await logout()` **之前**就 `navigate('/login')`，登录页的
+   把用户带离当前页；而若调用方在 `await logout()` **之前**就 `navigate('/auth/login')`，登录页的
    `beforeLoad` 会读到尚未清理的 `isAuthenticated === true`，又把人送回原页面 —— 症状是
    「登出请求成功却停在页面内」（`user-menu.tsx` 曾这么写）。**任何调用方都不要自行导航。**
 3. `loggingOut` 模块级标志做并发 / 递归保护（401 → `logout()` → `/logout` 又 401 → …）。
@@ -152,7 +152,7 @@ apps/web/src/messages/
   `apiBaseUrl` 并进 `/$appId/home`）。**没有第二步，业务接口不知道该打到哪个应用。**
 - 拦截器**由 `configureAuthInterceptors` 注入**（`apps/web/src/api/index.ts` 不直接碰 localStorage）：
   请求自动带 `Authorization` 与 `X-App-Id`；401 触发响应式 `logout()`。
-- **`logout()` 负责离开页面**，调用方**不要自行 `navigate('/login')`**（会与还没清理的
+- **`logout()` 负责离开页面**，调用方**不要自行 `navigate('/auth/login')`**（会与还没清理的
   `isAuthenticated` 打架、把人送回原页面）。
 - **切应用不清查询缓存**（每个 app 一份 `QueryClient`，物理隔离 → 切回来即时可见）；
   只有登录 / 登出 / 换账号这类**身份边界**才 `clearAllQueryCaches()`。

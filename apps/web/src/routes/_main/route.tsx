@@ -17,7 +17,7 @@ export const Route = createFileRoute('/_main')({
     const auth = getAuthSnapshot()
     if (!auth.isAuthenticated) {
       throw redirect({
-        to: '/login',
+        to: '/auth/login',
         search: {
           redirect: location.href,
         },

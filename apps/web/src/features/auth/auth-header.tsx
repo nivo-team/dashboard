@@ -11,7 +11,7 @@ export interface AuthHeaderProps {
   className?: string
   /**
    * 是否在 lg 及以上宽屏对右侧切换器启用白色高对比度样式（适配双栏登录页右侧高饱和度色彩展台）。
-   * 缺省时自动根据当前路由是否为 /login 判定。
+   * 缺省时自动根据当前路由是否为 /auth/login 判定。
    */
   rightContrastOnLg?: boolean
 }
@@ -29,7 +29,8 @@ export function AuthHeader({ className = '', rightContrastOnLg }: AuthHeaderProp
   const brand = useBrand()
   const LogoIcon = brand.logoIcon
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const isSplitLogin = rightContrastOnLg ?? (pathname === '/login' || pathname.endsWith('/login'))
+  const isSplitLogin =
+    rightContrastOnLg ?? (pathname === '/auth/login' || pathname.endsWith('/login'))
 
   const switcherClassName = isSplitLogin
     ? 'text-kumo-default lg:text-white lg:hover:bg-white/10 lg:active:bg-white/20'
@@ -48,7 +49,7 @@ export function AuthHeader({ className = '', rightContrastOnLg }: AuthHeaderProp
       {/* 最左侧：纯净品牌 Logo 图标（无背景、无文字） */}
       <div className="pointer-events-auto no-drag">
         <RouterLink
-          to="/login"
+          to="/auth/login"
           variant="plain"
           aria-label={brand.name}
           title={brand.name}

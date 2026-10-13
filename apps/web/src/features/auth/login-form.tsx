@@ -53,14 +53,14 @@ export interface LoginFormProps {
 
   /** 是否显示注册跳转引导链接（默认 true） */
   showRegisterLink?: boolean
-  /** 注册目标路由（默认 '/register'） */
+  /** 注册目标路由（默认 '/auth/register'） */
   registerHref?: string
 
   /** 是否显示「忘记邮箱或密码」跳转链接行（默认 true） */
   showForgotLinks?: boolean
-  /** 忘记邮箱目标路由（默认 '/forgot-email'） */
+  /** 忘记邮箱目标路由（默认 '/auth/forgot-email'） */
   forgotEmailHref?: string
-  /** 忘记密码目标路由（默认 '/forgot-password'） */
+  /** 忘记密码目标路由（默认 '/auth/forgot-password'） */
   forgotPasswordHref?: string
 
   /** 是否显示第三方 OAuth 登录按钮（默认 true，若未开启任何 provider 则自动隐藏） */
@@ -84,10 +84,10 @@ export function LoginForm({
   showDemoAccounts = true,
   demoAccounts = DEFAULT_DEMO_ACCOUNTS,
   showRegisterLink = true,
-  registerHref = '/register',
+  registerHref = '/auth/register',
   showForgotLinks = true,
-  forgotEmailHref = '/forgot-email',
-  forgotPasswordHref = '/forgot-password',
+  forgotEmailHref = '/auth/forgot-email',
+  forgotPasswordHref = '/auth/forgot-password',
   showOAuth = true,
   oauthProviders,
   className = '',

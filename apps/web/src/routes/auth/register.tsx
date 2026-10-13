@@ -1,35 +1,33 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ForgotEmailPage } from '#/features/auth'
+import { RegisterPage } from '#/features/auth'
 import { DEFAULT_APP_ID, getAuthSnapshot, isMultiAppEnabled } from '#/lib/auth'
 import { getBrandConfig } from '#/lib/brand'
 
 /**
- * 找回邮箱路由（`/_auth/forgot-email.tsx` -> "/forgot-email"）
+ * 注册路由（`/auth/register.tsx` -> "/auth/register"）—— **薄适配层**。
  *
- * 薄路由职责：
- * 1. 守卫已登录用户自动分流；
- * 2. 注入 SEO Meta 与标题信息；
- * 3. 挂载 `ForgotEmailPage` 业务组件。
+ * 注册表单与交互逻辑收拢在 `#/features/auth`，路由仅负责导航守卫、SEO 与页面挂载。
  */
-export const Route = createFileRoute('/_auth/forgot-email')({
+export const Route = createFileRoute('/auth/register')({
   head: () => {
     const brand = getBrandConfig()
     return {
       meta: [
         {
-          title: `找回邮箱 - ${brand.name}`,
+          title: `注册 - ${brand.name}`,
         },
         {
           name: 'description',
-          content: `通过关联信息找回您在 ${brand.name} 的登录邮箱`,
+          content: `创建 ${brand.name} 账号`,
         },
       ],
     }
   },
   beforeLoad: () => {
     const auth = getAuthSnapshot()
+    // 若已登录，直接引导回工作台/应用主页
     if (auth.isAuthenticated) {
       if (!isMultiAppEnabled()) {
         const appId = auth.currentApp?.id || DEFAULT_APP_ID
@@ -41,16 +39,16 @@ export const Route = createFileRoute('/_auth/forgot-email')({
       throw redirect({ to: '/' })
     }
   },
-  component: ForgotEmailRoute,
+  component: RegisterRoute,
 })
 
-function ForgotEmailRoute() {
+function RegisterRoute() {
   const { t } = useTranslation('auth')
   const brand = getBrandConfig()
 
   useEffect(() => {
-    document.title = `${t('forgotEmailTitle', '找回邮箱')} - ${brand.name}`
+    document.title = `${t('signUp', '注册')} - ${brand.name}`
   }, [brand.name, t])
 
-  return <ForgotEmailPage />
+  return <RegisterPage />
 }

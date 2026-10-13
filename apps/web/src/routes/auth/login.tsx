@@ -10,12 +10,12 @@ interface LoginSearch {
 }
 
 /**
- * 登录路由（`/_auth/login.tsx` -> "/login"）—— **薄适配层**。
+ * 登录路由（`/auth/login.tsx` -> "/auth/login"）—— **薄适配层**。
  *
  * `validateSearch` / `beforeLoad` / `head` 是路由语义，留在这一层；
  * 登录表单与逻辑在 `#/features/auth`，`redirect` 通过 props 传入。
  */
-export const Route = createFileRoute('/_auth/login')({
+export const Route = createFileRoute('/auth/login')({
   head: () => {
     const brand = getBrandConfig()
     return {

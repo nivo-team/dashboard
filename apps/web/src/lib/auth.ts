@@ -339,8 +339,8 @@ export const useAuthStore = create<AuthStore>()(
  */
 function redirectToLogin() {
   if (typeof window === 'undefined') return
-  if (window.location.pathname === '/login') return
-  window.location.replace('/login')
+  if (window.location.pathname === '/auth/login') return
+  window.location.replace('/auth/login')
 }
 
 /**

@@ -9,9 +9,14 @@
 ```
 apps/web/src/routes/
 ├── __root.tsx                 # 根路由：提供 Kumo LinkProvider、全局 Toasty 容器、全屏 404 与 Devtools
-├── _auth/                     # 认证门户专用无路径布局
+├── auth/                      # 认证门户专用布局
 │   ├── route.tsx              #   顶部悬浮语言与主题切换器
-│   └── login.tsx              #   登录页面 (/login)
+│   ├── index.tsx              #   /auth 重定向至 /auth/login
+│   ├── login.tsx              #   登录页面 (/auth/login)
+│   ├── register.tsx           #   注册页面 (/auth/register)
+│   ├── forgot-email.tsx       #   找回邮箱 (/auth/forgot-email)
+│   ├── forgot-password.tsx    #   重置密码 (/auth/forgot-password)
+│   └── oauth/                 #   OAuth 回调 (/auth/oauth/$provider/callback)
 ├── _main/                     # 与 appId 无关的通用外壳布局（无路径布局）
 │   ├── route.tsx              #   全局工作台外壳（Kumo Sidebar + Header，登录鉴权拦截）
 │   ├── index.tsx              #   根路径 /：工作空间应用选择页 (SelectAppPage)
@@ -263,7 +268,7 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
   - `beforeLoad` 守卫：校验认证状态，并自动同步 URL 中的 `$appId` 与当前激活应用；若访问历史别名路径（如 `/admin`）会自动规范化重定向至 `/$appId/home`，若 appId 不存在则直接抛出 404 (`notFound()`) 并在 `_main` 通用外壳中呈现；
   - 面包屑计算：顶栏面包屑自动剔除开头的 `$appId` 参数，并按 `NAV_GROUPS` 做最长前缀匹配，剩余分段作为动态参数逐级追加（如 `/$appId/example/table` 显示为 `首页 / 示例 / 表格示例`，`/$appId/example/table/10001` 显示为 `首页 / 示例 / 表格示例 / 10001`）。
     - 剩余分段默认只显示**原始段**（如 `483`）。业务模块可在数据到达后用 `apps/web/src/lib/breadcrumb-trail.ts` 的 `setBreadcrumbTrail(owner, { [path]: { label, parent } })` 注册层级，`AppHeader` 命中后把它还原成**带名称、可逐级点击**的层级链（功能模块据此把 `/$appId/system/features/483` 显示为 `首页 / 系统 / 功能 / system / menus`，点 `system` 即回到 484）；按 `owner` 覆盖式注册、组件卸载即清除，未注册时行为完全不变。
-- `_auth/route.tsx`：认证门户专用无路径布局 (`/login`)。右上角内置浮动语言与主题切换器。
+- `auth/route.tsx`：认证门户专用布局 (`/auth/login`)。右上角内置浮动语言与主题切换器。
 
 ---
 

@@ -13,10 +13,10 @@ const VALID_PROVIDERS: readonly OAuthProviderId[] = ['google', 'github', 'apple'
 /**
  * 通用 OAuth 第三方授权回调薄路由
  *
- * 匹配路径：`/_auth/oauth/:provider/callback`
+ * 匹配路径：`/auth/oauth/:provider/callback`
  * 支持 google、github、apple 等任意启用的平台回调处理。
  */
-export const Route = createFileRoute('/_auth/oauth/$provider/callback')({
+export const Route = createFileRoute('/auth/oauth/$provider/callback')({
   validateSearch: (search: Record<string, unknown>): OAuthCallbackSearch => {
     return {
       code: typeof search.code === 'string' ? search.code : undefined,
@@ -40,9 +40,9 @@ export const Route = createFileRoute('/_auth/oauth/$provider/callback')({
     }
   },
   beforeLoad: ({ params }) => {
-    // 校验 provider 是否合法，非合法提供商安全重定向至 /login
+    // 校验 provider 是否合法，非合法提供商安全重定向至 /auth/login
     if (!VALID_PROVIDERS.includes(params.provider as OAuthProviderId)) {
-      throw redirect({ to: '/login' })
+      throw redirect({ to: '/auth/login' })
     }
   },
   component: OAuthCallbackRoute,

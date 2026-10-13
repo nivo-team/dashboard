@@ -6,7 +6,7 @@ import { RouterLink } from '#/components/router-link'
 export interface ForgotEmailFormProps {
   /** 提交成功后的自定义回调 */
   onSuccess?: (foundEmail?: string) => void
-  /** 返回登录的路由（默认 '/login'） */
+  /** 返回登录的路由（默认 '/auth/login'） */
   loginHref?: string
   /** 额外容器类名 */
   className?: string
@@ -17,7 +17,7 @@ export interface ForgotEmailFormProps {
  */
 export function ForgotEmailForm({
   onSuccess,
-  loginHref = '/login',
+  loginHref = '/auth/login',
   className = '',
 }: ForgotEmailFormProps) {
   const { t } = useTranslation('auth')

@@ -1,29 +1,29 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ForgotPasswordPage } from '#/features/auth'
+import { ForgotEmailPage } from '#/features/auth'
 import { DEFAULT_APP_ID, getAuthSnapshot, isMultiAppEnabled } from '#/lib/auth'
 import { getBrandConfig } from '#/lib/brand'
 
 /**
- * 重置密码路由（`/_auth/forgot-password.tsx` -> "/forgot-password"）
+ * 找回邮箱路由（`/auth/forgot-email.tsx` -> "/auth/forgot-email"）
  *
  * 薄路由职责：
  * 1. 守卫已登录用户自动分流；
  * 2. 注入 SEO Meta 与标题信息；
- * 3. 挂载 `ForgotPasswordPage` 业务组件。
+ * 3. 挂载 `ForgotEmailPage` 业务组件。
  */
-export const Route = createFileRoute('/_auth/forgot-password')({
+export const Route = createFileRoute('/auth/forgot-email')({
   head: () => {
     const brand = getBrandConfig()
     return {
       meta: [
         {
-          title: `重置密码 - ${brand.name}`,
+          title: `找回邮箱 - ${brand.name}`,
         },
         {
           name: 'description',
-          content: `通过注册邮箱重置您在 ${brand.name} 的登录密码`,
+          content: `通过关联信息找回您在 ${brand.name} 的登录邮箱`,
         },
       ],
     }
@@ -41,16 +41,16 @@ export const Route = createFileRoute('/_auth/forgot-password')({
       throw redirect({ to: '/' })
     }
   },
-  component: ForgotPasswordRoute,
+  component: ForgotEmailRoute,
 })
 
-function ForgotPasswordRoute() {
+function ForgotEmailRoute() {
   const { t } = useTranslation('auth')
   const brand = getBrandConfig()
 
   useEffect(() => {
-    document.title = `${t('forgotPasswordTitle', '重置密码')} - ${brand.name}`
+    document.title = `${t('forgotEmailTitle', '找回邮箱')} - ${brand.name}`
   }, [brand.name, t])
 
-  return <ForgotPasswordPage />
+  return <ForgotEmailPage />
 }
