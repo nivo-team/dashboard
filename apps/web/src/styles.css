@@ -115,7 +115,7 @@
  * 之所以走 CSS 变量而不是 JS 常量：这些面板是 `fixed` / `sticky` 定位、还有走 portal 的，
  * 用 CSS 变量才能让「整屏高度」跟着窗口条自动收敛，不需要把视口高度灌进 React。
  *
- * `data-desktop-chrome` 挂在**外壳的整屏容器**上（见 `#/components/shell/shell-sidebar-provider`），
+ * `data-desktop-chrome` 挂在**外壳的整屏容器**上（见 `#/layouts/provider`），
  * 而不是 <html>：桌面壳里也有没有窗口条的页面（登录、全屏对话），
  * 那些页面的侧边栏 / 面板必须保持一屏高。
  */
@@ -919,7 +919,7 @@ main[data-shell-content]:has([data-notfound]) {
 
 /*
  * `$appId` 外壳（AppShell）的 padding 已经**下移到主列**（`[data-detail-preview-main]`，
- * 见 #/components/shell/app-shell.tsx 与 components/detail-preview），这样分屏面板才能贴边满高。
+ * 见 `#/layouts` 与 components/detail-preview），这样分屏面板才能贴边满高。
  * 于是 404 要多铺平两层：
  * - 布局行改回 `stretch`：它平时是 `items-start`（分屏面板要 sticky，不能被拉伸），
  *   但 404 需要主列拿到确定高度，线框根节点的 grow 才有空间可撑；

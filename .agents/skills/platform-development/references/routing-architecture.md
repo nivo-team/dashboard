@@ -257,7 +257,7 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
   见 [ui-and-styling.md](./ui-and-styling.md) §4。
 
 侧边栏的 `Sidebar.Provider` 接线（含**桌面非受控、移动端受控**这套移动端抽屉接法）
-统一在 `#/components/shell/shell-sidebar-provider` 的 `ShellSidebarProvider`，两个外壳共用一份 ——
+统一在 `#/layouts/provider` 的 `LayoutSidebarProvider`，两个外壳共用一份 ——
 原因与踩过的坑见 [store.md](./store.md) §5.4。
 
 ### 局部异步与状态隔离
@@ -383,7 +383,10 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
   - `MAIN_NAV_ITEMS`：`_main` 通用外壳导航（应用选择 `/`、个人资料 `/settings/profile`），由 `MainSidebar` 渲染；
   - `SETTINGS_NAV_ITEMS`：设置模块的二级导航（个人资料 `/settings/profile`、外观 `/settings/appearance`（图标 `SwatchesIcon`、文案 `profileNav.appearance`）、AI `/settings/AI`（图标 `SparkleIcon`、文案 `profileNav.ai`，**路径保留大写缩写**）），由 `MainSidebar` 的设置分支渲染。**「外观」与「主题」是两个 key**：前者是模块入口（`profileNav.appearance`），后者是主题选择器的分组标题（`theme.label`），不要合并。
   - 后两份是 `ShellNavItem`，`to` 是**绝对路径**（不拼 appId），并带 `matchPaths` 表达「历史别名也算选中」（如 `/select-app` 之于 `/`）。**不要把外壳项塞进 `NAV_GROUPS`** —— 会污染 `AppHeader` 的业务面包屑匹配，且 `_main` 外壳根本没有 appId 前缀。`ALL_SHELL_NAV_TARGETS` 是两份外壳导航合并去重后的命令面板数据源。
-- **三处侧边栏与命令面板都必须是「配置对象 → map 渲染」**，不允许把菜单项硬编码在 JSX 里（`MainSidebar` 曾如此）：加 / 改导航项只动 `navigation/` 下的名单文件，业务侧边栏、外壳侧边栏、⌘K 面板三个入口自动同步。外壳侧边栏统一走 `#/layouts/common/nav-shared` 的 `ShellNavButton`（`#/components/shell/main-nav-shared.tsx` 只是转发层）。
+- **三处侧边栏与命令面板都必须是「配置对象 → map 渲染」**，不允许把菜单项硬编码在 JSX 里（`MainSidebar` 曾如此）：加 / 改导航项只动 `navigation/` 下的名单文件，业务侧边栏、外壳侧边栏、⌘K 面板三个入口自动同步。外壳侧边栏统一走 `#/layouts/common/nav-shared` 的 `ShellNavButton`。
+- **外壳组件的唯一实现在 `#/layouts/`**（侧边栏 Provider 在 `#/layouts/provider`）：曾有一层
+  `#/components/shell/*` 纯转发 shim（只把 `#/layouts` 的名字换个马甲再导出），已删除 ——
+  **不要再引入**。别名层让「搜到的组件名」与「读到的实现」变成两跳，改组件时容易改错文件。
 - **导航项没有描述字段**：侧边栏与命令面板列表**只显示标题**（曾经给命令面板当副标题的 `description` 已删除，不要加回来）；检索能力靠 `keywords`（中英双语，保证两种输入都能命中）。
 - 导航文案通过 `labelKey` / `children[].labelKey` 指向 `common` 命名空间下的 i18n 键，不要在组件里硬编码路径→文案的映射；新增导航项时**只写 `zh-CN` 的 `nav.*` 文案**，其它语言由翻译流水线补齐。
 - 业务首页路径统一配置为 `/home`，拼接当前激活应用标识生成 `/$appId/home`；它的**文案是「仪表盘」**（`nav.home`），别只改一处就以为改完了 —— 导航项、命令面板、顶栏面包屑三处共用这个 key。检索关键词同时保留 `home` / `首页` 与 `dashboard` / `仪表盘`（老用户还在按老名字找它）。

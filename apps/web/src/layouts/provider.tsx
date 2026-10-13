@@ -135,9 +135,6 @@ export function LayoutSidebarProvider({ children }: { children: ReactNode }) {
   )
 }
 
-/** 兼容旧引用的别名导出 */
-export const ShellSidebarProvider = LayoutSidebarProvider
-
 function SidebarTriggerBridge({ toggleRef }: { toggleRef: React.MutableRefObject<() => void> }) {
   const { toggleSidebar } = useSidebar()
   useEffect(() => {

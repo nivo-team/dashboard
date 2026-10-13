@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CommandPaletteDialog } from '#/components/command-palette'
 import { DetailPreviewProvider } from '#/components/detail-preview'
-import { ShellSidebarProvider } from '#/layouts/provider'
+import { LayoutSidebarProvider } from '#/layouts/provider'
 import { DesktopSidebarTrigger, DesktopHistoryNav } from './title-bar'
 import { cn } from '#/lib/cn'
 import { handleDesktopHeaderDoubleClick, useDesktopBlurred } from './bridge'
@@ -155,7 +155,7 @@ export function DesktopSettingsLayout({ children }: { children?: ReactNode }) {
   }, [])
 
   return (
-    <ShellSidebarProvider>
+    <LayoutSidebarProvider>
       <DesktopSettingsSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />
 
       {/* 工作区：顶部避让 40px 窗口条，内容区整高展示 */}
@@ -175,6 +175,6 @@ export function DesktopSettingsLayout({ children }: { children?: ReactNode }) {
       <DesktopSettingsTitleBar />
 
       <CommandPaletteDialog open={paletteOpen} onOpenChange={setPaletteOpen} />
-    </ShellSidebarProvider>
+    </LayoutSidebarProvider>
   )
 }
