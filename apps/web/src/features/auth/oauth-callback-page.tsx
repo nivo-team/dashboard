@@ -5,11 +5,11 @@ import { useTranslation } from 'react-i18next'
 import { RouterLink } from '#/components/router-link'
 import {
   completeLoginWithApp,
-  getDefaultApp,
-  isMultiAppEnabled,
+  fetchAvailableApps,
   setAuthenticatedSession,
   type UserInfo,
 } from '#/lib/auth'
+import { shouldEnterAppSelect } from '#/lib/app-config'
 import type { OAuthProviderId } from './oauth-config'
 
 export interface OAuthCallbackPageProps {
@@ -67,36 +67,34 @@ export function OAuthCallbackPage({
 
         if (!isMounted) return
 
-        if (!isMultiAppEnabled()) {
-          const defaultApp = getDefaultApp()
-          completeLoginWithApp(
-            {
-              token: mockToken,
-              user: mockUser,
-              apps: [defaultApp],
-            },
-            defaultApp.id,
-          )
-          await router.invalidate()
+        /*
+          落点判定与账号密码登录**同一套**（见 `login-form.tsx`）：
+          可用应用来自 `fetchAvailableApps()`，是否进选择页由 `shouldEnterAppSelect()` 定。
+          不要在这里另写 `if (isMultiAppEnabled())` 分支 —— 单/多应用与
+          「该账号实际有几个应用」是两件事，多应用模式下也可能只有一个应用。
+        */
+        const apps = await fetchAvailableApps()
+        const enterDirectly = !shouldEnterAppSelect(apps.length) && apps.length > 0
+        const session = { token: mockToken, user: mockUser, apps }
+
+        if (enterDirectly) {
+          completeLoginWithApp(session, apps[0].id)
+        } else {
+          setAuthenticatedSession(session)
+        }
+        await router.invalidate()
+
+        if (enterDirectly) {
           const target =
             redirectUrl &&
             redirectUrl.startsWith('/') &&
             redirectUrl !== '/' &&
             redirectUrl !== '/select-app'
               ? redirectUrl
-              : `/${defaultApp.id}/home`
+              : `/${apps[0].id}/home`
           void navigate({ to: target as any })
         } else {
-          setAuthenticatedSession({
-            token: mockToken,
-            user: mockUser,
-            apps: [getDefaultApp()],
-          })
-          await router.invalidate()
-          void navigate({
-            to: '/',
-            search: { redirect: redirectUrl },
-          })
+          void navigate({ to: '/', search: { redirect: redirectUrl } })
         }
       } catch (err: unknown) {
         if (!isMounted) return

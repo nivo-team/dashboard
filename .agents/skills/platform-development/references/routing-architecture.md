@@ -79,7 +79,7 @@ apps/web/src/routes/
 
 - API 请求头 `X-App-Id` 取自 `useAuthStore` 的 `currentApp.id`（`src/api/index.ts` 的
   `configureAuthInterceptors`），与 URL 无关；
-- 存储作用域由 `setAppScope(chosenApp.id)` 驱动（`src/lib/auth.ts`），与 URL 无关；
+- 存储作用域由 `setAppScope(chosenApp.id)` 驱动（`src/lib/store/auth-store.ts`），与 URL 无关；
 - 查询缓存按应用分区，同样读 `currentApp`（`src/lib/store/app-scope`、`query-client`）。
 
 所以 URL 里的 `$appId` 只承担三件事：**选中态同步、404 守卫、以及作为所有链接的前缀**。

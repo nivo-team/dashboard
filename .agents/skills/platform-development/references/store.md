@@ -9,7 +9,7 @@
 
 | 类别 | 位置 | 存储键（localStorage） | 按应用隔离 |
 | --- | --- | --- | --- |
-| 认证与应用选择 | `apps/web/src/lib/auth.ts` 的 `useAuthStore` | `admin.auth-state` | 否 —— 它本身就是「当前是哪个应用」 |
+| 认证与应用选择 | `apps/web/src/lib/store/auth-store.ts` 的 `useAuthStore`（读写口在 `#/lib/auth`） | `admin.auth-state` | 否 —— 它本身就是「当前是哪个应用」 |
 | 本机偏好（语言 / 外观 / 时区 / 详情打开方式 / 页面宽度） | `apps/web/src/lib/store/preferences-store.ts` | `admin.preferences:<appId>` | **是** —— 每个应用一套，没改过时继承 `:global` 基线 |
 | 表格 UI（列设置 / 筛选 / 排序 / 分页） | `apps/web/src/lib/store/table-ui-store.ts` | `admin.table-ui:<appId>` | **是** |
 | 仪表盘布局（卡片位置 / 尺寸） | `apps/web/src/lib/store/dashboard-store.ts` | `admin.dashboard:<appId>` | **是** —— 见 [dashboard-module.md](../../business-development/references/dashboard-module.md) |
@@ -96,6 +96,13 @@ import { useAuth, getAuthSnapshot, setCurrentApp } from '#/lib/auth'
 const { user, currentApp, availableApps, logout } = useAuth()   // 组件
 const auth = getAuthSnapshot()                                  // 非 React（路由 beforeLoad）
 ```
+
+> 认证 store 的**状态机**在 `#/lib/store/auth-store.ts`，`#/lib/auth` 是它的唯一对外出口
+> （读写口 + `apiLogin` / `resolveAuthenticatedLanding` 等会话流程 + 模块级副作用）。
+> store 桶 `#/lib/store/index.ts` **刻意不转出它**：auth-store 在模块初始化时会注册请求拦截器
+> 与跨标签页同步，进桶会让每个引 `#/lib/store` 的底层模块都连带触发。
+> 部署模式（单/多应用、单/多账号）怎么读见
+> [auth-and-i18n.md](./auth-and-i18n.md) §1。
 
 ### 5.2 新增一个 per-app 的表格状态
 

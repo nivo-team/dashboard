@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { isConfiguredSuperAdmin } from '../app-config'
 import { registerScopedStore } from './app-scope'
 import { enableCrossTabSync } from './cross-tab-sync'
 import { createScopedJSONStorage } from './scoped-storage'
@@ -38,11 +39,22 @@ export type PermissionRequirement =
       }) => boolean
     }
 
+/** 当前账号的身份标识：只为判定 env 里配置的最高管理员（见 `app-config`）。 */
+export interface PermissionIdentity {
+  uid?: number | string | null
+  username?: string | null
+}
+
 export interface PermissionState {
   /** 当前用户角色标识（如 'Super Admin', 'editor', 'viewer'） */
   role: string
   /** 当前用户的原始权限点数组 */
   permissions: string[]
+  /**
+   * 当前账号身份，用于判定 `VITE_SUPER_ADMIN_ID` 指定的最高管理员。
+   * 由认证层在建立会话时写入（`#/lib/auth`），不参与持久化。
+   */
+  identity: PermissionIdentity | null
   /** 结构化计算后的权限对象（存储在 store） */
   computed: ComputedPermissions
   /** 上次拉取或更新时间戳 */
@@ -52,6 +64,8 @@ export interface PermissionState {
 export interface PermissionActions {
   /** 更新当前角色的权限点清单并重新计算 computed 权限对象 */
   setPermissions: (data: { role?: string; permissions?: readonly string[] }) => void
+  /** 写入当前账号身份（登录 / 恢复会话时由认证层调用），会据此重算超管判定 */
+  setIdentity: (identity: PermissionIdentity | null) => void
   /** 清空权限状态（登出或切换账号时使用） */
   resetPermissions: () => void
 }
@@ -84,13 +98,16 @@ export function normalizeRoleName(role = ''): string {
 export function computePermissions(
   permissions: readonly string[] = [],
   role = '',
+  identity?: PermissionIdentity | null,
 ): ComputedPermissions {
   const normalizedRole = normalizeRoleName(role)
   const isSuperAdmin =
     normalizedRole === 'superadmin' ||
     normalizedRole === 'super' ||
     permissions.includes('*') ||
-    permissions.includes('*:*')
+    permissions.includes('*:*') ||
+    // 部署时用 `VITE_SUPER_ADMIN_ID` 指派的最高管理员：不依赖后端下发角色名或通配权限点
+    isConfiguredSuperAdmin(identity)
 
   const wildcards: string[] = []
   const permissionMap: Record<string, boolean> = {}
@@ -121,10 +138,8 @@ export function computePermissions(
   }
 }
 
-type PersistedPermission = Pick<
-  PermissionState,
-  'role' | 'permissions' | 'computed' | 'lastUpdated'
->
+/** 落盘的部分：**不含 `computed` 与 `identity`** —— 两者都由 `merge` 重新算出。 */
+type PersistedPermission = Pick<PermissionState, 'role' | 'permissions' | 'lastUpdated'>
 
 const initialComputed = computePermissions([], '')
 
@@ -134,32 +149,40 @@ const initialComputed = computePermissions([], '')
  * 遵循项目设计：
  * - 存储键 `admin.permissions:<appId>`，不同应用权限状态隔离；
  * - 切换应用时由 `registerScopedStore` 触发重新水合；
- * - 存储结构包含预计算的 `computed` 对象，提供极致的运行时性能。
+ * - store 内**常驻**一份预计算的 `computed`（O(1) 命中），但落盘只存 `role` /
+ *   `permissions`：它是派生值，水合时按当前身份重算（见 `merge`）。
  */
 export const usePermissionStore = create<PermissionStore>()(
   persist(
     (set) => ({
       role: '',
       permissions: [],
+      identity: null,
       computed: initialComputed,
       lastUpdated: null,
 
       setPermissions: ({ role, permissions = [] }) => {
         const nextRole = role !== undefined ? role : ''
         const nextPermissions = [...permissions]
-        const computed = computePermissions(nextPermissions, nextRole)
-        set({
+        set((state) => ({
           role: nextRole,
           permissions: nextPermissions,
-          computed,
+          computed: computePermissions(nextPermissions, nextRole, state.identity),
           lastUpdated: Date.now(),
-        })
+        }))
       },
+
+      setIdentity: (identity) =>
+        set((state) => ({
+          identity,
+          computed: computePermissions(state.permissions, state.role, identity),
+        })),
 
       resetPermissions: () =>
         set({
           role: '',
           permissions: [],
+          identity: null,
           computed: computePermissions([], ''),
           lastUpdated: null,
         }),
@@ -170,7 +193,6 @@ export const usePermissionStore = create<PermissionStore>()(
       partialize: (state) => ({
         role: state.role,
         permissions: state.permissions,
-        computed: state.computed,
         lastUpdated: state.lastUpdated,
       }),
       merge: (persisted, current) => {
@@ -181,7 +203,13 @@ export const usePermissionStore = create<PermissionStore>()(
           ...current,
           role,
           permissions,
-          computed: saved.computed ?? computePermissions(permissions, role),
+          /*
+            `computed` **一律重算**，不直接吃存档里那份：
+            它是派生值，而身份（`identity`）不落盘 —— 若沿用存档里的 computed，
+            `VITE_SUPER_ADMIN_ID` 指派的最高管理员会在刷新后丢掉超管判定。
+            带上 `current.identity`（会话内存里的那份）一起算，就不会有这一帧的断层。
+          */
+          computed: computePermissions(permissions, role, current.identity),
           lastUpdated: saved.lastUpdated ?? current.lastUpdated,
         }
       },

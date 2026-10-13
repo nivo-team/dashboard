@@ -240,9 +240,11 @@ mock 里强制的两条硬约束：
 
 - **点行 = 进入**：仅启用的行可点，走 `selectAppAndComplete(id)` →
   `router.invalidate()` → 跳 `?redirect` 或 `/<id>/home`；停用行置灰不可点（只读视图里不存在停用行）。
-- **管理按钮按权限收敛**：`useHasPermission('app:create' | 'app:edit' | 'app:delete')`。
+- **管理按钮按权限收敛**：用通用件 `<Can>` / `<PermissionButton>`
+  （`src/components/permission-guard.tsx`），判定口径仍只有 `hasPermission` 一处。
   新建按钮在页头；编辑 / 删除在行尾 `DropdownMenu` 里，**无任何写权限时整个「操作」列不渲染**
-  （`showActions = canEdit || canDelete`）。
+  （`showActions = useHasPermission({ any: ['app:edit', 'app:delete'] })`）。
+  列里两个菜单项各套一层 `<Can>`，所以「只给编辑权限」的账号不会看到一个只有半截菜单的下拉。
 - 表单 `AppForm`（`app-form.tsx`）新建 / 编辑共用（字段、校验、`id` 只读开关只有一份），
   弹窗外壳 `AppFormDialog`（`app-form-dialog.tsx`）用 `LayerDialog.Actions.Primary form={formId}` 提交；
   删除用通用件 `DangerConfirmDialog`（要求原样输入应用 `id`）。
@@ -276,6 +278,12 @@ category / themeGradient / status / sort / created_at / updated_at`。
 
 > **单应用模式**：`_main/index.tsx` 的 `beforeLoad` 直接把 `/` 重定向到 `/$DEFAULT_APP_ID/home`
 > （`MAIN_NAV_ITEMS` 里也滤掉「应用」项），所以这一页实际只在多应用模式下可见。
+>
+> **多应用模式也不一定停在这**：`shouldEnterAppSelect(应用数)`（`#/lib/app-config`）按
+> `VITE_APP_SELECT_MODE`（`auto` / `always` / `never`）判定 —— 默认 `auto` 下，
+> 该账号可用应用 ≤ 1 时 `/` 也会把人直接送进那个应用，登录表单与 `AppSwitcher` 的
+> 「查看所有应用」项走同一套判定。部署形态总览见
+> [platform-development/references/auth-and-i18n.md](../../platform-development/references/auth-and-i18n.md) §1。
 
 > 单应用模式去掉 `/$appId` 前缀的可行性与推荐方案，见
 > [platform-development/references/routing-architecture.md](../../platform-development/references/routing-architecture.md)

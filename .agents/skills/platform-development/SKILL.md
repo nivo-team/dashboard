@@ -19,7 +19,7 @@ description: 本仓库工程底座（与「业务开发」相对）的入口 —
 | 加页面 / 改路由 / 改外壳布局 / 改导航 / 改面包屑 | [references/routing-architecture.md](./references/routing-architecture.md) |
 | 改样式 / 用 Kumo 组件 / 换主题 / RTL 适配 | [references/ui-and-styling.md](./references/ui-and-styling.md) |
 | 加 store / 改持久化 / 切应用作用域 / 迁移存储键 | [references/store.md](./references/store.md) |
-| 改登录登出 / 加多应用 / 改语言包加载 | [references/auth-and-i18n.md](./references/auth-and-i18n.md) |
+| 改登录登出 / 加多应用 / **改部署模式（单多应用 × 单多账号的环境变量）** / 改语言包加载 | [references/auth-and-i18n.md](./references/auth-and-i18n.md) |
 | 改接口调用 / 改生成产物 / 换后端 / 改契约来源 | [references/api-client.md](./references/api-client.md) |
 | 生成链路本身（`packages/api-client` 怎么跑、怎么指新后端） | `packages/api-client/README.md` |
 
@@ -30,7 +30,7 @@ description: 本仓库工程底座（与「业务开发」相对）的入口 —
 | 层 | 真值在哪 | 一句话 |
 | --- | --- | --- |
 | **路由 / 外壳** | `apps/web/src/routes/**`（薄）+ `src/layouts/`（外壳） | 路由文件只做「路径 → 组件」的薄适配；外壳统一在 `layouts`，有 default / desktop / mobile 三变体，靠路径嵌套而非重复实现切换 |
-| **状态** | `src/lib/store/**` | 三类状态分开存（持久化偏好 / 会话内 UI / 服务端缓存），都能按 `appId` 分区；切应用要连带切缓存与偏好键 |
+| **状态** | `src/lib/store/**` | 三类状态分开存（持久化偏好 / 会话内 UI / 服务端缓存），都能按 `appId` 分区；切应用要连带切缓存与偏好键。**认证与应用状态是例外**：store 本体在 `store/auth-store.ts`，读写口在 `#/lib/auth`（不进 store 桶，见 §1 注） |
 | **样式** | `src/styles/**` + Kumo 语义令牌 | 主题由根节点 `data-mode` 驱动（**禁 `dark:`**），颜色只用语义令牌，链接只走 `RouterLink` |
 | **请求** | `src/api/**` + `packages/api-client` | 类型与 Query 钩子由 OpenAPI 契约生成，**不手写 interface 映射后端字段**；缓存分区同样按 `appId` |
 

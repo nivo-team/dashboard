@@ -1,6 +1,6 @@
 /* eslint-disable */
 // 本文件由 scripts/i18n/gen-types.mjs 生成 —— 不要手改。
-// 源语言：zh-CN｜命名空间：11 个｜键：1225 个
+// 源语言：zh-CN｜命名空间：11 个｜键：1239 个
 // 重新生成：pnpm i18n:types
 
 /**
@@ -293,6 +293,20 @@ export interface I18nNamespaceKeys {
   "common":
     | "about.appDescription"
     | "about.appName"
+    | "about.deployment.accountDimension"
+    | "about.deployment.accountMulti"
+    | "about.deployment.accountSingle"
+    | "about.deployment.appDimension"
+    | "about.deployment.appMulti"
+    | "about.deployment.appSelectMode"
+    | "about.deployment.appSelectModes.always"
+    | "about.deployment.appSelectModes.auto"
+    | "about.deployment.appSelectModes.never"
+    | "about.deployment.appSingle"
+    | "about.deployment.hint"
+    | "about.deployment.superAdmin"
+    | "about.deployment.superAdminUnset"
+    | "about.deployment.title"
     | "about.fields.appName"
     | "about.fields.techStack"
     | "about.fields.version"

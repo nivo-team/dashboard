@@ -2,7 +2,8 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ForgotEmailPage } from '#/features/auth'
-import { DEFAULT_APP_ID, getAuthSnapshot, isMultiAppEnabled } from '#/lib/auth'
+import { getAuthSnapshot, resolveAuthenticatedLanding } from '#/lib/auth'
+import { isMultiAccountEnabled } from '#/lib/app-config'
 import { getBrandConfig } from '#/lib/brand'
 
 /**
@@ -29,16 +30,14 @@ export const Route = createFileRoute('/auth/forgot-email')({
     }
   },
   beforeLoad: () => {
+    // 单账号部署不提供找回入口：直接回登录页
+    if (!isMultiAccountEnabled()) throw redirect({ to: '/auth/login' })
+
     const auth = getAuthSnapshot()
+    // 若已登录，按部署模式引导回工作台 / 应用主页
     if (auth.isAuthenticated) {
-      if (!isMultiAppEnabled()) {
-        const appId = auth.currentApp?.id || DEFAULT_APP_ID
-        throw redirect({ to: `/${appId}/home` as any })
-      }
-      if (auth.currentApp) {
-        throw redirect({ to: `/${auth.currentApp.id}/home` as any })
-      }
-      throw redirect({ to: '/' })
+      const landing = resolveAuthenticatedLanding(auth)
+      throw redirect({ to: landing.to as any, search: landing.search as any })
     }
   },
   component: ForgotEmailRoute,

@@ -59,8 +59,15 @@ const isSuperAdmin =
   normalizedRole === 'superadmin' ||
   normalizedRole === 'super' ||
   permissions.includes('*') ||
-  permissions.includes('*:*')
+  permissions.includes('*:*') ||
+  isConfiguredSuperAdmin(identity)   // VITE_SUPER_ADMIN_ID 命中的账号
 ```
+
+第四项是**部署期**的逃生口：有些后端不下发 `Super Admin` 这种角色名，而是约定
+「某个账号就是最高管理员」。`VITE_SUPER_ADMIN_ID` 配 uid 或登录名（忽略大小写），
+登录时由 `auth-store` 把 `{ uid, username }` 交给权限 store（`setIdentity`），
+刷新页面则由 `onRehydrateStorage` 重新交一次 —— 否则权限接口回来前那一帧会被当成无权限。
+它**不落盘**（`partialize` 不含 identity），只活在本会话内存里。
 
 **`Admin` 不是超管。** 这里曾经写成 `normalizedRole === 'admin'`，后果是：
 Mock 的 `Admin`（业务管理员）`isSuperAdmin === true` → `hasPermission` 第一道
@@ -152,6 +159,30 @@ export async function guardRoutePermission({ appId, href, permission, fallbackTo
 
 **未声明权限 = 公开**，所以新增操作按钮时要么显式声明，要么明确它是公开的。
 
+**新代码用通用组件 `src/components/permission-guard.tsx` 收口，不要手写三元**：
+
+```tsx
+import { Can, PermissionButton } from '#/components/permission-guard'
+
+<Can permission="app:create">
+  <Button>新建应用</Button>
+</Can>
+
+<Can permission={{ any: ['app:create', 'app:edit'] }} fallback={<span>只读</span>}>…</Can>
+
+<PermissionButton permission="app:delete" denied="disable" deniedHint="无删除权限" variant="danger">
+  删除
+</PermissionButton>
+```
+
+- `<Can>` 无权限时不渲染（`fallback` 可换成提示）；`permission` 缺省 = 公开；
+- `<PermissionButton>` 默认 `denied="hide"`，`denied="disable"` 时渲染但置灰并挂 `title`；
+  调用方自己的 `disabled` 与权限**叠加**，不覆盖；
+- 需要「无权限就别渲染整个下拉」「整块不渲染」时，把 `<Can>` 套在**外层容器**上 ——
+  `select-app` 的「操作」列就是这么处理「新建 / 编辑 / 删除」三档的。
+
+判定口径仍只有一处（`hasPermission`），这两个组件只是它的调用方。
+
 已收口：
 
 | 位置 | 权限点 |
@@ -167,7 +198,8 @@ export async function guardRoutePermission({ appId, href, permission, fallbackTo
 
 约定：
 
-1. 用 `useHasPermission('<module>:<action>')`，**不要**在这里另写 `if (role === ...)`；
+1. 按钮优先用 `<Can>` / `<PermissionButton>`；条件逻辑（列表整列、只读形态）用
+   `useHasPermission('<module>:<action>')`。**不要**在这里另写 `if (role === ...)`；
 2. 行内操作列在「一项操作都没权限」时**整列不渲染**（空菜单比没有菜单更糟）；
 3. 危险操作整块（如「危险操作」卡片）不渲染，而不是留一个点了报错的按钮；
 4. **只读形态用 `fieldset[disabled]` 包住整片字段区**（见 `FeatureForm` 的 `readOnly`），

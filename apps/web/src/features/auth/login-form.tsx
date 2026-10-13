@@ -9,10 +9,10 @@ import type { OAuthProviderConfig } from './oauth-config'
 import {
   apiLogin,
   completeLoginWithApp,
-  getDefaultApp,
-  isMultiAppEnabled,
+  fetchAvailableApps,
   setAuthenticatedSession,
 } from '#/lib/auth'
+import { getAuthUiOptions, shouldEnterAppSelect } from '#/lib/app-config'
 
 /** 测试账号模型定义 */
 export interface DemoAccount {
@@ -81,14 +81,14 @@ export interface LoginFormProps {
 export function LoginForm({
   redirect: redirectUrl,
   onSuccess,
-  showDemoAccounts = true,
+  showDemoAccounts,
   demoAccounts = DEFAULT_DEMO_ACCOUNTS,
-  showRegisterLink = true,
+  showRegisterLink,
   registerHref = '/auth/register',
-  showForgotLinks = true,
+  showForgotLinks,
   forgotEmailHref = '/auth/forgot-email',
   forgotPasswordHref = '/auth/forgot-password',
-  showOAuth = true,
+  showOAuth,
   oauthProviders,
   className = '',
 }: LoginFormProps) {
@@ -97,8 +97,18 @@ export function LoginForm({
   const { t } = useTranslation('auth')
   const toast = useKumoToastManager()
 
+  /*
+    缺省值来自部署模式（`VITE_MULTI_ACCOUNT` / `VITE_SHOW_DEMO_ACCOUNTS`），
+    调用方仍可用 props 覆盖 —— 这样「单账号部署不引导注册」不需要每个路由各写一遍。
+  */
+  const authUi = getAuthUiOptions()
+  const resolvedShowDemoAccounts = showDemoAccounts ?? authUi.showDemoAccounts
+  const resolvedShowRegisterLink = showRegisterLink ?? authUi.showRegisterLink
+  const resolvedShowForgotLinks = showForgotLinks ?? authUi.showForgotLinks
+  const resolvedShowOAuth = showOAuth ?? authUi.showOAuth
+
   // 决定是否渲染测试账号
-  const hasDemoAccounts = showDemoAccounts && demoAccounts.length > 0
+  const hasDemoAccounts = resolvedShowDemoAccounts && demoAccounts.length > 0
 
   // 表单状态
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null)
@@ -139,32 +149,38 @@ export function LoginForm({
         rememberDevice,
       })
 
-      // 单应用模式：直接使用默认应用完成选定，跳转至业务首页，避免多余的 / 路由选择
-      if (!isMultiAppEnabled()) {
-        const defaultApp = getDefaultApp()
-        completeLoginWithApp(
-          {
-            token: data.token,
-            user: data.user,
-            apps: [defaultApp],
-          },
-          defaultApp.id,
-        )
-        onSuccess?.()
-        await router.invalidate()
+      /*
+        登录后的落点由**部署模式 + 实际应用数量**决定：
+        - 单应用：直接用默认应用，跳过 `/` 选择页；
+        - 多应用且该账号只有一个可用应用（或 `VITE_APP_SELECT_MODE=never`）：
+          也直接进入 —— 让用户点一次「只有一个选项」的选择页没有意义；
+        - 其余多应用：暂存登录态，进 `/` 拉列表并选择。
+      */
+      // 单应用模式内部直接返回默认应用；多应用模式走 `GET /apps`（失败回落空列表）
+      const apps = await fetchAvailableApps()
+      const enterDirectly = !shouldEnterAppSelect(apps.length) && apps.length > 0
+
+      const session = { token: data.token, user: data.user, apps }
+
+      if (enterDirectly) {
+        completeLoginWithApp(session, apps[0].id)
+      } else {
+        setAuthenticatedSession(session)
+      }
+
+      onSuccess?.()
+      await router.invalidate()
+
+      if (enterDirectly) {
         const target =
           redirectUrl &&
           redirectUrl.startsWith('/') &&
           redirectUrl !== '/' &&
           redirectUrl !== '/select-app'
             ? redirectUrl
-            : `/${defaultApp.id}/home`
+            : `/${apps[0].id}/home`
         void navigate({ to: target as any })
       } else {
-        // 多应用模式：暂存登录态，进入应用选择路由以获取并选定工作空间应用
-        setAuthenticatedSession(data)
-        onSuccess?.()
-        await router.invalidate()
         void navigate({
           to: '/',
           search: { redirect: redirectUrl },
@@ -190,7 +206,7 @@ export function LoginForm({
       {/* ====================================================================== */}
       {/* 第三方 OAuth 登录按钮区（标题正下方优先展示）                         */}
       {/* ====================================================================== */}
-      {showOAuth && (
+      {resolvedShowOAuth && (
         <OAuthButtons
           mode="login"
           providers={oauthProviders}
@@ -335,10 +351,10 @@ export function LoginForm({
         {/* ====================================================================== */}
         {/* 底部辅助链接区：注册引导 + 忘记邮箱/密码引导                           */}
         {/* ====================================================================== */}
-        {(showRegisterLink || showForgotLinks) && (
+        {(resolvedShowRegisterLink || resolvedShowForgotLinks) && (
           <div className="mt-2.5 flex flex-col items-center gap-1.5 text-center text-sm text-kumo-subtle">
             {/* 第一行：注册引导 */}
-            {showRegisterLink && (
+            {resolvedShowRegisterLink && (
               <div>
                 <span>{t('noAccount', '还没有账号？')} </span>
                 <RouterLink
@@ -352,7 +368,7 @@ export function LoginForm({
             )}
 
             {/* 第二行：忘记邮箱或密码引导 */}
-            {showForgotLinks && (
+            {resolvedShowForgotLinks && (
               <div>
                 <span>{t('forgotPromptPrefix', '忘记了 ')}</span>
                 <RouterLink to={forgotEmailHref} variant="inline">

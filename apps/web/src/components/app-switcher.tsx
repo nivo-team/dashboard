@@ -3,6 +3,7 @@ import { CaretUpDownIcon, CheckIcon, SquaresFourIcon } from '@phosphor-icons/rea
 import { useRouter } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { isMultiAppEnabled, useAuth } from '#/lib/auth'
+import { shouldEnterAppSelect } from '#/lib/app-config'
 import type { AppItem } from '#/lib/auth'
 export type { AppItem }
 
@@ -123,19 +124,27 @@ export function AppSwitcher({
           )
         })}
 
-        {/* 查看所有应用：回到根路径的应用页（_main/index.tsx -> "/"，选择 + 管理同一页） */}
-        <DropdownMenu.Separator />
-        <DropdownMenu.Item
-          onClick={() => router.navigate({ to: '/' })}
-          className="flex items-center gap-2.5"
-        >
-          <span className="flex size-6 shrink-0 items-center justify-center text-kumo-default">
-            <SquaresFourIcon size={14} />
-          </span>
-          <span className="min-w-0 flex-1 truncate text-sm font-medium text-kumo-default">
-            {t('selectApp.viewAll', '查看所有应用')}
-          </span>
-        </DropdownMenu.Item>
+        {/*
+          查看所有应用：回到根路径的应用页（_main/index.tsx -> "/"，选择 + 管理同一页）。
+          当部署策略不打算走选择页（应用数 ≤ 1 或 `VITE_APP_SELECT_MODE=never`）时，
+          这一项没有意义 —— 点了也会被 `/` 的 beforeLoad 直接弹回应用里。
+        */}
+        {shouldEnterAppSelect(activeApps.length) ? (
+          <>
+            <DropdownMenu.Separator />
+            <DropdownMenu.Item
+              onClick={() => router.navigate({ to: '/' })}
+              className="flex items-center gap-2.5"
+            >
+              <span className="flex size-6 shrink-0 items-center justify-center text-kumo-default">
+                <SquaresFourIcon size={14} />
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm font-medium text-kumo-default">
+                {t('selectApp.viewAll', '查看所有应用')}
+              </span>
+            </DropdownMenu.Item>
+          </>
+        ) : null}
       </DropdownMenu.Content>
     </DropdownMenu>
   )

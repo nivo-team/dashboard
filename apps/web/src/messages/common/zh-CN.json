@@ -56,7 +56,25 @@
       "version": "版本号",
       "techStack": "技术栈"
     },
-    "techStack": "React · Vite · TanStack Router · Tailwind · Kumo"
+    "techStack": "React · Vite · TanStack Router · Tailwind · Kumo",
+    "deployment": {
+      "title": "部署模式",
+      "hint": "由构建期环境变量决定（见 apps/web/.env.example）",
+      "appDimension": "应用维度",
+      "appSingle": "单应用",
+      "appMulti": "多应用",
+      "accountDimension": "账号维度",
+      "accountSingle": "单账号",
+      "accountMulti": "多账号",
+      "appSelectMode": "进入应用选择",
+      "appSelectModes": {
+        "auto": "自动（多个应用时）",
+        "always": "始终",
+        "never": "从不"
+      },
+      "superAdmin": "最高管理员",
+      "superAdminUnset": "未配置"
+    }
   },
   "profile": {
     "title": "个人资料",

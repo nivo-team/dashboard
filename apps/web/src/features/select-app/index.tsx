@@ -21,6 +21,7 @@ import {
 } from '#/api'
 import type { ManagedAppItem } from '#/api'
 import { DangerConfirmDialog } from '#/components/danger-confirm-dialog'
+import { Can } from '#/components/permission-guard'
 import { extractApiErrorMessage } from '#/lib/api-error'
 import {
   fetchAvailableApps,
@@ -86,9 +87,8 @@ export function SelectAppPage({ redirect: redirectUrl }: { redirect?: string }) 
 
   /** 应用管理（配置视角）能力：只有超管持有 `app:read`。 */
   const canManage = useHasPermission('app:read')
-  const canCreate = useHasPermission('app:create')
-  const canEdit = useHasPermission('app:edit')
-  const canDelete = useHasPermission('app:delete')
+  /** 「操作」列是否出现：有任一写权限即可（单元格内部再用 `<Can>` 细化到按钮）。 */
+  const showActions = useHasPermission({ any: ['app:edit', 'app:delete'] })
 
   const query = useQuery({
     ...getAppQueryOptions({ query: { page: 1, page_size: APP_LIST_PAGE_SIZE } }),
@@ -251,7 +251,6 @@ export function SelectAppPage({ redirect: redirectUrl }: { redirect?: string }) 
     : availableError
 
   const showStatus = canManage
-  const showActions = canEdit || canDelete
   const columnCount = 3 + (showStatus ? 1 : 0) + (showActions ? 1 : 0)
 
   return (
@@ -267,11 +266,11 @@ export function SelectAppPage({ redirect: redirectUrl }: { redirect?: string }) 
             {t('selectApp.subtitle', { ns: 'common', defaultValue: '选择一个应用。' })}
           </p>
         </div>
-        {canCreate ? (
+        <Can permission="app:create">
           <Button variant="primary" icon={<PlusIcon size={16} />} onClick={openCreate}>
             {t('actions.create', '新建应用')}
           </Button>
-        ) : null}
+        </Can>
       </div>
 
       {errorMsg ? (
@@ -383,7 +382,7 @@ export function SelectAppPage({ redirect: redirectUrl }: { redirect?: string }) 
                           }
                         />
                         <DropdownMenu.Content align="end">
-                          {canEdit ? (
+                          <Can permission="app:edit">
                             <DropdownMenu.Item
                               icon={PencilSimple}
                               onClick={() => {
@@ -395,26 +394,26 @@ export function SelectAppPage({ redirect: redirectUrl }: { redirect?: string }) 
                             >
                               {t('rowActions.edit', '编辑')}
                             </DropdownMenu.Item>
-                          ) : null}
-                          {canDelete ? (
-                            <>
-                              {canEdit ? <DropdownMenu.Separator /> : null}
-                              <DropdownMenu.Item
-                                icon={Trash}
-                                variant="danger"
-                                onClick={() => {
-                                  const target = query.data?.result?.items.find(
-                                    (item) => item.id === app.id,
-                                  )
-                                  if (!target) return
-                                  setDeleteError(null)
-                                  setDeleteTarget(target)
-                                }}
-                              >
-                                {t('rowActions.delete', '删除')}
-                              </DropdownMenu.Item>
-                            </>
-                          ) : null}
+                          </Can>
+                          <Can permission="app:delete">
+                            <Can permission="app:edit">
+                              <DropdownMenu.Separator />
+                            </Can>
+                            <DropdownMenu.Item
+                              icon={Trash}
+                              variant="danger"
+                              onClick={() => {
+                                const target = query.data?.result?.items.find(
+                                  (item) => item.id === app.id,
+                                )
+                                if (!target) return
+                                setDeleteError(null)
+                                setDeleteTarget(target)
+                              }}
+                            >
+                              {t('rowActions.delete', '删除')}
+                            </DropdownMenu.Item>
+                          </Can>
                         </DropdownMenu.Content>
                       </DropdownMenu>
                     </Table.Cell>

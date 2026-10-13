@@ -6,7 +6,45 @@
 
 ## 1. 认证与多应用体系（Auth & Workspaces）
 
-位于 `apps/web/src/lib/auth.ts` 的 `useAuthStore`（**zustand 5 + `persist`**，键仍是 `admin.auth-state`），支持多标签页状态同步与本地持久化。对外仍导出 `useAuth` / `getAuthSnapshot` / `selectAppAndComplete` 等既有 API，调用方无需感知实现；旧存档的裸对象格式在读取时就地升级，老会话不必重新登录。状态层与缓存分区的完整约定见 [store.md](./store.md)。
+分三层，**各自只有一个真值**：
+
+| 层 | 文件 | 职责 |
+| --- | --- | --- |
+| **部署模式** | `apps/web/src/lib/app-config.ts` | 读环境变量，导出能力函数（单/多应用、单/多账号、选择策略、超管 id） |
+| **状态机** | `apps/web/src/lib/store/auth-store.ts` | `useAuthStore`（zustand 5 + `persist`，键 `admin.auth-state`） |
+| **对外 API** | `apps/web/src/lib/auth.ts` | 转出读写口 + 会话流程（`apiLogin` / `fetchAvailableApps` / `resolveAuthenticatedLanding`）+ 模块级副作用（拦截器、跨标签页同步） |
+
+业务代码**只引 `#/lib/auth`**：认证怎么实现（store / 环境变量）与怎么被用不会缠在一起。
+旧存档的裸对象格式在读取时就地升级，老会话不必重新登录。状态层与缓存分区的完整约定见 [store.md](./store.md)。
+
+> `store/auth-store.ts` **刻意不进 `src/lib/store/index.ts` 那个桶** —— 它在模块初始化时会注册
+> 请求拦截器与跨标签页同步，进桶会让每个引 `#/lib/store` 的底层模块连带触发这些副作用。
+
+### 部署模式：两个正交维度，四种形态
+
+前端**同一份产物**靠两个环境变量适配四种部署，代码里**不写 `if (模式 === 'xx')`**，
+而是各读一个能力函数 —— 以后加维度不用改调用点。真值只在 `lib/app-config.ts`，
+变量清单与注释在 `apps/web/.env.example`。
+
+|                    | 单账号 `VITE_MULTI_ACCOUNT=false` | 多账号（默认） |
+| --- | --- | --- |
+| **单应用**（`VITE_MULTI_APP` 默认 false） | 内部管理台：一个应用、一个账号 | 小型 SaaS：单应用 + 开放注册 |
+| **多应用** `VITE_MULTI_APP=true` | 平台内多工作空间，账号由管理员开 | 完整 SaaS：注册 + 多应用 |
+
+| 函数（`#/lib/app-config`） | 读什么 | 决定什么 |
+| --- | --- | --- |
+| `isMultiAppEnabled()` | `VITE_MULTI_APP` | 有无 `/` 选择页、切换器、`GET /apps` 调用 |
+| `shouldEnterAppSelect(appCount)` | `VITE_APP_SELECT_MODE`（`auto` / `always` / `never`）+ 实际应用数 | 登录后是否停在 `/` 选择 |
+| `isMultiAccountEnabled()` | `VITE_MULTI_ACCOUNT` | 是否开放注册 / 找回；登录页是否引导注册 |
+| `getAuthUiOptions()` | 上面 + `VITE_SHOW_DEMO_ACCOUNTS` | 登录页各区块的显隐（路由只透传，不自己判断） |
+| `isConfiguredSuperAdmin(identity)` | `VITE_SUPER_ADMIN_ID` | 该身份是否算超管（uid 或登录名，忽略大小写） |
+| `getDeploymentSnapshot()` | 以上全部 | 只读快照（关于页展示、排查用） |
+
+**`auto` 是默认策略**：可用应用 ≤ 1 时直接进那个应用 —— 让用户点一次「只有一个选项」的选择页
+没有意义。`appCount === undefined`（列表还没拉到）时按「进选择页」处理，避免误送进某个应用。
+
+登录 / 注册 / 找回四处的 `beforeLoad` 共用 `resolveAuthenticatedLanding(auth, redirect)`，
+**不要在路由里再写一遍落点推导**（`safeRedirectTarget` 防开放重定向也只在这一处）。
 
 ### 双阶段认证模型
 
@@ -15,6 +53,10 @@
     ↓ 访问任何页面被 $appId 或 _main 的 beforeLoad 守卫拦截
 [登录门户 /auth/login]
     ↓ 验证账号密码（apiLogin），获得 Token、用户基础信息及可用应用列表 availableApps
+[判定落点] ── shouldEnterAppSelect(apps.length) === false ──→ completeLoginWithApp(首个应用)
+    │                                                            ↓
+    │                                              [就绪阶段] /$appId/home
+    ↓ true
 [认证完成阶段 (isAuthenticated = true, currentApp = null)]
     ↓ 路由重定向到根路径 /
 [应用选择页 / (根路径)]
@@ -23,6 +65,10 @@
     ↓ 动态绑定选定应用的独立 apiBaseUrl，自动将 appId 编码进路径前缀
 进入业务控制台 /$appId/home
 ```
+
+单应用模式（`VITE_MULTI_APP=false`）没有第二阶段的交互：`/` 的 `beforeLoad` 直接重定向到
+`/$DEFAULT_APP_ID/home`，`AppSwitcher` 退化成静态名称展示，侧边栏导航里的「应用」一项也被过滤掉
+（见 `src/lib/navigation.ts` 的 `MAIN_NAV_ITEMS`）。
 
 ### 拦截器解耦与会话失效（Auth Interceptors）
 通过 `configureAuthInterceptors` 机制将 API 请求/响应拦截器与认证状态解耦：
@@ -47,6 +93,14 @@
 
 **加一个应用**：在 mock 的 `apps` 数据里加一条 → 在 `APP_ICONS` 补一个图标映射。
 
+**根路径 `/` 是「选择 + 管理」同一页**（`src/features/select-app`），按权限点分档：
+
+- 有 `app:read`（只给超管）：读 `GET /app`（配置视角，含停用应用与管理字段），可增删改；
+- 没有：读 `GET /apps`（工作空间视角，只含启用应用），只读、点行进应用。
+
+**平台级能力（应用管理）不进 `$appId` 的菜单树** —— 后者是「某个应用里有哪些页面」，
+而应用管理恰恰在应用之外。权限点由 `GET /permissions` 下发，接口层另有 403 兜底。
+
 **`X-App-Id`（应用标识）**：`configureAuthInterceptors` 的 `getCredentials` 把当前应用的
 `id` 直接交给 API 层，请求拦截器（`apps/web/src/api/index.ts`）发出 `Authorization` 与
 `X-App-Id` 两个头。Mock 不区分该标识，所以两个应用看到同一份数据；
@@ -56,11 +110,28 @@
 （`admin.preferences:<appId>` 这类键），**切换应用不清缓存** —— 切回来即时可见。
 详见 [./store.md](./store.md)。
 
+### 权限：前端不是安全边界
+
+两套东西，别混：
+
+1. **权限点**（真正的判据）：后端 `GET /permissions` 下发 `{module}:{action}`，
+   落在 `src/lib/store/permission-store.ts`，读它只有 `useHasPermission()` / `hasPermission()`；
+2. **菜单可见性**（`role_menus` + `GET /menus/navigation`）：本前端**尚未消费**，
+   侧边栏目前是静态的 `src/lib/navigation.ts`。
+
+按钮级收敛用通用组件 `src/components/permission-guard.tsx`：
+
+- `<Can permission="app:edit">…</Can>` —— 无权限时渲染 `fallback`（默认不渲染）；
+- `<PermissionButton permission="app:delete" denied="disable">` —— 保留按钮但置灰。
+
+判断条件（`isSuperAdmin` 的推导）只在 `permission-store` 的 `computePermissions()` 里写一次：
+角色归一化成 `superadmin` / `super`、权限点里有 `*`、或身份命中 `VITE_SUPER_ADMIN_ID`，
+三者任一即超管。**所有写接口都假设后端已鉴权**（mock 对超管接口回 403 就是这个约定）。
+
 ### 预设角色体验账号
-登录界面内置了一键体验账号体系：
-- **admin**（超级管理员）：全量授权系统（Admin Console、Data Analytics、System & IAM、Commerce）；
-- **analyst**（商业分析师）：数据中台与基础后台权限；
-- **operator**（运维工程师）：系统与安全平台与基础后台权限。
+登录页的「测试账号」下拉由 `VITE_SHOW_DEMO_ACCOUNTS` 控制（缺省跟随 `DEV`，构建产物默认不显示），
+列表在 `src/features/auth/login-form.tsx` 的 `DEFAULT_DEMO_ACCOUNTS`。
+真实部署下这些账号由后端提供，前端只负责把它填进表单，**不做任何鉴权判断**。
 
 ---
 
@@ -146,8 +217,8 @@ apps/web/src/messages/
 > [.agents/skills/platform-development/references/auth-and-i18n.md](./auth-and-i18n.md) 第 1 节；
 > 外壳 UI 与 app 作用域的持久化分区见 [.agents/skills/platform-development/references/store.md](./store.md)。
 
-- `apps/web/src/lib/auth.ts` 的 `useAuthStore`（zustand 5 + persist，键 `admin.auth-state`）是认证状态的
-  **单一来源**，对外导出 `useAuth` / `getAuthSnapshot` / `selectAppAndComplete`。
+- `apps/web/src/lib/store/auth-store.ts` 的 `useAuthStore`（zustand 5 + persist，键 `admin.auth-state`）是认证状态的
+  **单一来源**，其读写口经 `#/lib/auth` 对外导出（`useAuth` / `getAuthSnapshot` / `selectAppAndComplete`）。
 - **双阶段认证**：先凭据认证（此时 `currentApp` 为 null），再选定应用（绑定该应用的
   `apiBaseUrl` 并进 `/$appId/home`）。**没有第二步，业务接口不知道该打到哪个应用。**
 - 拦截器**由 `configureAuthInterceptors` 注入**（`apps/web/src/api/index.ts` 不直接碰 localStorage）：

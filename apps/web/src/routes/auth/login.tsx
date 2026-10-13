@@ -2,7 +2,8 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LoginPage } from '#/features/auth'
-import { DEFAULT_APP_ID, getAuthSnapshot, isMultiAppEnabled } from '#/lib/auth'
+import { getAuthSnapshot, resolveAuthenticatedLanding } from '#/lib/auth'
+import { getAuthUiOptions } from '#/lib/app-config'
 import { getBrandConfig } from '#/lib/brand'
 
 interface LoginSearch {
@@ -37,33 +38,10 @@ export const Route = createFileRoute('/auth/login')({
   },
   beforeLoad: ({ search }) => {
     const auth = getAuthSnapshot()
-    // 检测到已有登录信息：单应用模式直接进入默认应用，多应用模式按是否已选应用分流
+    // 已登录：按部署模式推导落点（单应用 / 已选应用 / 回 `/` 继续选择）
     if (auth.isAuthenticated) {
-      if (!isMultiAppEnabled()) {
-        const appId = auth.currentApp?.id || DEFAULT_APP_ID
-        const target =
-          search.redirect &&
-          search.redirect.startsWith('/') &&
-          search.redirect !== '/' &&
-          search.redirect !== '/select-app'
-            ? search.redirect
-            : `/${appId}/home`
-        throw redirect({ to: target as any })
-      }
-
-      if (auth.currentApp) {
-        const target =
-          search.redirect && search.redirect.startsWith('/')
-            ? search.redirect
-            : `/${auth.currentApp.id}/home`
-        throw redirect({ to: target as any })
-      }
-      throw redirect({
-        to: '/',
-        search: {
-          redirect: search.redirect,
-        },
-      })
+      const landing = resolveAuthenticatedLanding(auth, search.redirect)
+      throw redirect({ to: landing.to as any, search: landing.search as any })
     }
   },
   component: LoginRoute,
@@ -79,5 +57,5 @@ function LoginRoute() {
     document.title = `${t('signIn', '登录')} - ${brand.name}`
   }, [brand.name, t])
 
-  return <LoginPage redirect={redirectUrl} />
+  return <LoginPage redirect={redirectUrl} {...getAuthUiOptions()} />
 }
