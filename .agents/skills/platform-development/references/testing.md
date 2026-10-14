@@ -94,6 +94,9 @@ CI（`.github/workflows/ci.yml`）依次跑：铁律门控 → i18n 检查 → `
 | `src/lib/navigation/filter.test.ts` | `feature` / `permission` 声明的三种写法与 `:*` 补全、摊平、组级 `all` / `any`、折叠项的收敛与修剪、组内清空、自定义谓词、`enablePermissionFilter: false`、超管、真实名单的「只有 `dict:read` 时系统组可见」回归 |
 | `src/features/ai/components/panel/float-geometry.test.ts` | 浮窗三形态判定：折叠只在桌面端成立、**变形期间内容仍是展开态**（一变内容动画就没东西可收）、关掉动效时直接切到位、终点尺寸（折叠 = 最小宽 × 头行高）随存档变 |
 | `src/features/ai/components/panel/permission-draft.test.ts` | 「有没有未保存的更改」：能力**按集合比、不按顺序比**（勾选顺序跟着点击走，按顺序比会一直误报未保存）、换档位算改过、多 / 少 / 换一个都算改过 |
+| `src/features/ai/components/conversation/message-parts.test.ts` | 会话可见性四条规则：等待模式流式期间文字隐藏、跳转建议卡永远可见、工具卡跟着「显示详细信息」、任务卡只留最后一张且悬浮时静默；外加「正在思考…」的四个前提、用户附件分堆（新老两种图片 part） |
+| `src/features/ai/components/conversation/greeting.test.ts` | 空态问候**看用户选的时区而不是本机**（同一瞬间上海上午 / 纽约晚上）、三段分界、午夜归晚上 |
+| `src/features/ai/components/conversation/format.test.ts` | token 紧凑写法（0 是有效值、`undefined` 是占位符）、工具值格式化（字符串原样、对象带缩进、`undefined` 与**循环引用**都不许把卡片弄空白） |
 
 ## 8. 待补的缺口（按价值排序）
 

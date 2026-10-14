@@ -358,18 +358,18 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 | `features/ai/page/index.ts` | 27 | barrel |
 | `src/features/**/feature.ts` | 10 份 | 各页面声明（参考实现：`table-example/feature.ts`，279 行） |
 
-### 4.3 UI 组件（`features/ai/components/`：9 个文件 + `composer/` + `panel/` 两个目录）
+### 4.3 UI 组件（`features/ai/components/`：8 个文件 + `composer/` / `panel/` / `conversation/` 三个目录）
 
 | 文件 | 行数 | 职责 |
 |---|---:|---|
 | `composer/` | 1477 | 输入区：文本、附件、模式菜单、`@` mention、任务卡（行尾设置按钮只剩「配置权限」，仅面板给）—— 见下表 |
+| `conversation/` | 1300 | 消息渲染：空态问候、用户气泡、助手各 part（文字 / 思考链 / 工具卡 / 任务卡）、审批卡与建议卡 —— 见下表 |
 | `panel/` | 1306 | 面板本体：split / float 两形态、头行、权限视图（整块替换内容）、拖拽与折叠动画 —— 见下表 |
-| `conversation.tsx` | 928 | 消息渲染：Markdown、工具卡片（默认隐藏）、审批卡、导航建议卡、空态 |
 | `task-card.tsx` | 316 | 任务清单卡片（会话内 + 悬浮） |
 | `permission-config.tsx` | 296 | 权限三档 + 工具勾选（名单取自 `AI_TOOLS`）；`settings` / `panel` 两形态。三档各有 tooltip 说明、分组说明挂在标题的 Info 图标上（不常显） |
 | `activity-glow.tsx` | 180 | 进行中页面光晕（`border-beam`） |
 | `session-list.tsx` | 145 | 浮层会话列表（搜索 + 分组 + 删除） |
-| `conversation-scroller.tsx` | 140 | 会话滚动容器（RAF 驱动、上翻暂停、回到底部） |
+| `conversation-scroller.tsx` | 140 | 会话滚动容器（RAF 驱动、上翻暂停、回到底部）。**只透传 `manageHistory`**：`surface` 曾经一路透传到消息层却没被读过，已删（别再加回来，真有需要时让消息层自己从 store 取） |
 | `session-picker.tsx` | 82 | 头行会话选择器 + `useActiveSessionTitle` |
 | `session-delete-dialog.tsx` | 62 | 删除确认弹窗（两处共用） |
 | `bot-avatar.tsx` | 49 | `bot-avatars` 封装（`theme` 必须我们传） |
@@ -409,6 +409,32 @@ Router 阶段只看 `catalogDescription`（一句话）、Execution 阶段才拿
 | `permission-draft.ts` | 22 | 权限草稿「改没改过」（**按集合比、不按顺序**）★ |
 
 无单测的静置文件是 `header.tsx` / `panel-surface.tsx` / `permission-view.tsx` —— 纯 DOM 装配，规则都在上面 ★ 的两个纯模块里。
+
+#### 会话渲染 `conversation/`：一条消息一件事
+
+原来是 928 行的单文件（列表 + 空态 + 四条 part 渲染 + 审批卡 + 一堆「什么该显示」的判断）。现在：
+
+| 文件 | 行数 | 管什么 |
+|---|---:|---|
+| `message-parts.ts` | 175 | **「哪些要画出来」的全部判定**（纯）：文字可见性、思考中、任务卡留哪张 / 是否悬浮、用户附件分堆 ★ |
+| `assistant-part.tsx` | 173 | 助手消息的一个 part：文字 / 思考链 / 建议卡 / 任务卡 / 工具卡（含展开详情） |
+| `approval-card.tsx` | 157 | 阻塞审批卡（写操作 / 跳转）+ 非阻塞跳转建议卡 |
+| `message-view.tsx` | 148 | 一条消息：按角色分发、头像、思考行、token 用量、操作栏 |
+| `index.tsx` | 143 | `AiConversation`：消息列表 + 空态问候 + 审批卡 + 错误条；`manageHistory` 只在这里 |
+| `user-message.tsx` | 99 | 用户气泡（图 / 文本文件两类附件）与它的操作栏 |
+| `reasoning-part.tsx` | 89 | 思考链卡片（流式展开、结束自动收起**一次**） |
+| `use-copy.ts` | 36 | 复制 + 1.5s 反馈（剪贴板不可用时静默降级） |
+| `greeting.ts` | 35 | 按时段挑问候语（**按用户选的时区**，不是本机）★ |
+| `format.ts` | 32 | token 紧凑写法 + 「值 → 能读的文本」（`undefined` / 循环引用都有兜底）★ |
+| `relative-time.tsx` | 26 | 相对时间 + 悬浮给绝对时间 |
+
+★ 有单测：`message-parts.test.ts` / `greeting.test.ts` / `format.test.ts`。
+
+> **待收口的一处重复**：`task-card.tsx` 的 `getActiveTaskData` / `getLatestSessionTasks` 与
+> `message-parts.ts` 的 `readManageTasks` / `findLastManageTasksIndex` 是**同一段读法**
+> （「最后一条助手消息里最后一个 `manage_tasks`」），且「算不算悬浮」两处的判据还略有出入
+> （对话区把 `cancelled` 算作没完成，任务卡算作已结束）。下一轮应当把这套读法收进
+> `core/tools/task-tools`（那是 `TaskItem` 的归属地），三处消费者统一 —— 顺带把判据对齐。
 
 ### 4.4 路由：全屏对话页（`routes/$appId_.sphere/**`，10 个文件，1102 行）
 
