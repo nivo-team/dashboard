@@ -9,6 +9,7 @@ import { LayoutSidebarProvider } from '#/layouts/provider'
 import { DesktopSidebarTrigger, DesktopHistoryNav } from './title-bar'
 import { cn } from '#/lib/cn'
 import { handleDesktopHeaderDoubleClick, useDesktopBlurred } from './bridge'
+import { WindowControls } from './window-controls'
 import { filterShellNavItems, SETTINGS_NAV_ITEMS } from '#/lib/navigation'
 import { usePermissionContext } from '#/lib/permissions'
 import { ShellNavButton, SidebarSearchButton } from '#/layouts/common/nav-shared'
@@ -33,7 +34,7 @@ function DesktopSettingsTitleBar() {
         'fixed inset-x-0 top-0 z-40 flex h-[var(--shell-chrome-h,40px)] items-center justify-between',
         'border-b-0 px-3 select-none drag',
         isBlurred ? 'bg-transparent' : 'bg-kumo-tint',
-        'pl-[max(var(--shell-traffic-light-w,0px),0.5rem)] pr-2',
+        'pl-[max(var(--shell-traffic-light-w,0px),0.5rem)] pr-[max(var(--shell-window-controls-w,0px),0.5rem)]',
       )}
     >
       {/* 左侧控制组：红绿灯右侧放置侧边栏开关 + 历史前进/后退 */}
@@ -49,8 +50,10 @@ function DesktopSettingsTitleBar() {
         </span>
       </div>
 
-      {/* 右侧空占位，保持对称且整条空白可拖拽 */}
-      <div className="w-16 shrink-0 drag" />
+      {/* 右侧空占位：保持对称，同时是 Windows 的原生拖动区（caption） */}
+      <div className="[--wails-non-client-region:caption] w-16 shrink-0 drag" />
+
+      <WindowControls />
     </header>
   )
 }

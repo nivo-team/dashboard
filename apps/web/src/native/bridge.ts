@@ -401,14 +401,43 @@ if (typeof window !== 'undefined') {
 /**
  * 桌面壳 Header 空白处双击。
  *
- * 各桌面平台（macOS / Windows / Linux）由 CSS .drag（-webkit-app-region: drag）
- * 区域交由操作系统原生底层直接处理窗口缩放（最大化/还原），不通过 JS 手动发消息，
- * 避免多窗口环境下手动调用跨窗口干扰。
+ * 三个平台都不由页面处理：macOS 的双击落在系统标题栏（红绿灯那条）上，由 AppKit 直接最大化；
+ * Linux 保留 GTK 原生标题栏；Windows 的窗口条空白区申报成原生 caption 区后（见
+ * `./window-chrome`），那一片的鼠标事件归系统，页面收不到，最大化请用行末那个窗口键。
+ *
+ * 保留这个导出是因为各外壳的 Header 都在 `onDoubleClick` 上挂着它（共享组件不按平台分叉）。
  */
 export function handleDesktopHeaderDoubleClick(
   _event?: ReactMouseEvent<HTMLElement> | MouseEvent,
 ): void {
-  // 交由操作系统原生处理
+  // 交由系统处理
+}
+
+/**
+ * 是否由页面承担 Windows 的窗口 chrome —— 只有 Windows 桌面壳。
+ *
+ * 那边的壳去掉了系统标题栏（`apps/native/main.go` 的 `windowFrameless`），而系统画的三个窗口键
+ * 无法脱离标题栏存在（实测扩 DWM 边框只会「画出来但点不动」），于是由页面画、行为交给系统：
+ * 申报非客户区、捕获阶段执行动作，全在 `./window-chrome`。
+ *
+ * macOS 保留系统标题栏（红绿灯是系统画的）、Linux 保留 GTK 原生标题栏 —— 都不用页面补。
+ */
+export function usesWindowsChrome(): boolean {
+  return isDesktop() && desktopPlatform() === 'windows'
+}
+
+/**
+ * 发一条**裸消息**给壳（不走 JSON 请求协议）。
+ *
+ * 只给 Wails 自己的系统消息用（`wails:` 前缀，例如非客户区上报）；业务调用请用 `invoke()` ——
+ * 裸消息没有 id、没有应答，也不会在壳的调用日志里留下记录。
+ */
+export function sendHostMessage(message: string): void {
+  try {
+    hostInvoke?.(message)
+  } catch {
+    /* 通道未就绪：发不出去就算了，下一次状态变化会再试 */
+  }
 }
 
 /** 壳带来的自定义标记（`-mark k=v`）；浏览器里是空对象。 */
@@ -559,14 +588,18 @@ export function installDesktopBridge(): void {
   /*
    * 桌面壳精细化窗口拖拽分流：
    * 1. 当鼠标落点在 .no-drag（Tabs 包裹容器、右侧操作区、按钮等）内部时，绝不拖动，事件完整交由前端 DOM（dnd-kit 标签排序正常生效）；
-   * 2. 当鼠标落在 Header 空白可拖拽区（.drag / [data-desktop-title-bar]）且移动超过 3px 阈值时，向宿主发送 "wails:drag"，唤起 macOS 原生窗口拖拽。
+   * 2. 当鼠标落在 Header 空白可拖拽区（.drag / [data-desktop-title-bar]）且移动超过 3px 阈值时，向宿主发送 "wails:drag"，唤起原生窗口拖拽。
+   *
+   * **Windows 不走这条路**：窗口条的空白区已申报成原生 caption 区（见 `./window-chrome`），
+   * 按下即由系统开始拖动 —— 再补一次 `wails:drag` 会变成「拖到一半重新发起拖动」。
    */
+  const usesNativeCaptionDrag = usesWindowsChrome()
   let dragCandidate: { startX: number; startY: number } | null = null
 
   window.addEventListener(
     'mousedown',
     (event) => {
-      if (event.button !== 0) return
+      if (event.button !== 0 || usesNativeCaptionDrag) return
       const target = event.target as HTMLElement | null
       if (!target) return
 

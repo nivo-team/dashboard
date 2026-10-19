@@ -6,6 +6,7 @@ import { AiBotAvatar } from '#/features/ai/components/bot-avatar'
 import { useActiveSessionTitle } from '#/features/ai/components/session-picker'
 import { useAiSessionStore } from '#/features/ai/core'
 import { handleDesktopHeaderDoubleClick } from '#/native/bridge'
+import { WindowControls } from '#/native/window-controls'
 import { useLocale } from '#/lib/use-locale'
 import { cn } from '#/lib/cn'
 
@@ -62,6 +63,8 @@ export function DesktopSphereTitleBar() {
         'fixed inset-x-0 top-0 z-40 flex h-[var(--shell-chrome-h,40px)] items-center justify-between',
         'border-b-0 bg-transparent px-3 select-none drag',
         'pl-[max(var(--shell-traffic-light-w,0px),0.5rem)]',
+        // 行末让开 Windows 无边框窗口的窗口控制区（其它平台该变量为 0，等价于原来的 px-3）
+        'pr-[max(var(--shell-window-controls-w,0px),0.75rem)]',
       )}
     >
       {/*
@@ -141,8 +144,10 @@ export function DesktopSphereTitleBar() {
         </div>
       ) : null}
 
-      {/* 右侧空占位，保证对称且整条空白可拖拽 */}
-      <div className="w-10 shrink-0 drag" />
+      {/* 右侧空占位：保持对称，同时是 Windows 的原生拖动区（caption） */}
+      <div className="[--wails-non-client-region:caption] w-10 shrink-0 drag" />
+
+      <WindowControls />
     </header>
   )
 }

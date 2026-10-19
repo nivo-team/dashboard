@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useContext } from 'react'
-import { invoke, isSphereWindow } from '#/native/bridge'
+import { desktopWindowName, invoke, isSphereWindow } from '#/native/bridge'
 import { readMaximizeOrigin } from '#/features/ai/core'
 import { SphereTransitionContext } from './sphere-transition'
 
@@ -25,7 +25,8 @@ export function useSphereCollapseNow(appId: string): () => void {
   return useCallback(() => {
     // 独立桌面子窗口直接关闭当前窗口
     if (isSphereWindow()) {
-      void invoke('window.close')
+      // 关的是**这一扇**窗口：不带窗口名时壳会回退到主窗口（见 main.go 的 forWindow）
+      void invoke('window.close', { name: desktopWindowName() })
       return
     }
 

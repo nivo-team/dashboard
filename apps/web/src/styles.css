@@ -110,6 +110,15 @@
  *                          （58px = AppHeader 的 `h-[58px]`）；桌面壳里顶栏被窗口条取代，
  *                          内容列贴到工作区顶部 → 0px。
  *
+ * 另外两个是**窗口自身的避让区**，只有对应的桌面壳平台才非零：
+ *
+ *   --shell-traffic-light-w    macOS 红绿灯占的**左侧**宽度（78px）。红绿灯是系统画的、
+ *                              固定在窗口左上角，页面只能让开。
+ *   --shell-window-controls-w  Windows 无边框窗口的**行末**窗口控制区宽度（138px = 三条按钮各
+ *                              46px）。三个按钮由页面画（`#/native/window-controls`），
+ *                              命中 / 悬停 / 贴靠由 Windows 管
+ *                              （见下面 `html.is_windows` 那条规则）。
+ *
  * 谁在读它们：`--shell-chrome-h` 被 `#/components/side-panel` 的两个
  * 面板框架（AI 分屏列、详情分屏列）使用；`--shell-content-top` 只被详情分屏列使用。
  * 之所以走 CSS 变量而不是 JS 常量：这些面板是 `fixed` / `sticky` 定位、还有走 portal 的，
@@ -125,6 +134,7 @@
   /* 内容区（main / AI 面板）四周内缩的总量：桌面壳里是下面那层 `p-1` 的两侧之和 */
   --shell-content-inset: 0px;
   --shell-traffic-light-w: 0px;
+  --shell-window-controls-w: 0px;
 
   /*
    * 窗口条那条下边线、标签自己的边框、以及标签倒角的圆弧 —— 三处共用的**实色**描边。
@@ -183,6 +193,30 @@
 [data-desktop-chrome].is_mac,
 .is_mac [data-desktop-chrome] {
   --shell-traffic-light-w: 78px;
+}
+
+/*
+ * 仅在 Windows 桌面壳下给出**行末窗口控制区**：三个按钮由页面画在这一条里
+ * （`#/native/window-controls`），宽度取系统标题栏按钮的宽度
+ * （3 × 46px = 138px，系统按逻辑像素排布，与 DPI 无关），
+ * 其余控件用 `pr-[max(var(--shell-window-controls-w,0px),…)]` 让开。
+ *
+ * 为什么按钮不是系统画的：Windows 壳没有系统标题栏（`apps/native/main.go` 的
+ * `windowFrameless`），而系统画的那三个按钮**无法脱离标题栏存在** —— 实测把整块 DWM 边框
+ * 扩进客户区只会让它们「画出来但点不动」（详见 `main.go` 的 `windowFrameless` 注释）。
+ * 于是按钮由页面画，**命中 / 悬停 / 按下态 / 最大化键的贴靠布局交给 Windows**：
+ * 三个按钮申报 `--wails-non-client-region: minimize|maximize|close`，窗口条空白区申报
+ * `caption`（见 `#/native/window-chrome` 的 `reportNonClientRegions`）。
+ *
+ * 挂在 `<html>`（而不是 `[data-desktop-chrome]`）：这一条属于**窗口**，不属于窗口条 ——
+ * 登录页 / 全屏对话页没有窗口条（`data-desktop-chrome` 不在），但窗口还是那一扇，
+ * 行末同样得让开。
+ *
+ * 与红绿灯那条对称：macOS 的窗口控制在左上角（系统画的，页面让开），
+ * Windows 在右上角（页面画的，页面自己让开）。
+ */
+html.is_windows {
+  --shell-window-controls-w: 138px;
 }
 
 /*

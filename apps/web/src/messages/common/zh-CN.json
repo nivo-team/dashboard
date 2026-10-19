@@ -402,5 +402,11 @@
   "navigation": {
     "back": "后退",
     "forward": "前进"
+  },
+  "windowControls": {
+    "minimise": "最小化",
+    "maximise": "最大化",
+    "restore": "还原",
+    "close": "关闭"
   }
 }

@@ -1,6 +1,6 @@
 /* eslint-disable */
 // 本文件由 scripts/i18n/gen-types.mjs 生成 —— 不要手改。
-// 源语言：zh-CN｜命名空间：11 个｜键：1239 个
+// 源语言：zh-CN｜命名空间：11 个｜键：1243 个
 // 重新生成：pnpm i18n:types
 
 /**
@@ -589,6 +589,10 @@ export interface I18nNamespaceKeys {
     | "unsavedChanges.save"
     | "userMenu.ariaLabel"
     | "userMenu.logout"
+    | "windowControls.close"
+    | "windowControls.maximise"
+    | "windowControls.minimise"
+    | "windowControls.restore"
   "dashboard":
     | "cards.metrics.activeUsers"
     | "cards.metrics.badge"

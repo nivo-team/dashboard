@@ -39,6 +39,33 @@ var (
 	currentThemeResolved = "light"
 )
 
+/*
+windowFrameless 决定窗口要不要去掉系统标题栏。
+
+**Windows 去边框**：系统标题栏和页面自己的窗口条是上下叠着的**两条横条** ——
+系统那条白占 32px，样式还不受页面主题（毛玻璃 / 深浅色 / 圆角）控制。去掉之后窗口只剩
+页面那条，其余仍由系统与 Wails 接管：拖拽走页面侧 `wails:drag`
+（→ `WM_NCLBUTTONDOWN HTCAPTION`，与 macOS 同一条路径）、边缘缩放、双击最大化
+（页面侧 `handleDesktopHeaderDoubleClick`）、Win11 圆角与投影。
+
+**代价：系统画的那三个窗口按钮（最小化 / 最大化 / 关闭）也一起没了**，Windows 上关窗口
+只能靠 Alt+F4、任务栏右键或系统快捷键。这不是没试出来 —— Wails v3 不提供「隐藏标题栏但
+保留系统按钮」的模式（Electron 的 `titleBarOverlay` 那种），它出 `Frameless` 时把
+`WM_NCCALCSIZE` 的客户区放成整窗、非客户区清零，DWM 没有标题栏区可画；实测再把整块 DWM
+边框（`DwmExtendFrameIntoClientArea` 全 -1）扩进客户区，系统也**不会**重新画按钮
+（把一个没有任何自绘按钮的页面装进同一个窗口截图即可确认，标题栏区域始终是空的）。
+页面侧因此只在行末按系统按钮的宽度留一条**空白**安全区（`--shell-window-controls-w`，
+见 `apps/web/src/styles.css`）—— 将来要做按钮，落点就在那里；要系统按钮，就得把系统标题栏留回来。
+
+**macOS 必须保留系统标题栏**：红绿灯（关闭 / 最小化 / 缩放）就长在那条
+`AppearsTransparent + FullSizeContent` 的系统标题栏里，去掉标题栏等于去掉三个按钮。
+
+**Linux 也保留**：GTK 原生标题栏同样自带窗口控制，删掉没有替代品。
+*/
+func windowFrameless(platform string) bool {
+	return platform == "windows"
+}
+
 func main() {
 	cfg, err := shell.Parse(os.Args[1:])
 	if err != nil {
@@ -120,13 +147,18 @@ func main() {
 		Height:         cfg.Height,
 		BackgroundType: bgType,
 		/*
-			**显示系统标题栏 / 红绿灯**：
-			macOS 启用透明全尺寸内容窗口并挂载系统工具栏（UseToolbar + MacToolbarStyleUnifiedCompact），
-			使红绿灯自动向内缩进并垂直居中；
+			**窗口边框与系统标题栏 / 红绿灯**：
+
+			Windows 走 `windowFrameless` → `Frameless: true`：去掉系统标题栏，窗口条整条由页面
+			承担（拖拽 / 双击最大化 / 缩放 / 圆角投影仍在，但系统那三个窗口按钮随之消失，
+			见 `windowFrameless` 的注释）。
+
+			macOS 保留系统标题栏，并启用透明全尺寸内容窗口 + 系统工具栏（UseToolbar +
+			MacToolbarStyleUnifiedCompact），使红绿灯自动向内缩进并垂直居中；
 			注意：InvisibleTitleBarHeight 必须为 0，否则 AppKit 会在原生层直接全局拦截整条顶部区域，
 			导致网页内 tabs 排序无法接收鼠标事件；窗口拖拽与禁止拖拽区域完全交由 CSS 精准控制（.drag / .no-drag）。
 		*/
-		Frameless: false,
+		Frameless: windowFrameless(cfg.Platform),
 		Mac: application.MacWindow{
 			Backdrop: application.MacBackdropTranslucent,
 			TitleBar: application.MacTitleBar{
@@ -142,6 +174,21 @@ func main() {
 		},
 		Windows: application.WindowsWindow{
 			BackdropType: application.Mica,
+			/*
+				**composition hosting**：把 WebView2 从「子 HWND 承载」换成 DirectComposition 承载，
+				父窗口因此自己持有非客户区命中测试 —— 这是 Wails 让**页面自绘的窗口按钮具备原生行为**
+				（`HTMINBUTTON` / `HTMAXBUTTON` / `HTCLOSE`、悬停与按下态、最大化键的 Win11 贴靠布局）
+				的唯一途径。页面侧用 `--wails-non-client-region` 标出那些矩形，
+				由 `#/native/bridge` 的 `reportNonClientRegions` 上报（单位物理像素）。
+
+				为什么非要它：Windows 的系统按钮无法独立于系统标题栏存在（实测把整块 DWM 边框扩进
+				客户区也不画，详见 `windowFrameless` 的注释），而 macOS 的红绿灯只能长在系统标题栏里
+				—— 于是「无标题条 + 原生按钮」在 Windows 上只能落成「页面画按钮、行为归系统」。
+
+				代价：文档把该模式标为 Experimental（改动渲染与输入的承载方式），
+				换 Windows / WebView2 版本时要重新验一遍页面渲染与命中。
+			*/
+			WebView2CompositionHosting: true,
 		},
 		/*
 			最小尺寸限制：最小宽度 800px，最小高度 600px，
@@ -299,7 +346,8 @@ func registerWindowMethods(registry *bridge.Registry, app *application.App, wind
 			MinWidth:       720,
 			MinHeight:      520,
 			BackgroundType: bgType,
-			Frameless:      false,
+			// 子窗口（设置 / 页面工作区 / Sphere）与主窗口同一套窗口条，边框规则也必须一致
+			Frameless: windowFrameless(cfg.Platform),
 			Mac: application.MacWindow{
 				Backdrop: application.MacBackdropTranslucent,
 				TitleBar: application.MacTitleBar{
@@ -314,7 +362,9 @@ func registerWindowMethods(registry *bridge.Registry, app *application.App, wind
 				InvisibleTitleBarHeight: 0,
 			},
 			Windows: application.WindowsWindow{
-				BackdropType: application.Mica,
+				// 与主窗口同一套窗口条，非客户区（原生按钮命中）必须同样走 composition hosting
+				BackdropType:               application.Mica,
+				WebView2CompositionHosting: true,
 			},
 			DevToolsEnabled: cfg.Debug,
 		})
@@ -330,39 +380,50 @@ func registerWindowMethods(registry *bridge.Registry, app *application.App, wind
 			"created": true,
 		}, nil
 	})
-	registry.Handle(bridge.WindowMinimise, func(json.RawMessage) (any, error) {
-		window.Minimise()
-		return windowState(window), nil
-	})
+	/*
+		`window.*` 的窗口动作作用在**发起调用的那一扇窗口**上。
 
-	registry.Handle(bridge.WindowToggleMaximise, func(json.RawMessage) (any, error) {
-		window.ToggleMaximise()
-		return windowState(window), nil
-	})
-
-	registry.Handle(bridge.WindowClose, func(payload json.RawMessage) (any, error) {
-		var req struct {
-			Name string `json:"name"`
-		}
-		if len(payload) > 0 {
-			_ = json.Unmarshal(payload, &req)
-		}
-		if req.Name != "" {
-			if target, ok := app.Window.GetByName(req.Name); ok {
+		主窗口之外还有设置 / 页面工作区 / Sphere 这些独立窗口，它们共用同一套页面窗口条，
+		「最小化」绝不能最小化到别人头上。页面把自己的窗口名（`__desktop_window`）随载荷带上；
+		名字为空或认不出来时回退到主窗口（保持 `window.close` 既有的「不给名字就关主窗口」语义）。
+	*/
+	forWindow := func(payload json.RawMessage) *application.WebviewWindow {
+		if name := windowNameOf(payload); name != "" {
+			if target, ok := app.Window.GetByName(name); ok {
 				if win, ok := target.(*application.WebviewWindow); ok {
-					// 立即在屏幕上隐藏窗口，提供零延迟关闭体验
-					win.Hide()
-					// 延迟安全销毁：确保 macOS AppKit 的原生拖拽/输入会话（NSDraggingSession）
-					// 已经完全结束释放，避免跨窗口拖拽合并时触发 use-after-free 原生段错误
-					go func() {
-						time.Sleep(300 * time.Millisecond)
-						win.Close()
-					}()
-					return nil, nil
+					return win
 				}
 			}
 		}
-		window.Close()
+		return window
+	}
+
+	registry.Handle(bridge.WindowMinimise, func(payload json.RawMessage) (any, error) {
+		win := forWindow(payload)
+		win.Minimise()
+		return windowState(win), nil
+	})
+
+	registry.Handle(bridge.WindowToggleMaximise, func(payload json.RawMessage) (any, error) {
+		win := forWindow(payload)
+		win.ToggleMaximise()
+		return windowState(win), nil
+	})
+
+	registry.Handle(bridge.WindowClose, func(payload json.RawMessage) (any, error) {
+		win := forWindow(payload)
+		if win == window {
+			window.Close()
+			return nil, nil
+		}
+		// 独立窗口：立即在屏幕上隐藏窗口，提供零延迟关闭体验
+		win.Hide()
+		// 延迟安全销毁：确保 macOS AppKit 的原生拖拽/输入会话（NSDraggingSession）
+		// 已经完全结束释放，避免跨窗口拖拽合并时触发 use-after-free 原生段错误
+		go func() {
+			time.Sleep(300 * time.Millisecond)
+			win.Close()
+		}()
 		return nil, nil
 	})
 
@@ -385,6 +446,22 @@ func windowState(window *application.WebviewWindow) map[string]any {
 		"maximised": window.IsMaximised(),
 		"minimised": window.IsMinimised(),
 	}
+}
+
+/*
+windowNameOf 取 `window.*` 载荷里的目标窗口名（`{ "name": "sphere" }`）。
+
+空字符串表示「没指定」，由调用方决定回退到哪一扇（`registerWindowMethods` 里回退主窗口）。
+命名与 `window.open` 一致：`main` / `settings` / `sphere` / `page_*`。
+*/
+func windowNameOf(payload json.RawMessage) string {
+	var req struct {
+		Name string `json:"name"`
+	}
+	if len(payload) > 0 {
+		_ = json.Unmarshal(payload, &req)
+	}
+	return req.Name
 }
 
 /*
