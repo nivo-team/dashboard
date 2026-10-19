@@ -29,6 +29,8 @@
 ```bash
 pnpm dev              # 前端开发服务器 (http://localhost:3000)
 pnpm dev:all          # 一键并发：mock(3001) + web(3000) + ai(3002)，Ctrl-C 一次全停
+                      # ↑ 改这条脚本时 `--filter` 的 glob 必须用**双引号**：Windows 的 cmd 不剥单引号，
+                      #   单引号会原样传给 vp，报 "No packages matched the filter"，三个服务一个都不起
 pnpm mock             # Mock API (http://localhost:3001)，前端默认连它
 pnpm ai               # AI 中间层 Worker（wrangler dev，http://localhost:3002）
 pnpm native           # 原生壳（Wails v3 + Go，默认加载 http://localhost:3000；兼容别名 pnpm desktop）
