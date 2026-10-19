@@ -273,6 +273,9 @@ export function PageTabItem({
         无需精准点击内部 28px 矩形。
       */}
       <DropdownMenu.Trigger
+        /* 触发区是我们自己的 `role="tab"` 容器（内含 ✕ 按钮、还挂着 dnd-kit 的拖拽监听），
+           不是原生 button —— 不关掉 Base UI 的 nativeButton 期望，控制台会一直警告。 */
+        nativeButton={false}
         render={
           <div
             ref={setNodeRef}
