@@ -157,6 +157,7 @@ export interface TicketRow {
 }
 
 export interface AppRow {
+  /** 应用标识：同时是路由前缀（`/$appId/...`）与存储作用域键，创建后不可修改。 */
   id: string
   name: string
   headline: string
@@ -168,6 +169,11 @@ export interface AppRow {
   badge: string
   category: string
   themeGradient: string
+  /** 1 启用 / 2 禁用：禁用的应用不再出现在 `GET /apps` 的工作空间列表里。 */
+  status: number
+  sort: number
+  created_at: string
+  updated_at: string
 }
 
 /* -------------------------------------------------------------------------- */
@@ -715,16 +721,36 @@ function seedTickets(): TicketRow[] {
 }
 
 /**
- * 可选应用列表。
+ * 可选应用列表（应用管理模块的数据源）。
  *
  * **每个应用都指向本 Mock 服务自己** —— 这就是「完全走 mock」的含义：
  * 切换应用不会切到任何外部后端。`icon` 之类的前端呈现资源不在这里返回，
  * 由前端按 `id` 映射（见 `apps` 接口的注释）。
+ *
+ * 这里**没有「内置应用」的概念**：所有应用一视同仁，都可编辑、可删除。
+ * 单应用模式不读这张表（默认应用由 `VITE_DEFAULT_APP_ID` 决定，见
+ * `apps/web/src/lib/app-config.ts`），所以删空它不会影响单应用模式。
  */
 function seedApps(): AppRow[] {
   // 接口挂在根路径（/login、/user…），所以应用的服务地址就是服务本身，不要再加 /api 后缀
   const base = process.env.MOCK_PUBLIC_URL || 'http://localhost:3001'
+  const ts = stamp(0)
   return [
+    {
+      id: 'nivo',
+      name: 'Nivo',
+      headline: '默认应用',
+      description: '默认工作空间：多应用模式下首个可进入的应用。',
+      domain: 'localhost:3001',
+      apiBaseUrl: base,
+      badge: '',
+      category: '默认',
+      themeGradient: 'from-[#0b3323] via-[#0d3f2c] to-[#08261b]',
+      status: 1,
+      sort: 1,
+      created_at: ts,
+      updated_at: ts,
+    },
     {
       id: 'app1',
       name: 'App1',
@@ -735,6 +761,10 @@ function seedApps(): AppRow[] {
       badge: 'Demo',
       category: 'Demo',
       themeGradient: 'from-[#0b3323] via-[#0d3f2c] to-[#08261b]',
+      status: 1,
+      sort: 2,
+      created_at: ts,
+      updated_at: ts,
     },
     {
       id: 'app2',
@@ -746,6 +776,25 @@ function seedApps(): AppRow[] {
       badge: 'Demo',
       category: 'Demo',
       themeGradient: 'from-[#10243f] via-[#163155] to-[#0b1a2e]',
+      status: 1,
+      sort: 3,
+      created_at: ts,
+      updated_at: ts,
+    },
+    {
+      id: 'legacy',
+      name: 'Legacy',
+      headline: '已停用应用',
+      description: '停用态示例：status=2 的应用不会出现在工作空间应用选择列表里。',
+      domain: 'legacy.localhost:3001',
+      apiBaseUrl: base,
+      badge: '停用',
+      category: 'Demo',
+      themeGradient: 'from-[#3f1d1d] via-[#552626] to-[#2e1414]',
+      status: 2,
+      sort: 9,
+      created_at: ts,
+      updated_at: ts,
     },
   ]
 }

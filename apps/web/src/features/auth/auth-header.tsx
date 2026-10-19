@@ -5,13 +5,14 @@ import { ThemeSwitcher } from '#/components/theme-switcher'
 import { useBrand } from '#/lib/brand'
 import { cn } from '#/lib/cn'
 import { handleDesktopHeaderDoubleClick, isDesktop } from '#/native/bridge'
+import { WindowControls } from '#/native/window-controls'
 
 export interface AuthHeaderProps {
   /** 额外的外层样式类 */
   className?: string
   /**
    * 是否在 lg 及以上宽屏对右侧切换器启用白色高对比度样式（适配双栏登录页右侧高饱和度色彩展台）。
-   * 缺省时自动根据当前路由是否为 /login 判定。
+   * 缺省时自动根据当前路由是否为 /auth/login 判定。
    */
   rightContrastOnLg?: boolean
 }
@@ -29,7 +30,8 @@ export function AuthHeader({ className = '', rightContrastOnLg }: AuthHeaderProp
   const brand = useBrand()
   const LogoIcon = brand.logoIcon
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const isSplitLogin = rightContrastOnLg ?? (pathname === '/login' || pathname.endsWith('/login'))
+  const isSplitLogin =
+    rightContrastOnLg ?? (pathname === '/auth/login' || pathname.endsWith('/login'))
 
   const switcherClassName = isSplitLogin
     ? 'text-kumo-default lg:text-white lg:hover:bg-white/10 lg:active:bg-white/20'
@@ -39,16 +41,18 @@ export function AuthHeader({ className = '', rightContrastOnLg }: AuthHeaderProp
     <header
       onDoubleClick={handleDesktopHeaderDoubleClick}
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 flex h-[calc(4rem+env(safe-area-inset-top,0px))] w-full items-center justify-between px-6 pt-[env(safe-area-inset-top,0px)] sm:px-10',
+        'fixed top-0 left-0 right-0 z-50 flex h-[calc(4rem+env(safe-area-inset-top,0px))] w-full items-center justify-between pl-6 pr-[max(var(--shell-window-controls-w,0px),1.5rem)] pt-[env(safe-area-inset-top,0px)] sm:pl-10 sm:pr-[max(var(--shell-window-controls-w,0px),2.5rem)]',
         isDesktop() ? 'select-none drag' : 'pointer-events-none',
         isDesktop() && 'pl-[var(--shell-traffic-light-w,78px)]',
         className,
       )}
     >
+      <WindowControls />
+
       {/* 最左侧：纯净品牌 Logo 图标（无背景、无文字） */}
       <div className="pointer-events-auto no-drag">
         <RouterLink
-          to="/login"
+          to="/auth/login"
           variant="plain"
           aria-label={brand.name}
           title={brand.name}
@@ -57,6 +61,10 @@ export function AuthHeader({ className = '', rightContrastOnLg }: AuthHeaderProp
           <LogoIcon size={24} className="shrink-0 text-kumo-default" />
         </RouterLink>
       </div>
+
+
+      {/* Windows 的原生拖动区：登录页没有窗口条，但窗口还是那一扇 */}
+      <div className="[--wails-non-client-region:caption] min-w-0 flex-1 self-stretch" />
 
       {/* 最右侧：语言切换与主题切换 */}
       <div className="pointer-events-auto flex items-center gap-1.5 no-drag">

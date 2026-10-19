@@ -27,6 +27,29 @@ export default defineConfig(({ mode }) => {
       // dedupe 强制走本应用的同一份实例，避免出现两份 Query 库。
       dedupe: ['@tanstack/react-router', '@tanstack/react-query', 'react', 'react-dom'],
     },
+    /*
+      测试（`vp test`）：底层是 vite-plus 自带的 Vitest 5，**不需要单独装 vitest** ——
+      断言与 mock 一律从 `vite-plus/test` 引（不要 `import ... from 'vitest'`）。
+
+      测试文件与源文件同目录（`*.test.ts`），只放**纯逻辑**用例：store、权限判定、
+      部署模式推导、数据映射这类「输入 → 输出」确定的代码。组件渲染测试需要 DOM，
+      当前刻意不引入 happy-dom（见 .agents/skills/platform-development/references/testing.md）。
+    */
+    /*
+      测试**不读 `.env`**（`envDir: false`，仅 test 模式）：
+      否则本机 `.env.local` 里的 `VITE_MULTI_APP=true` 会把「缺省是单应用」这类
+      用例变成假阳性 —— 测试必须只看自己的桩，不看开发者机器上碰巧有什么。
+      用例要什么环境变量就用 `vi.stubEnv` 显式给（见 src/lib/app-config.test.ts）。
+    */
+    ...(mode === 'test' ? { envDir: false as const } : {}),
+    test: {
+      include: ['src/**/*.test.{ts,tsx}'],
+      // 纯逻辑用例跑在 node 环境：仓库里的存储层都对 `typeof window === 'undefined'` 做了兜底
+      environment: 'node',
+      // 每个用例后自动还原 vi.stubEnv / vi.spyOn，避免环境变量泄漏到下一个用例
+      unstubEnvs: true,
+      restoreMocks: true,
+    },
     plugins: lazyPlugins(() => [
       tailwindcss(),
       tanstackRouter({ target: 'react', autoCodeSplitting: true }),

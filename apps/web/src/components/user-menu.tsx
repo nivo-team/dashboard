@@ -54,7 +54,7 @@ export function UserMenu({ align = 'end', size }: UserMenuProps) {
 
   /**
    * 登出：跳转由 `logout()` 在状态清理完成后统一收口（见 `#/lib/auth` 的 `redirectToLogin`）。
-   * 这里刻意**不**自行 `navigate('/login')`：在 `isAuthenticated` 尚未清理时跳过去，
+   * 这里刻意**不**自行 `navigate('/auth/login')`：在 `isAuthenticated` 尚未清理时跳过去，
    * 会被登录页的 `beforeLoad` 判定为「已登录」并弹回原页面。
    */
   const handleLogout = () => {

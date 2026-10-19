@@ -87,9 +87,9 @@ client.interceptors.response.use((response) => {
   if (response.status === 401 && typeof window !== 'undefined') {
     try {
       unauthorizedHandler?.()
-      if (window.location.pathname !== '/login') {
+      if (window.location.pathname !== '/auth/login') {
         // 用 replace 而非 href：会话失效后不允许通过浏览器后退回到受保护页面
-        window.location.replace('/login')
+        window.location.replace('/auth/login')
       }
     } catch {
       // 忽略回调处理异常

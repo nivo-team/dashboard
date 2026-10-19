@@ -3,6 +3,7 @@ import { CaretUpDownIcon, CheckIcon, SquaresFourIcon } from '@phosphor-icons/rea
 import { useRouter } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { isMultiAppEnabled, useAuth } from '#/lib/auth'
+import { shouldEnterAppSelect } from '#/lib/app-config'
 import type { AppItem } from '#/lib/auth'
 export type { AppItem }
 
@@ -18,7 +19,7 @@ interface AppSwitcherProps {
  * 特性：
  * - 优先从全局认证状态同步当前账号实际可用的应用列表；
  * - 侧边栏顶部不显示多余描述，仅显示应用名称，保持克制整洁；
- * - 下拉菜单仅供切换可用应用，仅展示应用名称，完整描述信息在应用选择页（/select-app）展示；
+ * - 下拉菜单仅供切换可用应用，仅展示应用名称，完整描述信息在根路径的应用页（/）展示；
  * - 侧边栏折叠为图标模式时自动隐藏文字与箭头，只保留应用图标；
  * - 悬停时提供柔和反馈（hover:bg-kumo-tint）。
  */
@@ -123,19 +124,27 @@ export function AppSwitcher({
           )
         })}
 
-        {/* 查看所有应用：回到根路径的应用选择页（_main/index.tsx -> "/"） */}
-        <DropdownMenu.Separator />
-        <DropdownMenu.Item
-          onClick={() => router.navigate({ to: '/' })}
-          className="flex items-center gap-2.5"
-        >
-          <span className="flex size-6 shrink-0 items-center justify-center text-kumo-default">
-            <SquaresFourIcon size={14} />
-          </span>
-          <span className="min-w-0 flex-1 truncate text-sm font-medium text-kumo-default">
-            {t('selectApp.viewAll', '查看所有应用')}
-          </span>
-        </DropdownMenu.Item>
+        {/*
+          查看所有应用：回到根路径的应用页（_main/index.tsx -> "/"，选择 + 管理同一页）。
+          当部署策略不打算走选择页（应用数 ≤ 1 或 `VITE_APP_SELECT_MODE=never`）时，
+          这一项没有意义 —— 点了也会被 `/` 的 beforeLoad 直接弹回应用里。
+        */}
+        {shouldEnterAppSelect(activeApps.length) ? (
+          <>
+            <DropdownMenu.Separator />
+            <DropdownMenu.Item
+              onClick={() => router.navigate({ to: '/' })}
+              className="flex items-center gap-2.5"
+            >
+              <span className="flex size-6 shrink-0 items-center justify-center text-kumo-default">
+                <SquaresFourIcon size={14} />
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm font-medium text-kumo-default">
+                {t('selectApp.viewAll', '查看所有应用')}
+              </span>
+            </DropdownMenu.Item>
+          </>
+        ) : null}
       </DropdownMenu.Content>
     </DropdownMenu>
   )

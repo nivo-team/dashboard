@@ -20,12 +20,14 @@
 | --- | --- | --- |
 | 给 agent 的规范（skills / 索引） | **已具备**：`AGENTS.md` 索引 + 4 个仓库 skill（business / platform 开发 / AI / 运维）的 `references/` | 比报告里的项目还完整 |
 | issue → 代码的**触发层** | **没有**（仓库连 `.github/` 都没有） | 本文补的就是这两段 |
-| 合并的**门控层** | **没有**：无 CI、无 lint、无单测 | 同上 |
+| 合并的**门控层** | **没有**：无 CI、无 lint、无单测 | 同上（今天已补齐，见下方状态说明） |
 
 > 上表是**建这条流水线之前**的快照，保留原样作为选型依据。**今天的实际状态**：
-> `.github/workflows/ci.yml` 已就位（铁律门控 + `pnpm typecheck` + `pnpm build` + 生成物同步）；
+> `.github/workflows/ci.yml` 已就位（铁律门控 + i18n 检查 + `pnpm typecheck` + `pnpm test`
+> + `pnpm build` + 生成物同步）；
 > 静态检查由 **Vite+** 提供 —— `pnpm exec vp check`（fmt + oxlint + tsgolint 类型检查，
-> 当前基线 0 error / 0 warning），但它目前只当本地手段，**没有进 CI**；**单测仍然没有**。
+> 当前基线 0 error / 0 warning），但它目前只当本地手段，**没有进 CI**；**单测已有**（`pnpm test`，见 [testing.md](../../platform-development/references/testing.md)），
+> 但它只覆盖纯逻辑，**运行时行为仍要人工验收**。
 
 **所以缺的不是「AI 能力」，是「触发」与「门控」这两段管道。** 本文只建这两段。
 
@@ -45,6 +47,7 @@ L1 执行层   .github/workflows/ai-implement.yml
 L2 门控层   .github/workflows/ci.yml
                ├ 铁律门控    scripts/ai/check-guardrails.mjs（i18n / 禁用样式 / 受保护路径）
                ├ typecheck   pnpm typecheck
+               ├ test         pnpm test（vp test，纯逻辑单测）
                ├ build       pnpm build
                └ 生成物同步   routeTree.gen.ts 必须与源码一起提交
             人工 review → 人工点合并（阶段一；阶段二见 §10）
@@ -73,7 +76,7 @@ L2 门控层   .github/workflows/ci.yml
 | [`ai/prompts/implement.md`](../../../../.github/ai/prompts/implement.md) | 执行提示词：必读文档、铁律、边界、自检清单、结构化摘要格式 |
 | [`ai/build-prompt.mjs`](../.github/ai/build-prompt.mjs) | 安全组装提示词（issue 正文是不可信输入，**绝不进 shell**） |
 | [`ai/run-agent.sh`](../.github/ai/run-agent.sh) | CLI 适配层：**默认 `dsh`**，可切 `claude` / `omp`；换 CLI 或换 flag 只改这一个文件 |
-| [`workflows/ci.yml`](../.github/workflows/ci.yml) | 门控：铁律门控 + typecheck + build + 生成物同步 |
+| [`workflows/ci.yml`](../.github/workflows/ci.yml) | 门控：铁律门控 + i18n + typecheck + test + build + 生成物同步 |
 | [`scripts/ai/check-guardrails.mjs`](../scripts/ai/check-guardrails.mjs) | 把铁律变成机器可判定的检查 |
 | [`workflows/translate.yml`](../.github/workflows/translate.yml) | i18n 翻译流水线：把 `zh-CN` 的增量翻到目标语言，推分支由人开 PR（见 [.agents/skills/platform-ops/references/i18n-translation-pipeline.md](./i18n-translation-pipeline.md)） |
 | [`workflows/labels.yml`](../.github/workflows/labels.yml) + [`labels.yml`](../.github/labels.yml) | 标签体系的唯一真值，自动同步到 GitHub |
@@ -246,7 +249,7 @@ git push origin chore/ai-pipeline
 
 - ✅ **Require a pull request before merging** —— 否则可直接 push 到 canary，绕过一切门控；
 - ✅ **Require status checks to pass before merging**，并选中这几个 check：
-  - `typecheck + build`（CI，含 i18n 检查）
+  - `typecheck + test + build`（CI，含 i18n 检查）
   - `提交身份`（代码作者门控）
 - ✅ **Require branches to be up to date before merging** —— 避免「绿灯后 base 又变了」；
 - ❌ **Allow force pushes / deletions** 保持关闭。
@@ -401,10 +404,10 @@ apps/web/src/features/home/metrics-card.tsx
 - **`.claude/skills` 与 `CLAUDE.md` 其实都是软链**（`.claude/skills -> ../.agents/skills`、
   `CLAUDE.md -> AGENTS.md`），所以「两份副本会漂移」这条早期判断已过时：
   真值始终只有一份（`.agents/skills` 与 `AGENTS.md`），改一处即可，不需要同步两处。
-- **静态检查有了，单测还是没有**：`pnpm exec vp check`（fmt + oxlint + tsgolint 类型检查）能挡住格式、
-  lint 与类型问题，CI 里仍只跑 `pnpm typecheck` + `pnpm build`；但门控终究只能挡住「类型错、构建错、
-  铁律违规」，运行时行为（比如卡片真的渲染出来了吗）**必须人工验收** —— 这是 docs 里一直强调
-  「不要用跑 typecheck 代替理解代码」的原因。
+- **静态检查与单测都只覆盖「确定的东西」**：`pnpm exec vp check`（fmt + oxlint + tsgolint 类型检查）
+  挡格式、lint 与类型问题；`pnpm test` 挡纯逻辑回归；CI 依次跑铁律门控 → i18n → typecheck → test → build。
+  但门控终究只能挡住「类型错、构建错、逻辑回归、铁律违规」，运行时行为（比如卡片真的渲染出来了吗）
+  **必须人工验收** —— 这是 docs 里一直强调「不要用跑 typecheck 代替理解代码」的原因。
 - **模型成本**：每次运行都是一个完整 agent 会话（读文档 + 读代码 + 改代码），
   成本随 issue 复杂度上升。`AI_MODEL` 选便宜模型跑简单任务，是常见的省钱做法。
 

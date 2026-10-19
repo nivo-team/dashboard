@@ -22,6 +22,82 @@ export const ENDPOINT_SPECS: Record<string, EndpointSpec> = {
   "GET /api": {
     "summary": "获取系统接口清单（供菜单管理关联接口权限使用）"
   },
+  "GET /app": {
+    "summary": "应用分页列表（应用管理用，含停用应用与管理字段；仅超级管理员可访问）",
+    "params": [
+      {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "description": "页码，从 1 开始"
+      },
+      {
+        "name": "page_size",
+        "in": "query",
+        "required": false,
+        "description": "每页条数"
+      },
+      {
+        "name": "kw",
+        "in": "query",
+        "required": false,
+        "description": "关键词（应用标识 / 名称 / 副标题 / 分类模糊匹配）"
+      },
+      {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "description": "状态：1 启用 / 2 禁用"
+      }
+    ]
+  },
+  "POST /app": {
+    "summary": "新建应用（应用标识即路由前缀，创建后不可修改；仅超级管理员可访问）",
+    "params": [
+      {
+        "name": "id",
+        "in": "body",
+        "required": true
+      },
+      {
+        "name": "name",
+        "in": "body",
+        "required": true
+      }
+    ]
+  },
+  "PUT /app": {
+    "summary": "更新应用（应用标识不可修改；仅超级管理员可访问）",
+    "params": [
+      {
+        "name": "id",
+        "in": "body",
+        "required": true
+      }
+    ]
+  },
+  "DELETE /app/{id}": {
+    "summary": "根据应用标识删除应用（仅超级管理员可访问）",
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "应用标识（路由前缀）"
+      }
+    ]
+  },
+  "GET /app/{id}": {
+    "summary": "根据应用标识获取详情（仅超级管理员可访问）",
+    "params": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "应用标识（路由前缀）"
+      }
+    ]
+  },
   "GET /apps": {
     "summary": "获取可选应用列表（含各自的接口根地址）"
   },

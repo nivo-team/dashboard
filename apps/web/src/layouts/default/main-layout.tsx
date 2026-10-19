@@ -9,7 +9,7 @@ import { usePageTabsEnabled } from '#/lib/page-tabs'
 import { usePreferencesStore } from '#/lib/store'
 import { LayoutSidebarProvider } from '../provider'
 import { ShellContentColumn } from '../common/content-column'
-import { DefaultMainSidebar } from './main-sidebar'
+import { MainSidebar } from '#/components/main-sidebar'
 
 function DefaultMainHeader({
   onOpenCommandPalette,
@@ -58,7 +58,7 @@ export function DefaultMainLayout({ children }: { children?: React.ReactNode }) 
   return (
     <>
       <LayoutSidebarProvider>
-        <DefaultMainSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />
+        <MainSidebar onOpenCommandPalette={() => setPaletteOpen(true)} />
 
         <ShellContentColumn
           desktop={false}

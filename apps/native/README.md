@@ -57,11 +57,12 @@ wails3 task test                                     # = pnpm desktop:test
 | web → Go 的通用调用 | `bridge.Registry`（`internal/bridge/`）+ 页面侧 `__bridge.call(name, payload)` |
 | Go → web 的事件推送 | `registry.Emit(name, data)` → 页面侧 `__bridge.on(name, handler)` |
 | 来源校验 | `shell.Config.OriginAllowed`（只认配置地址那一个来源） |
-| 系统原生标题栏与红绿灯 UI | `Frameless: false` + `MacTitleBar`（透明全尺寸标题栏融入系统红绿灯） |
+| Windows 无边框窗口 | `Frameless: true`（`windowFrameless`）；系统窗口按钮随之消失，行末留 138px 空白安全区 |
+| macOS 系统红绿灯 UI | `Frameless: false` + `MacTitleBar`（透明全尺寸标题栏融入系统红绿灯） |
 | 原生窗口毛玻璃模糊与穿透 | macOS `MacBackdropTranslucent`、Windows `Mica`、Linux GTK4+WebKitGTK 全透明穿透（配合 Wayland/Hyprland/KWin 合成器模糊），编译参数 `-tags private_mac_apis` 解锁 macOS WKWebView 透明 |
 | 标题栏/红绿灯高度注入 | 启动时注入 `__desktop_title_bar_h=40`（默认 40px，落地为 `--shell-chrome-h`） |
 | 窗口拖拽与交互区保护 | 页面侧 `--wails-draggable: drag`，按钮等写 `no-drag` 退出 |
-| 窗口自身动作与多窗口 | `window.minimise` / `window.toggleMaximise` / `window.close` / `window.open`（独立桌面窗口打开 Sphere 等功能） |
+| 窗口自身动作与多窗口 | `window.minimise` / `window.toggleMaximise` / `window.close`（载荷带 `name`，只动那一扇窗口）/ `window.open`（独立桌面窗口打开 Sphere 等功能） |
 
 页面侧的代码全在 [`apps/web/src/native/`](../web/src/native/README.md)：低层收发在
 `bridge.ts`、窗口条在 `title-bar.tsx`、桌面专属的模糊开关在 `blur-setting.tsx`。
@@ -69,17 +70,55 @@ wails3 task test                                     # = pnpm desktop:test
 生成到 `apps/web/src/native/generated/bridge.gen.ts`（`pnpm native:bindings`）。
 线上协议的真值是 [`internal/bridge/wire.go`](./internal/bridge/wire.go)。
 
-## 窗口标题栏、红绿灯与拖拽
+## 窗口标题栏、红绿灯与窗口控制键
 
-窗口已开启**系统原生 UI**：
-macOS 平台启用透明全尺寸内容视图（`FullSizeContent: true` + `AppearsTransparent: true`），系统原生红绿灯按钮（关闭/最小化/全屏）自然浮在网页顶部左上角，其他平台保留原生标题栏与窗口控制。
+**窗口边框按平台分岔**（`windowFrameless`，见 `main.go`）：Windows 去掉系统标题栏、macOS 与 Linux 保留。
+
+| 平台 | 系统标题栏 | 窗口控制键（最小化 / 最大化 / 关闭） | 行末处理 |
+|---|---|---|---|
+| Windows | **无**（`Frameless: true`） | **页面画、系统管**：三个键申报 `--wails-non-client-region`，命中原生（`HTMINBUTTON` / `HTMAXBUTTON` / `HTCLOSE`） | 138px 安全区（`--shell-window-controls-w`）里放这三个键 |
+| macOS | 透明全尺寸标题栏（`FullSizeContent: true` + `AppearsTransparent: true`） | 系统红绿灯，浮在网页左上角 | 左侧让开 `--shell-traffic-light-w: 78px` |
+| Linux | GTK 原生标题栏 | 系统自带（GTK 画的） | 无（不需要） |
+
+### 为什么 Windows 的按钮要页面画
+
+1. **系统画的按钮无法脱离系统标题栏存在**。Wails 出 `Frameless` 时把 `WM_NCCALCSIZE` 的客户区
+   放成整窗（非客户区清零），DWM 没有标题栏区可画；实测把整块 DWM 边框扩进客户区
+   （`DwmExtendFrameIntoClientArea` 全 -1 / 上 -1 / 裁 32px 三种），系统确实会把 `— □ ✕`
+   **画出来**，但命中测试不归系统（点关闭键窗口无反应）—— 它们是纯装饰。
+2. **macOS 相反**：红绿灯长在系统标题栏里，所以那边保留标题栏、页面只让开左侧。
+3. 于是 Windows 落成「页面画按钮、行为归系统」：壳开 `Windows.WebView2CompositionHosting`
+   （DirectComposition 承载，父窗口自己持有非客户区命中测试）+ 页面把矩形报给壳
+   （裸消息 `wails:non-client-region:`，见 `#/native/window-chrome` 的 `reportNonClientRegions`）。
+
+实测（Windows 11 / WebView2 155 / Wails v3.0.0-beta.28，`WM_NCHITTEST` 返回值）：
+
+| 位置 | 返回值 | 含义 |
+|---|---|---|
+| 最小化键 | 8 | `HTMINBUTTON` ✔ |
+| 最大化键 | 9 | `HTMAXBUTTON` ✔（悬停弹出 Win11 贴靠布局浮层） |
+| 关闭键 | 20 | `HTCLOSE` ✔ |
+| 窗口条空白区 | 2 | `HTCAPTION` ✔（按下即原生拖动） |
+| 页面 | 1 | `HTCLIENT` ✔ |
+
+两个必须知道的坑（都是实测踩出来的）：
+
+- **`--wails-non-client-region` 的类必须是静态字符串**。用模板串拼
+  （`` `[--wails-non-client-region:${kind}]` ``）Tailwind 扫不到、不会生成，
+  `getComputedStyle` 读到空值 → 上报时被跳过 → 那个矩形退回 `HTCLIENT`，贴靠浮层也不会出现。
+  见 `#/native/window-controls` 的 `REGION_CLASS`。
+- **落在申报区域里的点击到不了 DOM 按钮**（beta.28）：壳把 `WM_NCLBUTTON*` 只转成 WebView2
+  的鼠标输入，按钮自己的 `addEventListener('click')` 与 React `onClick` 都不触发。所以动作由
+  `#/native/bridge` 在 `window` 的**捕获**阶段按 `data-window-control` 做矩形命中后调
+  `window.*`（键盘仍走按钮的 `onClick`，只认 `detail === 0` 的合成点击）。
+
+其余细节：
 
 - **红绿灯高度注入**：macOS 红绿灯高度作为变量（默认 40px，支持 `-titlebar-height` 参数与 `DESKTOP_TITLE_BAR_HEIGHT` 环境变量），在壳启动时通过 URL 参数 `__desktop_title_bar_h=40` 注入页面首屏，页面内联脚本自动落地为 CSS 变量 `--shell-chrome-h: 40px`，确保所有布局几何（侧边栏、分屏面板、内容区）像素级齐平。
 - **左侧红绿灯避让**：窗口条左侧预留 `--shell-traffic-light-w: 78px` 避让区，避免页面标签或操作与红绿灯发生重叠冲突。
-- **拖拽**：页面在所有顶栏 Header（`DesktopTitleBar`、`AppHeader`、`MainHeader`、`SphereHeader`、`AuthHeader`）上写 `--wails-draggable: drag`，交互控件（按钮、链接、输入框、下拉菜单等）写 `no-drag` 退出。
-  Wails 的 drag 运行时只看**鼠标落点那个元素**上的计算值，而这个自定义属性会继承 ——
-  所以「条上写 drag、按钮和标签写 no-drag」就够了。别用 `-webkit-app-region`，那是 Electron 的。
-- **双击窗口动作**：Header 空白处**双击** = 最大化 / 还原（`window.toggleMaximise`；macOS 的双击由 Wails 的 drag 运行时直接接管）。
+- **行末窗口控制区**：这两个变量都定义在 `apps/web/src/styles.css`，由 `<html>` 上的 `is_mac` / `is_windows` 分流，**非对应平台一律 0px**。
+- **拖拽**：非 Windows 平台仍在顶栏 Header 上写 `--wails-draggable: drag`、交互控件写 `no-drag`，页面侧按 3px 阈值发 `wails:drag`；**Windows 不走这条路**：窗口条的空白区是原生 caption 区，按下即由系统开始拖动。
+- **双击**：Windows 的 caption 区归系统，页面收不到那里的鼠标事件；最大化/还原请用行末那个键（悬停它还有贴靠浮层）。macOS/Linux 的双击由各自的系统标题栏处理。
 
 ## 怎么加一个方法
 

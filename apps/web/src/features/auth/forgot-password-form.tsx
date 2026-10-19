@@ -6,7 +6,7 @@ import { RouterLink } from '#/components/router-link'
 export interface ForgotPasswordFormProps {
   /** 提交成功后的自定义回调 */
   onSuccess?: (email: string) => void
-  /** 返回登录的路由（默认 '/login'） */
+  /** 返回登录的路由（默认 '/auth/login'） */
   loginHref?: string
   /** 额外容器类名 */
   className?: string
@@ -17,7 +17,7 @@ export interface ForgotPasswordFormProps {
  */
 export function ForgotPasswordForm({
   onSuccess,
-  loginHref = '/login',
+  loginHref = '/auth/login',
   className = '',
 }: ForgotPasswordFormProps) {
   const { t } = useTranslation('auth')

@@ -7,6 +7,7 @@ import { PageTabStrip } from '#/components/page-tab-strip'
 import { useShellSidebarControl } from '#/layouts/provider'
 import { cn } from '#/lib/cn'
 import { handleDesktopHeaderDoubleClick, isDesktop, useDesktopBlurred } from './bridge'
+import { WindowControls } from './window-controls'
 
 export interface DesktopTitleBarProps {
   /**
@@ -309,9 +310,10 @@ export function DesktopTitleBar({ actions, homeTo, onOpenCommandPalette }: Deskt
         'select-none',
         // 在开启毛玻璃模糊穿透时为透明，否则为纯色底
         isBlurred ? 'bg-transparent' : 'bg-kumo-tint',
-        // macOS 红绿灯物理固定在窗口左上角：无论 LTR 还是 RTL，留白必须始终在物理左侧（pl），右侧始终为常规边距（pr）
+        // macOS 红绿灯物理固定在窗口左上角：无论 LTR 还是 RTL，留白必须始终在物理左侧（pl），
+        // 右侧让开 Windows 无边框窗口的窗口控制区（macOS / Linux / 浏览器里该变量是 0）
         'pl-[max(var(--shell-traffic-light-w,0px),0.5rem)]',
-        'pr-2',
+        'pr-[max(var(--shell-window-controls-w,0px),0.5rem)]',
         // 允许拖拽窗口
         'drag',
       )}
@@ -328,10 +330,19 @@ export function DesktopTitleBar({ actions, homeTo, onOpenCommandPalette }: Deskt
       {/* `chrome`：桌面壳窗口条里那一条是 Chrome 那种连成一片的标签 */}
       <PageTabStrip homeTo={homeTo} variant="chrome" onOpenCommandPalette={onOpenCommandPalette} />
 
+      {/*
+        Windows 的原生拖动区：只有这块**空白**申报成 caption。
+        整条申报会把标签页 / 搜索框一起变成非客户区，它们就收不到点击了；
+        其它平台这里是普通留白，拖拽仍走 .drag + wails:drag。
+      */}
+      <div className="[--wails-non-client-region:caption] min-w-0 flex-1 self-stretch" />
+
       {/* 行末工具区：退出拖拽区，防止拖动窗口，确保内部按钮交互正常 */}
       {actions ? (
         <div className="ms-auto flex shrink-0 items-center gap-2 no-drag">{actions}</div>
       ) : null}
+
+      <WindowControls />
     </div>
   )
 }

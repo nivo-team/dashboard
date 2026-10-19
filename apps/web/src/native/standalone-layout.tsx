@@ -8,6 +8,7 @@ import { AiPanel } from '#/features/ai/components/panel'
 import { DesktopHistoryNav } from './title-bar'
 import { cn } from '#/lib/cn'
 import { handleDesktopHeaderDoubleClick, useDesktopBlurred, closeDesktopWindow } from './bridge'
+import { WindowControls } from './window-controls'
 import { useUserPermissions } from '#/lib/permissions'
 import { usePreferencesStore } from '#/lib/store'
 import { usePageTabsStore } from '#/lib/page-tabs'
@@ -39,7 +40,7 @@ function DesktopStandaloneTitleBar({
         'fixed inset-x-0 top-0 z-40 flex h-[var(--shell-chrome-h,40px)] items-center gap-1',
         'border-b-0 select-none drag',
         isBlurred ? 'bg-transparent' : 'bg-kumo-tint',
-        'pl-[max(var(--shell-traffic-light-w,0px),0.5rem)] pr-2',
+        'pl-[max(var(--shell-traffic-light-w,0px),0.5rem)] pr-[max(var(--shell-window-controls-w,0px),0.5rem)]',
       )}
     >
       {/* 左侧控制组：红绿灯右侧放置前进/后退历史导航 */}
@@ -49,6 +50,10 @@ function DesktopStandaloneTitleBar({
 
       {/* 中间自适应标签条（chrome 风格），填满全部剩余可用空间 */}
       <PageTabStrip homeTo="/" variant="chrome" onOpenCommandPalette={onOpenCommandPalette} />
+
+
+      {/* Windows 的原生拖动区：只有空白申报成 caption（整条申报会吞掉标签与操作区的点击） */}
+      <div className="[--wails-non-client-region:caption] min-w-0 flex-1 self-stretch" />
 
       {/* 右侧精简工具区：仅保留 Ask AI，隐藏支持与用户菜单 */}
       <HeaderActions
@@ -60,6 +65,8 @@ function DesktopStandaloneTitleBar({
         showUserMenu={false}
         onOpenCommandPalette={onOpenCommandPalette}
       />
+
+      <WindowControls />
     </header>
   )
 }

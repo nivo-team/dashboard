@@ -8,7 +8,7 @@ import { guardAppRoute } from '#/lib/app-route-guard'
  *
  * 所有特定 App 的业务控制台路由都在此布局下运行：
  * - appId 作为给后端区分具体 App 的唯一标识；
- * - beforeLoad 鉴权拦截与 App 同步：若未认证则跳转 /login；若 URL 中指定的 appId 不在当前账号可用的应用列表里则抛出 404 并回退在 _main 通用外壳中呈现；有效且与当前激活 App 不一致时自动同步为该 App；
+ * - beforeLoad 鉴权拦截与 App 同步：若未认证则跳转 /auth/login；若 URL 中指定的 appId 不在当前账号可用的应用列表里则抛出 404 并回退在 _main 通用外壳中呈现；有效且与当前激活 App 不一致时自动同步为该 App；
  * - 子页面切换时不重新挂载 AppShell。
  *
  * 可用应用列表来自 `GET /apps`（登录后写入认证状态），因此这里只认这一份，

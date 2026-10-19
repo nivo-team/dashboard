@@ -9,7 +9,7 @@
 
 | 类别 | 位置 | 存储键（localStorage） | 按应用隔离 |
 | --- | --- | --- | --- |
-| 认证与应用选择 | `apps/web/src/lib/auth.ts` 的 `useAuthStore` | `admin.auth-state` | 否 —— 它本身就是「当前是哪个应用」 |
+| 认证与应用选择 | `apps/web/src/lib/store/auth-store.ts` 的 `useAuthStore`（读写口在 `#/lib/auth`） | `admin.auth-state` | 否 —— 它本身就是「当前是哪个应用」 |
 | 本机偏好（语言 / 外观 / 时区 / 详情打开方式 / 页面宽度） | `apps/web/src/lib/store/preferences-store.ts` | `admin.preferences:<appId>` | **是** —— 每个应用一套，没改过时继承 `:global` 基线 |
 | 表格 UI（列设置 / 筛选 / 排序 / 分页） | `apps/web/src/lib/store/table-ui-store.ts` | `admin.table-ui:<appId>` | **是** |
 | 仪表盘布局（卡片位置 / 尺寸） | `apps/web/src/lib/store/dashboard-store.ts` | `admin.dashboard:<appId>` | **是** —— 见 [dashboard-module.md](../../business-development/references/dashboard-module.md) |
@@ -97,6 +97,13 @@ const { user, currentApp, availableApps, logout } = useAuth()   // 组件
 const auth = getAuthSnapshot()                                  // 非 React（路由 beforeLoad）
 ```
 
+> 认证 store 的**状态机**在 `#/lib/store/auth-store.ts`，`#/lib/auth` 是它的唯一对外出口
+> （读写口 + `apiLogin` / `resolveAuthenticatedLanding` 等会话流程 + 模块级副作用）。
+> store 桶 `#/lib/store/index.ts` **刻意不转出它**：auth-store 在模块初始化时会注册请求拦截器
+> 与跨标签页同步，进桶会让每个引 `#/lib/store` 的底层模块都连带触发。
+> 部署模式（单/多应用、单/多账号）怎么读见
+> [auth-and-i18n.md](./auth-and-i18n.md) §1。
+
 ### 5.2 新增一个 per-app 的表格状态
 
 ```ts
@@ -137,11 +144,11 @@ useTableUiStore.getState().resetTable('example/table')
 判定与接入见 [ui-and-styling.md](./ui-and-styling.md) 的「动效开关」一节与 `#/lib/use-motion`。
 
 接线方式**桌面非受控 + 移动端受控**，代码只有一份：
-`#/components/shell/shell-sidebar-provider` 的 `ShellSidebarProvider`（两个外壳都套它，
+`#/layouts/provider` 的 `LayoutSidebarProvider`（两个外壳都套它，
 不要再各自写一遍 Provider 参数）。
 
 ```tsx
-// ShellSidebarProvider 内部（简化）
+// LayoutSidebarProvider 内部（简化）
 const isMobile = useIsMobileViewport()
 const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -181,7 +188,7 @@ const state = isPeeking ? 'peeking' : open ? 'expanded' : 'collapsed'
 
 > Blocked aria-hidden on an element because its descendant retained focus.
 
-于是已经收起的导航反而还留在无障碍树里。`ShellSidebarProvider` 在 `onOpenChange` 收到
+于是已经收起的导航反而还留在无障碍树里。`LayoutSidebarProvider` 在 `onOpenChange` 收到
 `false` 时（点菜单项 / 汉堡按钮 / 关闭按钮 / Esc / 遮罩**都**走这里）先把焦点从抽屉里
 `blur()` 出去，再落状态 —— 归宿与 `inert` 生效后一致（焦点落到 `body`），没有额外视觉变化。
 
@@ -236,8 +243,8 @@ const state = isPeeking ? 'peeking' : open ? 'expanded' : 'collapsed'
   想「把当前偏好固化成所有应用的新基线」，直接写 `admin.preferences:global` 那个键即可
   （例如将来做「设为默认」功能时）。
 - **侧边栏的 Provider 接法不要在两个外壳里各写一遍**：桌面非受控、移动端受控（`open` 跟随抽屉）
-  这套接法有个必须解释清楚的坑（原因见 5.4），统一用 `#/components/shell/shell-sidebar-provider` 的
-  `ShellSidebarProvider`；**移动端的 `open` 一定要在 `onOpenChange` 里回写**，否则抽屉按不动。
+  这套接法有个必须解释清楚的坑（原因见 5.4），统一用 `#/layouts/provider` 的
+  `LayoutSidebarProvider`；**移动端的 `open` 一定要在 `onOpenChange` 里回写**，否则抽屉按不动。
 - **移动端状态不落盘**：`persistSidebarOpen` / `persistSidebarWidth` 写入前都做了
   `isDesktopViewport()` 判断。新增外壳类状态时沿用这个约定，不要把抽屉开合写进存档。
 

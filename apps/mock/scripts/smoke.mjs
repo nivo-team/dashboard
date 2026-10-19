@@ -103,9 +103,9 @@ check('GET /profile', profile.json?.code === 0 && profile.json?.result?.username
 // 确认签发的 token 能被 /permissions 反查成对应角色，且删除权限的有无符合设计。
 console.log('\n权限角色')
 for (const row of [
-  { username: 'super admin', role: 'Super Admin', canDelete: true },
-  { username: 'admin', role: 'Admin', canDelete: false },
-  { username: 'user', role: 'Viewer', canDelete: false },
+  { username: 'super admin', role: 'Super Admin', canDelete: true, canManageApps: true },
+  { username: 'admin', role: 'Admin', canDelete: false, canManageApps: false },
+  { username: 'user', role: 'Viewer', canDelete: false, canManageApps: false },
 ]) {
   const signIn = await call('POST', '/login', { username: row.username, password: '123' })
   const token = signIn.json?.result?.token
@@ -123,6 +123,14 @@ for (const row of [
   check(
     `${row.username} 删除权限 = ${row.canDelete}`,
     hasDelete === row.canDelete,
+    `${list.length} 个权限点`,
+  )
+
+  // 应用管理是平台级能力：`app:read` 只有超管持有（列表对其他人降级成 GET /apps）
+  const hasAppRead = list.some((p) => p.startsWith('app:'))
+  check(
+    `${row.username} 应用管理权限 = ${row.canManageApps}`,
+    hasAppRead === row.canManageApps,
     `${list.length} 个权限点`,
   )
 
@@ -242,6 +250,68 @@ check(
 check(
   'apiBaseUrl 指向本 Mock',
   appList.every((a) => a.apiBaseUrl.includes(new URL(BASE).host)),
+)
+
+/* ------------------------------------------------------------ 应用管理 */
+// 应用管理是**平台级能力，只给超管**：`GET /app` 与增删改一律用超管 token，
+// 并单独验证非超管会被 403 拦在接口层（前端藏按钮不算数）。
+console.log('\n应用管理')
+const SUPER_TOKEN = 'mock-token-super'
+
+check(
+  '非超管拿不到应用列表（403）',
+  (await call('GET', '/app', undefined, 'mock-token-admin')).json?.code === 403,
+)
+check(
+  '非超管不能新建应用（403）',
+  (await call('POST', '/app', { id: 'x', name: 'x' }, 'mock-token-admin')).json?.code === 403,
+)
+
+const appPage = await call('GET', '/app', undefined, SUPER_TOKEN)
+check(
+  'GET /app',
+  appPage.json?.code === 0 && (appPage.json?.result?.total ?? 0) >= 4,
+  `total=${appPage.json?.result?.total}`,
+)
+
+// 清理上一轮遗留（重复运行时允许重复）
+for (const stale of (await call('GET', '/app?kw=smoke-app', undefined, SUPER_TOKEN)).json?.result
+  ?.items ?? []) {
+  await call('DELETE', `/app/${stale.id}`, undefined, SUPER_TOKEN)
+}
+
+const newApp = await call(
+  'POST',
+  '/app',
+  { id: 'smoke-app', name: '冒烟应用', status: 1 },
+  SUPER_TOKEN,
+)
+check('POST /app', newApp.json?.code === 0 && newApp.json?.result?.id === 'smoke-app')
+check(
+  '重复标识被拒',
+  (await call('POST', '/app', { id: 'smoke-app', name: 'x' }, SUPER_TOKEN)).json?.code !== 0,
+)
+
+const putApp = await call(
+  'PUT',
+  '/app',
+  { id: 'smoke-app', name: '冒烟应用改' },
+  SUPER_TOKEN,
+)
+check('PUT /app', putApp.json?.code === 0 && putApp.json?.result?.name === '冒烟应用改')
+
+check(
+  'GET /app/{id}',
+  (await call('GET', '/app/smoke-app', undefined, SUPER_TOKEN)).json?.result?.id === 'smoke-app',
+)
+// 没有「内置应用」概念：任何应用都可删（这里删新建的那条，不动种子数据）
+check(
+  'DELETE /app/{id}',
+  (await call('DELETE', '/app/smoke-app', undefined, SUPER_TOKEN)).json?.code === 0,
+)
+check(
+  '删除后 404',
+  (await call('GET', '/app/smoke-app', undefined, SUPER_TOKEN)).json?.code === 404,
 )
 
 /* -------------------------------------------------------- 系统接口清单 */
@@ -486,6 +556,8 @@ const expected = [
   '/profile',
   '/permissions',
   '/apps',
+  '/app',
+  '/app/{id}',
   '/api',
   '/example/table',
   '/menus/navigation',

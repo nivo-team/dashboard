@@ -39,7 +39,7 @@ export function guardAppRoute({ appId, href }: { appId: string; href: string }):
 
   if (!auth.isAuthenticated) {
     throw redirect({
-      to: '/login',
+      to: '/auth/login',
       search: { redirect: href },
     })
   }

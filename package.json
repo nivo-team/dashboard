@@ -6,10 +6,12 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm -C apps/web dev",
-    "dev:all": "vp run --parallel --filter './apps/*' dev",
+    "dev:all": "vp run --parallel --filter \"./apps/*\" dev",
     "build": "pnpm -C apps/web build",
     "preview": "pnpm -C apps/web preview",
     "typecheck": "pnpm -C apps/web typecheck",
+    "test": "pnpm -C apps/web test",
+    "test:watch": "pnpm -C apps/web test:watch",
     "mock": "pnpm -C apps/mock dev",
     "mock:build": "pnpm -C apps/mock build",
     "ai": "pnpm -C apps/ai dev",

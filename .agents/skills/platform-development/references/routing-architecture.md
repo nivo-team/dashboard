@@ -9,12 +9,17 @@
 ```
 apps/web/src/routes/
 ├── __root.tsx                 # 根路由：提供 Kumo LinkProvider、全局 Toasty 容器、全屏 404 与 Devtools
-├── _auth/                     # 认证门户专用无路径布局
+├── auth/                      # 认证门户专用布局
 │   ├── route.tsx              #   顶部悬浮语言与主题切换器
-│   └── login.tsx              #   登录页面 (/login)
+│   ├── index.tsx              #   /auth 重定向至 /auth/login
+│   ├── login.tsx              #   登录页面 (/auth/login)
+│   ├── register.tsx           #   注册页面 (/auth/register)
+│   ├── forgot-email.tsx       #   找回邮箱 (/auth/forgot-email)
+│   ├── forgot-password.tsx    #   重置密码 (/auth/forgot-password)
+│   └── oauth/                 #   OAuth 回调 (/auth/oauth/$provider/callback)
 ├── _main/                     # 与 appId 无关的通用外壳布局（无路径布局）
 │   ├── route.tsx              #   全局工作台外壳（Kumo Sidebar + Header，登录鉴权拦截）
-│   ├── index.tsx              #   根路径 /：工作空间应用选择页 (SelectAppPage)
+│   ├── index.tsx              #   根路径 /：应用选择 + 应用管理页 (SelectAppPage)
 │   ├── select-app.tsx         #   兼容旧路由 /select-app，重定向至 /
 │   ├── settings/              #   设置模块（进入后侧边栏切换为模块专属二级导航）
 │   │   ├── route.tsx          #     模块根：仅 <Outlet />；二级侧边栏由 MainLayout 按路由前缀切换
@@ -47,7 +52,7 @@ apps/web/src/routes/
 ## 2. 核心架构机制
 
 ### 双层外壳拓扑：_main 与 $appId 隔离
-- **全局通用外壳 (`_main/`)**：处理与具体应用无关的通用业务，例如工作空间应用列表选择 (`/`)、个人资料 (`/settings/profile`) 等。
+- **全局通用外壳 (`_main/`)**：处理与具体应用无关的通用业务，例如根路径的应用选择 + 应用管理 (`/`)、个人资料 (`/settings/profile`) 等。应用管理放这里而不是 `/$appId/system/*`：应用是工作空间的根概念，管它不该先进入某个应用（鸡生蛋）。选择与管理**同一页**（`/`）——点行进应用，写按钮按 `app:create/edit/delete` 收敛，不再单开 `/apps` 页。
 - **业务控制台外壳 (`$appId/`)**：扁平化去除了多余的 `_app` 中间层，直接由 `apps/web/src/routes/$appId/route.tsx` 承载 `AppShell`。每个应用系统享有隔离的 URL 空间 `/$appId/...`，路由守卫自动根据 URL 参数同步激活当前 App 及其专属的 `apiBaseUrl`。
 - **单应用 vs 多应用模式（环境变量可配）**：
   - **单应用模式（默认，`VITE_MULTI_APP=false`）**：
@@ -61,6 +66,50 @@ apps/web/src/routes/
   - 顶栏面包屑自动剥离第一段 `$appId` 参数，使业务层级链路清晰直观（如 `/$appId/home` 显示为 `首页`，`/$appId/orders` 显示为 `首页 / 订单管理`）；
   - 历史别名路径（如 `/admin`）会自动规范化重定向至 `/$appId/home`；
   - 未知应用校验：若 URL 中指定的 `$appId` 不在可用应用列表与系统预设中，路由守卫直接抛出 `notFound()` 并在 `_main` 通用外壳中呈现 404 引导页，使用户仍可通过完整的导航与侧边栏回到工作空间。
+
+### 单应用模式能不能去掉 `/$appId` 前缀（调研结论）
+
+**问题**：单应用模式下永远只有一个应用，URL 里的 `/$appId`（如 `/nivo/system/roles`）
+是不是多余的？能不能干脆去掉，或者用一个中性的占位符（如 `/_`）？
+
+**结论**：**能去掉，但代价是全量路由改造；短期更稳的做法是把前缀固定为一个中性常量（`_` 占位），而不是真的删段。**
+
+**关键事实：`$appId` 这段路径不是数据作用域的真值。** 应用隔离靠的是 store 里的
+`currentApp`，不是 URL —— 三处证据：
+
+- API 请求头 `X-App-Id` 取自 `useAuthStore` 的 `currentApp.id`（`src/api/index.ts` 的
+  `configureAuthInterceptors`），与 URL 无关；
+- 存储作用域由 `setAppScope(chosenApp.id)` 驱动（`src/lib/store/auth-store.ts`），与 URL 无关；
+- 查询缓存按应用分区，同样读 `currentApp`（`src/lib/store/app-scope`、`query-client`）。
+
+所以 URL 里的 `$appId` 只承担三件事：**选中态同步、404 守卫、以及作为所有链接的前缀**。
+这三件事是「路由架构」层的，不涉及数据正确性 —— 删掉它不会串数据，只会牵动路由。
+
+**`$appId` 是承重墙，具体承重处**：
+
+- 布局路由本身：`src/routes/$appId/route.tsx`（`AppShell` 挂在这里），以及刻意逃离它的
+  `src/routes/$appId_.sphere/route.tsx`（全屏 AI 对话页）；
+- 守卫唯一入口 `guardAppRoute({ appId, href })`（`src/lib/app-route-guard.ts`）——
+  认证、应用有效性、选中态同步都在这里，两处挂载点共用；
+- 所有页面链接前缀：`src/lib/navigation/app-nav.ts` 的 `NAV_GROUPS` 里 `to` 是**相对**路径，
+  由外壳拼成 `/${appId}${to}`；`useCrudView` 的 `basePath`、面包屑剥离
+  （`src/lib/breadcrumb-trail.ts` / `use-breadcrumbs`）、页面标签页（`src/lib/page-tabs.ts`）
+  都依赖这段前缀。
+
+**三条可选路线**：
+
+| 方案 | 做法 | 代价 / 风险 |
+| --- | --- | --- |
+| **A. 可选路径参数** | TanStack Router 的 `{-$appId}`（v1.81+）把这段声明为可选，`/home` 与 `/nivo/home` 都能命中 | 真正的「去前缀」，但**每个路由文件要改名**（`$appId/route.tsx` → `{-$appId}/route.tsx`），且所有 `to=/$appId/...` 链接、`basePath`、面包屑、标签页都要改成可选形式；改动面 = 全部路由 + 全部链接构造点 |
+| **B. 按模式生成两套路由** | 单应用产出无前缀树、多应用产出带前缀树 | **违反「名单只有一个真值」**：两套树必然分叉，新增页面要写两遍，是最不推荐的一条 |
+| **C. 前缀固定为中性占位常量** | 单应用模式把 `DEFAULT_APP_ID` 定为 `_`（或保留 `nivo`），URL 变成 `/_/home` | **零路由改动**：只是路径前缀值从应用名换成中性串。`_` 是合法路径段，守卫 / 作用域 / `X-App-Id` 照常工作。语义上诚实地表达「此为占位，非真实应用名」 |
+
+**推荐**：短期走 **C**（把单应用前缀从品牌名 `nivo` 收敛成中性 `_`，消除「URL 里出现应用名」的
+违和感，同时零风险）；若要做成真正的「无前缀」，按 **A** 单独开一次改动，**以
+`guardAppRoute` 为唯一改造收口**，不要走 B。
+
+> 注意：`_` 与 TanStack 的「段尾下划线」约定（`$appId_.sphere`）无关 —— 后者是文件名里的
+> 布局逃逸标记，不出现在 URL；前者是 URL 里的一个普通字面段。两者不要混淆。
 
 ### 逃离父布局：全屏 AI 对话页（`$appId_.sphere`）
 `/$appId/sphere` 是 AI 面板头行「最大化」按钮的落点：一个**没有应用侧边栏**的独立
@@ -133,7 +182,36 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
 - **`desktop` 变体**（`#/layouts/desktop`）：PC 桌面原生壳专属（macOS / Windows / Linux），整宽 fixed 浮层窗口条取代传统顶栏，全高毛玻璃侧边栏；
 - **`mobile` 变体**（`#/layouts/mobile`）：移动端视口与移动原生壳（Android APK）专属，沉浸式顶部安全区适配（`safe-area-inset-top`），汉堡按钮唤出全屏抽屉侧边栏，点击导航项后自动收拢。
 
-布局目录内各自独立组织 `sidebar.tsx`、`header.tsx`、`app-layout.tsx`、`main-layout.tsx` 等子模块，形态彻底解耦，互不干扰。
+布局目录内各自独立组织 `header.tsx`、`app-layout.tsx`、`main-layout.tsx` 等子模块。
+
+#### 变体之间怎么共用：**一份实现 + 一张变体表**
+
+「物理隔离」指的是**外壳骨架**（顶栏 / 窗口条 / 内容列的排布方式），不是把每个零件都抄三份。
+早期三个变体各有一份 ~200 行的 `sidebar.tsx`，其中菜单树渲染、高亮判定、权限过滤、
+搜索入口**逐字相同**，只有四处平台差异 —— 三份并存意味着「改一处忘两处」。
+
+现在的划分（**加平台 = 加一行表**，渲染逻辑一行都不用动）：
+
+| 位置 | 角色 |
+| --- | --- |
+| `#/layouts/common/app-sidebar.tsx` | 业务侧边栏（`$appId` 导航）唯一实现 + `SIDEBAR_VARIANTS` 变体表 |
+| `#/layouts/common/main-sidebar.tsx` | 通用外壳侧边栏（`_main` 导航 + 设置二级导航）唯一实现 + `MAIN_SIDEBAR_VARIANTS` 变体表 |
+| `#/layouts/common/sidebar-variant.ts` | `SidebarVariant` 与「外壳布局 → 变体」映射，**两个侧边栏共用一份** |
+| `#/layouts/common/sidebar-chrome.ts` | 平台相关的那几串 className（安全区高度、折叠态描边、收起态隐藏文案） |
+| `#/layouts/common/nav-matching.ts` | 应用内导航高亮判定（纯函数，有单测） |
+| `#/components/app-sidebar.tsx`、`#/components/main-sidebar.tsx` | 环境分派：`useActiveLayout()` → 变体，选纯视图还是抽屉包装 |
+
+变体差异一共四类，全部在表里：**顶栏形态**（应用切换器 / 抽屉头 + 关闭键 / 不渲染）、
+**底部折叠按钮**、**点击导航后是否收起抽屉**、**长文案是否在收起态隐藏**。
+
+两个坑：
+
+1. **抽屉感知必须拆成两层组件**（`*View` + `Drawer*`）：`useSidebar()` 需要
+   `Sidebar.Provider` 祖先，而**桌面壳的外壳没有这个 Provider**（折叠由窗口标题栏统一控制）。
+   合回一个组件会让桌面端一渲染就报错，而 hook 不能有条件调用。
+2. **桌面壳的「设置」开独立窗口，但设置窗口里的导航不能再开一个**：
+   `settingsInOwnWindow` 只在 `!isSettingsSection` 时生效，否则会无限套娃。
+
 
 ### 桌面壳里的外壳形态（全高侧边栏 + 整宽窗口条浮层）
 在桌面壳里（`isDesktop()`，标记来自 URL，见 [apps/native/README.md](../../../../apps/native/README.md)）
@@ -179,7 +257,7 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
   见 [ui-and-styling.md](./ui-and-styling.md) §4。
 
 侧边栏的 `Sidebar.Provider` 接线（含**桌面非受控、移动端受控**这套移动端抽屉接法）
-统一在 `#/components/shell/shell-sidebar-provider` 的 `ShellSidebarProvider`，两个外壳共用一份 ——
+统一在 `#/layouts/provider` 的 `LayoutSidebarProvider`，两个外壳共用一份 ——
 原因与踩过的坑见 [store.md](./store.md) §5.4。
 
 ### 局部异步与状态隔离
@@ -217,11 +295,11 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
    }
    ```
 
-2. **配置导航与快捷入口**：在 `apps/web/src/lib/navigation.ts` 的 `NAV_GROUPS` 中添加该项，侧边栏与 ⌘K 命令面板将同步生效。
+2. **配置导航与快捷入口**：在 `apps/web/src/lib/navigation/app-nav.ts` 的 `NAV_GROUPS` 中添加该项，侧边栏与 ⌘K 命令面板将同步生效。
 
 3. **嵌套子导航**：如需多标签页或二级页面，可创建同名布局 `orders.tsx`（内含 Tab 栏与 `<Outlet />`）以及 `orders/index.tsx`、`orders/detail.tsx`。
 
-2. **配置导航与快捷入口**：在 `apps/web/src/lib/navigation.ts` 的 `NAV_GROUPS` 中添加该项，侧边栏与 ⌘K 命令面板将同步生效。
+2. **配置导航与快捷入口**：在 `apps/web/src/lib/navigation/app-nav.ts` 的 `NAV_GROUPS` 中添加该项，侧边栏与 ⌘K 命令面板将同步生效。
 
 3. **嵌套子导航**：如需多标签页或二级页面，可创建同名布局 `orders.tsx`（内含 Tab 栏与 `<Outlet />`）以及 `orders/index.tsx`、`orders/detail.tsx`。
 
@@ -239,10 +317,10 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
 
 - `__root.tsx`：根路由。统一使用 `<LinkProvider component={AppLink}>` 桥接所有 Kumo 内部链接至 TanStack 客户端导航，挂载全局 `<Toasty toastManager={appToastManager}>` 通知容器（共享管理器见 `apps/web/src/lib/toast.ts`，供 API 拦截器等非 React 上下文复用），并集成 TanStack Devtools。
 - `_main/`：与 `appId` 无关的全局通用无路径外壳 (`_main/route.tsx`)。
-  - `_main/index.tsx`：根路径 (`/`)。在多应用模式下承载工作空间应用选择页 (`SelectAppPage`)；在单应用模式下（默认），通过 `beforeLoad` 直接规范化重定向至默认应用首页 (`/nivo/home`，由 `DEFAULT_APP_ID` 配置)，无需接口请求与选应用流程。
+  - `_main/index.tsx`：根路径 (`/`)。在多应用模式下承载 `SelectAppPage` —— **应用选择 + 应用管理同一页**（点行进入应用；新建 / 编辑 / 删除按钮按 `app:create/edit/delete` 收敛，见 business-development 的 features-module.md §13）；在单应用模式下（默认），通过 `beforeLoad` 直接规范化重定向至默认应用首页 (`/nivo/home`，由 `DEFAULT_APP_ID` 配置)，无需接口请求与选应用流程。
   - `_main/select-app.tsx`：兼容历史 `/select-app` 路径，规范化重定向至根路径 `/`。
   - `_main/settings/`：设置模块（**目录化**，与 `/` 共用 `MainLayout`；当前「个人资料 / 外观 / AI」三个子页）。
-    - `settings/route.tsx`：模块根，只渲染 `<Outlet />`；`settings/index.tsx` 把 `/settings` 重定向到默认子页 `/settings/profile`（与 `$appId/example/` 同一套写法）。**设置模块的二级导航由 `MainLayout` 的 `MainSidebarSwitch` 按路由前缀切换**（`/settings`、`/settings/**` → `SettingsSidebar`，其余 → 通用导航）—— 嵌套路由只能替换内容区，无法接管外层侧边栏。两套导航共用品牌 Header（`SidebarBrandHeader`：方块 + 标题 + 移动端关闭按钮）与「快速搜索」入口（`SidebarSearchButton`，与 `AppSidebar` 同一套 Kumo 官方范式）；`SettingsSidebar` 在品牌行之下再加一行 `SettingsModuleHeader`（返回 `/` + 模块标题「设置」，参照 Cloudflare 控制台），**真正替换的只有模块行与菜单**。这是「同一 Sidebar 位置换内容」而非第二个 `Sidebar`，`Sidebar.Provider` 不重挂，折叠状态与拖拽宽度都保留。`_main` 外壳已挂 `CommandPaletteDialog`（⌘K / Ctrl+K，与 `AppShell` 同款接线），搜索按钮与快捷键共享同一面板。
+    - `settings/route.tsx`：模块根，只渲染 `<Outlet />`；`settings/index.tsx` 把 `/settings` 重定向到默认子页 `/settings/profile`（与 `$appId/example/` 同一套写法）。**设置模块的二级导航由 `MainSidebar` 按路由前缀切换**（`/settings`、`/settings/**` → 设置导航，其余 → 通用导航；判定就是 `isSettingsSection` 一处）—— 嵌套路由只能替换内容区，无法接管外层侧边栏。两套导航共用品牌头（`BrandHeader`：方块 + 标题 + 移动端关闭按钮）与「快速搜索」入口（`SidebarSearchButton`，与业务侧边栏同一套 Kumo 官方范式）；设置导航在品牌行之下再加一行 `SettingsModuleHeader`（返回 `/` + 模块标题「设置」，参照 Cloudflare 控制台），**真正替换的只有模块行与菜单**。这是「同一 Sidebar 位置换内容」而非第二个 `Sidebar`，`Sidebar.Provider` 不重挂，折叠状态与拖拽宽度都保留。两套导航的渲染函数也是同一个（`ShellNavList`），只有菜单源不同。`_main` 外壳已挂 `CommandPaletteDialog`（⌘K / Ctrl+K，与 `AppShell` 同款接线），搜索按钮与快捷键共享同一面板。
     - `settings/profile.tsx`：个人资料 (`/settings/profile`)，只读展示 `GET /profile` 返回的账号资料 —— 接口路径与前端路由无关，仍是同一支接口；后端没有更新接口，因此不做表单；接口不可用时逐项回落本地登录态（`useAuth().user`）并显式提示，不把兜底数据伪装成后端值。
     - `settings/appearance.tsx`：外观 (`/settings/appearance`)，单张 `LayerCard`（标题「通用设置」`profile.settings.general`，形态是 `LayerCard.Secondary` + `LayerCard.Primary`）里放着若干本机偏好：主题（`#/lib/use-color-mode`）/ 语言（`#/lib/use-locale`）/ 时区（`#/lib/timezone`）/ 详情打开方式（`#/lib/store` 的 `detailOpenMode`，见 [./detail-preview.md](../../business-development/references/detail-preview.md)）/ 页面宽度（`#/lib/store` 的 `pageWidth`：全宽 / 限宽居中，默认全宽，落点在 `#/lib/page-width`）—— 这些是**即时生效 + 持久化在 `admin.preferences:<appId>`（按应用隔离，见 [./store.md](./store.md)）**，所以**没有保存按钮、没有 dirty 状态，不要套 `UnsavedChangesBar` 那套编辑态契约**。同页还有两个**开关型的外壳偏好**，它们在全局的 `admin.shell-ui` 里（「换个应用还成立」）：界面动效（`motionEnabled`，默认开）与**页面标签页**（`pageTabsEnabled`，默认关；桌面壳里恒开、这一项在那边禁用 + 提示，见上面「桌面壳里的外壳形态」）。控件选型：**短枚举（≤3 项）用 Kumo `Tabs` 的 segmented 分段控件**（主题、详情打开方式、页面宽度），长枚举（语言、时区）用 `Select`，**布尔用 `Switch`**（界面动效、页面标签页）；**「详情打开方式」与「页面宽度」每段选项悬浮时还会弹一个浮层，用通用缩略图把该档位的页面变化演一遍**（`#/components/app-shell-preview`，见第 5 节）。账号安全 / 已连接应用 / API Token 等更重的设置后续扩展（往 `components/main-layout.tsx` 的 `SETTINGS_NAV_ITEMS` 追加导航项、或在卡片下方再加一张 `LayerCard` 即可）。
     - `settings/AI.tsx`：AI (`/settings/AI`)，与外观页同一套「设置卡片 + 设置行」形态（`#/components/settings-card` 的 `SettingsCard` / `SettingRow`，不要再手写 `LayerCard`）。设置行有若干项，其中**显示方式**（`admin.preferences:<appId>` 的 `aiPanelMode`，`split` = Split View / `float` = Float）与**页面宽度**（`aiPageWidth`：跟随外观 / 全宽 / 限宽居中 —— **只作用于 `/$appId/sphere`**，会话区 + 输入区收在同一个宽度约束里；上限是聊天自己的 `max-w-4xl`，**比页面的 1440px 窄**，「跟随外观」只跟外观那个选择的档，落点见 `#/lib/page-width` 的 `aiChatWidthClass`）—— 与外观页同属「即时生效 + 按应用隔离持久化」，**没有保存按钮、没有 dirty 状态**。控件是与「主题」一致的分段控件（`Tabs` + `role="group"` 兜可访问名称），并带与「详情打开方式」同款的悬浮预览（见第 5 节；页面宽度那一行直接复用外观页的宽度缩略图动画）。**卡片标题直接复用 `profile.settings.general`（「通用设置」），不另开 `aiSection` 之类的重复文案**；设置项文案在 `profile.settings.aiDisplayMode*`，**两个选项（`aiModes.split` / `aiModes.float`）是形态名、各语言各自本地化**（中文「分屏视图 / 浮窗」，不要写成产品术语原文）。后续 AI 偏好继续往这张卡片加 `SettingRow`，或下方再加一张 `SettingsCard`。**文件名与路径保留大写的 `AI`**（缩写，与导航项显示名一致），由 `pnpm generate-routes` 生成的 `routeTree.gen.ts` 同步。
@@ -263,7 +341,7 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
   - `beforeLoad` 守卫：校验认证状态，并自动同步 URL 中的 `$appId` 与当前激活应用；若访问历史别名路径（如 `/admin`）会自动规范化重定向至 `/$appId/home`，若 appId 不存在则直接抛出 404 (`notFound()`) 并在 `_main` 通用外壳中呈现；
   - 面包屑计算：顶栏面包屑自动剔除开头的 `$appId` 参数，并按 `NAV_GROUPS` 做最长前缀匹配，剩余分段作为动态参数逐级追加（如 `/$appId/example/table` 显示为 `首页 / 示例 / 表格示例`，`/$appId/example/table/10001` 显示为 `首页 / 示例 / 表格示例 / 10001`）。
     - 剩余分段默认只显示**原始段**（如 `483`）。业务模块可在数据到达后用 `apps/web/src/lib/breadcrumb-trail.ts` 的 `setBreadcrumbTrail(owner, { [path]: { label, parent } })` 注册层级，`AppHeader` 命中后把它还原成**带名称、可逐级点击**的层级链（功能模块据此把 `/$appId/system/features/483` 显示为 `首页 / 系统 / 功能 / system / menus`，点 `system` 即回到 484）；按 `owner` 覆盖式注册、组件卸载即清除，未注册时行为完全不变。
-- `_auth/route.tsx`：认证门户专用无路径布局 (`/login`)。右上角内置浮动语言与主题切换器。
+- `auth/route.tsx`：认证门户专用布局 (`/auth/login`)。右上角内置浮动语言与主题切换器。
 
 ---
 
@@ -300,12 +378,15 @@ AI 状态（`features/ai/core/session-store`）是模块级 zustand store，与�
 
 ## 2. 导航系统与命令面板 (Navigation & Command Palette)
 
-- `apps/web/src/lib/navigation.ts` 是管理后台所有导航项的**单一真值来源 (SSOT)**，共三份配置：
+- `apps/web/src/lib/navigation/` 目录是管理后台所有导航项的**单一真值来源 (SSOT)**（入口 `index.ts`；名单分两个文件：业务的 `app-nav.ts`、外壳的 `shell-nav.ts`），共三份配置：
   - `NAV_GROUPS`：`$appId` 业务导航，`to` **相对 appId**（`/home`、`/example/table`）；由 `AppSidebar` 渲染、`AppHeader` 用它的 `to` 做面包屑最长前缀匹配，并经 `ALL_NAV_TARGETS` 扁平化后供命令面板使用；
   - `MAIN_NAV_ITEMS`：`_main` 通用外壳导航（应用选择 `/`、个人资料 `/settings/profile`），由 `MainSidebar` 渲染；
-  - `SETTINGS_NAV_ITEMS`：设置模块的二级导航（个人资料 `/settings/profile`、外观 `/settings/appearance`（图标 `SwatchesIcon`、文案 `profileNav.appearance`）、AI `/settings/AI`（图标 `SparkleIcon`、文案 `profileNav.ai`，**路径保留大写缩写**）），由 `SettingsSidebar` 渲染。**「外观」与「主题」是两个 key**：前者是模块入口（`profileNav.appearance`），后者是主题选择器的分组标题（`theme.label`），不要合并。
+  - `SETTINGS_NAV_ITEMS`：设置模块的二级导航（个人资料 `/settings/profile`、外观 `/settings/appearance`（图标 `SwatchesIcon`、文案 `profileNav.appearance`）、AI `/settings/AI`（图标 `SparkleIcon`、文案 `profileNav.ai`，**路径保留大写缩写**）），由 `MainSidebar` 的设置分支渲染。**「外观」与「主题」是两个 key**：前者是模块入口（`profileNav.appearance`），后者是主题选择器的分组标题（`theme.label`），不要合并。
   - 后两份是 `ShellNavItem`，`to` 是**绝对路径**（不拼 appId），并带 `matchPaths` 表达「历史别名也算选中」（如 `/select-app` 之于 `/`）。**不要把外壳项塞进 `NAV_GROUPS`** —— 会污染 `AppHeader` 的业务面包屑匹配，且 `_main` 外壳根本没有 appId 前缀。`ALL_SHELL_NAV_TARGETS` 是两份外壳导航合并去重后的命令面板数据源。
-- **三处侧边栏与命令面板都必须是「配置对象 → map 渲染」**，不允许把菜单项硬编码在 JSX 里（`MainSidebar` 曾如此）：加 / 改导航项只动 `navigation.ts`，业务侧边栏、外壳侧边栏、⌘K 面板三个入口自动同步。外壳侧边栏统一走 `#/components/shell/main-layout.tsx` 的 `ShellNavButton`。
+- **三处侧边栏与命令面板都必须是「配置对象 → map 渲染」**，不允许把菜单项硬编码在 JSX 里（`MainSidebar` 曾如此）：加 / 改导航项只动 `navigation/` 下的名单文件，业务侧边栏、外壳侧边栏、⌘K 面板三个入口自动同步。外壳侧边栏统一走 `#/layouts/common/nav-shared` 的 `ShellNavButton`。
+- **外壳组件的唯一实现在 `#/layouts/`**（侧边栏 Provider 在 `#/layouts/provider`）：曾有一层
+  `#/components/shell/*` 纯转发 shim（只把 `#/layouts` 的名字换个马甲再导出），已删除 ——
+  **不要再引入**。别名层让「搜到的组件名」与「读到的实现」变成两跳，改组件时容易改错文件。
 - **导航项没有描述字段**：侧边栏与命令面板列表**只显示标题**（曾经给命令面板当副标题的 `description` 已删除，不要加回来）；检索能力靠 `keywords`（中英双语，保证两种输入都能命中）。
 - 导航文案通过 `labelKey` / `children[].labelKey` 指向 `common` 命名空间下的 i18n 键，不要在组件里硬编码路径→文案的映射；新增导航项时**只写 `zh-CN` 的 `nav.*` 文案**，其它语言由翻译流水线补齐。
 - 业务首页路径统一配置为 `/home`，拼接当前激活应用标识生成 `/$appId/home`；它的**文案是「仪表盘」**（`nav.home`），别只改一处就以为改完了 —— 导航项、命令面板、顶栏面包屑三处共用这个 key。检索关键词同时保留 `home` / `首页` 与 `dashboard` / `仪表盘`（老用户还在按老名字找它）。

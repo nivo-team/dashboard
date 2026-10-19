@@ -126,20 +126,20 @@ var Methods = []Method{
 	},
 	{
 		Name:    WindowMinimise,
-		Summary: "最小化窗口",
-		Payload: "void",
+		Summary: "最小化窗口（默认主窗口，可用 name 指定发起调用的那一扇）",
+		Payload: `{ name?: string }`,
 		Result:  windowStateTS,
 	},
 	{
 		Name:    WindowToggleMaximise,
-		Summary: "最大化 / 还原窗口（窗口条空白处双击）",
-		Payload: "void",
+		Summary: "最大化 / 还原窗口（窗口条空白处双击；默认主窗口，可用 name 指定）",
+		Payload: `{ name?: string }`,
 		Result:  windowStateTS,
 	},
 	{
 		Name:    WindowClose,
-		Summary: "关闭窗口",
-		Payload: "void",
+		Summary: "关闭窗口（默认主窗口，可用 name 指定发起调用的那一扇）",
+		Payload: `{ name?: string }`,
 		Result:  "void",
 	},
 	{

@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteDataDictByIdData, DeleteDataDictByIdResponses, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponses, DeleteExampleTableByIdData, DeleteExampleTableByIdResponses, DeleteExampleTicketsByIdData, DeleteExampleTicketsByIdResponses, DeleteRoleByIdData, DeleteRoleByIdResponses, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponses, GetApiData, GetApiResponses, GetAppsData, GetAppsResponses, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponses, GetDataDictResponses, GetDataDictTypeTreeData, GetDataDictTypeTreeResponses, GetExampleTableByIdData, GetExampleTableByIdResponses, GetExampleTableData, GetExampleTableResponses, GetExampleTicketsByIdData, GetExampleTicketsByIdResponses, GetExampleTicketsData, GetExampleTicketsResponses, GetMenusNavigationData, GetMenusNavigationResponses, GetPermissionsData, GetPermissionsResponses, GetProfileData, GetProfileResponses, GetRoleByIdData, GetRoleByIdResponses, GetRoleData, GetRoleMenusData, GetRoleMenusResponses, GetRoleResponses, GetSystemMenuTreeData, GetSystemMenuTreeResponses, PatchExampleTicketsByIdStatusData, PatchExampleTicketsByIdStatusResponses, PostDataDictData, PostDataDictResponses, PostDataDictTypeData, PostDataDictTypeResponses, PostExampleTableBatchDeleteData, PostExampleTableBatchDeleteResponses, PostExampleTableData, PostExampleTableResponses, PostExampleTicketsData, PostExampleTicketsResponses, PostLoginData, PostLoginResponses, PostLogoutData, PostLogoutResponses, PostRoleData, PostRoleResponses, PostSystemMenuData, PostSystemMenuResponses, PutDataDictData, PutDataDictResponses, PutDataDictTypeData, PutDataDictTypeResponses, PutExampleTableData, PutExampleTableResponses, PutExampleTicketsData, PutExampleTicketsResponses, PutRoleData, PutRoleMenusData, PutRoleMenusResponses, PutRoleResponses, PutSystemMenuData, PutSystemMenuResponses } from './types.gen';
+import type { DeleteAppByIdData, DeleteAppByIdResponses, DeleteDataDictByIdData, DeleteDataDictByIdResponses, DeleteDataDictTypeByIdData, DeleteDataDictTypeByIdResponses, DeleteExampleTableByIdData, DeleteExampleTableByIdResponses, DeleteExampleTicketsByIdData, DeleteExampleTicketsByIdResponses, DeleteRoleByIdData, DeleteRoleByIdResponses, DeleteSystemMenuByIdData, DeleteSystemMenuByIdResponses, GetApiData, GetApiResponses, GetAppByIdData, GetAppByIdResponses, GetAppData, GetAppResponses, GetAppsData, GetAppsResponses, GetDataDictData, GetDataDictOptionsData, GetDataDictOptionsResponses, GetDataDictResponses, GetDataDictTypeTreeData, GetDataDictTypeTreeResponses, GetExampleTableByIdData, GetExampleTableByIdResponses, GetExampleTableData, GetExampleTableResponses, GetExampleTicketsByIdData, GetExampleTicketsByIdResponses, GetExampleTicketsData, GetExampleTicketsResponses, GetMenusNavigationData, GetMenusNavigationResponses, GetPermissionsData, GetPermissionsResponses, GetProfileData, GetProfileResponses, GetRoleByIdData, GetRoleByIdResponses, GetRoleData, GetRoleMenusData, GetRoleMenusResponses, GetRoleResponses, GetSystemMenuTreeData, GetSystemMenuTreeResponses, PatchExampleTicketsByIdStatusData, PatchExampleTicketsByIdStatusResponses, PostAppData, PostAppResponses, PostDataDictData, PostDataDictResponses, PostDataDictTypeData, PostDataDictTypeResponses, PostExampleTableBatchDeleteData, PostExampleTableBatchDeleteResponses, PostExampleTableData, PostExampleTableResponses, PostExampleTicketsData, PostExampleTicketsResponses, PostLoginData, PostLoginResponses, PostLogoutData, PostLogoutResponses, PostRoleData, PostRoleResponses, PostSystemMenuData, PostSystemMenuResponses, PutAppData, PutAppResponses, PutDataDictData, PutDataDictResponses, PutDataDictTypeData, PutDataDictTypeResponses, PutExampleTableData, PutExampleTableResponses, PutExampleTicketsData, PutExampleTicketsResponses, PutRoleData, PutRoleMenusData, PutRoleMenusResponses, PutRoleResponses, PutSystemMenuData, PutSystemMenuResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -22,6 +22,45 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
  * 获取系统接口清单（供菜单管理关联接口权限使用）
  */
 export const getApi = <ThrowOnError extends boolean = false>(options?: Options<GetApiData, ThrowOnError>): RequestResult<GetApiResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetApiResponses, unknown, ThrowOnError>({ url: '/api', ...options });
+
+/**
+ * 应用分页列表（应用管理用，含停用应用与管理字段；仅超级管理员可访问）
+ */
+export const getApp = <ThrowOnError extends boolean = false>(options?: Options<GetAppData, ThrowOnError>): RequestResult<GetAppResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetAppResponses, unknown, ThrowOnError>({ url: '/app', ...options });
+
+/**
+ * 新建应用（应用标识即路由前缀，创建后不可修改；仅超级管理员可访问）
+ */
+export const postApp = <ThrowOnError extends boolean = false>(options: Options<PostAppData, ThrowOnError>): RequestResult<PostAppResponses, unknown, ThrowOnError> => (options.client ?? client).post<PostAppResponses, unknown, ThrowOnError>({
+    url: '/app',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 更新应用（应用标识不可修改；仅超级管理员可访问）
+ */
+export const putApp = <ThrowOnError extends boolean = false>(options: Options<PutAppData, ThrowOnError>): RequestResult<PutAppResponses, unknown, ThrowOnError> => (options.client ?? client).put<PutAppResponses, unknown, ThrowOnError>({
+    url: '/app',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 根据应用标识删除应用（仅超级管理员可访问）
+ */
+export const deleteAppById = <ThrowOnError extends boolean = false>(options: Options<DeleteAppByIdData, ThrowOnError>): RequestResult<DeleteAppByIdResponses, unknown, ThrowOnError> => (options.client ?? client).delete<DeleteAppByIdResponses, unknown, ThrowOnError>({ url: '/app/{id}', ...options });
+
+/**
+ * 根据应用标识获取详情（仅超级管理员可访问）
+ */
+export const getAppById = <ThrowOnError extends boolean = false>(options: Options<GetAppByIdData, ThrowOnError>): RequestResult<GetAppByIdResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetAppByIdResponses, unknown, ThrowOnError>({ url: '/app/{id}', ...options });
 
 /**
  * 获取可选应用列表（含各自的接口根地址）

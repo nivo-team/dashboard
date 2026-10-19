@@ -87,7 +87,7 @@ export interface FeatureDataFieldSpec {
   /** 补充说明（可选）：单位、格式、口径 */
   description?: string
   /** `type === 'enum'` 时给候选值；其它类型忽略 */
-  options?: readonly { value: string | number; label: string }[]
+  options?: readonly { value: string | number | boolean; label: string }[]
   /**
    * **敏感字段**：AI 读到它时一律脱敏（见 §1.2）。
    *

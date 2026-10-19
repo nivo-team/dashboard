@@ -8,6 +8,9 @@
     "ai": {
       "enabled": true
     },
+    "apps": {
+      "enabled": true
+    },
     "auth": {
       "enabled": true
     },

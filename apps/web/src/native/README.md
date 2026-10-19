@@ -12,6 +12,8 @@
 bridge.ts                  前端与壳之间唯一的接口（传输层 call/on + 类型层 invoke/subscribe）
 generated/bridge.gen.ts    ← Go 生成，别手改（`pnpm native:bindings`）
 title-bar.tsx              桌面壳的窗口条（取代顶栏；品牌 / 搜索 / 侧边栏开关 / 历史导航 / 标签条）
+window-controls.tsx        Windows 无边框壳的三个窗口键（页面画、命中/贴靠归系统）
+window-chrome.ts           Windows 的窗口 chrome 行为：非客户区上报（原生 caption/按钮命中）+ 动作 + 安装入口
 settings-layout.tsx        桌面「设置」独立窗口的布局（窗口条无 Tab 模式，侧栏为设置导航）
 standalone-layout.tsx      桌面「页面工作区」独立窗口的布局（无主侧栏，带 Tabs）
 tab-transfer.ts            跨窗口 Tab 拖拽流转（BroadcastChannel + DataTransfer，含白名单与去重）

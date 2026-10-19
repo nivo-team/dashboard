@@ -1,5 +1,3 @@
-export * from './sidebar'
-export * from './main-sidebar'
 export * from './title-bar'
 export * from './shell-layout'
 export * from './app-layout'

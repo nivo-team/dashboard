@@ -3,6 +3,7 @@ import { MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { useTranslation } from 'react-i18next'
 import { ShortcutKbd } from '#/components/kbd'
 import type { ShellNavItem } from '#/lib/navigation'
+import { SIDEBAR_SEARCH_CLASS_FOLDABLE } from './sidebar-chrome'
 
 /** 归一化尾斜杠：`/settings` 与 `/settings/` 是同一个 index 路由，不能因此丢掉高亮。 */
 export function normalizePath(pathname: string): string {
@@ -57,7 +58,7 @@ export function SidebarSearchButton({ onOpen }: { onOpen: () => void }) {
           icon={MagnifyingGlassIcon}
           tooltip={label}
           onClick={onOpen}
-          className="mb-3 ring ring-kumo-line transition-[margin] duration-(--sidebar-animation-duration) group-data-[state=collapsed]/sidebar:mb-0 group-data-[state=collapsed]/sidebar:ring-transparent"
+          className={SIDEBAR_SEARCH_CLASS_FOLDABLE}
         >
           <span>{label}</span>
           <ShortcutKbd shortcutKey="K" className="group-data-[state=collapsed]/sidebar:hidden" />

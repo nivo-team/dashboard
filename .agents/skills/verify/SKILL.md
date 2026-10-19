@@ -45,10 +45,12 @@ pnpm exec vp check --fix      # 顺带按 oxfmt 规则格式化
   `openapi.json` 已在 `ignorePatterns` 里（`vp check` 扫 412 / 470 个文件），**不要**为了它们改代码；
 - 别用全局 `vp`（版本可能落后），一律 `pnpm exec vp …`，走本地 `vite-plus`。
 
-CI 门控仍是这两条：
+CI 门控是这三条：
 
 ```bash
 pnpm typecheck        # tsc --noEmit，无输出即通过
+pnpm test             # 单元测试（约 1 秒；不在铁律 5 的禁令内，改了被测模块就该跑）
+pnpm build            # 见 §3
 ```
 
 关注点：`useSchemaColumns<TData>` 的行类型必须是 **type 别名**（`interface` 没有隐式索引签名，会报 TS2344）；
@@ -92,7 +94,7 @@ headless 截图（无登录态的页面，如登录页）：
 - [ ] 页面无控制台报错；loading / error / 空态三种状态都能出现且可读
 - [ ] 切到每个 `targetLocales`（见 `i18n.config.json`，别凭记忆写语言名）：RTL 语种整体 `dir="rtl"`、表格列对齐、图标与间距镜像
 - [ ] 窄屏（< 640px）不横向溢出，动作区按断点换行
-- [ ] **登出必定离开**：顶栏 `UserMenu` →「退出登录」，在 `/logout` 返回成功后**一定落在 `/login`**（不能出现「请求成功却停在页面内」）；浏览器后退回不到已登出的页面（`logout()` 内的 `location.replace`）
+- [ ] **登出必定离开**：顶栏 `UserMenu` →「退出登录」，在 `/logout` 返回成功后**一定落在 `/auth/login`**（不能出现「请求成功却停在页面内」）；浏览器后退回不到已登出的页面（`logout()` 内的 `location.replace`）
 - [ ] 进入 `/profile` 与 `/profile/settings`：侧边栏换成个人资料二级导航（品牌 Header 保留 + 「← 个人资料」模块行 + 「个人资料 / 设置」菜单），搜索按钮与 ⌘K 都能打开命令面板
 - [ ] 危险确认弹窗（`DangerConfirmDialog`）：文本匹配后**输入框内回车**与点击确认按钮**都能**触发删除（各只触发一次，不重复提交）；文本不匹配时两者都无效
 - [ ] ⌘K 命令面板：文案随语言切换（placeholder / 分组标题 / 空态 / 页脚主题名）；列表项**只有标题、没有第二行描述**；「操作」组的三项与 `UserMenu` →「外观」文案一致；面板里的页面项与侧边栏来自同一份 `navigation.ts` 配置（改导航项两处同时变）

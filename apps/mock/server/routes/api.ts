@@ -48,6 +48,12 @@ const API_ITEMS = [
   { label: '删除角色', method: 'DELETE', path: '/role/{id}' },
   { label: '角色菜单授权', method: 'GET', path: '/role/menus' },
   { label: '更新角色菜单授权', method: 'PUT', path: '/role/menus' },
+  // 应用管理：操作对象是「应用」本身（路由前缀 / 工作空间），与工作空间选择列表同源
+  { label: '应用列表', method: 'GET', path: '/app' },
+  { label: '应用详情', method: 'GET', path: '/app/{id}' },
+  { label: '新建应用', method: 'POST', path: '/app' },
+  { label: '更新应用', method: 'PUT', path: '/app' },
+  { label: '删除应用', method: 'DELETE', path: '/app/{id}' },
   { label: '字典项列表', method: 'GET', path: '/data_dict' },
   { label: '新建字典项', method: 'POST', path: '/data_dict' },
   { label: '更新字典项', method: 'PUT', path: '/data_dict' },

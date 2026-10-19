@@ -19,14 +19,18 @@
 - 路径别名 `#/*` 与 `@/*` → `./src/*`；包管理器 **pnpm**
 - **AI 核心集中在 [`src/features/ai/`](./apps/web/src/features/ai/README.md)**（逻辑 / UI / 渲染 / 全屏页 / 页面声明框架）—— 改 AI 先读那里的地图
 - **原生壳在 [`apps/native/`](./apps/native/README.md)**（Wails v3 + Go，超薄：支持桌面与 Android 移动端，只加载远程 http/https 地址 + 一条通用 bridge）—— 改 bridge 协议 / 加原生能力读那份
-- **Vite+ 工具链**（`vp`）：dev/build 走 `vp`，lint/format 用内置 oxlint/oxfmt（规则见根
-  `vite.config.ts`）；**暂无单测**（`vp test` 会报「没有测试文件」）
+- **Vite+ 工具链**（`vp`）：dev/build/test 走 `vp`，lint/format 用内置 oxlint/oxfmt（规则见根
+  `vite.config.ts`）；**单测用 `vp test`**（vite-plus 自带 Vitest 5，断言从 `vite-plus/test` 引，
+  不用装 vitest）—— 规范与现状见
+  [testing.md](.agents/skills/platform-development/references/testing.md)
 
 ## 常用命令
 
 ```bash
 pnpm dev              # 前端开发服务器 (http://localhost:3000)
 pnpm dev:all          # 一键并发：mock(3001) + web(3000) + ai(3002)，Ctrl-C 一次全停
+                      # ↑ 改这条脚本时 `--filter` 的 glob 必须用**双引号**：Windows 的 cmd 不剥单引号，
+                      #   单引号会原样传给 vp，报 "No packages matched the filter"，三个服务一个都不起
 pnpm mock             # Mock API (http://localhost:3001)，前端默认连它
 pnpm ai               # AI 中间层 Worker（wrangler dev，http://localhost:3002）
 pnpm native           # 原生壳（Wails v3 + Go，默认加载 http://localhost:3000；兼容别名 pnpm desktop）
@@ -39,6 +43,8 @@ pnpm native:android:env    # 检测 Android 构建环境（JDK / SDK / NDK / CLI
 pnpm build            # 前端生产构建（走 vp build，输出 apps/web/dist）
 pnpm preview          # 预览前端构建产物
 pnpm typecheck        # tsc --noEmit
+pnpm test             # 单元测试（vp test，纯逻辑用例；约 1 秒）
+pnpm test:watch       # 单元测试监听模式
 pnpm exec vp check    # Vite+ 全量静态检查：fmt + oxlint + tsgolint 类型检查
 pnpm exec vp fmt      # 按根 vite.config.ts 的规则格式化（单引号 / 无分号 / 宽度 100）
 pnpm contract         # 按 contract.config.json 同步契约（默认从本地 mock 拉）
@@ -57,6 +63,10 @@ pnpm i18n:types       # 重新生成 i18n 键类型（改了 zh-CN.json 后跑�
 > **上面这些校验命令默认不跑**：`typecheck` / `build` / `dev` / `vp check` / `vp fmt` 与浏览器验收统一收在
 > **`verify` skill**。**只有使用者明确点名「用 verify 校验」时才运行** —— 日常编码、
 > 改完代码、提交前后都不要主动跑；正确性靠阅读类型定义、调用方与生成产物来保证。
+>
+> **`pnpm test` 不在这条禁令里**（禁令只管静态检查与构建）：它跑的是纯逻辑用例，秒级、
+> 无外网依赖，改动到被测模块时**应当顺手跑**。规范见
+> [testing.md](.agents/skills/platform-development/references/testing.md)。
 >
 > **注意这不适用于 CI**：流水线里 `typecheck` / `build` **必须跑**（它是合并的硬门控，
 > 见 [.agents/skills/platform-ops/references/ai-dev-pipeline.md](.agents/skills/platform-ops/references/ai-dev-pipeline.md)）。本约束管的是「人别为了确认而顺手跑」，
@@ -98,7 +108,8 @@ pnpm i18n:types       # 重新生成 i18n 键类型（改了 zh-CN.json 后跑�
    （`bg-kumo-base` / `text-kumo-default` / `border-kumo-line` …）；
    **全站链接统一用 `#/components/router-link`（`RouterLink`）**，严禁手写 `<a>` 或裸写 TanStack `<Link>` 手拼样式，
    颜色与下划线由 Kumo 官方链接主色及变体（`variant="plain|inline"`）统一驱动。
-3. **名单与配置只有一个真值**：导航只动 `apps/web/src/lib/navigation.ts`、仪表盘卡片只动
+3. **名单与配置只有一个真值**：导航只动 `apps/web/src/lib/navigation/`（入口 `index.ts`，名单在
+   `app-nav.ts` / `shell-nav.ts`）、仪表盘卡片只动
    `src/features/home/widget-registry.tsx`、工具只动 `AI_TOOLS`。**不要在渲染处再硬编码一份平行的名单。**
 4. **给模型的内容都必须经过函数并留过滤点**（提示词 / 导航清单 / 表单清单 / 页面接口），
    **过滤条件集中在一处** —— 否则「将来按权限收窄」的落点就被焊死了。

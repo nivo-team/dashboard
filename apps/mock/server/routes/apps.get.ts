@@ -62,4 +62,23 @@ defineRouteMeta({
   },
 })
 
-export default defineHandler(() => ok(db.apps))
+export default defineHandler(() =>
+  ok(
+    // 只下发**启用**的应用：管理字段（status / sort / 时间戳）不属于工作空间选择列表的契约，
+    // 剥离出去，保持这里与 `AppItem` schema 一致。
+    db.apps
+      .filter((app) => app.status === 1)
+      .sort((a, b) => a.sort - b.sort)
+      .map(({ id, name, headline, description, domain, apiBaseUrl, badge, category, themeGradient }) => ({
+        id,
+        name,
+        headline,
+        description,
+        domain,
+        apiBaseUrl,
+        badge,
+        category,
+        themeGradient,
+      })),
+  ),
+)

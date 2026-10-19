@@ -726,7 +726,7 @@ type AdminTool = {
    - **审批链路异常一律 fail-closed**：拿不到用户决定就不执行，且明确提示原因。
    - 工具被拒后，system instruction 里加一句「不被批准的操作不要重试」。
 3. **工具集（按页面动态注册）**。借鉴 WebMCP 的「动态注册 + 注销」：进详情页注册 `getCurrentEntityDetail`，离开就注销。具体到我们的能力清单：
-   - 只读上下文：`getRouteContext`（当前 URL / appId / 路由参数 / 用户可见的筛选条件）—— **注意不要再造一份导航真值，读 `#/lib/navigation.ts` 与 `useRouterState`**；
+   - 只读上下文：`getRouteContext`（当前 URL / appId / 路由参数 / 用户可见的筛选条件）—— **注意不要再造一份导航真值，读 `#/lib/navigation` 与 `useRouterState`**；
    - 导航：`navigateTo({ navId })` —— 参数用**语义 key**（`navId`）而不是裸路径，工具内部查 `NAV_GROUPS` / `ALL_NAV_TARGETS` 解析（符合 WebMCP 的「用自然语言枚举值，别让模型算内部 id」）；
    - 统计查询：`queryStats({ entity, metric, range })` —— 复用生成的 `getXxxQueryOptions`，结果走**摘要 + 句柄**（对齐 fx 的 `read_tool_result`），**不要把整页表格塞进上下文**；
    - 填表单：`prefillForm({ formId, values })` —— 只写表单状态，**不提交**；

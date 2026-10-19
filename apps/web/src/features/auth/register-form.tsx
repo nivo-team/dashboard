@@ -104,7 +104,7 @@ export function RegisterForm({
 
       // 注册成功引导跳转至登录页
       setTimeout(() => {
-        void navigate({ to: '/login' })
+        void navigate({ to: '/auth/login' })
       }, 1000)
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : t('authFailed', '注册失败')
@@ -257,7 +257,7 @@ export function RegisterForm({
         {!hideLoginLink && (
           <div className="mt-2.5 text-center text-sm text-kumo-subtle">
             <span>{t('hasAccount', '已有账号？')} </span>
-            <RouterLink to="/login" variant="plain" className="font-semibold text-kumo-link">
+            <RouterLink to="/auth/login" variant="plain" className="font-semibold text-kumo-link">
               {t('toSignIn', '立即登录')}
             </RouterLink>
           </div>

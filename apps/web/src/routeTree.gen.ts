@@ -10,21 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppIdRouteRouteImport } from './routes/$appId/route'
-import { Route as AuthRouteRouteImport } from './routes/_auth/route'
 import { Route as MainRouteRouteImport } from './routes/_main/route'
+import { Route as AuthRouteRouteImport } from './routes/auth/route'
 import { Route as AppIdIndexRouteImport } from './routes/$appId/index'
 import { Route as AppIdSplatRouteImport } from './routes/$appId/$'
 import { Route as AppIdExampleRouteRouteImport } from './routes/$appId/example/route'
 import { Route as AppIdSystemRouteRouteImport } from './routes/$appId/system/route'
 import { Route as AppIdSphereRouteRouteImport } from './routes/$appId_.sphere/route'
-import { Route as AuthForgotEmailRouteImport } from './routes/_auth/forgot-email'
-import { Route as AuthForgotPasswordRouteImport } from './routes/_auth/forgot-password'
-import { Route as AuthLoginRouteImport } from './routes/_auth/login'
-import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
 import { Route as MainIndexRouteImport } from './routes/_main/index'
 import { Route as MainSplatRouteImport } from './routes/_main/$'
 import { Route as MainSelectAppRouteImport } from './routes/_main/select-app'
 import { Route as MainSettingsRouteRouteImport } from './routes/_main/settings/route'
+import { Route as AuthIndexRouteImport } from './routes/auth/index'
+import { Route as AuthForgotEmailRouteImport } from './routes/auth/forgot-email'
+import { Route as AuthForgotPasswordRouteImport } from './routes/auth/forgot-password'
+import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AuthRegisterRouteImport } from './routes/auth/register'
 import { Route as AppIdExampleIndexRouteImport } from './routes/$appId/example/index'
 import { Route as AppIdHomeIndexRouteImport } from './routes/$appId/home/index'
 import { Route as AppIdSystemIndexRouteImport } from './routes/$appId/system/index'
@@ -50,19 +51,20 @@ import { Route as AppIdSystemMenusSplatRouteImport } from './routes/$appId/syste
 import { Route as AppIdSystemRolesIndexRouteImport } from './routes/$appId/system/roles/index'
 import { Route as AppIdSystemRolesSplatRouteImport } from './routes/$appId/system/roles/$'
 import { Route as AppIdSphereChatChatIdRouteImport } from './routes/$appId_.sphere/chat/$chatId'
-import { Route as AuthOauthProviderCallbackRouteImport } from './routes/_auth/oauth/$provider/callback'
+import { Route as AuthOauthProviderCallbackRouteImport } from './routes/auth/oauth/$provider/callback'
 
 const AppIdRouteRoute = AppIdRouteRouteImport.update({
   id: '/$appId',
   path: '/$appId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthRouteRoute = AuthRouteRouteImport.update({
-  id: '/_auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const MainRouteRoute = MainRouteRouteImport.update({
   id: '/_main',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRouteRoute = AuthRouteRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIdIndexRoute = AppIdIndexRouteImport.update({
@@ -90,26 +92,6 @@ const AppIdSphereRouteRoute = AppIdSphereRouteRouteImport.update({
   path: '/$appId/sphere',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthForgotEmailRoute = AuthForgotEmailRouteImport.update({
-  id: '/forgot-email',
-  path: '/forgot-email',
-  getParentRoute: () => AuthRouteRoute,
-} as any)
-const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
-  getParentRoute: () => AuthRouteRoute,
-} as any)
-const AuthLoginRoute = AuthLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => AuthRouteRoute,
-} as any)
-const AuthRegisterRoute = AuthRegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
-  getParentRoute: () => AuthRouteRoute,
-} as any)
 const MainIndexRoute = MainIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -129,6 +111,31 @@ const MainSettingsRouteRoute = MainSettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => MainRouteRoute,
+} as any)
+const AuthIndexRoute = AuthIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthForgotEmailRoute = AuthForgotEmailRouteImport.update({
+  id: '/forgot-email',
+  path: '/forgot-email',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthRegisterRoute = AuthRegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => AuthRouteRoute,
 } as any)
 const AppIdExampleIndexRoute = AppIdExampleIndexRouteImport.update({
   id: '/',
@@ -272,18 +279,20 @@ const AuthOauthProviderCallbackRoute =
 export interface FileRoutesByFullPath {
   '/$appId': typeof AppIdRouteRouteWithChildren
   '/': typeof MainIndexRoute
+  '/auth': typeof AuthRouteRouteWithChildren
   '/$appId/example': typeof AppIdExampleRouteRouteWithChildren
   '/$appId/system': typeof AppIdSystemRouteRouteWithChildren
   '/$appId/sphere': typeof AppIdSphereRouteRouteWithChildren
   '/settings': typeof MainSettingsRouteRouteWithChildren
   '/$appId/$': typeof AppIdSplatRoute
-  '/forgot-email': typeof AuthForgotEmailRoute
-  '/forgot-password': typeof AuthForgotPasswordRoute
-  '/login': typeof AuthLoginRoute
-  '/register': typeof AuthRegisterRoute
   '/$': typeof MainSplatRoute
   '/select-app': typeof MainSelectAppRoute
+  '/auth/forgot-email': typeof AuthForgotEmailRoute
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
   '/$appId/': typeof AppIdIndexRoute
+  '/auth/': typeof AuthIndexRoute
   '/$appId/system/data-dict': typeof AppIdSystemDataDictRouteRouteWithChildren
   '/$appId/system/menus': typeof AppIdSystemMenusRouteRouteWithChildren
   '/$appId/system/roles': typeof AppIdSystemRolesRouteRouteWithChildren
@@ -302,7 +311,7 @@ export interface FileRoutesByFullPath {
   '/$appId/system/menus/$': typeof AppIdSystemMenusSplatRoute
   '/$appId/system/roles/$': typeof AppIdSystemRolesSplatRoute
   '/$appId/sphere/chat/$chatId': typeof AppIdSphereChatChatIdRoute
-  '/oauth/$provider/callback': typeof AuthOauthProviderCallbackRoute
+  '/auth/oauth/$provider/callback': typeof AuthOauthProviderCallbackRoute
   '/$appId/example/complex-table/': typeof AppIdExampleComplexTableIndexRoute
   '/$appId/example/table/': typeof AppIdExampleTableIndexRoute
   '/$appId/example/tickets/': typeof AppIdExampleTicketsIndexRoute
@@ -312,15 +321,16 @@ export interface FileRoutesByFullPath {
   '/$appId/system/roles/': typeof AppIdSystemRolesIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof MainIndexRoute
   '/$appId/$': typeof AppIdSplatRoute
-  '/forgot-email': typeof AuthForgotEmailRoute
-  '/forgot-password': typeof AuthForgotPasswordRoute
-  '/login': typeof AuthLoginRoute
-  '/register': typeof AuthRegisterRoute
   '/$': typeof MainSplatRoute
   '/select-app': typeof MainSelectAppRoute
+  '/auth/forgot-email': typeof AuthForgotEmailRoute
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
   '/$appId': typeof AppIdIndexRoute
+  '/': typeof MainIndexRoute
+  '/auth': typeof AuthIndexRoute
   '/settings/AI': typeof MainSettingsAIRoute
   '/settings/about': typeof MainSettingsAboutRoute
   '/settings/appearance': typeof MainSettingsAppearanceRoute
@@ -336,7 +346,7 @@ export interface FileRoutesByTo {
   '/$appId/system/menus/$': typeof AppIdSystemMenusSplatRoute
   '/$appId/system/roles/$': typeof AppIdSystemRolesSplatRoute
   '/$appId/sphere/chat/$chatId': typeof AppIdSphereChatChatIdRoute
-  '/oauth/$provider/callback': typeof AuthOauthProviderCallbackRoute
+  '/auth/oauth/$provider/callback': typeof AuthOauthProviderCallbackRoute
   '/$appId/example/complex-table': typeof AppIdExampleComplexTableIndexRoute
   '/$appId/example/table': typeof AppIdExampleTableIndexRoute
   '/$appId/example/tickets': typeof AppIdExampleTicketsIndexRoute
@@ -348,21 +358,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/$appId': typeof AppIdRouteRouteWithChildren
-  '/_auth': typeof AuthRouteRouteWithChildren
   '/_main': typeof MainRouteRouteWithChildren
+  '/auth': typeof AuthRouteRouteWithChildren
   '/$appId/example': typeof AppIdExampleRouteRouteWithChildren
   '/$appId/system': typeof AppIdSystemRouteRouteWithChildren
   '/$appId_/sphere': typeof AppIdSphereRouteRouteWithChildren
   '/_main/settings': typeof MainSettingsRouteRouteWithChildren
   '/$appId/$': typeof AppIdSplatRoute
-  '/_auth/forgot-email': typeof AuthForgotEmailRoute
-  '/_auth/forgot-password': typeof AuthForgotPasswordRoute
-  '/_auth/login': typeof AuthLoginRoute
-  '/_auth/register': typeof AuthRegisterRoute
   '/_main/$': typeof MainSplatRoute
   '/_main/select-app': typeof MainSelectAppRoute
+  '/auth/forgot-email': typeof AuthForgotEmailRoute
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
   '/$appId/': typeof AppIdIndexRoute
   '/_main/': typeof MainIndexRoute
+  '/auth/': typeof AuthIndexRoute
   '/$appId/system/data-dict': typeof AppIdSystemDataDictRouteRouteWithChildren
   '/$appId/system/menus': typeof AppIdSystemMenusRouteRouteWithChildren
   '/$appId/system/roles': typeof AppIdSystemRolesRouteRouteWithChildren
@@ -381,7 +392,7 @@ export interface FileRoutesById {
   '/$appId/system/menus/$': typeof AppIdSystemMenusSplatRoute
   '/$appId/system/roles/$': typeof AppIdSystemRolesSplatRoute
   '/$appId_/sphere/chat/$chatId': typeof AppIdSphereChatChatIdRoute
-  '/_auth/oauth/$provider/callback': typeof AuthOauthProviderCallbackRoute
+  '/auth/oauth/$provider/callback': typeof AuthOauthProviderCallbackRoute
   '/$appId/example/complex-table/': typeof AppIdExampleComplexTableIndexRoute
   '/$appId/example/table/': typeof AppIdExampleTableIndexRoute
   '/$appId/example/tickets/': typeof AppIdExampleTicketsIndexRoute
@@ -395,18 +406,20 @@ export interface FileRouteTypes {
   fullPaths:
     | '/$appId'
     | '/'
+    | '/auth'
     | '/$appId/example'
     | '/$appId/system'
     | '/$appId/sphere'
     | '/settings'
     | '/$appId/$'
-    | '/forgot-email'
-    | '/forgot-password'
-    | '/login'
-    | '/register'
     | '/$'
     | '/select-app'
+    | '/auth/forgot-email'
+    | '/auth/forgot-password'
+    | '/auth/login'
+    | '/auth/register'
     | '/$appId/'
+    | '/auth/'
     | '/$appId/system/data-dict'
     | '/$appId/system/menus'
     | '/$appId/system/roles'
@@ -425,7 +438,7 @@ export interface FileRouteTypes {
     | '/$appId/system/menus/$'
     | '/$appId/system/roles/$'
     | '/$appId/sphere/chat/$chatId'
-    | '/oauth/$provider/callback'
+    | '/auth/oauth/$provider/callback'
     | '/$appId/example/complex-table/'
     | '/$appId/example/table/'
     | '/$appId/example/tickets/'
@@ -435,15 +448,16 @@ export interface FileRouteTypes {
     | '/$appId/system/roles/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/$appId/$'
-    | '/forgot-email'
-    | '/forgot-password'
-    | '/login'
-    | '/register'
     | '/$'
     | '/select-app'
+    | '/auth/forgot-email'
+    | '/auth/forgot-password'
+    | '/auth/login'
+    | '/auth/register'
     | '/$appId'
+    | '/'
+    | '/auth'
     | '/settings/AI'
     | '/settings/about'
     | '/settings/appearance'
@@ -459,7 +473,7 @@ export interface FileRouteTypes {
     | '/$appId/system/menus/$'
     | '/$appId/system/roles/$'
     | '/$appId/sphere/chat/$chatId'
-    | '/oauth/$provider/callback'
+    | '/auth/oauth/$provider/callback'
     | '/$appId/example/complex-table'
     | '/$appId/example/table'
     | '/$appId/example/tickets'
@@ -470,21 +484,22 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/$appId'
-    | '/_auth'
     | '/_main'
+    | '/auth'
     | '/$appId/example'
     | '/$appId/system'
     | '/$appId_/sphere'
     | '/_main/settings'
     | '/$appId/$'
-    | '/_auth/forgot-email'
-    | '/_auth/forgot-password'
-    | '/_auth/login'
-    | '/_auth/register'
     | '/_main/$'
     | '/_main/select-app'
+    | '/auth/forgot-email'
+    | '/auth/forgot-password'
+    | '/auth/login'
+    | '/auth/register'
     | '/$appId/'
     | '/_main/'
+    | '/auth/'
     | '/$appId/system/data-dict'
     | '/$appId/system/menus'
     | '/$appId/system/roles'
@@ -503,7 +518,7 @@ export interface FileRouteTypes {
     | '/$appId/system/menus/$'
     | '/$appId/system/roles/$'
     | '/$appId_/sphere/chat/$chatId'
-    | '/_auth/oauth/$provider/callback'
+    | '/auth/oauth/$provider/callback'
     | '/$appId/example/complex-table/'
     | '/$appId/example/table/'
     | '/$appId/example/tickets/'
@@ -515,8 +530,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppIdRouteRoute: typeof AppIdRouteRouteWithChildren
-  AuthRouteRoute: typeof AuthRouteRouteWithChildren
   MainRouteRoute: typeof MainRouteRouteWithChildren
+  AuthRouteRoute: typeof AuthRouteRouteWithChildren
   AppIdSphereRouteRoute: typeof AppIdSphereRouteRouteWithChildren
 }
 
@@ -529,18 +544,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIdRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_auth': {
-      id: '/_auth'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_main': {
       id: '/_main'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof MainRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$appId/': {
@@ -578,34 +593,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIdSphereRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_auth/forgot-email': {
-      id: '/_auth/forgot-email'
-      path: '/forgot-email'
-      fullPath: '/forgot-email'
-      preLoaderRoute: typeof AuthForgotEmailRouteImport
-      parentRoute: typeof AuthRouteRoute
-    }
-    '/_auth/forgot-password': {
-      id: '/_auth/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof AuthForgotPasswordRouteImport
-      parentRoute: typeof AuthRouteRoute
-    }
-    '/_auth/login': {
-      id: '/_auth/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof AuthLoginRouteImport
-      parentRoute: typeof AuthRouteRoute
-    }
-    '/_auth/register': {
-      id: '/_auth/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof AuthRegisterRouteImport
-      parentRoute: typeof AuthRouteRoute
-    }
     '/_main/': {
       id: '/_main/'
       path: '/'
@@ -633,6 +620,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings'
       preLoaderRoute: typeof MainSettingsRouteRouteImport
       parentRoute: typeof MainRouteRoute
+    }
+    '/auth/': {
+      id: '/auth/'
+      path: '/'
+      fullPath: '/auth/'
+      preLoaderRoute: typeof AuthIndexRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/auth/forgot-email': {
+      id: '/auth/forgot-email'
+      path: '/forgot-email'
+      fullPath: '/auth/forgot-email'
+      preLoaderRoute: typeof AuthForgotEmailRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/auth/forgot-password': {
+      id: '/auth/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/auth/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/auth/register': {
+      id: '/auth/register'
+      path: '/register'
+      fullPath: '/auth/register'
+      preLoaderRoute: typeof AuthRegisterRouteImport
+      parentRoute: typeof AuthRouteRoute
     }
     '/$appId/example/': {
       id: '/$appId/example/'
@@ -809,10 +831,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIdSphereChatChatIdRouteImport
       parentRoute: typeof AppIdSphereRouteRoute
     }
-    '/_auth/oauth/$provider/callback': {
-      id: '/_auth/oauth/$provider/callback'
+    '/auth/oauth/$provider/callback': {
+      id: '/auth/oauth/$provider/callback'
       path: '/oauth/$provider/callback'
-      fullPath: '/oauth/$provider/callback'
+      fullPath: '/auth/oauth/$provider/callback'
       preLoaderRoute: typeof AuthOauthProviderCallbackRouteImport
       parentRoute: typeof AuthRouteRoute
     }
@@ -925,26 +947,6 @@ const AppIdRouteRouteWithChildren = AppIdRouteRoute._addFileChildren(
   AppIdRouteRouteChildren,
 )
 
-interface AuthRouteRouteChildren {
-  AuthForgotEmailRoute: typeof AuthForgotEmailRoute
-  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
-  AuthLoginRoute: typeof AuthLoginRoute
-  AuthRegisterRoute: typeof AuthRegisterRoute
-  AuthOauthProviderCallbackRoute: typeof AuthOauthProviderCallbackRoute
-}
-
-const AuthRouteRouteChildren: AuthRouteRouteChildren = {
-  AuthForgotEmailRoute: AuthForgotEmailRoute,
-  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
-  AuthLoginRoute: AuthLoginRoute,
-  AuthRegisterRoute: AuthRegisterRoute,
-  AuthOauthProviderCallbackRoute: AuthOauthProviderCallbackRoute,
-}
-
-const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
-  AuthRouteRouteChildren,
-)
-
 interface MainSettingsRouteRouteChildren {
   MainSettingsAIRoute: typeof MainSettingsAIRoute
   MainSettingsAboutRoute: typeof MainSettingsAboutRoute
@@ -982,6 +984,28 @@ const MainRouteRouteWithChildren = MainRouteRoute._addFileChildren(
   MainRouteRouteChildren,
 )
 
+interface AuthRouteRouteChildren {
+  AuthForgotEmailRoute: typeof AuthForgotEmailRoute
+  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthRegisterRoute: typeof AuthRegisterRoute
+  AuthIndexRoute: typeof AuthIndexRoute
+  AuthOauthProviderCallbackRoute: typeof AuthOauthProviderCallbackRoute
+}
+
+const AuthRouteRouteChildren: AuthRouteRouteChildren = {
+  AuthForgotEmailRoute: AuthForgotEmailRoute,
+  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthRegisterRoute: AuthRegisterRoute,
+  AuthIndexRoute: AuthIndexRoute,
+  AuthOauthProviderCallbackRoute: AuthOauthProviderCallbackRoute,
+}
+
+const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
+  AuthRouteRouteChildren,
+)
+
 interface AppIdSphereRouteRouteChildren {
   AppIdSphereIndexRoute: typeof AppIdSphereIndexRoute
   AppIdSphereChatChatIdRoute: typeof AppIdSphereChatChatIdRoute
@@ -997,8 +1021,8 @@ const AppIdSphereRouteRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   AppIdRouteRoute: AppIdRouteRouteWithChildren,
-  AuthRouteRoute: AuthRouteRouteWithChildren,
   MainRouteRoute: MainRouteRouteWithChildren,
+  AuthRouteRoute: AuthRouteRouteWithChildren,
   AppIdSphereRouteRoute: AppIdSphereRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport

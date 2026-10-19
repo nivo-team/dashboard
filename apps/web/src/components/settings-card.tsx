@@ -23,10 +23,31 @@ const HEADER_CLASSES = 'my-0'
 
 const BODY_CLASSES = 'flex flex-col gap-0 divide-y divide-kumo-line p-0'
 
-export function SettingsCard({ title, children }: { title: ReactNode; children: ReactNode }) {
+export function SettingsCard({
+  title,
+  description,
+  children,
+}: {
+  title: ReactNode
+  /**
+   * 标题下的一句说明（可选）。用于「这一栏的取值从哪来」这类**整栏**级别的解释；
+   * 单个设置项的解释请用 `SettingRow` 的 `hint`，不要塞在这里。
+   */
+  description?: ReactNode
+  children: ReactNode
+}) {
   return (
     <LayerCard className="p-0">
-      <LayerCard.Secondary className={HEADER_CLASSES}>{title}</LayerCard.Secondary>
+      <LayerCard.Secondary className={HEADER_CLASSES}>
+        {description ? (
+          <div className="flex flex-col gap-0.5">
+            <span>{title}</span>
+            <span className="text-sm text-kumo-subtle">{description}</span>
+          </div>
+        ) : (
+          title
+        )}
+      </LayerCard.Secondary>
       <LayerCard.Primary className={BODY_CLASSES}>{children}</LayerCard.Primary>
     </LayerCard>
   )

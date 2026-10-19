@@ -6,6 +6,7 @@ import { RouterProvider } from '@tanstack/react-router'
 import ReactDOM from 'react-dom/client'
 import { AppQueryClientProvider } from './components/app-query-client-provider'
 import { installDesktopBridge } from './native/bridge'
+import { installWindowChrome } from './native/window-chrome'
 import { getRouter } from './router'
 
 /*
@@ -14,6 +15,8 @@ import { getRouter } from './router'
   详见 #/native/bridge 与 apps/native/README.md。
 */
 installDesktopBridge()
+// Windows 的窗口 chrome（原生 caption 区 + 三个窗口键的命中/动作）
+installWindowChrome()
 
 // 统一从 router.tsx 创建实例，保证默认配置只有一处。
 const router = getRouter()

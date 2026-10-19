@@ -32,7 +32,9 @@ features/ai/
 │  ├─ *-bridge.ts    页面与 AI 之间的桥（表单 / 重载 / 搜索参数）
 │  └─ prompt-facts.ts 事实采集（随请求上报给服务端拼提示词）
 │
-├─ components/       AI 的 11 个 UI 组件（面板 / 输入区 / 会话列表 / 权限配置 …）
+├─ components/       AI 的 UI 组件（面板 / 会话列表 / 权限配置 …）
+│  └─ composer/      输入区：一个目录一件事（`attachments` / `mention` / 四块浮层 / 草稿 hook）
+│                    清单见 ai-module-inventory.md §4.3
 │
 ├─ markdown/         助手回复的渲染：Markdown + 流式排版引擎（pretext）
 │

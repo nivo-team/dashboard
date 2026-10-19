@@ -3,7 +3,7 @@ import { ArrowDownIcon } from '@phosphor-icons/react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AiConversation } from '#/features/ai/components/conversation'
-import { useAiSessionStore, type AiSurface } from '#/features/ai/core'
+import { useAiSessionStore } from '#/features/ai/core'
 import { cn } from '#/lib/cn'
 import { usePreferencesStore } from '#/lib/store'
 
@@ -30,14 +30,11 @@ export function AiConversationScroller({
   manageHistory = true,
   contentClassName,
   stableScrollbarGutter = false,
-  surface = 'panel',
 }: {
   /** 容器额外类名（面板里要 `z-10` 压住点阵背景） */
   className?: string
   /** 透传给 `AiConversation`：全屏对话页的会话由路由决定，传 `false` */
   manageHistory?: boolean
-  /** 容器形态（面板还是全屏） */
-  surface?: AiSurface
   /**
    * 贴在**滚动内容外层**的类名。
    *
@@ -118,7 +115,7 @@ export function AiConversationScroller({
         )}
       >
         <div className={cn('h-full', contentClassName)}>
-          <AiConversation manageHistory={manageHistory} surface={surface} />
+          <AiConversation manageHistory={manageHistory} />
         </div>
       </div>
 

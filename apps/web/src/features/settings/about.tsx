@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import packageJson from '../../../package.json?raw'
 import { PageHeader } from '#/components/page-header'
 import { SettingsCard, SettingRow } from '#/components/settings-card'
+import { getDeploymentSnapshot } from '#/lib/app-config'
 import { useBrand } from '#/lib/brand'
 
 /**
@@ -18,6 +19,12 @@ import { useBrand } from '#/lib/brand'
  */
 /** 构建期已知的版本号；解析失败时用占位符，不编造版本。 */
 const appVersion = (JSON.parse(packageJson) as { version?: string }).version || '—'
+
+/**
+ * 部署模式在**构建期**就固定了（`import.meta.env` 是静态替换），
+ * 所以这里可以在模块级求值一次 —— 它不会随运行期状态变化。
+ */
+const deployment = getDeploymentSnapshot()
 
 export function AboutPage() {
   const { t } = useTranslation()
@@ -45,6 +52,47 @@ export function AboutPage() {
         <SettingRow label={t('about.fields.techStack', '技术栈')}>
           <span className="text-sm text-kumo-default">
             {t('about.techStack', 'React · Vite · TanStack Router · Tailwind · Kumo')}
+          </span>
+        </SettingRow>
+      </SettingsCard>
+
+      {/*
+        部署模式：唯一真值是构建期环境变量（`#/lib/app-config`），
+        这一卡只是把人眼能核对的那几个维度摊开 —— 排查「为什么没有选择页 /
+        为什么登录页没有注册入口」时不必再去翻 .env。
+      */}
+      <SettingsCard
+        title={t('about.deployment.title', '部署模式')}
+        description={t('about.deployment.hint', '由构建期环境变量决定（见 apps/web/.env.example）')}
+      >
+        <SettingRow label={t('about.deployment.appDimension', '应用维度')}>
+          <span className="text-sm text-kumo-default">
+            {deployment.app === 'multi'
+              ? t('about.deployment.appMulti', '多应用')
+              : t('about.deployment.appSingle', '单应用')}
+          </span>
+        </SettingRow>
+
+        <SettingRow label={t('about.deployment.accountDimension', '账号维度')}>
+          <span className="text-sm text-kumo-default">
+            {deployment.account === 'multi'
+              ? t('about.deployment.accountMulti', '多账号')
+              : t('about.deployment.accountSingle', '单账号')}
+          </span>
+        </SettingRow>
+
+        {/* 单应用模式没有选择页这一步，这一行只在多应用下有信息量 */}
+        {deployment.app === 'multi' ? (
+          <SettingRow label={t('about.deployment.appSelectMode', '进入应用选择')}>
+            <span className="text-sm text-kumo-default">
+              {t(`about.deployment.appSelectModes.${deployment.appSelect}`, deployment.appSelect)}
+            </span>
+          </SettingRow>
+        ) : null}
+
+        <SettingRow label={t('about.deployment.superAdmin', '最高管理员')}>
+          <span className="text-sm text-kumo-default">
+            {deployment.superAdminId || t('about.deployment.superAdminUnset', '未配置')}
           </span>
         </SettingRow>
       </SettingsCard>
