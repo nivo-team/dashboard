@@ -85,7 +85,7 @@ export function AiConversation({ manageHistory = true }: AiConversationProps) {
       头像就是会话里那个（同一个设置、同一个形状），只是大一号 —— 于是
       「刚打开」和「正在聊」看到的是同一个角色，而不是两个不同的图标。
 
-      问候语加粗用 `font-semibold`（本仓库禁用 `font-bold`），字号 16px（`text-base`）
+      问候语强调用 `font-semibold`（禁用粗体类，见 AGENTS.md 铁律 2），字号 16px（`text-base`）
       按 Kumo 规范属于标题档。
     */
     return (
