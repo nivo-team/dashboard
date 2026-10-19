@@ -107,16 +107,21 @@ wails3 task test                                     # = pnpm desktop:test
   （`` `[--wails-non-client-region:${kind}]` ``）Tailwind 扫不到、不会生成，
   `getComputedStyle` 读到空值 → 上报时被跳过 → 那个矩形退回 `HTCLIENT`，贴靠浮层也不会出现。
   见 `#/native/window-controls` 的 `REGION_CLASS`。
-- **落在申报区域里的点击到不了 DOM 按钮**（beta.28）：壳把 `WM_NCLBUTTON*` 只转成 WebView2
-  的鼠标输入，按钮自己的 `addEventListener('click')` 与 React `onClick` 都不触发。所以动作由
-  `#/native/bridge` 在 `window` 的**捕获**阶段按 `data-window-control` 做矩形命中后调
-  `window.*`（键盘仍走按钮的 `onClick`，只认 `detail === 0` 的合成点击）。
+- **落在申报区域里的鼠标事件只有「按下 / 松开」，没有 `click`**（beta.28）：壳把 `WM_NCLBUTTON*`
+  只转成 WebView2 的鼠标输入，按钮自己的 `addEventListener('click')` 与 React `onClick`
+  都不触发。所以动作由 `#/native/window-chrome` 在 `window` 的**捕获**阶段自己判定 ——
+  按下时记住是哪个键（`data-window-control`），**松开时只有落回同一个键**才调 `window.*`
+  （键盘仍走按钮的 `onClick`，只认 `detail === 0` 的合成点击）。
+  **「松开在别处就不触发」这一半是壳保证的**：`forwardFrontendNonClientButtonInput` 转发
+  `WM_NCLBUTTONUP` 前会拿松开点重新命中测试，指针已经离开那个键时这一下压根不会转给页面；
+  页面的判定只是同一条规则的兜底（外加失焦时清掉按下态）。
 
 其余细节：
 
 - **红绿灯高度注入**：macOS 红绿灯高度作为变量（默认 40px，支持 `-titlebar-height` 参数与 `DESKTOP_TITLE_BAR_HEIGHT` 环境变量），在壳启动时通过 URL 参数 `__desktop_title_bar_h=40` 注入页面首屏，页面内联脚本自动落地为 CSS 变量 `--shell-chrome-h: 40px`，确保所有布局几何（侧边栏、分屏面板、内容区）像素级齐平。
 - **左侧红绿灯避让**：窗口条左侧预留 `--shell-traffic-light-w: 78px` 避让区，避免页面标签或操作与红绿灯发生重叠冲突。
 - **行末窗口控制区**：这两个变量都定义在 `apps/web/src/styles.css`，由 `<html>` 上的 `is_mac` / `is_windows` 分流，**非对应平台一律 0px**。
+- **窗口键的悬停提示**：三个键各包一层 Kumo `Tooltip`（`side="bottom"`），提示语就是按钮名（复用 `windowControls.*` 的文案）。悬停本身走壳转发的 `WM_NCMOUSEMOVE`（`routeNonClientInput` 里按区域重新命中后才 `SendMouseInput`），所以和 CSS `:hover` 一样能用。
 - **拖拽**：非 Windows 平台仍在顶栏 Header 上写 `--wails-draggable: drag`、交互控件写 `no-drag`，页面侧按 3px 阈值发 `wails:drag`；**Windows 不走这条路**：窗口条的空白区是原生 caption 区，按下即由系统开始拖动。
 - **双击**：Windows 的 caption 区归系统，页面收不到那里的鼠标事件；最大化/还原请用行末那个键（悬停它还有贴靠浮层）。macOS/Linux 的双击由各自的系统标题栏处理。
 
