@@ -108,11 +108,15 @@ export function wasTabRecentlyTransferred(to: string): boolean {
   return false
 }
 
-/** 检测释放点是否确实在当前窗口外边界之外 */
-export function isDragReleasedOutsideWindow(event: React.DragEvent | DragEvent): boolean {
+/**
+ * 一个**屏幕坐标**是否在当前窗口之外（留 20px 容差，贴着窗口边缘不算）。
+ *
+ * 两条拖拽通道共用这一条判据：原生拖拽（`isDragReleasedOutsideWindow`）与指针拖动
+ * （`#/components/page-tab-strip` 的 `handleDragEnd`，它跟的是 `pointermove` 的 screen 坐标）。
+ * 用屏幕坐标而不是 client 坐标：指针拖到窗口外时，client 坐标可能被钳在视口内，screen 坐标不会。
+ */
+export function isScreenPointOutsideWindow(x: number, y: number): boolean {
   if (typeof window === 'undefined') return false
-  const x = event.screenX
-  const y = event.screenY
   if (x === 0 && y === 0) return false
 
   const winX = window.screenX ?? 0
@@ -121,6 +125,11 @@ export function isDragReleasedOutsideWindow(event: React.DragEvent | DragEvent):
   const winH = window.outerHeight ?? window.innerHeight
 
   return x < winX - 20 || x > winX + winW + 20 || y < winY - 20 || y > winY + winH + 20
+}
+
+/** 检测释放点是否确实在当前窗口外边界之外 */
+export function isDragReleasedOutsideWindow(event: React.DragEvent | DragEvent): boolean {
+  return isScreenPointOutsideWindow(event.screenX, event.screenY)
 }
 
 /** 广播 Tab 已成功被目标窗口接收并转移 */
