@@ -1,3 +1,4 @@
+import { Tooltip } from '@cloudflare/kumo'
 import { useEffect, useState, type ReactNode } from 'react'
 import { cn } from '#/lib/cn'
 import { useT } from '#/lib/use-typed-t'
@@ -9,14 +10,15 @@ import { runWindowControl } from './window-chrome'
  *
  * ## 分工
  *
- * - **视觉**（图标 / 悬停底色 / aria / 尺寸）：这里。
+ * - **视觉**（图标 / 悬停底色 / 悬停提示 / aria / 尺寸）：这里。
  * - **命中、悬停与按下态、最大化键的 Win11 贴靠布局（Snap Layouts）**：Windows。
  *   三个按钮各自标 `--wails-non-client-region: minimize|maximize|close`，
- *   `#/native/bridge` 把它们（连同窗口条空白区的 `caption`）的矩形报给壳，
+ *   `#/native/window-chrome` 把它们（连同窗口条空白区的 `caption`）的矩形报给壳，
  *   壳转成 `HTMINBUTTON` / `HTMAXBUTTON` / `HTCLOSE`；壳侧开
  *   `Windows.WebView2CompositionHosting` 才有这条路径（见 `apps/native/main.go`）。
- * - **动作**（真的去最小化 / 最大化 / 关闭）：`#/native/bridge` 在窗口捕获阶段按
- *   `data-window-control` 做矩形命中后调 `window.*` —— 为什么不直接挂 onClick，见 `#/native/window-chrome` 的注释。
+ * - **动作**（真的去最小化 / 最大化 / 关闭）：`#/native/window-chrome` 在窗口捕获阶段按下时记住
+ *   是哪个键、松开时只有落回同一个键才调 `window.*` —— 为什么不直接挂 onClick、为什么是
+ *   「按下 + 松开」而不是「按下」，见那个文件的注释。
  *
  * 为什么不是系统画的按钮：Windows 上壳去掉了系统标题栏，而系统画的那三个按钮**无法脱离
  * 标题栏存在**（实测：把整块 DWM 边框扩进客户区只会让它们「画出来但点不动」）。
@@ -90,8 +92,13 @@ const REGION_CLASS: Record<'minimize' | 'maximize' | 'close', string> = {
  * 系统标题栏按钮的视觉：整条高、宽度由父容器的 `flex-1` 决定（46px ≈ 系统按钮宽度），
  * 悬浮态跟窗口条其余部分一致（Kumo 的 tint / fill），关闭键用 Kumo 的 danger 语义色。
  *
- * 两个标记各司其职：`--wails-non-client-region` 让系统认它（命中/贴靠），
- * `data-window-control` 给 `#/native/bridge` 的捕获监听算命中（动作）。这里不挂点击回调。
+ * 三个标记各司其职：`--wails-non-client-region` 让系统认它（命中/贴靠）、
+ * `data-window-control` 给 `#/native/window-chrome` 的捕获监听算命中（动作）、
+ * `Tooltip` 给悬停提示（跟系统标题栏一样：提示语就是按钮名）。
+ *
+ * 鼠标点击**不在这里处理**：壳转发过来的按下 / 松开由 `#/native/window-chrome` 按
+ * 「按下与松开必须落在同一个键上」判定（这里拿不到 click 事件，见那个文件的注释）。
+ * 这里只留键盘入口 —— Enter/Space 合成点击的 `detail` 恒为 0（鼠标点击的 detail ≥ 1）。
  */
 function CaptionButton({
   label,
@@ -105,23 +112,29 @@ function CaptionButton({
   children: ReactNode
 }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      data-window-control={kind}
-      /* 键盘入口：Enter/Space 产生的 click 的 detail 恒为 0（鼠标点击不会走到这里，见 bridge.ts） */
-      onClick={(event) => {
-        if (event.detail === 0) runWindowControl(kind)
-      }}
-      className={cn(
-        REGION_CLASS[kind],
-        'no-drag flex h-full flex-1 cursor-default items-center justify-center',
-        'text-kumo-default transition-colors',
-        danger
-          ? 'hover:bg-kumo-danger hover:text-white active:bg-kumo-danger'
-          : 'hover:bg-kumo-tint active:bg-kumo-fill',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-line focus-visible:ring-inset',
-      )}
+    <Tooltip
+      content={label}
+      side="bottom"
+      delay={120}
+      render={
+        <button
+          type="button"
+          aria-label={label}
+          data-window-control={kind}
+          onClick={(event) => {
+            if (event.detail === 0) runWindowControl(kind)
+          }}
+          className={cn(
+            REGION_CLASS[kind],
+            'no-drag flex h-full flex-1 cursor-default items-center justify-center',
+            'text-kumo-default transition-colors',
+            danger
+              ? 'hover:bg-kumo-danger hover:text-white active:bg-kumo-danger'
+              : 'hover:bg-kumo-tint active:bg-kumo-fill',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-kumo-line focus-visible:ring-inset',
+          )}
+        />
+      }
     >
       <svg
         width="10"
@@ -136,7 +149,7 @@ function CaptionButton({
       >
         {children}
       </svg>
-    </button>
+    </Tooltip>
   )
 }
 

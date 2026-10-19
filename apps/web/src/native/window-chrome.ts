@@ -12,7 +12,10 @@ import { call, desktopWindowName, sendHostMessage, usesWindowsChrome } from './b
  *    坐标**物理像素**（壳侧 `nonClientHitTestRegion` 的注释：client-area 矩形，物理像素）。
  * 2. **执行窗口动作**：落在申报区域里的点击到不了 DOM 按钮（壳只把 `WM_NCLBUTTON*` 转成
  *    WebView2 的鼠标输入，beta.28 实测按钮的 `onClick` 不触发），所以在 `window` 的捕获阶段
- *    按 `data-window-control` 做矩形命中，再调壳的 `window.*`。
+ *    自己实现按钮的原始逻辑 —— 按下时记下按的是哪个键，**松开时只有落回同一个键**才调壳的
+ *    `window.*`。壳正好帮了同一件事：转发 `WM_NCLBUTTONUP` 前会拿松开点重新命中测试
+ *    （`forwardFrontendNonClientButtonInput` 要求命中结果仍是原来那个键），所以「按下后滑走
+ *    再松开」连 `mouseup` 都不会转发过来，不会误触发。
  *
  * macOS 有系统红绿灯、Linux 保留 GTK 原生标题栏 —— 两边都不需要这些。
  *
@@ -31,8 +34,25 @@ const NON_CLIENT_REGION_KINDS: Record<string, true> = {
 /** 上一次发出去的载荷，用来去重（窗口条不动时不必反复发同一份）。 */
 let lastNonClientRegions = ''
 
+/** 三个窗口键；`data-window-control` 上写的也是这三个值。 */
+type WindowControlKind = 'minimize' | 'maximize' | 'close'
+
+const WINDOW_CONTROL_KINDS: Record<string, true> = {
+  minimize: true,
+  maximize: true,
+  close: true,
+}
+
+/** 视口坐标下是哪个窗口键（不在任何键上就是 undefined）。 */
+function windowControlUnder(clientX: number, clientY: number): WindowControlKind | undefined {
+  const kind = document
+    .elementFromPoint(clientX, clientY)
+    ?.closest<HTMLElement>('[data-window-control]')?.dataset.windowControl
+  return kind && Object.hasOwn(WINDOW_CONTROL_KINDS, kind) ? (kind as WindowControlKind) : undefined
+}
+
 /** 执行一个窗口动作（最小化 / 最大化-还原 / 关闭）。 */
-export function runWindowControl(kind: 'minimize' | 'maximize' | 'close'): void {
+export function runWindowControl(kind: WindowControlKind): void {
   const name = desktopWindowName()
   const request =
     kind === 'close'
@@ -82,7 +102,7 @@ export function reportNonClientRegions(): void {
 /**
  * 安装窗口 chrome：
  * - 立即上报一次非客户区，之后跟随尺寸 / 滚动 / DOM 变化（rAF 合帧）；
- * - 在 `window` 捕获阶段接管三个窗口键的按下（事件到不了按钮本身，见文件头注释）。
+ * - 在 `window` 捕获阶段接管三个窗口键的**按下 / 松开**（事件到不了按钮本身，见文件头注释）。
  *
  * 幂等；只在 Windows 桌面壳里生效，其它平台直接返回。
  */
@@ -109,20 +129,49 @@ export function installWindowChrome(): void {
     attributeFilter: ['class', 'style', 'hidden'],
   })
 
+  /*
+   * 按钮的原始语义：**按下 → 松开，且两下落在同一个键上**才算一次点击。
+   * 不能按下就执行 —— 那会在用户按下即最小化 / 关闭窗口（拖到一半想反悔也来不及），
+   * 键盘的 Enter/Space 走按钮自己的 `onClick`（只认 `detail === 0`）。
+   */
+  let pressedKind: WindowControlKind | null = null
+
   window.addEventListener(
     'mousedown',
     (event) => {
       if (event.button !== 0) return
-      const kind = document
-        .elementFromPoint(event.clientX, event.clientY)
-        ?.closest<HTMLElement>('[data-window-control]')?.dataset.windowControl
-      if (kind !== 'minimize' && kind !== 'maximize' && kind !== 'close') return
+      const kind = windowControlUnder(event.clientX, event.clientY)
+      pressedKind = kind ?? null
+      if (!kind) return
 
-      // 这次按下归窗口键：别再当成拖动窗口条的空白区
+      // 这次按下归窗口键：别再当成拖动窗口条的空白区，也别让上层拿到这一下
       event.stopPropagation()
       event.preventDefault()
-      runWindowControl(kind)
     },
     { capture: true },
   )
+
+  window.addEventListener(
+    'mouseup',
+    (event) => {
+      if (event.button !== 0) return
+      const started = pressedKind
+      pressedKind = null
+      // 没按在窗口键上（或按下已在别处被清掉）→ 不是窗口键的点击
+      if (!started) return
+      // 兜底：松开时指针已经不在那个键上就不执行（正常情况下这个 mouseup 压根不会被转发过来）
+      if (windowControlUnder(event.clientX, event.clientY) !== started) return
+
+      runWindowControl(started)
+    },
+    { capture: true },
+  )
+
+  /*
+   * 按下后滑到窗口外再松开时，壳不会把那个 `mouseup` 交给页面（见文件头注释），
+   * 用窗口失焦兜底清掉按下态 —— 免得它一直挂到下一次点击。
+   */
+  window.addEventListener('blur', () => {
+    pressedKind = null
+  })
 }
