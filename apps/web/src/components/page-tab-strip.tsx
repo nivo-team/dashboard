@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next'
 import {
   markDragEnd,
   PageTabItem,
+  tearOffTab,
   type PageTabVariant,
   type TabActions,
 } from '#/components/page-tab-item'
@@ -29,6 +30,8 @@ import {
   subscribeTabTransferred,
   markDragHandled,
   isTabExchangeAllowedWindow,
+  isScreenPointOutsideWindow,
+  wasTabRecentlyTransferred,
 } from '#/native/tab-transfer'
 import { desktopWindowName, isDesktop, closeDesktopWindow } from '#/native/bridge'
 
@@ -63,14 +66,15 @@ export interface PageTabStripProps {
  * ## 布局：三个区域，各管一件事
  *
  * ```
- * [ 标签区：固定 + 滚动……（最大占据屏幕剩余内容）] [ + ] [ ← 留白（拖拽区）] [ 行末工具区 ]
+ * [ 标签区：固定 + 滚动……（按内容收缩，装不下才横滑）] [ + ] [ ← 留白（拖拽区）] [ 行末工具区 ]
  * ```
  *
- * - **标签区**最大占据屏幕剩余空间：标签少时根据内容收缩、「+」紧挨在标签后面；
- *   标签多时充分占满屏幕剩余可用宽度横滑，不再被硬编码上限截断；
+ * - **标签区按内容收缩**：标签少时就那么宽、「+」紧挨在标签后面；多余的宽度留给窗口条本来的
+ *   **留白（拖拽区）**。标签多到装不下时它照样收得住（`min-w-0`），滚动区自己横滑 ——
+ *   所以容器不写 `flex-1`：撑满的话，多出来的那一段既不是标签、也拖不动窗口。
  * - **「+」跟着标签走，不钉在最右边**：它在滚动区之外、紧挨着滚动区的右边缘 ——
  *   标签少时它就在最后一个标签后面，标签多到溢出时它仍在（滚动）区外看得见；
- * - **拖拽区不受影响**：这三个容器都**不写** `--wails-draggable`（继承窗口条的 drag），
+ * - **拖拽区不受影响**：这几个容器都**不写** `--wails-draggable`（继承窗口条的 drag），
  *   只有标签本身与「+」写 `no-drag` —— 于是标签右边那片留白照样能拖着走窗口。
  *
  * ## 拖拽排序（dnd-kit）
@@ -79,6 +83,12 @@ export interface PageTabStripProps {
  * 只允许横向移动（`restrictToHorizontalAxis`）。排序规则在 store 里 ——
  * **不跨越固定 / 未固定那条界线**（见 `#/lib/page-tabs` 的 `moveTab`）。
  * 键盘拖拽刻意没开（它的激活键是空格 / 回车，与标签本身的激活键冲突）。
+ *
+ * **拖出窗口 = 撕成新窗口**：拖拽结束时指针已经出了窗口边界（跟 `pointermove` 的屏幕坐标，
+ * 判据与原生拖拽共用 `isScreenPointOutsideWindow`）就把这个标签开成独立窗口，跟 Chrome 一样。
+ *
+ * **桌面壳里按住 Shift = 走原生拖拽**（跨窗口流转 / 撕页，见 `#/components/page-tab-item`
+ * 里 `useSortable` 的注释）：两条通道必须互斥，所以 Shift 按下时指针排序让路。
  */
 export function PageTabStrip({
   homeTo,
@@ -122,9 +132,56 @@ export function PageTabStrip({
   const [dragPinned, setDragPinned] = useState<boolean | null>(null)
   const [isOverTransferTarget, setIsOverTransferTarget] = useState(false)
 
+  /**
+   * 桌面壳里按住 **Shift** 时，这一拖让给**原生拖拽**（跨窗口流转 / 撕成新窗口），
+   * 指针排序在这一下让路 —— 两者必须互斥：dnd-kit 的指针传感器一装上就在 window 上
+   * `preventDefault` 掉 `dragstart`（见 `#/components/page-tab-item` 里 `useSortable` 的注释）。
+   * 之所以用修饰键而不是「原生优先」，是因为 `draggable` 的原生拖拽一起手，指针事件就断了，
+   * 排序做不了 —— 反过来 dnd-kit 一起手，原生拖拽就起不来。
+   */
+  const [nativeDragArmed, setNativeDragArmed] = useState(false)
+
+  useEffect(() => {
+    if (!isDesktop()) return
+    // keydown / keyup 都带 shiftKey，所以「按下」与「松开」用同一个 handler
+    const sync = (event: KeyboardEvent) => setNativeDragArmed(event.shiftKey)
+    const clear = () => setNativeDragArmed(false)
+    window.addEventListener('keydown', sync)
+    window.addEventListener('keyup', sync)
+    window.addEventListener('blur', clear)
+    return () => {
+      window.removeEventListener('keydown', sync)
+      window.removeEventListener('keyup', sync)
+      window.removeEventListener('blur', clear)
+    }
+  }, [])
+
+  /**
+   * 拖拽过程中指针的**屏幕**坐标。
+   *
+   * dnd-kit 的事件里拿不到释放点：`delta` 被 `restrictToHorizontalAxis` 抹掉了 y，
+   * `activatorEvent` 只有起点。而「拖出窗口 = 撕成新窗口」只看释放点在不在窗口里，
+   * 所以要自己跟一次 `pointermove`；用 screen 坐标，指针拖到窗口外时不会被钳在视口内
+   * （判据与原生拖拽那条路共用 `isScreenPointOutsideWindow`）。
+   */
+  const dragPointerRef = useRef<{ x: number; y: number } | null>(null)
+
+  useEffect(() => {
+    if (dragPinned === null) return
+    dragPointerRef.current = null
+    const track = (event: PointerEvent) => {
+      dragPointerRef.current = { x: event.screenX, y: event.screenY }
+    }
+    window.addEventListener('pointermove', track)
+    return () => window.removeEventListener('pointermove', track)
+  }, [dragPinned])
+
   /** 当前路径对应的标签（也是「哪个标签是激活态」的判据） */
   const activeTab = resolvePageTab(pathname)
   const actions = useTabActions(homeTo, activeTab?.to ?? null)
+
+  /** 标签的显示名（撕成新窗口时当窗口标题用） */
+  const tabLabel = (tab: PageTab) => (tab.labelKey ? t(tab.labelKey, tab.label) : tab.label)
 
   // 跨窗口接收广播监听：若本窗口流出的 Tab 已被其它窗口接收，由本窗口负责移除该 Tab
   useEffect(() => {
@@ -249,6 +306,20 @@ export function PageTabStrip({
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     // 先记一笔：紧接着浏览器补的那个 click 不能再当成「点了标签」
     markDragEnd()
+
+    const dragged = tabs.find((tab) => tab.to === active.id)
+    const pointer = dragPointerRef.current
+    /*
+      指针已经拖出窗口再松开：按「撕成独立窗口」处理 —— 与原生拖拽那条路同一套语义
+      （Chrome 的标签页也是拖出去就成新窗口）。已经交接给别的窗口的那一下不再重复撕。
+    */
+    if (dragged && pointer && isScreenPointOutsideWindow(pointer.x, pointer.y)) {
+      if (!wasTabRecentlyTransferred(dragged.to)) {
+        tearOffTab(dragged, tabLabel(dragged), actions)
+      }
+      return
+    }
+
     if (!over || active.id === over.id) return
     moveTab(String(active.id), String(over.id))
   }
@@ -313,7 +384,13 @@ export function PageTabStrip({
       onDragLeave={handleNativeDragLeave}
       onDrop={handleNativeDrop}
       className={cn(
-        'flex min-w-0 flex-1 items-center gap-1 self-stretch rounded-md transition-all',
+        /*
+          标签区**按内容收缩**（`shrink` 而不是 `flex-1`）：标签少时就那么宽，剩下的留白
+          归窗口条本来的**拖拽区**（Windows 上那块是申报成 caption 的空白 div，见
+          `#/native/title-bar`）—— 撑满的话，多出来的那段既不是标签、也拖不动窗口。
+          标签多到装不下时仍然收缩：`min-w-0` 让外层能被压窄，滚动区自己横滑。
+        */
+        'flex min-w-0 shrink items-center gap-1 self-stretch rounded-md transition-all',
         isOverTransferTarget && 'ring-2 ring-kumo-brand/60 bg-kumo-base/30',
         className,
       )}
@@ -347,8 +424,8 @@ export function PageTabStrip({
         <SortableContext items={tabs.map((tab) => tab.to)} strategy={horizontalListSortingStrategy}>
           {/*
             两个区：**固定的标签不参与滚动**（单独一个容器，永远露在外面），
-            只有未固定的标签进滚动容器。最大宽度占据屏幕剩余内容，
-            标签少时根据内容自适应紧凑、「+」紧随其后；标签多时充分占满剩余可用宽度并在内部滚动。
+            只有未固定的标签进滚动容器。两者都由内容决定宽度（装不下时外层收窄、滚动区横滑），
+            所以「+」与标签贴在一起，多余宽度留给窗口条的拖拽区。
           */}
           <div className="flex h-full min-w-0 shrink items-center gap-1 no-drag">
             {pinnedEntries.length > 0 ? (
@@ -363,6 +440,7 @@ export function PageTabStrip({
                       variant={variant}
                       actions={actions}
                       dragPinned={dragPinned}
+                      nativeDragArmed={nativeDragArmed}
                       active={tab.to === activeTab?.to}
                     />
                   ))}
@@ -387,6 +465,7 @@ export function PageTabStrip({
                       variant={variant}
                       actions={actions}
                       dragPinned={dragPinned}
+                      nativeDragArmed={nativeDragArmed}
                       active={tab.to === activeTab?.to}
                     />
                   ))}

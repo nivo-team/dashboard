@@ -37,6 +37,12 @@ import { usePageTabsStore, resolvePageTab, type PageTab } from '#/lib/page-tabs'
  * - `chrome`：桌面壳窗口条里的胶囊标签，与侧边栏折叠按钮及历史导航同高（28px / h-7），
  *   上下边距对称居中对齐；
  * - `plain`：浏览器顶栏里的小卡片（默认 h-8 / 32px）。
+ *
+ * ## 拖拽（两条通道，互斥）
+ *
+ * 默认走 dnd-kit 的**指针拖动**（桌面壳与浏览器一样，`useSortable` 的 `disabled` 只按
+ * 「固定 / 未固定分组」与 Shift 判定）；桌面壳里按住 **Shift** 才交给**原生拖拽**，
+ * 用于跨窗口流转 / 撕页。原因见下面 `useSortable` 的注释。
  */
 
 /** 标签上的动作。跳转与「关掉当前页之后去哪」都由 `#/components/page-tab-strip` 收口。 */
@@ -95,6 +101,34 @@ interface PageTabItemProps {
    * 固定的与未固定的是两个区段，拖动不该把另一段也带着动。
    */
   dragPinned: boolean | null
+  /**
+   * 桌面壳里按住 Shift：这一拖交给原生通道（跨窗口流转 / 撕成新窗口），指针排序让路。
+   * 见下面 `useSortable` 的注释。
+   */
+  nativeDragArmed: boolean
+}
+
+/**
+ * 把标签**撕成独立窗口**：走 `openDesktopWindow` 开一扇 `?__layout=standalone` 的窗口，
+ * 然后把它从当前窗口的标签里摘掉。
+ *
+ * 三条入口共用它：指针拖动拖出窗口边界（`#/components/page-tab-strip` 的 `handleDragEnd`）、
+ * 原生拖拽拖出窗口（按住 Shift，见下面 `useSortable` 的注释）、右键菜单的「在新窗口打开」。
+ * 「已经是独立子窗口且只剩这一个标签」时不动手 —— 撕出去等于换一扇同样内容的窗口。
+ */
+export function tearOffTab(tab: PageTab, label: string, actions: TabActions): void {
+  const currentWindow = desktopWindowName()
+  if (currentWindow !== 'main' && usePageTabsStore.getState().tabs.length <= 1) return
+
+  const cleanTo = tab.to.split('?')[0].split('#')[0]
+  void openDesktopWindow({
+    path: `${cleanTo}?__layout=standalone`,
+    name: `page_${Date.now()}`,
+    title: label || 'Nivo Admin',
+    width: 1120,
+    height: 760,
+  })
+  actions.close(tab.to)
 }
 
 export function PageTabItem({
@@ -105,6 +139,7 @@ export function PageTabItem({
   tabs,
   index,
   dragPinned,
+  nativeDragArmed,
 }: PageTabItemProps) {
   const { t } = useTranslation()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -116,9 +151,17 @@ export function PageTabItem({
   /** 拖的是另一组的标签：自己这一组完全不参与（不可拖、不可落、不位移） */
   const foreignGroup = dragPinned !== null && dragPinned !== pinned
 
+  /*
+    桌面壳里**默认也是 dnd-kit 的指针拖动**（与浏览器同一套手感），按住 Shift 才把这一下
+    让给原生拖拽（跨窗口流转 / 撕成新窗口）。
+    两者必须互斥：dnd-kit 的指针传感器一装上就在 window 上 `preventDefault` 掉 `dragstart`
+    （`AbstractPointerSensor` 的 `EventName.DragStart`），原生拖拽根本起不来；反过来
+    `draggable` 的原生拖拽一起手，指针事件就断了，排序也做不了。所以按住 Shift 时把
+    `useSortable` 关掉（`disabled` 会让它连 `onPointerDown` 都不挂），原生拖拽才拿得到这一下。
+  */
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: tab.to,
-    disabled: isDesktopShell || { draggable: foreignGroup, droppable: foreignGroup },
+    disabled: { draggable: foreignGroup || nativeDragArmed, droppable: foreignGroup },
   })
 
   const stackClass = isDragging ? 'z-20 opacity-80' : active ? 'z-10' : undefined
@@ -132,28 +175,17 @@ export function PageTabItem({
 
   const handleOpenInNew = () => {
     if (isDesktop()) {
-      const cleanTo = tab.to.split('?')[0].split('#')[0]
-      const targetUrl = `${cleanTo}?__layout=standalone`
-      const windowName = `page_${Date.now()}`
-      void openDesktopWindow({
-        path: targetUrl,
-        name: windowName,
-        title: label || 'Nivo Admin',
-        width: 1120,
-        height: 760,
-      })
-      // 成功调起新独立窗口后，从当前主窗口 tabs 列表中移除该标签
-      actions.close(tab.to)
-    } else {
-      if (typeof window !== 'undefined') {
-        window.open(tab.to, '_blank')
-      }
+      tearOffTab(tab, label, actions)
+      return
+    }
+    if (typeof window !== 'undefined') {
+      window.open(tab.to, '_blank')
     }
   }
 
-  // 原生拖拽事件：同时支持同窗口排序与跨窗口流转
+  // 原生拖拽事件：按住 Shift 才走这条通道（跨窗口流转），指针拖动负责同窗口排序
   const handleNativeDragStart = (event: React.DragEvent) => {
-    if (!isDesktopShell) return
+    if (!isDesktopShell || !nativeDragArmed) return
     startTabDragSession(event.dataTransfer, tab)
     markDragEnd()
   }
@@ -221,7 +253,7 @@ export function PageTabItem({
 
   // 原生拖拽结束：如果直接拖出当前窗口并在桌面释放，触发「撕下标签页成新窗口」
   const handleNativeDragEnd = (event: React.DragEvent) => {
-    if (!isDesktopShell) return
+    if (!isDesktopShell || !nativeDragArmed) return
     setIsDragOverThisTab(false)
     const dragSession = endTabDragSession()
 
@@ -230,33 +262,13 @@ export function PageTabItem({
       return
     }
 
-    // 2. 检测释放坐标是否已拖出当前窗口边界
+    // 2. 没拖出窗口边界就什么都不做（同窗口排序由 drop 那条路完成）
     if (!isDragReleasedOutsideWindow(event)) {
       return
     }
 
-    // 3. 若当前窗口已是独立子窗口且仅有这一个 Tab，无需重复拆出
-    const currentWindow = desktopWindowName()
-    const currentTabs = usePageTabsStore.getState().tabs
-    if (currentWindow !== 'main' && currentTabs.length <= 1) {
-      return
-    }
-
-    // 4. 触发「拖出窗口 = 独立新窗口打开」
-    const cleanTo = tab.to.split('?')[0].split('#')[0]
-    const targetUrl = `${cleanTo}?__layout=standalone`
-    const windowName = `page_${Date.now()}`
-
-    void openDesktopWindow({
-      path: targetUrl,
-      name: windowName,
-      title: label || 'Nivo Admin',
-      width: 1120,
-      height: 760,
-    })
-
-    // 从原窗口中移除该 Tab
-    actions.close(tab.to)
+    // 3. 拖出窗口 = 独立新窗口打开（「只有一个标签的子窗口」由 tearOffTab 自己挡掉）
+    tearOffTab(tab, label, actions)
   }
 
   return (
@@ -273,6 +285,9 @@ export function PageTabItem({
         无需精准点击内部 28px 矩形。
       */}
       <DropdownMenu.Trigger
+        /* 触发区是我们自己的 `role="tab"` 容器（内含 ✕ 按钮、还挂着 dnd-kit 的拖拽监听），
+           不是原生 button —— 不关掉 Base UI 的 nativeButton 期望，控制台会一直警告。 */
+        nativeButton={false}
         render={
           <div
             ref={setNodeRef}
@@ -305,7 +320,11 @@ export function PageTabItem({
                 actions.activate(tab.to)
               }
             }}
-            draggable={isDesktopShell}
+            /*
+              原生拖拽只在按住 Shift 时打开：不按的话这一下归 dnd-kit 的指针拖动（排序）。
+              接收别的窗口拖进来的标签不依赖这里 —— 那由下面的 onDragOver / onDrop 负责。
+            */
+            draggable={isDesktopShell && nativeDragArmed}
             onDragStart={handleNativeDragStart}
             onDragOver={handleNativeDragOver}
             onDragLeave={handleNativeDragLeave}

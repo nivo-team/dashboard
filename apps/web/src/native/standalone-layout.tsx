@@ -18,7 +18,7 @@ import { usePageTabsStore } from '#/lib/page-tabs'
  * 1. 浮在窗口最顶端，整宽贯穿，左侧物理避让 macOS 原生红绿灯；
  * 2. 红绿灯右侧紧跟前进/后退历史导航 DesktopHistoryNav 与 PageTabStrip 标签条；
  * 3. 右侧工具区按需精简：**仅保留 Ask AI**，支持与用户头像等仅在主窗口展示；
- * 4. 标签条最大化自适应剩余可用空间，全条空白区支持拖拽（drag）与原生双击缩放。
+ * 4. 标签条按内容收缩（装不下才横滑），剩下的空白留给窗口拖拽区；整条空白区支持拖拽（drag）与原生双击缩放。
  */
 function DesktopStandaloneTitleBar({
   onToggleAskAi,
@@ -75,7 +75,8 @@ function DesktopStandaloneTitleBar({
  * 桌面壳独立子窗口布局（对标 VS Code 辅助窗口模式）：
  *
  * 1. 拥有完整的标签页系统（PageTabStrip），支持标签打开、关闭、排序；
- * 2. 支持与主窗口以及其它子窗口互相拖动 Tab 标签流转；
+ * 2. 支持与主窗口以及其它子窗口互相拖动 Tab 标签流转（按住 Shift 走原生拖拽，见
+ *    `#/components/page-tab-item`；不按 Shift 则是窗口内排序）；
  * 3. 顶栏操作区精简：仅包含 Ask AI 助手入口，不含支持和账号菜单；
  * 4. 工作区全高展示，无左侧主导航栏，提供开阔的工作与编辑视界；
  * 5. 支持开合右侧 AI 面板；
