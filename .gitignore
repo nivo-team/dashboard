@@ -21,3 +21,6 @@ todos.json
 .pnpm-store
 .tmp-*
 .local-bin
+ 
+# TanStack Router auto-generated 
+apps/web/src/routeTree.gen.ts 
